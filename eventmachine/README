@@ -3,7 +3,7 @@ $Id$
 Preliminary README for RUBY/EventMachine
 
 Author: blackhedd (gmail address: garbagecat20)
-Date: 8 Apr 2006
+Date: 9 Apr 2006
 
 EventMachine implements a fast, single-threaded engine for arbitrary network
 communications. It's extremely easy to use in Ruby. EventMachine wraps all
