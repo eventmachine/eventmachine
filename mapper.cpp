@@ -32,6 +32,7 @@ See the file COPYING for complete licensing information.
 #include <errno.h>
 
 #include <iostream>
+#include "unistd.h"
 #include <string>
 #include <stdexcept>
 using namespace std;
