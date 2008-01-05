@@ -105,4 +105,5 @@ daemons saslauthd and pwcheck.
 30Dec07: Implemented Kqueue support for OSX and BSD.
 04Jan08: Fixed bug in epoll ("Bad file descriptor"), patch supplied by Chris
 	Heath.
-
+04Jan08: Fixed bug reported by Michael S. Fischer. We were terminating
+	SSL connections that sent data before the handshake was complete.
