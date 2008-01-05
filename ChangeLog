@@ -103,4 +103,6 @@ daemons saslauthd and pwcheck.
 27Dec07: Removed the hookable error handler. No one was using it and it significantly
 	degraded performance.
 30Dec07: Implemented Kqueue support for OSX and BSD.
+04Jan08: Fixed bug in epoll ("Bad file descriptor"), patch supplied by Chris
+	Heath.
 
