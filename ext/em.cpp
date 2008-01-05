@@ -450,20 +450,30 @@ bool EventMachine_t::_RunEpollOnce()
 		// vector::pop_back works in constant time.
 		// TODO, rip this out and only delete the descriptors we know have died,
 		// rather than traversing the whole list.
+		//  Modified 05Jan08 per suggestion by Chris Heath. It's possible that
+		//  an EventableDescriptor will have a descriptor value of -1. That will
+		//  happen if EventableDescriptor::Close was called on it. In that case,
+		//  don't call epoll_ctl to remove the socket's filters from the epoll set.
+		//  According to the epoll docs, this happens automatically when the
+		//  descriptor is closed anyway. This is different from the case where
+		//  the socket has already been closed but the descriptor in the ED object
+		//  hasn't yet been set to INVALID_SOCKET.
 		int i, j;
 		int nSockets = Descriptors.size();
 		for (i=0, j=0; i < nSockets; i++) {
 			EventableDescriptor *ed = Descriptors[i];
 			assert (ed);
 			if (ed->ShouldDelete()) {
-				assert (bEpoll); // wouldn't be in this method otherwise.
-				assert (epfd != -1);
-				int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
-				// ENOENT is not an error because the socket may be already closed when we get here.
-				if (e && (errno != ENOENT)) {
-					char buf [200];
-					snprintf (buf, sizeof(buf)-1, "unable to delete epoll event: %s", strerror(errno));
-					throw std::runtime_error (buf);
+				if (ed->GetSocket() != INVALID_SOCKET) {
+					assert (bEpoll); // wouldn't be in this method otherwise.
+					assert (epfd != -1);
+					int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
+					// ENOENT is not an error because the socket may be already closed when we get here.
+					if (e && (errno != ENOENT)) {
+						char buf [200];
+						snprintf (buf, sizeof(buf)-1, "unable to delete epoll event: %s", strerror(errno));
+						throw std::runtime_error (buf);
+					}
 				}
 
 				ModifiedDescriptors.erase (ed);
