@@ -370,6 +370,9 @@ int SslBox_t::PutPlaintext (const char *buf, int bufsize)
 
 	OutboundQ.Push (buf, bufsize);
 
+	if (!SSL_is_init_finished (pSSL))
+		return 0;
+
 	bool fatal = false;
 	bool did_work = false;
 
