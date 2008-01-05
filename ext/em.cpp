@@ -460,7 +460,7 @@ bool EventMachine_t::_RunEpollOnce()
 				assert (epfd != -1);
 				int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
 				// ENOENT is not an error because the socket may be already closed when we get here.
-				if (e && (e != ENOENT)) {
+				if (e && (errno != ENOENT)) {
 					char buf [200];
 					snprintf (buf, sizeof(buf)-1, "unable to delete epoll event: %s", strerror(errno));
 					throw std::runtime_error (buf);
