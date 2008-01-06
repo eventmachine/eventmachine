@@ -450,7 +450,7 @@ bool EventMachine_t::_RunEpollOnce()
 		// vector::pop_back works in constant time.
 		// TODO, rip this out and only delete the descriptors we know have died,
 		// rather than traversing the whole list.
-		//  Modified 05Jan08 per suggestion by Chris Heath. It's possible that
+		//  Modified 05Jan08 per suggestions by Chris Heath. It's possible that
 		//  an EventableDescriptor will have a descriptor value of -1. That will
 		//  happen if EventableDescriptor::Close was called on it. In that case,
 		//  don't call epoll_ctl to remove the socket's filters from the epoll set.
@@ -468,8 +468,8 @@ bool EventMachine_t::_RunEpollOnce()
 					assert (bEpoll); // wouldn't be in this method otherwise.
 					assert (epfd != -1);
 					int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
-					// ENOENT is not an error because the socket may be already closed when we get here.
-					if (e && (errno != ENOENT)) {
+					// ENOENT or EBADF are not errors because the socket may be already closed when we get here.
+					if (e && (errno != ENOENT) && (errno != EBADF)) {
 						char buf [200];
 						snprintf (buf, sizeof(buf)-1, "unable to delete epoll event: %s", strerror(errno));
 						throw std::runtime_error (buf);
