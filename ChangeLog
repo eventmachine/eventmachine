@@ -107,3 +107,5 @@ daemons saslauthd and pwcheck.
 	Heath.
 04Jan08: Fixed bug reported by Michael S. Fischer. We were terminating
 	SSL connections that sent data before the handshake was complete.
+08Jan08: Added an OpenBSD branch for extconf.rb, contributed by Guillaume
+	Sellier.
