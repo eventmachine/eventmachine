@@ -77,6 +77,24 @@ when /solaris/
     CONFIG['CCDLFLAGS'] = "-fPIC"
   end
 
+when /openbsd/  
+  # OpenBSD branch contributed by Guillaume Sellier.
+  flags << '-DOS_UNIX'
+  flags << '-DBUILD_FOR_RUBY'
+   
+  dir_config('ssl') # here I don't know why we have to check -lcrypto before -lssl otherwise -lssl is not found
+  if have_library('crypto') and
+    	have_library('ssl') and
+    	have_header('openssl/ssl.h') and
+    	have_header('openssl/err.h')
+    flags << '-DWITH_SSL'
+  else
+    flags << '-DWITHOUT_SSL'
+  end
+  # on Unix we need a g++ link, not gcc. On OpenBSD, linking against libstdc++ have to be explicitly done for shared libs
+  CONFIG['LDSHARED'] = "$(CXX) -shared -lstdc++"
+
+
 when /darwin/
   flags << '-DOS_UNIX'
   flags << '-DBUILD_FOR_RUBY'
