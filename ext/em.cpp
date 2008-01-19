@@ -40,6 +40,11 @@ unsigned gLastTickCount;
 static int MaxOutstandingTimers = 1000;
 
 
+/* Internal helper to convert strings to internet addresses. IPv6-aware.
+ * Not reentrant or threadsafe, optimized for speed.
+ */
+static struct sockaddr *name2address (const char *server, int port, int *family);
+
 
 /***************************************
 STATIC EventMachine_t::SetMaxTimerCount
@@ -1143,6 +1148,61 @@ const char *EventMachine_t::ConnectToUnixServer (const char *server)
 }
 
 
+/************
+name2address
+************/
+
+struct sockaddr *name2address (const char *server, int port, int *family, int *bind_size)
+{
+	// THIS IS NOT RE-ENTRANT OR THREADSAFE. Optimize for speed.
+	// Check the more-common cases first.
+	// Return NULL if no resolution.
+
+	static struct sockaddr_in in4;
+	static struct sockaddr_in6 in6;
+	struct hostent *hp;
+
+	if (!server || !*server)
+		server = "0.0.0.0";
+
+	bzero (&in4, sizeof(in4));
+	if ( (in4.sin_addr.s_addr = inet_addr (server)) != INADDR_NONE) {
+		if (family)
+			*family = AF_INET;
+		if (bind_size)
+			*bind_size = sizeof(in4);
+		in4.sin_family = AF_INET;
+		in4.sin_port = htons (port);
+		return (struct sockaddr*)&in4;
+	}
+
+	bzero (&in6, sizeof(in6));
+	if (inet_pton (AF_INET6, server, in6.sin6_addr.s6_addr) > 0) {
+		if (family)
+			*family = AF_INET6;
+		if (bind_size)
+			*bind_size = sizeof(in6);
+		in6.sin6_family = AF_INET6;
+		in6.sin6_port = htons (port);
+		return (struct sockaddr*)&in6;
+	}
+
+	hp = gethostbyname ((char*)server); // Windows requires the cast.
+	if (hp) {
+		in4.sin_addr.s_addr = ((in_addr*)(hp->h_addr))->s_addr;
+		if (family)
+			*family = AF_INET;
+		if (bind_size)
+			*bind_size = sizeof(in4);
+		in4.sin_family = AF_INET;
+		in4.sin_port = htons (port);
+		return (struct sockaddr*)&in4;
+	}
+
+	return NULL;
+}
+
+
 /*******************************
 EventMachine_t::CreateTcpServer
 *******************************/
@@ -1155,15 +1215,22 @@ const char *EventMachine_t::CreateTcpServer (const char *server, int port)
 	 * to indicate accepted connections.
 	 */
 
+
+	int family, bind_size;
+	struct sockaddr *bind_here = name2address (server, port, &family, &bind_size);
+	if (!bind_here)
+		return NULL;
+
 	const char *output_binding = NULL;
 
-	struct sockaddr_in sin;
+	//struct sockaddr_in sin;
 
-	int sd_accept = socket (AF_INET, SOCK_STREAM, 0);
+	int sd_accept = socket (family, SOCK_STREAM, 0);
 	if (sd_accept == INVALID_SOCKET) {
 		goto fail;
 	}
 
+	/*
 	memset (&sin, 0, sizeof(sin));
 	sin.sin_family = AF_INET;
 	sin.sin_addr.s_addr = INADDR_ANY;
@@ -1180,6 +1247,7 @@ const char *EventMachine_t::CreateTcpServer (const char *server, int port)
 			sin.sin_addr.s_addr = ((in_addr*)(hp->h_addr))->s_addr;
 		}
 	}
+	*/
 
 	{ // set reuseaddr to improve performance on restarts.
 		int oval = 1;
@@ -1199,7 +1267,8 @@ const char *EventMachine_t::CreateTcpServer (const char *server, int port)
 	}
 
 
-	if (bind (sd_accept, (struct sockaddr*)&sin, sizeof(sin))) {
+	//if (bind (sd_accept, (struct sockaddr*)&sin, sizeof(sin))) {
+	if (bind (sd_accept, bind_here, bind_size)) {
 		//__warning ("binding failed");
 		goto fail;
 	}
