@@ -110,3 +110,4 @@ daemons saslauthd and pwcheck.
 08Jan08: Added an OpenBSD branch for extconf.rb, contributed by Guillaume
 	Sellier.
 19Jan08: Added EM::Connection::get_sockname per request by Michael Fischer.
+19Jan08: Supported IPv6 addresses.

@@ -43,7 +43,7 @@ static int MaxOutstandingTimers = 1000;
 /* Internal helper to convert strings to internet addresses. IPv6-aware.
  * Not reentrant or threadsafe, optimized for speed.
  */
-static struct sockaddr *name2address (const char *server, int port, int *family);
+static struct sockaddr *name2address (const char *server, int port, int *family, int *bind_size);
 
 
 /***************************************
@@ -935,6 +935,16 @@ const char *EventMachine_t::ConnectToServer (const char *server, int port)
 	if (!server || !*server || !port)
 		return NULL;
 
+	int family, bind_size;
+	struct sockaddr *bind_as = name2address (server, port, &family, &bind_size);
+	if (!bind_as)
+		return NULL;
+
+	int sd = socket (family, SOCK_STREAM, 0);
+	if (sd == INVALID_SOCKET)
+		return NULL;
+
+	/*
 	sockaddr_in pin;
 	unsigned long HostAddr;
 
@@ -960,6 +970,7 @@ const char *EventMachine_t::ConnectToServer (const char *server, int port)
 	int sd = socket (AF_INET, SOCK_STREAM, 0);
 	if (sd == INVALID_SOCKET)
 		return NULL;
+	*/
 
 	// From here on, ALL error returns must close the socket.
 	// Set the new socket nonblocking.
@@ -971,7 +982,8 @@ const char *EventMachine_t::ConnectToServer (const char *server, int port)
 	const char *out = NULL;
 
 	#ifdef OS_UNIX
-	if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
+	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
+	if (connect (sd, bind_as, bind_size) == 0) {
 		// This is a connect success, which Linux appears
 		// never to give when the socket is nonblocking,
 		// even if the connection is intramachine or to
@@ -1043,7 +1055,8 @@ const char *EventMachine_t::ConnectToServer (const char *server, int port)
 	#endif
 
 	#ifdef OS_WIN32
-	if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
+	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
+	if (connect (sd, bind_as, bind_size) == 0) {
 		// This is a connect success, which Windows appears
 		// never to give when the socket is nonblocking,
 		// even if the connection is intramachine or to
