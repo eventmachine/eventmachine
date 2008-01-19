@@ -192,6 +192,20 @@ static VALUE t_get_peername (VALUE self, VALUE signature)
 	return Qnil;
 }
 
+/**************
+t_get_sockname
+**************/
+
+static VALUE t_get_sockname (VALUE self, VALUE signature)
+{
+	struct sockaddr s;
+	if (evma_get_sockname (StringValuePtr (signature), &s)) {
+		return rb_str_new ((const char*)&s, sizeof(s));
+	}
+
+	return Qnil;
+}
+
 /********************
 t_get_subprocess_pid
 ********************/
@@ -592,6 +606,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "_write_file", (VALUE(*)(...))t__write_file, 1);
 
 	rb_define_module_function (EmModule, "get_peername", (VALUE(*)(...))t_get_peername, 1);
+	rb_define_module_function (EmModule, "get_sockname", (VALUE(*)(...))t_get_sockname, 1);
 	rb_define_module_function (EmModule, "get_subprocess_pid", (VALUE(*)(...))t_get_subprocess_pid, 1);
 	rb_define_module_function (EmModule, "get_subprocess_status", (VALUE(*)(...))t_get_subprocess_status, 1);
 	rb_define_module_function (EmModule, "get_comm_inactivity_timeout", (VALUE(*)(...))t_get_comm_inactivity_timeout, 1);

@@ -1455,6 +1455,15 @@ class Connection
 		EventMachine::get_peername @signature
 	end
 
+	# #get_sockname is used with stream-connections to obtain the identity
+	# of the local side of the connection. If a local name is available, this method
+	# returns a sockaddr structure. The method returns nil if no local name is available.
+	# You can use Socket#unpack_sockaddr_in and its variants to obtain the
+	# values contained in the local-name structure returned from #get_sockname.
+	def get_sockname
+		EventMachine::get_sockname @signature
+	end
+
 	# Returns the PID (kernel process identifier) of a subprocess
 	# associated with this Connection object. For use with EventMachine#popen
 	# and similar methods. Returns nil when there is no meaningful subprocess.

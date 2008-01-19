@@ -62,6 +62,7 @@ class EventableDescriptor: public Bindable_t
 		void SetEventCallback (void (*cb)(const char*, int, const char*, int));
 
 		virtual bool GetPeername (struct sockaddr*) {return false;}
+		virtual bool GetSockname (struct sockaddr*) {return false;}
 		virtual bool GetSubprocessPid (pid_t*) {return false;}
 
 		virtual void StartTls() {}
@@ -154,6 +155,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		void SetServerMode() {bIsServer = true;}
 
 		virtual bool GetPeername (struct sockaddr*);
+		virtual bool GetSockname (struct sockaddr*);
 
 		virtual int GetCommInactivityTimeout (int *value);
 		virtual int SetCommInactivityTimeout (int *value);
@@ -220,6 +222,7 @@ class DatagramDescriptor: public EventableDescriptor
 		virtual int GetOutboundDataSize() {return OutboundDataSize;}
 
 		virtual bool GetPeername (struct sockaddr*);
+		virtual bool GetSockname (struct sockaddr*);
 
     virtual int GetCommInactivityTimeout (int *value);
     virtual int SetCommInactivityTimeout (int *value);

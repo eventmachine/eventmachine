@@ -1305,6 +1305,22 @@ bool ConnectionDescriptor::GetPeername (struct sockaddr *s)
 	return ok;
 }
 
+/*********************************
+ConnectionDescriptor::GetSockname
+*********************************/
+
+bool ConnectionDescriptor::GetSockname (struct sockaddr *s)
+{
+	bool ok = false;
+	if (s) {
+		socklen_t len = sizeof(*s);
+		int gp = getsockname (GetSocket(), s, &len);
+		if (gp == 0)
+			ok = true;
+	}
+	return ok;
+}
+
 
 /**********************************************
 ConnectionDescriptor::GetCommInactivityTimeout
@@ -1361,6 +1377,22 @@ bool DatagramDescriptor::GetPeername (struct sockaddr *s)
 		memset (s, 0, sizeof(struct sockaddr));
 		memcpy (s, &ReturnAddress, sizeof(ReturnAddress));
 		ok = true;
+	}
+	return ok;
+}
+
+/*******************************
+DatagramDescriptor::GetSockname
+*******************************/
+
+bool DatagramDescriptor::GetSockname (struct sockaddr *s)
+{
+	bool ok = false;
+	if (s) {
+		socklen_t len = sizeof(*s);
+		int gp = getsockname (GetSocket(), s, &len);
+		if (gp == 0)
+			ok = true;
 	}
 	return ok;
 }

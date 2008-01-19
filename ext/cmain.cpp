@@ -262,6 +262,22 @@ extern "C" int evma_get_peername (const char *binding, struct sockaddr *sa)
 		return 0;
 }
 
+/*****************
+evma_get_sockname
+*****************/
+
+extern "C" int evma_get_sockname (const char *binding, struct sockaddr *sa)
+{
+	if (!EventMachine)
+		throw std::runtime_error ("not initialized");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed) {
+		return ed->GetSockname (sa) ? 1 : 0;
+	}
+	else
+		return 0;
+}
+
 /***********************
 evma_get_subprocess_pid
 ***********************/

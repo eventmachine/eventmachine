@@ -109,3 +109,4 @@ daemons saslauthd and pwcheck.
 	SSL connections that sent data before the handshake was complete.
 08Jan08: Added an OpenBSD branch for extconf.rb, contributed by Guillaume
 	Sellier.
+19Jan08: Added EM::Connection::get_sockname per request by Michael Fischer.
