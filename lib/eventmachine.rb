@@ -1028,15 +1028,21 @@ module EventMachine
 	# (Experimental)
 	#
 	#
-	def EventMachine::open_keyboard handler=nil
+	def EventMachine::open_keyboard handler=nil, *args
 		klass = if (handler and handler.is_a?(Class))
 			handler
 		else
 			Class.new( Connection ) {handler and include handler}
 		end
 
+		arity = klass.instance_method(:initialize).arity
+		expected = arity >= 0 ? arity : -(arity + 1)
+		if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
+			raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
+		end
+
 		s = read_keyboard
-		c = klass.new s
+		c = klass.new s, *args
 		@conns[s] = c
 		block_given? and yield c
 		c
