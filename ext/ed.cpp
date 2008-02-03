@@ -627,10 +627,8 @@ void ConnectionDescriptor::_WriteOutboundData()
 		MyEventMachine->Modify (this);
 		#endif
 		#ifdef HAVE_KQUEUE
-		if (SelectForWrite()) {
+		if (SelectForWrite())
 			MyEventMachine->ArmKqueueWriter (this);
-			cerr << "POW\n";
-		}
 		#endif
 	}
 	else {
