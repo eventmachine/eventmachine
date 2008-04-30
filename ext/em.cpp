@@ -978,6 +978,9 @@ const char *EventMachine_t::ConnectToServer (const char *server, int port)
 		closesocket (sd);
 		return NULL;
 	}
+	// Disable slow-start (Nagle algorithm).
+	int one = 1;
+	setsockopt (sd, IPPROTO_TCP, TCP_NODELAY, (char*) &one, sizeof(one));
 
 	const char *out = NULL;
 
