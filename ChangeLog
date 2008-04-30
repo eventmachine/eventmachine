@@ -111,3 +111,5 @@ daemons saslauthd and pwcheck.
 	Sellier.
 19Jan08: Added EM::Connection::get_sockname per request by Michael Fischer.
 19Jan08: Supported IPv6 addresses.
+30Apr08: Set the NODELAY option on sockets that we connect to other servers.
+	Omission noted by Roger Pack.
