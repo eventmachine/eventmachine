@@ -76,7 +76,8 @@ typedef int SOCKET;
 #ifdef OS_WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <winsock.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <rpc.h>
 #include <fcntl.h>
 #include <assert.h>

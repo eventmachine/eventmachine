@@ -113,3 +113,4 @@ daemons saslauthd and pwcheck.
 19Jan08: Supported IPv6 addresses.
 30Apr08: Set the NODELAY option on sockets that we connect to other servers.
 	Omission noted by Roger Pack.
+14May08: Generated a 0.12 release.
