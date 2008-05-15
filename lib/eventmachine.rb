@@ -1552,6 +1552,7 @@ class Connection
 	#
 	#
 	class EventMachine::PeriodicTimer
+		attr_accessor :interval
 		def initialize *args, &block
 			@interval = args.shift
 			@code = args.shift || block
