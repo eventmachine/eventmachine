@@ -267,6 +267,8 @@ class AcceptorDescriptor: public EventableDescriptor
 		virtual bool SelectForRead() {return true;}
 		virtual bool SelectForWrite() {return false;}
 
+		virtual bool GetSockname (struct sockaddr*);
+
 		static void StopAcceptor (const char *binding);
 };
 
