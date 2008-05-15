@@ -116,3 +116,5 @@ daemons saslauthd and pwcheck.
 14May08: Generated a 0.12 release.
 15May08: Supported EM#get_sockname for acceptors (TCP server sockets).
 	Requested by Roger Pack.
+15May08; Accepted a patch from Dan Aquino that allows the interval of a
+	PeriodicTimer to be changed on the fly.
