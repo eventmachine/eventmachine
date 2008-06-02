@@ -34,6 +34,7 @@ See the file COPYING for complete licensing information.
 #include <iostream>
 #include "unistd.h"
 #include <string>
+#include <cstring>
 #include <stdexcept>
 using namespace std;
 
