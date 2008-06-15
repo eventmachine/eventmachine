@@ -118,3 +118,5 @@ daemons saslauthd and pwcheck.
 	Requested by Roger Pack.
 15May08; Accepted a patch from Dan Aquino that allows the interval of a
 	PeriodicTimer to be changed on the fly.
+15Jun08: Supported nested calls to EM#run. Many people contributed ideas to
+	this, notable raggi and tmm1.
