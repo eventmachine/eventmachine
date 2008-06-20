@@ -53,6 +53,7 @@ class TestSASL < Test::Unit::TestCase
 	def test_sasl
 		resp = nil
 		EM.run {
+			EM::Timer.new(2) {EM.stop}
 			EM.start_server( Host, Port, SaslServer )
 
 			c = EM.connect( Host, Port, SaslClient )
