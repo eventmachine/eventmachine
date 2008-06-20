@@ -33,6 +33,7 @@ package com.rubyeventmachine;
  *
  */
 public class EmReactorException extends Exception {
+	static final long serialVersionUID = 0;
 	public EmReactorException (String msg) {
 		super (msg);
 	}
