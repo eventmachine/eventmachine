@@ -259,7 +259,7 @@ def run_tests t, libr, test_filename_filter="test_*.rb"
 
   runner = Test::Unit::UI::Console::TestRunner
 
-  $eventmachine_library = libr
+  $eventmachine_library = ((RUBY_PLATFORM =~ /java/) ? :java : libr)
   $LOAD_PATH.unshift('tests')
   $stderr.puts "Checking for test cases:" #if t.verbose
 
