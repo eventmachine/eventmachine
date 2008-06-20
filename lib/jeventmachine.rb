@@ -87,7 +87,7 @@ module EventMachine
 		@em.closeConnection sig, after_writing
 	end
 	def self.set_comm_inactivity_timeout sig, interval
-		raise "temporarily unsupported"
+		@em.setCommInactivityTimeout sig, interval
 	end
 	def self.start_tls sig
 		@em.startTls sig
