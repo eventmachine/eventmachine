@@ -41,14 +41,16 @@ module EventMachine
 	ConnectionCompleted = 104
 	LoopbreakSignalled = 105
 
-	class EM < com.rubyeventmachine.EmReactor
+	# This thunk class used to be called EM, but that caused conflicts with
+	# the alias "EM" for module EventMachine. (FC, 20Jun08)
+	class JEM < com.rubyeventmachine.EmReactor
 		def eventCallback a1, a2, a3
 			s = String.from_java_bytes(a3.array[a3.position...a3.limit])
 			EventMachine::event_callback a1, a2, s
 		end
 	end
 	def self.initialize_event_machine
-		@em = EM.new
+		@em = JEM.new
 	end
 	def self.release_machine
 		@em = nil
@@ -101,6 +103,12 @@ module EventMachine
 	end
 	def self.library_type
 		:java
+	end
+
+	class Connection
+		def associate_callback_target sig
+			# No-op for the time being
+		end
 	end
 end
 
