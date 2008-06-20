@@ -116,6 +116,9 @@ module EventMachine
 		# TEMPORARILY unsupported until someone figures out how to do it.
 		raise "temporarily unsupported on this platform"
 	end
+	def self.set_max_timer_count num
+		# harmless no-op in Java. There's no built-in timer limit.
+	end
 	def self.library_type
 		:java
 	end
