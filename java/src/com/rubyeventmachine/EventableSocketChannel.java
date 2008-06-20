@@ -53,6 +53,7 @@ public class EventableSocketChannel implements EventableChannel {
 	Selector selector;
 	LinkedList<ByteBuffer> outboundQ;
 	boolean bCloseScheduled;
+	boolean bConnectPending;
 	
 	SSLEngine sslEngine;
 	
@@ -65,6 +66,7 @@ public class EventableSocketChannel implements EventableChannel {
 		binding = _binding;
 		selector = sel;
 		bCloseScheduled = false;
+		bConnectPending = false;
 		outboundQ = new LinkedList<ByteBuffer>();
 		
 		sc.register(selector, SelectionKey.OP_READ, this);
@@ -97,7 +99,7 @@ public class EventableSocketChannel implements EventableChannel {
 				else {
 					outboundQ.addLast(bb);
 				}
-				channel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ, this);
+				channel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ | (bConnectPending ? SelectionKey.OP_CONNECT : 0), this);
 			}
 		} catch (ClosedChannelException e) {
 			throw new RuntimeException ("no outbound data");			
@@ -168,6 +170,7 @@ public class EventableSocketChannel implements EventableChannel {
 	
 	public void setConnectPending() throws ClosedChannelException {
 		channel.register(selector, SelectionKey.OP_CONNECT, this);
+		bConnectPending = true;
 	}
 	
 	/**
@@ -182,11 +185,13 @@ public class EventableSocketChannel implements EventableChannel {
 		catch (IOException e) {
 			return false;
 		}
-		channel.register(selector, SelectionKey.OP_READ, this);
+		bConnectPending = false;
+		channel.register(selector, SelectionKey.OP_READ | (outboundQ.isEmpty() ? 0 : SelectionKey.OP_WRITE), this);
 		return true;
 	}
 	
 	public void scheduleClose (boolean afterWriting) {
+		// TODO: What the hell happens here if bConnectPending is set?
 		if (!afterWriting)
 			outboundQ.clear();
 		try {
