@@ -313,6 +313,9 @@ public class EmReactor {
 		sendData (sig, ByteBuffer.wrap(data.getBytes()));
 		//(Connections.get(sig)).scheduleOutboundData( ByteBuffer.wrap(data.getBytes()));
 	}
+	public void setCommInactivityTimeout (String sig, long mills) {
+		(Connections.get(sig)).setCommInactivityTimeout (mills);
+	}
 	
 	/**
 	 * 

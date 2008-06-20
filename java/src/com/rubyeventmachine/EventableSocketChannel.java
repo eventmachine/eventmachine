@@ -231,4 +231,9 @@ public class EventableSocketChannel implements EventableChannel {
 		else
 			return bb;
 	}
+
+	public void setCommInactivityTimeout (long seconds) {
+		// TODO
+		System.out.println ("SOCKET: SET COMM INACTIVITY UNIMPLEMENTED " + seconds);
+	}
 }

@@ -52,4 +52,6 @@ public interface EventableChannel {
 	public void close();
 	
 	public boolean writeOutboundData();
+
+	public void setCommInactivityTimeout (long seconds);
 }

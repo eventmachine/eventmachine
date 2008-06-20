@@ -163,4 +163,9 @@ public class EventableDatagramChannel implements EventableChannel {
 		// the outbound queue.
 		return (bCloseScheduled && outboundQ.isEmpty()) ? false : true;
 	}
+
+	public void setCommInactivityTimeout (long seconds) {
+		// TODO
+		System.out.println ("DATAGRAM: SET COMM INACTIVITY UNIMPLEMENTED " + seconds);
+	}
 }
