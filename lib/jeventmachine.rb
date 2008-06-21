@@ -108,7 +108,7 @@ module EventMachine
 	def self.open_udp_socket server, port
 		@em.openUdpSocket server, port
 	end
-	def self.invoke_popen
+	def self.invoke_popen cmd
 		# TEMPORARILY unsupported until someone figures out how to do it.
 		raise "unsupported on this platform"
 	end
