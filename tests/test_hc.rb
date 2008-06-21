@@ -33,119 +33,157 @@ require 'test/unit'
 # Part of it is thread race conditions. I added some sleeps to make these
 # tests work. Native threads do strange things when you do I/O on them.
 #
+# And it's even worse in Java, where I/O on native threads doesn't seem
+# to be reliable at all.
+#
 
 
 class TestHeaderAndContentProtocol < Test::Unit::TestCase
 
-    TestHost = "127.0.0.1"
-    TestPort = 8905
+	TestHost = "127.0.0.1"
+	TestPort = 8905
 
 
-    #--------------------------------------------------------------------
+	#--------------------------------------------------------------------
 
-    class SimpleTest < EventMachine::Protocols::HeaderAndContentProtocol
-	attr_reader :first_header, :my_headers, :request
+	class SimpleTest < EventMachine::Protocols::HeaderAndContentProtocol
+		attr_reader :first_header, :my_headers, :request
 
-	def receive_first_header_line hdr
-	    @first_header ||= []
-	    @first_header << hdr
-	end
-	def receive_headers hdrs
-	    @my_headers ||= []
-	    @my_headers << hdrs
-	end
-	def receive_request hdrs, content
-	    @request ||= []
-	    @request << [hdrs, content]
-	end
-    end
-
-    def test_no_content
-	Thread.abort_on_exception = true
-	the_connection = nil
-	EventMachine.run {
-	    EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
-		the_connection = conn
-	    end
-	    EventMachine.add_timer(4) {raise "test timed out"}
-	    EventMachine.defer proc {
-		t = TCPSocket.new TestHost, TestPort
-		t.write [
-		    "aaa\n", "bbb\r\n", "ccc\n", "\n"
-		].join
-		t.close
-		if RUBY_VERSION =~ /\A1\.9\./
-			sleep 0.1
-			STDERR.puts "Introducing extraneous sleep for Ruby 1.9"
+		def receive_first_header_line hdr
+			@first_header ||= []
+			@first_header << hdr
 		end
-	    }, proc {
-		EventMachine.stop
-	    }
-	}
-	assert_equal( ["aaa"], the_connection.first_header )
-	assert_equal( [%w(aaa bbb ccc)], the_connection.my_headers )
-	assert_equal( [[%w(aaa bbb ccc), ""]], the_connection.request )
-    end
-
-    def test_content
-	Thread.abort_on_exception = true
-	the_connection = nil
-	content = "A" * 50
-	headers = ["aaa", "bbb", "Content-length: #{content.length}", "ccc"]
-	EventMachine.run {
-	    EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
-		the_connection = conn
-	    end
-	    EventMachine.add_timer(4) {raise "test timed out"}
-	    EventMachine.defer proc {
-		t = TCPSocket.new TestHost, TestPort
-		headers.each {|h| t.write "#{h}\r\n" }
-		t.write "\n"
-		t.write content
-		t.close
-		if RUBY_VERSION =~ /\A1\.9\./
-			sleep 0.1
-			STDERR.puts "Introducing extraneous sleep for Ruby 1.9"
+		def receive_headers hdrs
+			@my_headers ||= []
+			@my_headers << hdrs
 		end
-	    }, proc {
-		EM.stop
-	    }
-	}
-	assert_equal( ["aaa"], the_connection.first_header )
-	assert_equal( [headers], the_connection.my_headers )
-	assert_equal( [[headers, content]], the_connection.request )
-    end
+		def receive_request hdrs, content
+			@request ||= []
+			@request << [hdrs, content]
+		end
+	end
 
-    def test_several_requests
-	Thread.abort_on_exception = true
-	the_connection = nil
-	content = "A" * 50
-	headers = ["aaa", "bbb", "Content-length: #{content.length}", "ccc"]
-	EventMachine.run {
-	    EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
-		the_connection = conn
-	    end
-	    EventMachine.add_timer(4) {raise "test timed out"}
-	    EventMachine.defer proc {
-		t = TCPSocket.new TestHost, TestPort
-		5.times {
-		    headers.each {|h| t.write "#{h}\r\n" }
-		    t.write "\n"
-		    t.write content
+
+	def test_no_content
+		Thread.abort_on_exception = true
+		the_connection = nil
+		EventMachine.run {
+			EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
+				the_connection = conn
+			end
+			EventMachine.add_timer(4) {raise "test timed out"}
+
+			pr = proc {
+				t = TCPSocket.new TestHost, TestPort
+				t.write [ "aaa\n", "bbb\r\n", "ccc\n", "\n" ].join
+				t.close
+			}
+
+			if RUBY_PLATFORM =~ /java/i
+				pr.call
+				EM.add_timer(0.5) {EM.stop}
+			else
+				EventMachine.defer proc {
+					pr.call
+					if RUBY_VERSION =~ /\A1\.9\./
+						sleep 0.1
+						STDERR.puts "Introducing extraneous sleep for Ruby 1.9"
+					end
+				}, proc {
+					EventMachine.stop
+				}
+			end
 		}
-		t.close
-		if RUBY_VERSION =~ /\A1\.9\./
-			sleep 0.1
-			STDERR.puts "Introducing extraneous sleep for Ruby 1.9"
-		end
-	    }, proc {
-		EventMachine.stop
-	    }
-	}
-	assert_equal( ["aaa"] * 5, the_connection.first_header )
-	assert_equal( [headers] * 5, the_connection.my_headers )
-	assert_equal( [[headers, content]] * 5, the_connection.request )
-    end
+		assert_equal( ["aaa"], the_connection.first_header )
+		assert_equal( [%w(aaa bbb ccc)], the_connection.my_headers )
+		assert_equal( [[%w(aaa bbb ccc), ""]], the_connection.request )
+	end
+
+
+
+
+	def test_content
+		Thread.abort_on_exception = true
+		the_connection = nil
+		content = "A" * 50
+		headers = ["aaa", "bbb", "Content-length: #{content.length}", "ccc"]
+		EventMachine.run {
+			EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
+				the_connection = conn
+			end
+			EventMachine.add_timer(4) {raise "test timed out"}
+
+			pr = proc {
+				t = TCPSocket.new TestHost, TestPort
+				headers.each {|h| t.write "#{h}\r\n" }
+				t.write "\n"
+				t.write content
+				t.close
+			}
+
+			if RUBY_PLATFORM =~ /java/i
+				# I/O on threads seems completely unreliable in Java.
+				pr.call
+				EM.add_timer(0.5) {EM.stop}
+			else
+				EventMachine.defer proc {
+					pr.call
+					if RUBY_VERSION =~ /\A1\.9\./
+						sleep 0.1
+						STDERR.puts "Introducing extraneous sleep for Ruby 1.9"
+					end
+				}, proc {
+					EM.stop
+				}
+			end
+		}
+		assert_equal( ["aaa"], the_connection.first_header )
+		assert_equal( [headers], the_connection.my_headers )
+		assert_equal( [[headers, content]], the_connection.request )
+	end
+
+
+
+	def test_several_requests
+		Thread.abort_on_exception = true
+		the_connection = nil
+		content = "A" * 50
+		headers = ["aaa", "bbb", "Content-length: #{content.length}", "ccc"]
+		EventMachine.run {
+			EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
+				the_connection = conn
+			end
+			EventMachine.add_timer(4) {raise "test timed out"}
+
+			pr = proc {
+				t = TCPSocket.new TestHost, TestPort
+				5.times {
+					headers.each {|h| t.write "#{h}\r\n" }
+					t.write "\n"
+					t.write content
+				}
+				t.close
+			}
+
+			if RUBY_PLATFORM =~ /java/i
+				pr.call
+				EM.add_timer(1) {EM.stop}
+			else
+				EventMachine.defer proc {
+					pr.call
+					if RUBY_VERSION =~ /\A1\.9\./
+						sleep 0.1
+						STDERR.puts "Introducing extraneous sleep for Ruby 1.9"
+					end
+				}, proc {
+					EventMachine.stop
+				}
+			end
+		}
+		assert_equal( ["aaa"] * 5, the_connection.first_header )
+		assert_equal( [headers] * 5, the_connection.my_headers )
+		assert_equal( [[headers, content]] * 5, the_connection.request )
+	end
 
 
     def x_test_multiple_content_length_headers
@@ -171,50 +209,60 @@ class TestHeaderAndContentProtocol < Test::Unit::TestCase
 	}
     end
 
-    def test_interpret_headers
-	Thread.abort_on_exception = true
-	the_connection = nil
-	content = "A" * 50
-	headers = [
-	    "GET / HTTP/1.0",
-	    "Accept: aaa",
-	    "User-Agent: bbb",
-	    "Host:	    ccc",
-	    "x-tempest-header:ddd"
-	]
-	EventMachine.run {
-	    EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
-		the_connection = conn
-	    end
-	    EventMachine.add_timer(4) {raise "test timed out"}
-	    EventMachine.defer proc {
-		t = TCPSocket.new TestHost, TestPort
-		headers.each {|h| t.write "#{h}\r\n" }
-		t.write "\n"
-		t.write content
-		t.close
-		if RUBY_VERSION =~ /\A1\.9\./
-			sleep 0.1
-			STDERR.puts "Introducing extraneous sleep for Ruby 1.9"
-		end
-	    }, proc {
-		EventMachine.stop
-	    }
-	}
+	def test_interpret_headers
+		Thread.abort_on_exception = true
+		the_connection = nil
+		content = "A" * 50
+		headers = [
+			"GET / HTTP/1.0",
+			"Accept: aaa",
+			"User-Agent: bbb",
+			"Host:	    ccc",
+			"x-tempest-header:ddd"
+		]
 
-	hsh = the_connection.headers_2_hash( the_connection.my_headers.shift )
-	assert_equal(
-	    {
-		:accept => "aaa",
-		:user_agent => "bbb",
-		:host => "ccc",
-		:x_tempest_header => "ddd"
-	    },
-	    hsh
-	 )
-    end
+		EventMachine.run {
+			EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
+				the_connection = conn
+			end
+			EventMachine.add_timer(4) {raise "test timed out"}
 
-    #--------------------------------------------------------------------
+			pr = proc {
+				t = TCPSocket.new TestHost, TestPort
+				headers.each {|h| t.write "#{h}\r\n" }
+				t.write "\n"
+				t.write content
+				t.close
+			}
+
+			if RUBY_PLATFORM =~ /java/i
+				pr.call
+				EM.add_timer(0.5) {EM.stop}
+			else
+				EventMachine.defer proc {
+					pr.call
+					if RUBY_VERSION =~ /\A1\.9\./
+						sleep 0.1
+						STDERR.puts "Introducing extraneous sleep for Ruby 1.9"
+					end
+				}, proc {
+					EventMachine.stop
+				}
+			end
+		}
+
+		hsh = the_connection.headers_2_hash( the_connection.my_headers.shift )
+		assert_equal(
+			{
+				:accept => "aaa",
+				:user_agent => "bbb",
+				:host => "ccc",
+				:x_tempest_header => "ddd"
+			},
+			hsh
+		)
+	end
+
 
 end
 
