@@ -84,6 +84,7 @@ module EventMachine
 						@lt2_textpos += will_take
 						if @lt2_textpos >= @lt2_textsize
 							receive_binary_data @lt2_textbuffer.join
+							receive_end_of_binary_data
 							set_line_mode
 						end
 
@@ -137,6 +138,14 @@ module EventMachine
 
 			# Stub. Should be subclassed by user code.
 			def receive_binary_data data
+				# no-op
+			end
+
+			# Stub. Should be subclassed by user code.
+			# This is called when transitioning internally from text mode
+			# back to line mode. Useful when client code doesn't want
+			# to keep track of how much data it's received.
+			def receive_end_of_binary_data
 				# no-op
 			end
 		end

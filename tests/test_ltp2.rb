@@ -257,5 +257,39 @@ Line 4
 		assert_equal( "0" * 500, a.data )
 	end
 
+
+
+	# Test an end-of-binary call. Arrange to receive binary data but don't bother counting it
+	# as it comes. Rely on getting receive_end_of_binary_data to signal the transition back to
+	# line mode.
+	# At the present time, this isn't strictly necessary with sized binary chunks because by
+	# definition we accumulate them and make exactly one call to receive_binary_data, but
+	# we may want to support a mode in the future that would break up large chunks into multiple
+	# calls.
+	class LazyBinary
+		include EM::Protocols::LineText2
+		attr_reader :data, :end
+		def initialize *args
+			super
+			@data = ""
+			set_text_mode 1000
+		end
+		def receive_binary_data data
+			# we expect to get all the data in one chunk, even in the byte-by-byte case,
+			# because sized transfers by definition give us exactly one call to
+			# #receive_binary_data.
+			@data = data
+		end
+		def receive_end_of_binary_data
+			@end = true
+		end
+	end
+	def test_receive_end_of_binary_data
+		testdata = "_" * 1000
+		a = LazyBinary.new
+		testdata.length.times {|i| a.receive_data( testdata[i...i+1] ) }
+		assert_equal( "_" * 1000, a.data )
+		assert( a.end )
+	end
 end
 
