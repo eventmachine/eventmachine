@@ -291,5 +291,30 @@ Line 4
 		assert_equal( "_" * 1000, a.data )
 		assert( a.end )
 	end
+
+
+	# This tests a bug fix in which calling set_text_mode failed when called
+	# inside receive_binary_data.
+	#
+	class BinaryPair
+		include EM::Protocols::LineText2
+		attr_reader :sizes
+		def initialize *args
+			super
+			set_text_mode 1
+			@sizes = []
+		end
+		def receive_binary_data dt
+			@sizes <<  dt.length
+			set_text_mode( (dt.length == 1) ? 2 : 1 )
+		end
+	end
+	def test_binary_pairs
+		test_data = "123" * 5
+		a = BinaryPair.new
+		a.receive_data test_data
+		assert_equal( [1,2,1,2,1,2,1,2,1,2], a.sizes )
+	end
+
 end
 

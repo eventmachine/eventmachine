@@ -83,9 +83,13 @@ module EventMachine
 
 						@lt2_textpos += will_take
 						if @lt2_textpos >= @lt2_textsize
+							# Reset line mode (the default behavior) BEFORE calling the
+							# receive_binary_data. This makes it possible for user code
+							# to call set_text_mode, enabling chains of text blocks
+							# (which can possibly be of different sizes).
+							set_line_mode
 							receive_binary_data @lt2_textbuffer.join
 							receive_end_of_binary_data
-							set_line_mode
 						end
 
 						receive_data tail
