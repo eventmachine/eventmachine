@@ -120,6 +120,9 @@ module EventMachine
 			def subscribe dest, ack=false
 				send_frame "SUBSCRIBE", {:destination=>dest, :ack=>(ack ? "client" : "auto")}
 			end
+			def ack msgid
+				send_frame "ACK", { :'message-id'=> msgid }
+			end
 
 		end
 	end
