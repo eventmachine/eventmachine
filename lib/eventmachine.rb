@@ -218,7 +218,7 @@ module EventMachine
 		tail and @tails.unshift(tail)
 
 		if reactor_running?
-			(b = blk || block) and next_tick(b)
+			(b = blk || block) and b.call # next_tick(b)
 		else
 			@conns = {}
 			@acceptors = {}
