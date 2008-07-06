@@ -538,6 +538,7 @@ module EventMachine
 
     s = start_unix_server filename
     @acceptors[s] = [klass,args,block]
+    s
   end
 
   # EventMachine#connect initiates a TCP connection to a remote
