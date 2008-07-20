@@ -253,6 +253,23 @@ module EventMachine
 	    run(&pr)
     end
 
+    # fork_reactor forks a new process and calls EM#run inside of it, passing your block.
+    #--
+    # This implementation is subject to change, especially if we clean up the relationship
+    # of EM#run to @reactor_running.
+    # Original patch by Aman Gupta.
+    #
+    def EventMachine::fork_reactor &block
+	    Kernel.fork do
+		    if self.reactor_running?
+			    self.stop_event_loop
+			    self.release_machine
+			    self.instance_variable_set( '@reactor_running', false )
+		    end
+		    self.run block
+	    end
+    end
+
 
   # +deprecated+
   #--
