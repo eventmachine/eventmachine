@@ -223,6 +223,7 @@ module EventMachine
 			@conns = {}
 			@acceptors = {}
 			@timers = {}
+			@wrapped_exception = nil
 			begin
 				@reactor_running = true
 				initialize_event_machine
@@ -236,6 +237,8 @@ module EventMachine
 			until @tails.empty?
 				@tails.pop.call
 			end
+
+			raise @wrapped_exception if @wrapped_exception
 		end
 	end
 
@@ -1086,12 +1089,26 @@ module EventMachine
 		# No one was using it, and it degraded performance significantly.
 		# It's in original_event_callback, which is dead code.
 		#
+		# Changed 25Jul08: Added a partial solution to the problem of exceptions
+		# raised in user-written event-handlers. If such exceptions are not caught,
+		# we must cause the reactor to stop, and then re-raise the exception.
+		# Otherwise, the reactor doesn't stop and it's left on the call stack.
+		# This is partial because we only added it to #unbind, where it's critical
+		# (to keep unbind handlers from being re-entered when a stopping reactor
+		# runs down open connections). It should go on the other calls to user
+		# code, but the performance impact may be too large.
+		#
 		if opcode == ConnectionData
 			c = @conns[conn_binding] or raise ConnectionNotBound
 			c.receive_data data
 		elsif opcode == ConnectionUnbound
 			if c = @conns.delete( conn_binding )
-				c.unbind
+				begin
+					c.unbind
+				rescue
+					@wrapped_exception = $!
+					stop
+				end
 			elsif c = @acceptors.delete( conn_binding )
 				# no-op
 			else
