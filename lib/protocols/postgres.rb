@@ -75,7 +75,7 @@ EM.run {
 	db = EM.connect_unix_domain( "/tmp/.s.PGSQL.5432", EM::P::Postgres3 )
 	db.connect( dbname, username, psw ).callback do |status|
 		if status
-			db.query( "select * from some_table" ).callback |status, result, errors|
+			db.query( "select * from some_table" ).callback do |status, result, errors|
 				if status
 					result.rows.each do |row|
 						p row
