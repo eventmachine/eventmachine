@@ -121,4 +121,6 @@ daemons saslauthd and pwcheck.
 15Jun08: Supported nested calls to EM#run. Many people contributed ideas to
 	this, notably raggi and tmm1.
 20Jul08: Accepted patch from tmm1 for EM#fork_reactor.
+28Jul08: Added a Postgres3 implementation, written by FCianfrocca.
+
 
