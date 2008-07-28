@@ -29,7 +29,7 @@
 =begin
 PROVISIONAL IMPLEMENTATION of an evented Postgres client.
 This implements version 3 of the Postgres wire protocol, which will work
-with any Posrgres version from roughly 7.4 onward.
+with any Postgres version from roughly 7.4 onward.
 
 Until this code is judged ready for prime time, you have to access it by
 explicitly requiring protocols/postgres.
