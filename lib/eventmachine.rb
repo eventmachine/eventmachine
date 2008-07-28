@@ -1662,7 +1662,7 @@ require 'protocols/stomp'
 require 'protocols/smtpclient'
 require 'protocols/smtpserver'
 require 'protocols/saslauth'
-require 'protocols/postgres'
+#require 'protocols/postgres' UNCOMMENT THIS LINE WHEN THE POSTGRES CODE IS READY FOR PRIME TIME.
 
 require 'em/processes'
 
