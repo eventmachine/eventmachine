@@ -1662,6 +1662,7 @@ require 'protocols/stomp'
 require 'protocols/smtpclient'
 require 'protocols/smtpserver'
 require 'protocols/saslauth'
+require 'protocols/postgres'
 
 require 'em/processes'
 
