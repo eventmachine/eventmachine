@@ -635,12 +635,14 @@ SelectData_t::SelectData_t()
 _SelectDataSelect
 *****************/
 
+#ifdef HAVE_TBR
 static VALUE _SelectDataSelect (void *v)
 {
 	SelectData_t *sd = (SelectData_t*)v;
 	sd->nSockets = select (sd->maxsocket+1, &(sd->fdreads), &(sd->fdwrites), NULL, &(sd->tv));
 	return Qnil;
 }
+#endif
 
 /*********************
 SelectData_t::_Select
@@ -654,7 +656,7 @@ int SelectData_t::_Select()
 	#endif
 
 	#ifndef HAVE_TBR
-	return rb_thread_select (maxsocket+1, &fdreads, &fdwrites, NULL, &tv);
+	return EmSelect (maxsocket+1, &fdreads, &fdwrites, NULL, &tv);
 	#endif
 }
 
