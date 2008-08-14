@@ -122,5 +122,6 @@ daemons saslauthd and pwcheck.
 	this, notably raggi and tmm1.
 20Jul08: Accepted patch from tmm1 for EM#fork_reactor.
 28Jul08: Added a Postgres3 implementation, written by FCianfrocca.
-
+14Aug08: Added a patch by Mike Murphy to support basic auth in the http
+client.
 
