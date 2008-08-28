@@ -124,4 +124,5 @@ daemons saslauthd and pwcheck.
 28Jul08: Added a Postgres3 implementation, written by FCianfrocca.
 14Aug08: Added a patch by Mike Murphy to support basic auth in the http
 client.
-
+28Aug08: Added a patch by tmm1 to fix a longstanding problem with Java
+data-sends.

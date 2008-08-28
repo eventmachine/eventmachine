@@ -309,8 +309,8 @@ public class EmReactor {
 	public void sendData (String sig, ByteBuffer bb) throws IOException {
 		(Connections.get(sig)).scheduleOutboundData( bb );
 	}
-	public void sendData (String sig, String data, int length) throws IOException {
-		sendData (sig, ByteBuffer.wrap(data.getBytes()));
+	public void sendData (String sig, byte[] data) throws IOException {
+		sendData (sig, ByteBuffer.wrap(data));
 		//(Connections.get(sig)).scheduleOutboundData( ByteBuffer.wrap(data.getBytes()));
 	}
 	public void setCommInactivityTimeout (String sig, long mills) {

@@ -75,7 +75,7 @@ module EventMachine
 		raise "unsupported on this platform"
 	end
 	def self.send_data sig, data, length
-		@em.sendData sig, data, length
+		@em.sendData sig, data.to_java_bytes
 	end
 	def self.send_datagram sig, data, length, address, port
 		@em.sendDatagram sig, data, length, address, port
