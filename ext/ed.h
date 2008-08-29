@@ -85,7 +85,14 @@ class EventableDescriptor: public Bindable_t
 
 	protected:
 		enum {
-			PendingConnectTimeout = 4 // can easily be made an instance variable
+			// 4 seconds is too short, most other libraries default to OS settings
+			// which in 2.6 kernel defaults to a 60 second connect timeout. 
+			// 
+			// Curl-Multi: http://curl.haxx.se/mail/lib-2001-01/0019.html
+			//
+			// updating to 50 seconds, so we catch it before the OS does
+
+			PendingConnectTimeout = 50 // can easily be made an instance variable
 		};
 
 		void (*EventCallback)(const char*, int, const char*, int);
