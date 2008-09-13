@@ -126,3 +126,5 @@ daemons saslauthd and pwcheck.
 client.
 28Aug08: Added a patch by tmm1 to fix a longstanding problem with Java
 data-sends.
+13Sep08: Added LineText2#set_binary_mode, a back-compatibility alias.
+
