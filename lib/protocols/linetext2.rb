@@ -126,6 +126,11 @@ module EventMachine
 				end
 			end
 
+			# Alias for #set_text_mode, added for back-compatibility with LineAndTextProtocol.
+			def set_binary_mode size=nil
+				set_text_mode size
+			end
+
 			# In case of a dropped connection, we'll send a partial buffer to user code
 			# when in sized text mode. User overrides of #receive_binary_data need to
 			# be aware that they may get a short buffer.
