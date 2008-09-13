@@ -127,4 +127,6 @@ client.
 28Aug08: Added a patch by tmm1 to fix a longstanding problem with Java
 data-sends.
 13Sep08: Added LineText2#set_binary_mode, a back-compatibility alias.
+13Sep08: Modified the load order of protocol libraries in eventmachine.rb
+	to permit a modification of HeaderAndContentProtocol.
 
