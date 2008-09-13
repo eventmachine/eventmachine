@@ -28,7 +28,13 @@
 module EventMachine
     module Protocols
 
-	class HeaderAndContentProtocol < LineAndTextProtocol
+	# Originally, this subclassed LineAndTextProtocol, which in
+	# turn relies on BufferedTokenizer, which doesn't gracefully
+	# handle the transitions between lines and binary text.
+	# Changed 13Sep08 by FCianfrocca.
+	class HeaderAndContentProtocol < Connection
+	    include LineText2
+	
 
 	    ContentLengthPattern = /Content-length:\s*(\d+)/i
 

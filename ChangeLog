@@ -129,4 +129,7 @@ data-sends.
 13Sep08: Added LineText2#set_binary_mode, a back-compatibility alias.
 13Sep08: Modified the load order of protocol libraries in eventmachine.rb
 	to permit a modification of HeaderAndContentProtocol.
+13Sep08: Modified HeaderAndContent to use LineText2, which is less buggy
+	than LineAndTextProtocol. This change may be reversed if we can fix
+	the bugs in buftok.
 
