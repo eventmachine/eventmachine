@@ -135,8 +135,10 @@ module EventMachine; module Protocols; class Postgres3 < EventMachine::Connectio
 		else
 			@pending_conn = d
 			prms = {"user"=>user, "database"=>db}
+			@user = user
 			if psw
-				prms["password"] = psw
+				@password = psw
+				#prms["password"] = psw
 			end
 			send_data PostgresPR::StartupMessage.new( 3 << 16, prms ).dump
 		end
@@ -192,18 +194,18 @@ module EventMachine; module Protocols; class Postgres3 < EventMachine::Connectio
 	def dispatch_conn_message msg
 		case msg
 		when AuthentificationClearTextPassword
-			raise ArgumentError, "no password specified" if password.nil?
-			send_data PasswordMessage.new(password).dump
+			raise ArgumentError, "no password specified" if @password.nil?
+			send_data PasswordMessage.new(@password).dump
 
 		when AuthentificationCryptPassword
-			raise ArgumentError, "no password specified" if password.nil?
-			send_data PasswordMessage.new(password.crypt(msg.salt)).dump
+			raise ArgumentError, "no password specified" if @password.nil?
+			send_data PasswordMessage.new(@password.crypt(msg.salt)).dump
 
 		when AuthentificationMD5Password
-			raise ArgumentError, "no password specified" if password.nil?
+			raise ArgumentError, "no password specified" if @password.nil?
 			require 'digest/md5'
 
-			m = Digest::MD5.hexdigest(password + user) 
+			m = Digest::MD5.hexdigest(@password + @user) 
 			m = Digest::MD5.hexdigest(m + msg.salt)
 			m = 'md5' + m
 			send_data PasswordMessage.new(m).dump

@@ -132,4 +132,6 @@ data-sends.
 13Sep08: Modified HeaderAndContent to use LineText2, which is less buggy
 	than LineAndTextProtocol. This change may be reversed if we can fix
 	the bugs in buftok.
+13Sep08: Improved the password handling in the Postgres protocol handler.
+
 
