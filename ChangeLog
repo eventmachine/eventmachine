@@ -133,5 +133,6 @@ data-sends.
 	than LineAndTextProtocol. This change may be reversed if we can fix
 	the bugs in buftok.
 13Sep08: Improved the password handling in the Postgres protocol handler.
-
+15Sep08: Added attach/detach, contributed by Aman Gupta (tmm1) and Riham Aldakkak,
+	to support working with file descriptors not created in the reactor.
 

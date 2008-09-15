@@ -678,6 +678,71 @@ module EventMachine
     c
   end
 
+  # EventMachine::attach registers a given file descriptor or IO object with the eventloop
+  #
+  # If the handler provided has the functions notify_readable or notify_writable defined,
+  # EventMachine will not read or write from the socket, and instead fire the corresponding
+  # callback on the handler.
+  #
+  # To detach the file descriptor, use EventMachine::Connection#detach
+  #
+  # === Usage Example
+  #
+  #   module SimpleHttpClient
+  #     def initialize sock
+  #       @sock = sock
+  #     end
+  #
+  #     def notify_readable
+  #       header = @sock.readline
+  #
+  #       if header == "\r\n"
+  #         # detach returns the file descriptor number (fd == @sock.fileno)
+  #         fd = detach
+  #       end
+  #     rescue EOFError
+  #       detach
+  #     end
+  #
+  #     def unbind
+  #       EM.next_tick do
+  #         # socket is detached from the eventloop, but still open
+  #         data = @sock.read
+  #       end
+  #     end
+  #   end
+  #
+  #   EM.run{
+  #     $sock = TCPSocket.new('site.com', 80)
+  #     $sock.write("GET / HTTP/1.0\r\n\r\n")
+  #     EM.attach $sock, SimpleHttpClient, $sock
+  #   }
+  #
+  #--
+  # Thanks to Riham Aldakkak (eSpace Technologies) for the initial patch
+  def  EventMachine::attach io, handler=nil, *args
+    klass = if (handler and handler.is_a?(Class))
+      handler
+    else
+      Class.new( Connection ) {handler and include handler}
+    end
+
+    arity = klass.instance_method(:initialize).arity
+    expected = arity >= 0 ? arity : -(arity + 1)
+    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
+      raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
+    end
+
+    readmode  = klass.public_instance_methods.any?{|m| m.to_sym == :notify_readable }
+    writemode = klass.public_instance_methods.any?{|m| m.to_sym == :notify_writable }
+
+    s = attach_fd io.respond_to?(:fileno) ? io.fileno : io, readmode, writemode
+
+    c = klass.new s, *args
+    @conns[s] = c
+    block_given? and yield c
+    c
+  end
 
     #--
     # EXPERIMENTAL. DO NOT RELY ON THIS METHOD TO BE HERE IN THIS FORM, OR AT ALL.
@@ -1129,6 +1194,12 @@ module EventMachine
 			c.connection_completed
 		elsif opcode == LoopbreakSignalled
 			run_deferred_callbacks
+		elsif opcode == ConnectionNotifyReadable
+			c = @conns[conn_binding] or raise ConnectionNotBound
+			c.notify_readable
+		elsif opcode == ConnectionNotifyWritable
+			c = @conns[conn_binding] or raise ConnectionNotBound
+			c.notify_writable
 		end
 	end
 
@@ -1369,6 +1440,12 @@ class Connection
 	#
 	def close_connection after_writing = false
 		EventMachine::close_connection @signature, after_writing
+	end
+
+	# EventMachine::Connection#detach will remove the given connection from the event loop.
+	# The connection's socket remains open and its file descriptor number is returned
+	def detach
+		EventMachine::detach_fd @signature
 	end
 
 	# EventMachine::Connection#close_connection_after_writing is a variant of close_connection.

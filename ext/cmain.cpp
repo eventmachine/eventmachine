@@ -103,6 +103,32 @@ extern "C" const char *evma_connect_to_unix_server (const char *server)
 	return EventMachine->ConnectToUnixServer (server);
 }
 
+/**************
+evma_attach_fd
+**************/
+
+extern "C" const char *evma_attach_fd (int file_descriptor, int notify_readable, int notify_writable)
+{
+	if (!EventMachine)
+		throw std::runtime_error ("not initialized");
+	return EventMachine->AttachFD (file_descriptor, (notify_readable ? true : false), (notify_writable ? true : false));
+}
+
+/**************
+evma_detach_fd
+**************/
+
+extern "C" int evma_detach_fd (const char *binding)
+{
+	if (!EventMachine)
+		throw std::runtime_error ("not initialized");
+
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return EventMachine->DetachFD (ed);
+	else
+		throw std::runtime_error ("invalid binding to detach");
+}
 
 /**********************
 evma_create_tcp_server

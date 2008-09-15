@@ -40,6 +40,7 @@ class EventableDescriptor: public Bindable_t
 		virtual ~EventableDescriptor();
 
 		int GetSocket() {return MySocket;}
+		void SetSocketInvalid() { MySocket = INVALID_SOCKET; }
 		void Close();
 
 		virtual void Read() = 0;
@@ -140,6 +141,9 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		void SetConnectPending (bool f) { bConnectPending = f; }
 
+		void SetNotifyReadable (bool readable) { bNotifyReadable = readable; }
+		void SetNotifyWritable (bool writable) { bNotifyWritable = writable; }
+
 		virtual void Read();
 		virtual void Write();
 		virtual void Heartbeat();
@@ -172,6 +176,10 @@ class ConnectionDescriptor: public EventableDescriptor
 
 	protected:
 		bool bConnectPending;
+
+		bool bNotifyReadable;
+		bool bNotifyWritable;
+
 		bool bReadAttemptedAfterClose;
 		bool bWriteAttemptedAfterClose;
 

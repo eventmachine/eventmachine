@@ -69,6 +69,8 @@ class EventMachine_t
 		const char *InstallOneshotTimer (int);
 		const char *ConnectToServer (const char *, int);
 		const char *ConnectToUnixServer (const char *);
+		const char *AttachFD (int, bool, bool);
+
 		const char *CreateTcpServer (const char *, int);
 		const char *OpenDatagramSocket (const char *, int);
 		const char *CreateUnixDomainServer (const char*);
@@ -79,6 +81,7 @@ class EventMachine_t
 
 		void Add (EventableDescriptor*);
 		void Modify (EventableDescriptor*);
+		int DetachFD (EventableDescriptor*);
 		void ArmKqueueWriter (EventableDescriptor*);
 		void ArmKqueueReader (EventableDescriptor*);
 

@@ -30,7 +30,10 @@ extern "C" {
 		EM_CONNECTION_UNBOUND = 102,
 		EM_CONNECTION_ACCEPTED = 103,
 		EM_CONNECTION_COMPLETED = 104,
-		EM_LOOPBREAK_SIGNAL = 105
+		EM_LOOPBREAK_SIGNAL = 105,
+		EM_CONNECTION_NOTIFY_READABLE = 106,
+		EM_CONNECTION_NOTIFY_WRITABLE = 107
+
 	};
 
 	void evma_initialize_library (void(*)(const char*, int, const char*, int));
@@ -39,6 +42,10 @@ extern "C" {
 	const char *evma_install_oneshot_timer (int seconds);
 	const char *evma_connect_to_server (const char *server, int port);
 	const char *evma_connect_to_unix_server (const char *server);
+
+	const char *evma_attach_fd (int file_descriptor, int read_mode, int write_mode);
+	int evma_detach_fd (const char *binding);
+
 	void evma_stop_tcp_server (const char *signature);
 	const char *evma_create_tcp_server (const char *address, int port);
 	const char *evma_create_unix_domain_server (const char *filename);

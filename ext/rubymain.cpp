@@ -39,6 +39,8 @@ static VALUE Intern_delete;
 static VALUE Intern_call;
 static VALUE Intern_receive_data;
 
+static VALUE Intern_notify_readable;
+static VALUE Intern_notify_writable;
 
 /****************
 t_event_callback
@@ -52,6 +54,20 @@ static void event_callback (const char *a1, int a2, const char *a3, int a4)
 		if (q == Qnil)
 			rb_raise (rb_eRuntimeError, "no connection");
 		rb_funcall (q, Intern_receive_data, 1, rb_str_new (a3, a4));
+	}
+	else if (a2 == EM_CONNECTION_NOTIFY_READABLE) {
+		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
+		VALUE q = rb_hash_aref (t, rb_str_new2(a1));
+		if (q == Qnil)
+			rb_raise (rb_eRuntimeError, "no connection");
+		rb_funcall (q, Intern_notify_readable, 0);
+	}
+	else if (a2 == EM_CONNECTION_NOTIFY_WRITABLE) {
+		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
+		VALUE q = rb_hash_aref (t, rb_str_new2(a1));
+		if (q == Qnil)
+			rb_raise (rb_eRuntimeError, "no connection");
+		rb_funcall (q, Intern_notify_writable, 0);
 	}
 	else if (a2 == EM_LOOPBREAK_SIGNAL) {
 		rb_funcall (EmModule, Intern_run_deferred_callbacks, 0);
@@ -320,6 +336,27 @@ static VALUE t_connect_unix_server (VALUE self, VALUE serversocket)
 	return rb_str_new2 (f);
 }
 
+/***********
+t_attach_fd
+***********/
+
+static VALUE t_attach_fd (VALUE self, VALUE file_descriptor, VALUE read_mode, VALUE write_mode)
+{
+	const char *f = evma_attach_fd (NUM2INT(file_descriptor), (read_mode == Qtrue) ? 1 : 0, (write_mode == Qtrue) ? 1 : 0);
+	if (!f || !*f)
+		rb_raise (rb_eRuntimeError, "no connection");
+	return rb_str_new2 (f);
+}
+
+/***********
+t_detach_fd
+***********/
+
+static VALUE t_detach_fd (VALUE self,  VALUE signature)
+{
+	return INT2NUM(evma_detach_fd (StringValuePtr(signature)));
+}
+
 /*****************
 t_open_udp_socket
 *****************/
@@ -565,6 +602,9 @@ extern "C" void Init_rubyeventmachine()
 	Intern_call = rb_intern ("call");
 	Intern_receive_data = rb_intern ("receive_data");
 
+	Intern_notify_readable = rb_intern ("notify_readable");
+	Intern_notify_writable = rb_intern ("notify_writable");
+
 	// INCOMPLETE, we need to define class Connections inside module EventMachine
 	// run_machine and run_machine_without_threads are now identical.
 	// Must deprecate the without_threads variant.
@@ -590,6 +630,10 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "report_connection_error_status", (VALUE(*)(...))t_report_connection_error_status, 1);
 	rb_define_module_function (EmModule, "connect_server", (VALUE(*)(...))t_connect_server, 2);
 	rb_define_module_function (EmModule, "connect_unix_server", (VALUE(*)(...))t_connect_unix_server, 1);
+
+	rb_define_module_function (EmModule, "attach_fd", (VALUE (*)(...))t_attach_fd, 3);
+	rb_define_module_function (EmModule, "detach_fd", (VALUE (*)(...))t_detach_fd, 1);
+
 	rb_define_module_function (EmModule, "open_udp_socket", (VALUE(*)(...))t_open_udp_socket, 2);
 	rb_define_module_function (EmModule, "read_keyboard", (VALUE(*)(...))t_read_keyboard, 0);
 	rb_define_module_function (EmModule, "release_machine", (VALUE(*)(...))t_release_machine, 0);
@@ -626,5 +670,9 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_const (EmModule, "ConnectionAccepted", INT2NUM(103));
 	rb_define_const (EmModule, "ConnectionCompleted", INT2NUM(104));
 	rb_define_const (EmModule, "LoopbreakSignalled", INT2NUM(105));
+
+	rb_define_const (EmModule, "ConnectionNotifyReadable", INT2NUM(106));
+	rb_define_const (EmModule, "ConnectionNotifyWritable", INT2NUM(107));
+
 }
 

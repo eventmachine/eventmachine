@@ -1165,6 +1165,113 @@ const char *EventMachine_t::ConnectToUnixServer (const char *server)
 	#endif
 }
 
+/************************
+EventMachine_t::AttachFD
+************************/
+
+const char *EventMachine_t::AttachFD (int fd, bool notify_readable, bool notify_writable)
+{
+	#ifdef OS_UNIX
+	if (fcntl(fd, F_GETFL, 0) < 0)
+		throw std::runtime_error ("invalid file descriptor");
+	#endif
+
+	#ifdef OS_WIN32
+	// TODO: add better check for invalid file descriptors (see ioctlsocket or getsockopt)
+	if (fd == INVALID_SOCKET)
+		throw std::runtime_error ("invalid file descriptor");
+	#endif
+
+	{// Check for duplicate descriptors
+		for (size_t i = 0; i < Descriptors.size(); i++) {
+			EventableDescriptor *ed = Descriptors[i];
+			assert (ed);
+			if (ed->GetSocket() == fd)
+				throw std::runtime_error ("adding existing descriptor");
+		}
+
+		for (size_t i = 0; i < NewDescriptors.size(); i++) {
+			EventableDescriptor *ed = NewDescriptors[i];
+			assert (ed);
+			if (ed->GetSocket() == fd)
+				throw std::runtime_error ("adding existing new descriptor");
+		}
+	}
+
+	ConnectionDescriptor *cd = new ConnectionDescriptor (fd, this);
+	if (!cd)
+		throw std::runtime_error ("no connection allocated");
+
+	cd->SetConnectPending (true);
+	cd->SetNotifyReadable (notify_readable);
+	cd->SetNotifyWritable (notify_writable);
+
+	Add (cd);
+
+	const char *out = NULL;
+	out = cd->GetBinding().c_str();
+	if (out == NULL)
+		closesocket (fd);
+	return out;
+}
+
+/************************
+EventMachine_t::DetachFD
+************************/
+
+int EventMachine_t::DetachFD (EventableDescriptor *ed)
+{
+	if (!ed)
+		throw std::runtime_error ("detaching bad descriptor");
+
+	#ifdef HAVE_EPOLL
+	if (bEpoll) {
+		if (ed->GetSocket() != INVALID_SOCKET) {
+			assert (bEpoll); // wouldn't be in this method otherwise.
+			assert (epfd != -1);
+			int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
+			// ENOENT or EBADF are not errors because the socket may be already closed when we get here.
+			if (e && (errno != ENOENT) && (errno != EBADF)) {
+				char buf [200];
+				snprintf (buf, sizeof(buf)-1, "unable to delete epoll event: %s", strerror(errno));
+				throw std::runtime_error (buf);
+			}
+		}
+	}
+	#endif
+
+	#ifdef HAVE_KQUEUE
+	if (bKqueue) {
+		struct kevent k;
+		EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_DELETE, 0, 0, ed);
+		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
+		assert (t == 0);
+	}
+	#endif
+
+	{ // remove descriptor from lists
+		int i, j;
+		int nSockets = Descriptors.size();
+		for (i=0, j=0; i < nSockets; i++) {
+			EventableDescriptor *ted = Descriptors[i];
+			assert (ted);
+			if (ted != ed)
+				Descriptors [j++] = ted;
+		}
+		while ((size_t)j < Descriptors.size())
+			Descriptors.pop_back();
+
+		ModifiedDescriptors.erase (ed);
+	}
+
+	int fd = ed->GetSocket();
+
+	// We depend on ~EventableDescriptor not calling close() if the socket is invalid
+	ed->SetSocketInvalid();
+	delete ed;
+
+	return fd;
+}
 
 /************
 name2address

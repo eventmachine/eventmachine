@@ -174,6 +174,8 @@ ConnectionDescriptor::ConnectionDescriptor
 ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	EventableDescriptor (sd, em),
 	bConnectPending (false),
+	bNotifyReadable (false),
+	bNotifyWritable (false),
 	bReadAttemptedAfterClose (false),
 	bWriteAttemptedAfterClose (false),
 	OutboundDataSize (0),
@@ -368,7 +370,7 @@ bool ConnectionDescriptor::SelectForWrite()
    * have outgoing data to send.
    */
 
-  if (bConnectPending)
+  if (bConnectPending || bNotifyWritable)
     return true;
   else {
     return (GetOutboundDataSize() > 0);
@@ -410,6 +412,12 @@ void ConnectionDescriptor::Read()
 	if (sd == INVALID_SOCKET) {
 		assert (!bReadAttemptedAfterClose);
 		bReadAttemptedAfterClose = true;
+		return;
+	}
+
+	if (bNotifyReadable) {
+		if (EventCallback)
+			(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_NOTIFY_READABLE, NULL, 0);
 		return;
 	}
 
@@ -549,6 +557,13 @@ void ConnectionDescriptor::Write()
 			//bCloseNow = true;
 	}
 	else {
+
+		if (bNotifyWritable) {
+			if (EventCallback)
+				(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_NOTIFY_WRITABLE, NULL, 0);
+			return;
+		}
+
 		_WriteOutboundData();
 	}
 }

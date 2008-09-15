@@ -439,6 +439,11 @@ task :test_sasl do |t|
   run_tests t, :extension, "test_sasl*.rb"
 end
 
+desc "Test Attach"
+task :test_attach do |t|
+  run_tests t, :extension, "test_attach*.rb"
+end
+
 
 desc "Build everything"
 task :default => [ :gem ]
