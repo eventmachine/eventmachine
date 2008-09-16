@@ -109,6 +109,8 @@ class HttpClient < Connection
       qs = "?" + qs
     end
 
+    version = args[:version] || "1.1"
+
     # Allow an override for the host header if it's not the connect-string.
     host = args[:host_header] || args[:host] || "_"
     # For now, ALWAYS tuck in the port string, although we may want to omit it if it's the default.
@@ -122,7 +124,7 @@ class HttpClient < Connection
     # ESSENTIAL for the request's line-endings to be CRLF, not LF. Some servers misbehave otherwise.
     # TODO: We ASSUME the caller wants to send a 1.1 request. May not be a good assumption.
     req = [
-      "#{verb} #{request}#{qs} HTTP/1.1",
+      "#{verb} #{request}#{qs} HTTP/#{version}",
       "Host: #{host}:#{port}",
       "User-agent: Ruby EventMachine",
     ]
@@ -165,12 +167,13 @@ class HttpClient < Connection
         @content = ""
         @status = nil
         @read_state = :header
+	@connection_close = nil
       when :header
         ary = data.split( /\r?\n/m, 2 )
         if ary.length == 2
           data = ary.last
           if ary.first == ""
-	      if @content_length and @content_length > 0
+	      if (@content_length and @content_length > 0) || @connection_close
 		  @read_state = :content
 	      else
 		  dispatch_response
@@ -188,6 +191,8 @@ class HttpClient < Connection
               # a bad guy. (There is an exploit that depends on multiple
               # content-length headers.)
               @content_length ||= $'.to_i
+            elsif ary.first =~ /\Aconnection:\s*close/i
+              @connection_close = true
             end
           end
         else

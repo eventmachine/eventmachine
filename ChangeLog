@@ -135,4 +135,7 @@ data-sends.
 13Sep08: Improved the password handling in the Postgres protocol handler.
 15Sep08: Added attach/detach, contributed by Aman Gupta (tmm1) and Riham Aldakkak,
 	to support working with file descriptors not created in the reactor.
-
+16Sep08: Added an optional version string to the HTTP client. This is a hack
+	that allows a client to specify a version 1.0 request, which
+	keeps the server from sending a chunked response. The right way to
+	solve this, of course, is to support chunked responses.

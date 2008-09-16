@@ -112,6 +112,7 @@ class TestHttpClient < Test::Unit::TestCase
       assert ok
   end
 
+
   #---------------------------------------
 
   class PostContent < EventMachine::Protocols::LineAndTextProtocol
@@ -188,6 +189,26 @@ class TestHttpClient < Test::Unit::TestCase
     }
     assert ok
   end
+
+
+
+  # We can tell the client to send an HTTP/1.0 request (default is 1.1).
+  # This is useful for suppressing chunked responses until those are working.
+  def test_version_1_0
+    ok = false
+    EM.run {
+      c = EM::P::HttpClient.request :host => "www.bayshorenetworks.com",
+      	:port => 80,
+	:version => "1.0"
+      c.callback {|result|
+        ok = true;
+        EventMachine.stop
+      }
+      c.errback {EventMachine.stop}
+    }
+    assert ok
+  end
+
 
 end
 
