@@ -43,8 +43,8 @@ __DIR__ ||= File.expand_path(File.dirname(__FILE__))
 if Gem.path.any? {|path| %r(^#{Regexp.escape path}) =~ __DIR__}
   task :default => :gem_build
 else
-  desc "Run tests."
-  task :default => [:build, :test]
+  desc "Build gemspec, then build eventmachine, then run tests."
+  task :default => [:gemspec, :build, :test]
 end
 
 desc ":default build when running under rubygems."
@@ -153,4 +153,8 @@ namespace :java do
       sh "jar -cf em_reactor.jar com/rubyeventmachine/*.class"
     end
   end
+end
+
+task :gemspec do
+  open("eventmachine.gemspec", 'w') { |f| f.write Spec.to_ruby }
 end
