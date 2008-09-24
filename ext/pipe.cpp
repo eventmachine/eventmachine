@@ -92,7 +92,7 @@ PipeDescriptor::~PipeDescriptor()
 	 * within other unbind calls. (Not sure if that's even possible.)
 	 */
 
-	struct timespec req = {0, 10000000};
+	struct timespec req = {0, 500000000};
 	kill (SubprocessPid, SIGTERM);
 	nanosleep (&req, NULL);
 	assert (MyEventMachine);
