@@ -33,14 +33,18 @@ require 'test/unit'
 class TestServers < Test::Unit::TestCase
 
 	Host = "127.0.0.1"
-	Port = 9550
-
-	def setup
-	end
-
-	def teardown
-	end
-
+	Port = 9555
+	
+	module NetstatHelper
+	  GlobalUdp4Rexp = /udp.*\s+(?:\*|(?:0\.){3}0)[:.](\d+)\s/i
+	  GlobalTcp4Rexp = /tcp.*\s+(?:\*|(?:0\.){3}0)[:.](\d+)\s/i
+	  LocalUdpRexp = /udp.*\s+(?:127\.0\.0\.1|::1)[:.](\d+)\s/i
+	  LocalTcpRexp = /tcp.*\s+(?:127\.0\.0\.1|::1)[:.](\d+)\s/i
+	  def grep_netstat(pattern)
+	    `netstat -an`.grep(pattern)
+    end
+  end
+	include NetstatHelper
 
 	class TestStopServer < EM::Connection
 		def initialize *args
@@ -51,37 +55,23 @@ class TestServers < Test::Unit::TestCase
 			EM.stop_server @server_instance
 		end
 	end
+	
 	def run_test_stop_server
-		succeed = false
-		err = false
-		EM.run {
-			sig = EM.start_server(Host, Port)
-			EM.defer proc {
-				if TCPSocket.new Host, Port
-					succeed = true
-				end
-			}, proc {
-				EM.stop_server sig
-				EM.defer proc {
-					# Wait for the acceptor to die, otherwise
-					# we'll probably get a conn-reset instead
-					# of a conn-refused.
-					sleep 0.1
-					begin
-						TCPSocket.new Host, Port
-					rescue
-						err = $!
-					end
-				}, proc {
-					EM.stop
-				}
-			}
-		}
-		assert_equal( true, succeed )
-		assert_equal( Errno::ECONNREFUSED, err.class )
+	  EM.run {
+	    sig = EM.start_server(Host, Port)
+	    assert(grep_netstat(LocalTcpRexp).grep(%r(#{Port})).size >= 1, "Server didn't start")
+	    EM.stop_server sig
+	    # Give the server some time to shutdown.
+	    EM.add_timer(0.1) {
+    		assert(grep_netstat(LocalTcpRexp).grep(%r(#{Port})).empty?, "Servers didn't stop")  	    
+  	    EM.stop
+	    }
+	  }
 	end
 	def test_stop_server
+	  assert(grep_netstat(LocalTcpRexp).grep(Port).empty?, "Port already in use")
 		5.times {run_test_stop_server}
+		assert(grep_netstat(LocalTcpRexp).grep(%r(#{Port})).empty?, "Servers didn't stop")
 	end
 
 

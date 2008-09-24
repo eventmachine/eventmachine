@@ -28,19 +28,11 @@
 # the result is a very confusing error message.
 #
 
-$:.unshift "../lib"
 require 'eventmachine'
 require 'test/unit'
 
 
 class TestEpoll < Test::Unit::TestCase
-
-	def setup
-	end
-
-	def teardown
-	end
-
 
 	module TestEchoServer
 		def receive_data data
@@ -97,16 +89,16 @@ class TestEpoll < Test::Unit::TestCase
 		assert_equal(100, $max)
 	end
 
-	def test_defer
-		$n = 0
-		EM.epoll
-		EM.run {
-			sleep_proc = proc {sleep 1}
-			return_proc = proc {$n += 1; EM.stop}
-			EM.defer sleep_proc, return_proc
-		}
-		assert_equal( 1, $n )
-	end
+  def test_defer
+    n = 0
+    work_proc = proc {n += 1}
+    callback_proc = proc {EM.stop}
+    EM.epoll
+    EM.run {
+      EM.defer work_proc, callback_proc
+    }
+    assert_equal( 1, n )
+  end
 
 
 	module TestDatagramServer
@@ -159,6 +151,7 @@ class TestEpoll < Test::Unit::TestCase
 			50.times {
 				EM.connect_unix_domain(fn, TestEchoClient) {$n += 1}
 			}
+			EM::add_timer(1) { $stderr.puts("test_unix_domain timed out!"); EM::stop }
 		}
 		assert_equal(0, $n)
 		assert_equal(50, $max)

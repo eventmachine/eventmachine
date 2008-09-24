@@ -139,3 +139,42 @@ data-sends.
 	that allows a client to specify a version 1.0 request, which
 	keeps the server from sending a chunked response. The right way to
 	solve this, of course, is to support chunked responses.
+23Sep08: ChangeLog Summary for Merge of branches/raggi
+Most notable work and patches by Aman Gupta, Roger Pack, and James Tucker. 
+Patches / Tickets also submitted by: Jeremy Evans, aanand, darix, mmmurf, 
+danielaquino, macournoyer.
+ - Moved docs into docs/ dir
+ - Major refactor of rakefile, added generic rakefile helpers in tasks
+ - Added example CPP build rakefile in tasks/cpp.rake
+ - Moved rake tests out to tasks/tests.rake
+ - Added svn ignores where appropriate
+ - Fixed jruby build on older java platforms
+ - Gem now builds from Rakefile rather than directly via extconf
+ - Gem unified for jruby, C++ and pure ruby.
+ - Correction for pure C++ build, removing ruby dependency
+ - Fix for CYGWIN builds on ipv6
+ - Major refactor for extconf.rb
+ - Working mingw builds
+ - extconf optionally uses pkg_config over manual configuration
+ - extconf builds for 1.9 on any system that has 1.9
+ - extconf no longer links pthread explicitly
+ - looks for kqueue on all *nix systems
+ - better error output on std::runtime_error, now says where it came from
+ - Fixed some tests on jruby
+ - Added test for general send_data flaw, required for a bugfix in jruby build
+ - Added timeout to epoll tests
+ - Added fixes for java reactor ruby api
+ - Small addition of some docs in httpclient.rb and httpcli2.rb
+ - Some refactor and fixes in smtpserver.rb
+ - Added parenthesis where possible to avoid excess ruby warnings
+ - Refactor of $eventmachine_library logic for accuracy and maintenance, jruby
+ - EM::start_server now supports unix sockets
+ - EM::connect now supports unix sockets
+ - EM::defer @threadqueue now handled more gracefully
+ - Added better messages on exceptions raised
+ - Fix edge case in timer fires
+ - Explicitly require buftok.rb
+ - Add protocols to autoload, rather than require them all immediately
+ - Fix a bug in pr_eventmachine for outbound_q
+ - Refactors to take some of the use of defer out of tests.
+ - Fixes in EM.defer under start/stop conditions. Reduced scope of threads.

@@ -578,7 +578,7 @@ module EventMachine
           end
 
           if w < data.length
-            $outbound_q.unshift data[w..-1]
+            @outbound_q.unshift data[w..-1]
             break
           end
         rescue Errno::EAGAIN

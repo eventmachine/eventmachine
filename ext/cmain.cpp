@@ -2,8 +2,8 @@
 
 $Id$
 
-File:     cmain.cpp
-Date:     06Apr06
+File:			cmain.cpp
+Date:			06Apr06
 
 Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
 Gmail: blackhedd
@@ -24,6 +24,15 @@ static EventMachine_t *EventMachine;
 static int bUseEpoll = 0;
 static int bUseKqueue = 0;
 
+extern "C" void ensure_eventmachine (const char *caller = "unknown caller")
+{
+	if (!EventMachine) {
+		int err_size = 128;
+		char err_string[err_size];
+		snprintf (err_string, err_size, "eventmachine not initialized: %s", caller);
+		throw std::runtime_error (err_string);
+	}
+}
 
 /***********************
 evma_initialize_library
@@ -35,7 +44,7 @@ extern "C" void evma_initialize_library (void(*cb)(const char*, int, const char*
 	// we're just being linked into.
 	//InstallSignalHandlers();
 	if (EventMachine)
-		throw std::runtime_error ("already initialized");
+		throw std::runtime_error ("eventmachine already initialized: evma_initialize_library");
 	EventMachine = new EventMachine_t (cb);
 	if (bUseEpoll)
 		EventMachine->_UseEpoll();
@@ -50,8 +59,7 @@ evma_release_library
 
 extern "C" void evma_release_library()
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_release_library");
 	delete EventMachine;
 	EventMachine = NULL;
 }
@@ -63,8 +71,7 @@ evma_run_machine
 
 extern "C" void evma_run_machine()
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_run_machine");
 	EventMachine->Run();
 }
 
@@ -75,8 +82,7 @@ evma_install_oneshot_timer
 
 extern "C" const char *evma_install_oneshot_timer (int seconds)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_install_oneshot_timer");
 	return EventMachine->InstallOneshotTimer (seconds);
 }
 
@@ -87,8 +93,7 @@ evma_connect_to_server
 
 extern "C" const char *evma_connect_to_server (const char *server, int port)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_connect_to_server");
 	return EventMachine->ConnectToServer (server, port);
 }
 
@@ -98,8 +103,7 @@ evma_connect_to_unix_server
 
 extern "C" const char *evma_connect_to_unix_server (const char *server)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_connect_to_unix_server");
 	return EventMachine->ConnectToUnixServer (server);
 }
 
@@ -136,8 +140,7 @@ evma_create_tcp_server
 
 extern "C" const char *evma_create_tcp_server (const char *address, int port)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_create_tcp_server");
 	return EventMachine->CreateTcpServer (address, port);
 }
 
@@ -147,8 +150,7 @@ evma_create_unix_domain_server
 
 extern "C" const char *evma_create_unix_domain_server (const char *filename)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_create_unix_domain_server");
 	return EventMachine->CreateUnixDomainServer (filename);
 }
 
@@ -158,8 +160,7 @@ evma_open_datagram_socket
 
 extern "C" const char *evma_open_datagram_socket (const char *address, int port)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_open_datagram_socket");
 	return EventMachine->OpenDatagramSocket (address, port);
 }
 
@@ -169,8 +170,7 @@ evma_open_keyboard
 
 extern "C" const char *evma_open_keyboard()
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_open_keyboard");
 	return EventMachine->OpenKeyboard();
 }
 
@@ -182,8 +182,7 @@ evma_send_data_to_connection
 
 extern "C" int evma_send_data_to_connection (const char *binding, const char *data, int data_length)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_send_data_to_connection");
 	return ConnectionDescriptor::SendDataToConnection (binding, data, data_length);
 }
 
@@ -193,8 +192,7 @@ evma_send_datagram
 
 extern "C" int evma_send_datagram (const char *binding, const char *data, int data_length, const char *address, int port)
 {
-  if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_send_datagram");
 	return DatagramDescriptor::SendDatagram (binding, data, data_length, address, port);
 }
 
@@ -205,8 +203,7 @@ evma_close_connection
 
 extern "C" void evma_close_connection (const char *binding, int after_writing)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_close_connection");
 	ConnectionDescriptor::CloseConnection (binding, (after_writing ? true : false));
 }
 
@@ -216,8 +213,7 @@ evma_report_connection_error_status
 
 extern "C" int evma_report_connection_error_status (const char *binding)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_report_connection_error_status");
 	return ConnectionDescriptor::ReportErrorStatus (binding);
 }
 
@@ -227,8 +223,7 @@ evma_stop_tcp_server
 
 extern "C" void evma_stop_tcp_server (const char *binding)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_stop_tcp_server");
 	AcceptorDescriptor::StopAcceptor (binding);
 }
 
@@ -239,8 +234,7 @@ evma_stop_machine
 
 extern "C" void evma_stop_machine()
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_stop_machine");
 	EventMachine->ScheduleHalt();
 }
 
@@ -251,8 +245,7 @@ evma_start_tls
 
 extern "C" void evma_start_tls (const char *binding)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_start_tls");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed)
 		ed->StartTls();
@@ -264,8 +257,7 @@ evma_set_tls_parms
 
 extern "C" void evma_set_tls_parms (const char *binding, const char *privatekey_filename, const char *certchain_filename)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_set_tls_parms");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed)
 		ed->SetTlsParms (privatekey_filename, certchain_filename);
@@ -278,8 +270,7 @@ evma_get_peername
 
 extern "C" int evma_get_peername (const char *binding, struct sockaddr *sa)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_get_peername");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed) {
 		return ed->GetPeername (sa) ? 1 : 0;
@@ -294,8 +285,7 @@ evma_get_sockname
 
 extern "C" int evma_get_sockname (const char *binding, struct sockaddr *sa)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_get_sockname");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed) {
 		return ed->GetSockname (sa) ? 1 : 0;
@@ -310,8 +300,7 @@ evma_get_subprocess_pid
 
 extern "C" int evma_get_subprocess_pid (const char *binding, pid_t *pid)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_get_subprocess_pid");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed) {
 		return ed->GetSubprocessPid (pid) ? 1 : 0;
@@ -326,8 +315,7 @@ evma_get_subprocess_status
 
 extern "C" int evma_get_subprocess_status (const char *binding, int *status)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_get_subprocess_status");
 	if (status) {
 		*status = EventMachine->SubprocessExitStatus;
 		return 1;
@@ -343,8 +331,7 @@ evma_signal_loopbreak
 
 extern "C" void evma_signal_loopbreak()
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_signal_loopbreak");
 	EventMachine->SignalLoopBreaker();
 }
 
@@ -356,8 +343,7 @@ evma__write_file
 
 extern "C" const char *evma__write_file (const char *filename)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma__write_file");
 	return EventMachine->_OpenFileForWriting (filename);
 }
 
@@ -368,8 +354,7 @@ evma_get_comm_inactivity_timeout
 
 extern "C" int evma_get_comm_inactivity_timeout (const char *binding, int *value)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_get_comm_inactivity_timeout");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed) {
 		return ed->GetCommInactivityTimeout (value);
@@ -384,8 +369,7 @@ evma_set_comm_inactivity_timeout
 
 extern "C" int evma_set_comm_inactivity_timeout (const char *binding, int *value)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_set_comm_inactivity_timeout");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed) {
 		return ed->SetCommInactivityTimeout (value);
@@ -401,8 +385,7 @@ evma_set_timer_quantum
 
 extern "C" void evma_set_timer_quantum (int interval)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_set_timer_quantum");
 	EventMachine->SetTimerQuantum (interval);
 }
 
@@ -414,7 +397,7 @@ extern "C" void evma_set_max_timer_count (int ct)
 {
 	// This may only be called if the reactor is not running.
 	if (EventMachine)
-		throw std::runtime_error ("already initialized");
+		throw std::runtime_error ("eventmachine already initialized: evma_set_max_timer_count");
 	EventMachine_t::SetMaxTimerCount (ct);
 }
 
@@ -424,8 +407,8 @@ evma_setuid_string
 
 extern "C" void evma_setuid_string (const char *username)
 {
-    // We do NOT need to be running an EM instance because this method is static.
-    EventMachine_t::SetuidString (username);
+	// We do NOT need to be running an EM instance because this method is static.
+	EventMachine_t::SetuidString (username);
 }
 
 
@@ -435,8 +418,7 @@ evma_popen
 
 extern "C" const char *evma_popen (char * const*cmd_strings)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_popen");
 	return EventMachine->Socketpair (cmd_strings);
 }
 
@@ -447,8 +429,7 @@ evma_get_outbound_data_size
 
 extern "C" int evma_get_outbound_data_size (const char *binding)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_get_outbound_data_size");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	return ed ? ed->GetOutboundDataSize() : 0;
 }
@@ -509,8 +490,7 @@ extern "C" int evma_send_file_data_to_connection (const char *binding, const cha
 	char data[32*1024];
 	int r;
 
-	if (!EventMachine)
-		throw std::runtime_error("not initialized");
+	ensure_eventmachine("evma_send_file_data_to_connection");
 
 	int Fd = open (filename, O_RDONLY);
 
@@ -547,7 +527,4 @@ extern "C" int evma_send_file_data_to_connection (const char *binding, const cha
 
 	return 0;
 }
-
-
-
 

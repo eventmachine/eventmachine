@@ -28,7 +28,7 @@
 # For C++ EventMachines, the analogous functionality is found in ext/rubymain.cpp,
 # which is a garden-variety Ruby-extension glue module.
 
-
+require 'java'
 require 'em_reactor'
 
 module EventMachine
@@ -47,6 +47,11 @@ module EventMachine
 		def eventCallback a1, a2, a3
 			s = String.from_java_bytes(a3.array[a3.position...a3.limit])
 			EventMachine::event_callback a1, a2, s
+		end
+	end
+	class Connection < com.rubyeventmachine.Connection
+		def associate_callback_target sig
+			# No-op for the time being.
 		end
 	end
 	def self.initialize_event_machine

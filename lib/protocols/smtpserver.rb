@@ -119,40 +119,53 @@ module Protocols
 
 		def receive_line ln
 			@@parms[:verbose] and $>.puts ">>> #{ln}"
-			if @state.include?(:data)
-				process_data_line ln
-			elsif ln =~ EhloRegex
+			
+			return process_data_line ln if @state.include?(:data)
+			
+			case ln
+			when EhloRegex
 				process_ehlo $'.dup
-			elsif ln =~ HeloRegex
+			when HeloRegex
 				process_helo $'.dup
-			elsif ln =~ MailFromRegex
+			when MailFromRegex
 				process_mail_from $'.dup
-			elsif ln =~ RcptToRegex
+			when RcptToRegex
 				process_rcpt_to $'.dup
-			elsif ln =~ DataRegex
+			when DataRegex
 				process_data
-			elsif ln =~ RsetRegex
+			when RsetRegex
 				process_rset
-			elsif ln =~ VrfyRegex
+			when VrfyRegex
 				process_vrfy
-			elsif ln =~ ExpnRegex
+			when ExpnRegex
 				process_expn
-			elsif ln =~ HelpRegex
+			when HelpRegex
 				process_help
-			elsif ln =~ NoopRegex
+			when NoopRegex
 				process_noop
-			elsif ln =~ QuitRegex
+			when QuitRegex
 				process_quit
-			elsif ln =~ StarttlsRegex
+			when StarttlsRegex
 				process_starttls
-			elsif ln =~ AuthRegex
+			when AuthRegex
 				process_auth $'.dup
 			else
 				process_unknown
 			end
 		end
 
-
+    # TODO - implement this properly, the implementation is a stub!
+    def process_vrfy
+      send_data "250 Ok, but unimplemented\r\n"
+    end
+    # TODO - implement this properly, the implementation is a stub!
+    def process_help
+      send_data "250 Ok, but unimplemented\r\n"
+    end
+    # TODO - implement this properly, the implementation is a stub!
+    def process_expn
+      send_data "250 Ok, but unimplemented\r\n"
+    end
 
 		#--
 		# This is called at several points to restore the protocol state
@@ -289,8 +302,8 @@ module Protocols
 				d = receive_data_command
 
 				if d.respond_to?(:callback)
-					d.callback &succeeded
-					d.errback &failed
+					d.callback(&succeeded)
+					d.errback(&failed)
 				else
 					(d ? succeeded : failed).call
 				end
@@ -383,8 +396,8 @@ module Protocols
 				d = receive_recipient rcpt
 
 				if d.respond_to?(:set_deferred_status)
-					d.callback &succeeded
-					d.errback &failed
+					d.callback(&succeeded)
+					d.errback(&failed)
 				else
 					(d ? succeeded : failed).call
 				end
@@ -433,8 +446,8 @@ module Protocols
 				d = receive_message
 
 				if d.respond_to?(:set_deferred_status)
-					d.callback &succeeded
-					d.errback &failed
+					d.callback(&succeeded)
+					d.errback(&failed)
 				else
 					(d ? succeeded : failed).call
 				end

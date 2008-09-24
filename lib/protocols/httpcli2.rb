@@ -28,7 +28,17 @@
 module EventMachine
 module Protocols
 
-
+  # = Example
+  #
+  #  
+  #  EM.run{
+  #    include EM::Protocols
+  #    conn = HttpClient2.connect 'google.com', 80
+  #  
+  #    req = conn.get('/')
+  #    req.callback{
+  #      p(req.content)
+  #    }
 	class HttpClient2 < Connection
 		include LineText2
 

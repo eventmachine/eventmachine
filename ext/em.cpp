@@ -631,6 +631,7 @@ SelectData_t::SelectData_t()
 }
 
 
+#ifdef BUILD_FOR_RUBY
 /*****************
 _SelectDataSelect
 *****************/
@@ -659,6 +660,7 @@ int SelectData_t::_Select()
 	return EmSelect (maxsocket+1, &fdreads, &fdwrites, NULL, &tv);
 	#endif
 }
+#endif
 
 
 
@@ -1284,7 +1286,9 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	// Return NULL if no resolution.
 
 	static struct sockaddr_in in4;
+	#ifndef __CYGWIN__
 	static struct sockaddr_in6 in6;
+	#endif
 	struct hostent *hp;
 
 	if (!server || !*server)
@@ -1301,7 +1305,7 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 		return (struct sockaddr*)&in4;
 	}
 
-	#ifdef OS_UNIX
+	#if defined(OS_UNIX) && !defined(__CYGWIN__)
 	memset (&in6, 0, sizeof(in6));
 	if (inet_pton (AF_INET6, server, in6.sin6_addr.s6_addr) > 0) {
 		if (family)

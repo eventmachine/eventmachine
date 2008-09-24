@@ -65,6 +65,12 @@ class HttpClient < Connection
   # Refactor this code so that protocol errors all get handled one way (an exception?),
   # instead of sprinkling set_deferred_status :failed calls everywhere.
 
+  # === Arg list
+  # :host => 'ip/dns', :port => fixnum, :verb => 'GET', :request => 'path', 
+  # :basic_auth => {:username => '', :password => ''}, :content => 'content',
+  # :contenttype => 'text/plain', :query_string => '', :host_header => '',
+  # :cookie => ''
+
   def self.request( args = {} )
     args[:port] ||= 80
     EventMachine.connect( args[:host], args[:port], self ) {|c|

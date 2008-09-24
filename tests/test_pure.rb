@@ -67,7 +67,8 @@ class TestPure < Test::Unit::TestCase
     assert_raise( RuntimeError ) { run_exception }
   end
   def test_exception_2
-    assert_raise( RuntimeError ) { run_exception }
+		ex_class = RUBY_PLATFORM == 'java' ? NativeException : RuntimeError
+    assert_raise( ex_class ) { run_exception }
   end
 
 

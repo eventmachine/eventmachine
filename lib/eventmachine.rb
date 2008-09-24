@@ -41,36 +41,37 @@
 # string be set in order to select the pure-Ruby version.
 #
 
-=begin
-$eventmachine_library ||= nil
+
+unless defined?($eventmachine_library)
+  $eventmachine_library = ENV['EVENTMACHINE_LIBRARY'] || :cascade
+end
+$eventmachine_library = $eventmachine_library.to_sym
+
 case $eventmachine_library
 when :pure_ruby
   require 'pr_eventmachine'
 when :extension
   require 'rubyeventmachine'
-else
+when :java
+  require 'jeventmachine'
+else # :cascade
   # This is the case that most user code will take.
   # Prefer the extension if available.
   begin
-    require 'rubyeventmachine'
+    if RUBY_PLATFORM =~ /java/
+      require 'java'
+      require 'jeventmachine'
+      $eventmachine_library = :java
+    else
+      require 'rubyeventmachine'
+      $eventmachine_library = :extension
+    end
   rescue LoadError
+    warn "# EventMachine fell back to pure ruby mode" if $DEBUG
     require 'pr_eventmachine'
+    $eventmachine_library = :pure_ruby
   end
 end
-=end
-
-
-if RUBY_PLATFORM =~ /java/
-	require 'java'
-	require 'jeventmachine'
-else
-	if $eventmachine_library == :pure_ruby or ENV['EVENTMACHINE_LIBRARY'] == "pure_ruby"
-		require 'pr_eventmachine'
-	else
-		require 'rubyeventmachine'
-	end
-end
-
 
 require "eventmachine_version"
 require 'em/deferrable'
@@ -171,6 +172,9 @@ require 'shellwords'
 #
 # 
 module EventMachine
+  class << self
+    attr_reader :threadpool
+  end
 
 
 	# EventMachine::run initializes and runs an event loop.
@@ -230,7 +234,17 @@ module EventMachine
 				(b = blk || block) and add_timer(0, b)
 				run_machine
 			ensure
-				release_machine
+			  begin
+				  release_machine
+			  ensure
+  				if @threadpool
+  				  @threadpool.each { |t| t.exit }
+  				  @threadpool.each { |t| t.kill! if t.alive? }
+  				  @threadqueue = nil
+  				  @resultqueue = nil				  
+  			  end
+  				@threadpool = nil
+				end
 				@reactor_running = false
 			end
 
@@ -515,7 +529,16 @@ module EventMachine
   #  }
   #  
   #
-  def EventMachine::start_server server, port, handler=nil, *args, &block
+  def EventMachine::start_server server, port=nil, handler=nil, *args, &block
+    
+    begin
+      port = Integer(port)
+    rescue ArgumentError, TypeError
+      args.unshift handler if handler
+      handler = port
+      port = nil
+    end if port
+    
     klass = if (handler and handler.is_a?(Class))
       handler
     else
@@ -528,7 +551,11 @@ module EventMachine
       raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})" 
     end
 
-    s = start_tcp_server server, port
+    s = if port
+          start_tcp_server server, port
+        else
+          start_unix_server server
+        end
     @acceptors[s] = [klass,args,block]
     s
   end
@@ -543,22 +570,8 @@ module EventMachine
 	  EventMachine::stop_tcp_server signature
   end
 
-  def EventMachine::start_unix_domain_server filename, handler=nil, *args, &block
-    klass = if (handler and handler.is_a?(Class))
-      handler
-    else
-      Class.new( Connection ) {handler and include handler}
-    end
-
-    arity = klass.instance_method(:initialize).arity
-    expected = arity >= 0 ? arity : -(arity + 1)
-    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
-      raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})" 
-    end
-
-    s = start_unix_server filename
-    @acceptors[s] = [klass,args,block]
-    s
+  def EventMachine::start_unix_domain_server filename, *args, &block
+    start_server filename, *args, &block
   end
 
   # EventMachine#connect initiates a TCP connection to a remote
@@ -658,7 +671,15 @@ module EventMachine
   # to have them behave differently with respect to post_init
   # if at all possible.
   #
-  def EventMachine::connect server, port, handler=nil, *args
+  def EventMachine::connect server, port=nil, handler=nil, *args
+    begin
+      port = Integer(port)
+    rescue ArgumentError, TypeError
+      args.unshift handler if handler
+      handler = port
+      port = nil
+    end if port
+
     klass = if (handler and handler.is_a?(Class))
       handler
     else
@@ -671,7 +692,12 @@ module EventMachine
       raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
     end
 
-    s = connect_server server, port
+    s = if port
+          connect_server server, port
+        else
+          connect_unix_server server
+        end
+
     c = klass.new s, *args
     @conns[s] = c
     block_given? and yield c
@@ -783,24 +809,8 @@ module EventMachine
 	# For making connections to Unix-domain sockets.
 	# Eventually this has to get properly documented and unified with the TCP-connect methods.
 	# Note how nearly identical this is to EventMachine#connect
-	def EventMachine::connect_unix_domain socketname, handler=nil, *args
-		klass = if (handler and handler.is_a?(Class))
-			handler
-		else
-			Class.new( Connection ) {handler and include handler}
-		end
-
-    arity = klass.instance_method(:initialize).arity
-    expected = arity >= 0 ? arity : -(arity + 1)
-    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
-      raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
-    end
-
-		s = connect_unix_server socketname
-		c = klass.new s, *args
-		@conns[s] = c
-		block_given? and yield c
-		c
+	def EventMachine::connect_unix_domain socketname, *args, &blk
+	  connect socketname, *args, &blk
 	end
 
 
@@ -993,27 +1003,30 @@ module EventMachine
 	# way of initializing @threadqueue because EventMachine is a Module, not a Class, and
 	# has no constructor.
 	#
-	def self::defer op, callback = nil
-		@need_threadqueue ||= 0
-		if @need_threadqueue == 0
-			@need_threadqueue = 1
+	def self::defer op = nil, callback = nil, &blk
+		unless @threadpool
 			require 'thread'
+			@threadpool = []
 			@threadqueue = Queue.new
 			@resultqueue = Queue.new
-			20.times {|ix|
-				Thread.new {
-					my_ix = ix
-					loop {
-						op,cback = @threadqueue.pop
-						result = op.call
-						@resultqueue << [result, cback]
-						EventMachine.signal_loopbreak
-					}
-				}
-			}
+			spawn_threadpool
 		end
 
-		@threadqueue << [op,callback]
+		@threadqueue << [op||blk,callback]
+	end
+	
+	def self.spawn_threadpool
+	  until @threadpool.size == 20
+			thread = Thread.new do
+				while true
+					op, cback = *@threadqueue.pop
+					result = op.call
+					@resultqueue << [result, cback]
+					EventMachine.signal_loopbreak
+				end
+			end
+			@threadpool << thread
+		end
 	end
 
 
@@ -1164,7 +1177,7 @@ module EventMachine
 		# code, but the performance impact may be too large.
 		#
 		if opcode == ConnectionData
-			c = @conns[conn_binding] or raise ConnectionNotBound
+			c = @conns[conn_binding] or raise ConnectionNotBound, "received data #{data} for unknown signature: #{conn_binding}"
 			c.receive_data data
 		elsif opcode == ConnectionUnbound
 			if c = @conns.delete( conn_binding )
@@ -1177,7 +1190,7 @@ module EventMachine
 			elsif c = @acceptors.delete( conn_binding )
 				# no-op
 			else
-				raise ConnectionNotBound
+				raise ConnectionNotBound, "recieved ConnectionUnbound for an unknown signature: #{conn_binding}"
 			end
 		elsif opcode == ConnectionAccepted
 			accep,args,blk = @acceptors[conn_binding]
@@ -1187,10 +1200,10 @@ module EventMachine
 			blk and blk.call(c)
 			c # (needed?)
 		elsif opcode == TimerFired
-			t = @timers.delete( data ) or raise UnknownTimerFired
+			t = @timers.delete( data ) or raise UnknownTimerFired, "timer data: #{data}"
 			t.call
 		elsif opcode == ConnectionCompleted
-			c = @conns[conn_binding] or raise ConnectionNotBound
+			c = @conns[conn_binding] or raise ConnectionNotBound, "received ConnectionCompleted for unknown signature: #{conn_binding}"
 			c.connection_completed
 		elsif opcode == LoopbreakSignalled
 			run_deferred_callbacks
@@ -1348,10 +1361,10 @@ class Connection
   # Override .new so subclasses don't have to call super and can ignore
   # connection-specific arguments
   #
-  def self.new sig, *args #:nodoc:
+  def self.new(sig, *args) #:nodoc:
     allocate.instance_eval do
       # Call a superclass's #initialize if it has one
-      initialize *args
+      initialize(*args)
 
       # Store signature and run #post_init
       @signature = sig
@@ -1685,8 +1698,10 @@ class Connection
 			EventMachine::add_timer @interval, proc {self.fire}
 		end
 		def fire
-			@code.call
-			schedule unless @cancelled
+			unless @cancelled
+				@code.call
+				schedule
+			end
 		end
 		def cancel
 			@cancelled = true
@@ -1705,42 +1720,37 @@ class Connection
 		end
 	end
 
-
-
-
 end
+
+# Is inside of protocols/ but not in the namespace?
+require 'protocols/buftok'
 
 module Protocols
 	# In this module, we define standard protocol implementations.
 	# They get included from separate source files.
+	
+	# TODO / XXX: We're munging the LOAD_PATH!
+	# A good citizen would use eventmachine/protocols/tcptest.
+	# TODO : various autotools are completely useless with the lack of naming
+	# convention, we need to correct that!
+	autoload :TcpConnectTester, 'protocols/tcptest'
+	autoload :HttpClient, 'protocols/httpclient'
+	autoload :LineAndTextProtocol, 'protocols/line_and_text'
+	autoload :HeaderAndContentProtocol, 'protocols/header_and_content'
+	autoload :LineText2, 'protocols/linetext2'
+	autoload :HttpClient2, 'protocols/httpcli2'
+	autoload :Stomp, 'protocols/stomp'
+	autoload :SmtpClient, 'protocols/smtpclient'
+	autoload :SmtpServer, 'protocols/smtpserver'
+	autoload :SASLauth, 'protocols/saslauth'
+	
+	#require 'protocols/postgres' UNCOMMENT THIS LINE WHEN THE POSTGRES CODE IS READY FOR PRIME TIME.
 end
 
 end # module EventMachine
-
-
 
 # Save everyone some typing.
 EM = EventMachine
 EM::P = EventMachine::Protocols
 
-
-# At the bottom of this module, we load up protocol handlers that depend on some
-# of the classes defined here. Eventually we should refactor this out so it's
-# laid out in a more logical way.
-#
-
-require 'protocols/tcptest'
-require 'protocols/httpclient'
-require 'protocols/line_and_text'
-require 'protocols/linetext2'
-require 'protocols/header_and_content'
-require 'protocols/httpcli2'
-require 'protocols/stomp'
-require 'protocols/smtpclient'
-require 'protocols/smtpserver'
-require 'protocols/saslauth'
-#require 'protocols/postgres' UNCOMMENT THIS LINE WHEN THE POSTGRES CODE IS READY FOR PRIME TIME.
-
 require 'em/processes'
-
-

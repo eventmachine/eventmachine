@@ -25,166 +25,168 @@
 #
 #
 
-$:.unshift "../lib"
 require 'eventmachine'
-require 'socket'
 require 'test/unit'
 
 class TestLineAndTextProtocol < Test::Unit::TestCase
 
-    TestHost = "127.0.0.1"
-    TestPort = 8905
+  TestHost = "127.0.0.1"
+  TestPort = 8905
 
 
-    #--------------------------------------------------------------------
+  #--------------------------------------------------------------------
 
-    class SimpleLineTest < EventMachine::Protocols::LineAndTextProtocol
-	def receive_line line
-	    @line_buffer << line
-	end
+  class SimpleLineTest < EventMachine::Protocols::LineAndTextProtocol
+    def receive_line line
+      @line_buffer << line
     end
+  end
 
-    def test_simple_lines
-        # THIS TEST CURRENTLY FAILS IN JRUBY.
-        assert( RUBY_PLATFORM !~ /java/ )
-
-	lines_received = []
-	Thread.abort_on_exception = true
-	EventMachine.run {
-	    EventMachine.start_server( TestHost, TestPort, SimpleLineTest ) do |conn|
-		conn.instance_eval "@line_buffer = lines_received"
-	    end
-	    EventMachine.add_timer(4) {raise "test timed out"}
-	    EventMachine.defer proc {
-		t = TCPSocket.new TestHost, TestPort
-		t.write [
-		    "aaa\n", "bbb\r\n", "ccc\n"
-		].join
-		t.close
-	    }, proc {
-		EventMachine.stop
-	    }
-	}
-	assert_equal( %w(aaa bbb ccc), lines_received )
+  module StopClient
+    def set_receive_data(&blk)
+      @rdb = blk
     end
-
-    #--------------------------------------------------------------------
-
-    class SimpleLineTest < EventMachine::Protocols::LineAndTextProtocol
-	def receive_error text
-	    @error_message << text
-	end
+    
+    def receive_data data
+      @rdb.call(data) if @rdb
     end
-
-    def test_overlength_lines
-        # THIS TEST CURRENTLY FAILS IN JRUBY.
-        assert( RUBY_PLATFORM !~ /java/ )
-
-	lines_received = []
-	Thread.abort_on_exception = true
-	EventMachine.run {
-	    EventMachine.start_server( TestHost, TestPort, SimpleLineTest ) do |conn|
-		conn.instance_eval "@error_message = lines_received"
-	    end
-	    EventMachine.add_timer(4) {raise "test timed out"}
-	    EventMachine.defer proc {
-		t = TCPSocket.new TestHost, TestPort
-		t.write "a" * (16*1024 + 1)
-		t.write "\n"
-		t.close
-	    }, proc {
-		EventMachine.stop
-	    }
-	}
-	assert_equal( ["overlength line"], lines_received )
+    
+    def unbind
+      EM.add_timer(0.1) { EM.stop }
     end
+  end
 
 
-    #--------------------------------------------------------------------
+  def test_simple_lines
+    # THIS TEST CURRENTLY FAILS IN JRUBY.
+    assert( RUBY_PLATFORM !~ /java/ )
 
-    class LineAndTextTest < EventMachine::Protocols::LineAndTextProtocol
-	def post_init
-	end
-	def receive_line line
-	    if line =~ /content-length:\s*(\d+)/i
-		@content_length = $1.to_i
-	    elsif line.length == 0
-		set_binary_mode @content_length
-	    end
-	end
-	def receive_binary_data text
-	    send_data "received #{text.length} bytes"
-	    close_connection_after_writing
-	end
+    lines_received = []
+    Thread.abort_on_exception = true
+    EventMachine.run {
+      EventMachine.start_server( TestHost, TestPort, SimpleLineTest ) do |conn|
+        conn.instance_eval "@line_buffer = lines_received"
+      end
+      EventMachine.add_timer(4) {assert(false, "test timed out")}
+
+      EventMachine.connect TestHost, TestPort, StopClient do |c|
+        c.send_data "aaa\nbbb\r\nccc\n"
+        c.close_connection_after_writing
+      end
+    }
+    assert_equal( %w(aaa bbb ccc), lines_received )
+  end
+
+  #--------------------------------------------------------------------
+
+  class SimpleLineTest < EventMachine::Protocols::LineAndTextProtocol
+    def receive_error text
+      @error_message << text
     end
+  end
 
-    def test_lines_and_text
-	output = nil
-	lines_received = []
-	text_received = []
-	Thread.abort_on_exception = true
-	EventMachine.run {
-	    EventMachine.start_server( TestHost, TestPort, LineAndTextTest ) do |conn|
-		conn.instance_eval "@lines = lines_received; @text = text_received"
-	    end
-	    EventMachine.add_timer(2) {raise "test timed out"}
-	    EventMachine.defer proc {
-		t = TCPSocket.new TestHost, TestPort
-		t.puts "Content-length: 400"
-		t.puts
-		t.write "A" * 400
-		output = t.read
-		t.close
-	    }, proc {
-		EventMachine.stop
-	    }
-	}
-	assert_equal( "received 400 bytes", output )
+  def test_overlength_lines
+    # THIS TEST CURRENTLY FAILS IN JRUBY.
+    assert( RUBY_PLATFORM !~ /java/ )
+
+    lines_received = []
+    Thread.abort_on_exception = true
+    EventMachine.run {
+      EventMachine.start_server( TestHost, TestPort, SimpleLineTest ) do |conn|
+        conn.instance_eval "@error_message = lines_received"
+      end
+      EventMachine.add_timer(4) {assert(false, "test timed out")}
+
+      EventMachine.connect TestHost, TestPort, StopClient do |c|
+        c.send_data "a" * (16*1024 + 1)
+        c.send_data "\n"
+        c.close_connection_after_writing
+      end
+
+    }
+    assert_equal( ["overlength line"], lines_received )
+  end
+
+
+  #--------------------------------------------------------------------
+
+  class LineAndTextTest < EventMachine::Protocols::LineAndTextProtocol
+    def post_init
     end
-
-    #--------------------------------------------------------------------
-
-
-    class BinaryTextTest < EventMachine::Protocols::LineAndTextProtocol
-	def post_init
-	end
-	def receive_line line
-	    if line =~ /content-length:\s*(\d+)/i
-		set_binary_mode $1.to_i
-	    else
-		raise "protocol error"
-	    end
-	end
-	def receive_binary_data text
-	    send_data "received #{text.length} bytes"
-	    close_connection_after_writing
-	end
+    def receive_line line
+      if line =~ /content-length:\s*(\d+)/i
+        @content_length = $1.to_i
+      elsif line.length == 0
+        set_binary_mode @content_length
+      end
     end
-
-    def test_binary_text
-	output = nil
-	lines_received = []
-	text_received = []
-	Thread.abort_on_exception = true
-	EventMachine.run {
-	    EventMachine.start_server( TestHost, TestPort, BinaryTextTest ) do |conn|
-		conn.instance_eval "@lines = lines_received; @text = text_received"
-	    end
-	    EventMachine.add_timer(4) {raise "test timed out"}
-	    EventMachine.defer proc {
-		t = TCPSocket.new TestHost, TestPort
-		t.puts "Content-length: 10000"
-		t.write "A" * 10000
-		output = t.read
-		t.close
-	    }, proc {
-		EventMachine.stop
-	    }
-	}
-	assert_equal( "received 10000 bytes", output )
+    def receive_binary_data text
+      send_data "received #{text.length} bytes"
+      close_connection_after_writing
     end
+  end
 
-    #--------------------------------------------------------------------
+  def test_lines_and_text
+    output = ''
+    lines_received = []
+    text_received = []
+    Thread.abort_on_exception = true
+    EventMachine.run {
+      EventMachine.start_server( TestHost, TestPort, LineAndTextTest ) do |conn|
+        conn.instance_eval "@lines = lines_received; @text = text_received"
+      end
+      EventMachine.add_timer(4) {assert(false, "test timed out")}
+
+      EventMachine.connect TestHost, TestPort, StopClient do |c|
+        c.set_receive_data { |data| output << data }
+        c.send_data "Content-length: 400\n"
+        c.send_data "\n"
+        c.send_data "A" * 400
+        EM.add_timer(0.1) { c.close_connection_after_writing }
+      end
+    }
+    assert_equal( "received 400 bytes", output )
+  end
+
+  #--------------------------------------------------------------------
+
+
+  class BinaryTextTest < EventMachine::Protocols::LineAndTextProtocol
+    def post_init
+    end
+    def receive_line line
+      if line =~ /content-length:\s*(\d+)/i
+        set_binary_mode $1.to_i
+      else
+        raise "protocol error"
+      end
+    end
+    def receive_binary_data text
+      send_data "received #{text.length} bytes"
+      close_connection_after_writing
+    end
+  end
+
+  def test_binary_text
+    output = ''
+    lines_received = []
+    text_received = []
+    Thread.abort_on_exception = true
+    EventMachine.run {
+      EventMachine.start_server( TestHost, TestPort, BinaryTextTest ) do |conn|
+        conn.instance_eval "@lines = lines_received; @text = text_received"
+      end
+      EventMachine.add_timer(4) {assert(false, "test timed out")}
+
+      EventMachine.connect TestHost, TestPort, StopClient do |c|
+        c.set_receive_data { |data| output << data }
+        c.send_data "Content-length: 10000\n"
+        c.send_data "A" * 10000
+        EM.add_timer(0.2) { c.close_connection_after_writing }
+      end
+    }
+    assert_equal( "received 10000 bytes", output )
+  end
+
+  #--------------------------------------------------------------------
 end
-
-
