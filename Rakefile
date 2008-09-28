@@ -155,6 +155,6 @@ namespace :java do
   end
 end
 
-task :gemspec do
+task :gemspec => :clean do
   open("eventmachine.gemspec", 'w') { |f| f.write Spec.to_ruby }
 end
