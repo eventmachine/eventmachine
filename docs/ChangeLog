@@ -178,3 +178,4 @@ danielaquino, macournoyer.
  - Fix a bug in pr_eventmachine for outbound_q
  - Refactors to take some of the use of defer out of tests.
  - Fixes in EM.defer under start/stop conditions. Reduced scope of threads.
+23Sep08: Added patch from tmm1 to avoid popen errors on exit.
