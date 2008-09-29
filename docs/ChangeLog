@@ -179,3 +179,5 @@ danielaquino, macournoyer.
  - Refactors to take some of the use of defer out of tests.
  - Fixes in EM.defer under start/stop conditions. Reduced scope of threads.
 23Sep08: Added patch from tmm1 to avoid popen errors on exit.
+30Sep08: Added File.exists? checks in the args for start_tls, as suggested by
+  Brian Lopez (brianmario).

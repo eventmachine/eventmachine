@@ -172,6 +172,8 @@ require 'shellwords'
 #
 # 
 module EventMachine
+  class FileNotFoundException < Exception; end
+  
   class << self
     attr_reader :threadpool
   end
@@ -1552,11 +1554,16 @@ class Connection
 	# behaved than the ones for raw chunks of memory.
 	#
 	def start_tls args={}
-		EventMachine::set_tls_parms(
-			@signature,
-			args[:private_key_file] || "",
-			args[:cert_chain_file] || ""
-		)
+	  priv_key, cert_chain = args.values_at(:private_key_file, :cert_chain_file)
+	  
+	  [priv_key, cert_chain].each do |file|
+	    next if file.nil? or file.empty?
+	    raise FileNotFoundException, 
+	      "Could not find #{file} for start_tls" unless File.exists? file
+    end
+		
+		EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '')
+		
 		EventMachine::start_tls @signature
 	end
 
