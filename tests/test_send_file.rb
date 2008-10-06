@@ -185,6 +185,12 @@ class TestSendFile < Test::Unit::TestCase
 	end
 
 	def test_stream_large_file_data
+	  begin
+	    require 'fastfilereaderext'
+    rescue LoadError
+      $stderr.puts "no fastfilereaderext, not running test_stream_large_file_data"
+      return
+    end
 		File.open( TestFilename, "w" ) {|f|
 			f << ("A" * 10000)
 		}
@@ -205,6 +211,12 @@ class TestSendFile < Test::Unit::TestCase
 	end
 
 	def test_stream_large_chunked_file_data
+	  begin
+	    require 'fastfilereaderext'
+    rescue LoadError
+      $stderr.puts "no fastfilereaderext, not running test_stream_large_chunked_file_data"
+      return
+    end
 		File.open( TestFilename, "w" ) {|f|
 			f << ("A" * 100000)
 		}
