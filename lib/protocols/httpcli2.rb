@@ -129,7 +129,7 @@ module Protocols
 					if chunksize > 0
 						@conn.set_text_mode(ln.to_i(16))
 					else
-						@content = @content.join
+						@content = @content ? @content.join : ''
 						@chunk_trailer = true
 					end
 				else
