@@ -27,7 +27,7 @@ static int bUseKqueue = 0;
 extern "C" void ensure_eventmachine (const char *caller = "unknown caller")
 {
 	if (!EventMachine) {
-		int err_size = 128;
+		const int err_size = 128;
 		char err_string[err_size];
 		snprintf (err_string, err_size, "eventmachine not initialized: %s", caller);
 		throw std::runtime_error (err_string);
