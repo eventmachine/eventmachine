@@ -50,7 +50,7 @@ end
 desc ":default build when running under rubygems."
 task :gem_build => :build
 
-desc "Build extension (or EVENTMACHIINE_LIBRARY) and place in lib"
+desc "Build extension (or EVENTMACHINE_LIBRARY) and place in lib"
 build_task = 'ext:build'
 build_task = 'java:build' if $eventmachine_library == :java
 build_task = :dummy_build if $eventmachine_library == :pure_ruby
