@@ -1185,14 +1185,15 @@ const char *EventMachine_t::AttachFD (int fd, bool notify_readable, bool notify_
 	#endif
 
 	{// Check for duplicate descriptors
-		for (size_t i = 0; i < Descriptors.size(); i++) {
+		size_t i;
+		for (i = 0; i < Descriptors.size(); i++) {
 			EventableDescriptor *ed = Descriptors[i];
 			assert (ed);
 			if (ed->GetSocket() == fd)
 				throw std::runtime_error ("adding existing descriptor");
 		}
 
-		for (size_t i = 0; i < NewDescriptors.size(); i++) {
+		for (i = 0; i < NewDescriptors.size(); i++) {
 			EventableDescriptor *ed = NewDescriptors[i];
 			assert (ed);
 			if (ed->GetSocket() == fd)
