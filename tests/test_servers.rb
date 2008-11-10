@@ -41,7 +41,7 @@ class TestServers < Test::Unit::TestCase
 	  LocalUdpRexp = /udp.*\s+(?:127\.0\.0\.1|::1)[:.](\d+)\s/i
 	  LocalTcpRexp = /tcp.*\s+(?:127\.0\.0\.1|::1)[:.](\d+)\s/i
 	  def grep_netstat(pattern)
-	    `netstat -an`.grep(pattern)
+	    `netstat -an`.scan(/^.*$/).grep(pattern)
     end
   end
 	include NetstatHelper

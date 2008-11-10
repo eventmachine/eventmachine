@@ -98,7 +98,7 @@ class TestEpoll < Test::Unit::TestCase
       EM.defer work_proc, callback_proc
     }
     assert_equal( 1, n )
-  end
+  end unless RUBY_VERSION >= '1.9.0'
 
 
 	module TestDatagramServer

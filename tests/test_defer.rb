@@ -41,7 +41,7 @@ class TestDeferUsage < Test::Unit::TestCase
       }
     }
     assert_equal( n, n_times )
-  end
+  end unless RUBY_VERSION >= '1.9.0'
 
 end
 
