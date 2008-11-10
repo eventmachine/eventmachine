@@ -84,7 +84,10 @@ Spec = Gem::Specification.new do |s|
 
   s.require_path      = 'lib'
 
-  s.test_file         = "tests/testem.rb"
+  # TODO / XXX - should we enable this? rubygems fails the install if anything 
+  # is broken. What we could do is CI submission, though, and always terminate
+  # with a positive code...
+  # s.test_file         = "tests/testem.rb"
   s.extensions        = "Rakefile"
 
   s.author            = "Francis Cianfrocca"
