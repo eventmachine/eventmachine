@@ -463,7 +463,12 @@ t_invoke_popen
 
 static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 {
-	int len = RARRAY_LEN(cmd);
+	// 1.8.7+
+	#ifdef RARRAY_LEN
+		int len = RARRAY_LEN(cmd);
+	#else
+		int len = RARRAY (cmd)->len;
+	#endif
 	if (len > 98)
 		rb_raise (rb_eRuntimeError, "too many arguments to popen");
 	char *strings [100];
