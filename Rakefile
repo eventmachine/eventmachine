@@ -65,7 +65,12 @@ task :dummy_build
 # Basic clean definition, this is enhanced by imports aswell.
 task :clean do
   chdir 'ext' do
-    sh 'make clean' if test ?e, 'Makefile'
+    make = if RUBY_PLATFORM =~ /mswin/ # mingw uses make.
+      'nmake'
+    else
+      'make'
+    end
+    sh "#{make} clean" if test ?e, 'Makefile'
   end
   Dir.glob('**/Makefile').each { |file| rm file }
   Dir.glob('**/*.{o,so,bundle,class,jar,dll,log}').each { |file| rm file }
