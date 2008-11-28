@@ -38,6 +38,12 @@ Dir.glob('tasks/*.rake').each { |r| Rake.application.add_import r }
 $eventmachine_library = :java if RUBY_PLATFORM =~ /java/ || ENV['EVENTMACHINE_LIBRARY'] == 'java'
 $eventmachine_library = :pure_ruby if ENV['EVENTMACHINE_LIBRARY'] == 'pure_ruby'
 
+MAKE = ENV['MAKE'] || if RUBY_PLATFORM =~ /mswin/ # mingw uses make.
+  'nmake'
+else
+  'make'
+end
+
 # If running under rubygems...
 __DIR__ ||= File.expand_path(File.dirname(__FILE__))
 if Gem.path.any? {|path| %r(^#{Regexp.escape path}) =~ __DIR__}
@@ -65,12 +71,7 @@ task :dummy_build
 # Basic clean definition, this is enhanced by imports aswell.
 task :clean do
   chdir 'ext' do
-    make = if RUBY_PLATFORM =~ /mswin/ # mingw uses make.
-      'nmake'
-    else
-      'make'
-    end
-    sh "#{make} clean" if test ?e, 'Makefile'
+    sh "#{MAKE} clean" if test ?e, 'Makefile'
   end
   Dir.glob('**/Makefile').each { |file| rm file }
   Dir.glob('**/*.{o,so,bundle,class,jar,dll,log}').each { |file| rm file }
@@ -126,7 +127,7 @@ namespace :ext do
   desc "make extension"
   task :make => [:makefile] do
     chdir 'ext' do
-      sh 'make'
+      sh MAKE
     end
   end
 
