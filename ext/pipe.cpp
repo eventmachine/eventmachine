@@ -92,15 +92,22 @@ PipeDescriptor::~PipeDescriptor()
 	 * within other unbind calls. (Not sure if that's even possible.)
 	 */
 
-	struct timespec req = {0, 500000000};
-	kill (SubprocessPid, SIGTERM);
-	nanosleep (&req, NULL);
 	assert (MyEventMachine);
+
+	// check if the process is already dead
 	if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) == 0) {
-		kill (SubprocessPid, SIGKILL);
+		kill (SubprocessPid, SIGTERM);
+		// wait 0.25s for process to die
+		struct timespec req = {0, 250000000};
 		nanosleep (&req, NULL);
-		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) == 0)
-			throw std::runtime_error ("unable to reap subprocess");
+		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) == 0) {
+			kill (SubprocessPid, SIGKILL);
+			// wait 0.5s for process to die
+			struct timespec req = {0, 500000000};
+			nanosleep (&req, NULL);
+			if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) == 0)
+				throw std::runtime_error ("unable to reap subprocess");
+		}
 	}
 }
 
