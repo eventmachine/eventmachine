@@ -234,7 +234,7 @@ module Protocols
 
 			h,prt,ssl = args[:host], Integer(args[:port]), (args[:tls] || args[:ssl])
 			conn = EM.connect( h, prt, self )
-			# TODO, start_tls if necessary
+      conn.start_tls if ssl
 			conn.set_default_host_header( h, prt, ssl )
 			conn
 		end

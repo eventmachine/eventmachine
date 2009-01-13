@@ -126,6 +126,19 @@ class TestHttpClient2 < Test::Unit::TestCase
 			d.errback {EM.stop}
 		}
 	end
+	
+	def test_https_get
+    d = nil
+		EM.run {
+			http = EM::P::HttpClient2.connect :host => 'www.amazon.com', :port => 443, :ssl => true
+			d = http.get "/"
+			d.callback {
+				EM.stop
+			}
+		}
+    assert_equal(200, d.status)
+	end
+  
 
 
 end
