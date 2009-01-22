@@ -189,9 +189,7 @@ ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = EPOLLOUT;
 	#endif
-	#ifdef HAVE_KQUEUE
-	MyEventMachine->ArmKqueueWriter (this);
-	#endif
+	// 22Jan09: Moved ArmKqueueWriter into SetConnectPending() to fix assertion failure in _WriteOutboundData()
 }
 
 
@@ -263,6 +261,17 @@ int ConnectionDescriptor::ReportErrorStatus (const char *binding)
 	return -1;
 }
 
+/***************************************
+ConnectionDescriptor::SetConnectPending
+****************************************/
+
+void ConnectionDescriptor::SetConnectPending(bool f)
+{
+	bConnectPending = f;
+	#ifdef HAVE_KQUEUE
+	MyEventMachine->ArmKqueueWriter (this);
+	#endif
+}
 
 
 /**************************************
