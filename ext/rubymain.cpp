@@ -590,6 +590,23 @@ static VALUE conn_associate_callback_target (VALUE self, VALUE sig)
 }
 
 
+/***************
+t_get_loop_time
+****************/
+
+static VALUE t_get_loop_time (VALUE self)
+{
+  VALUE cTime = rb_path2class("Time");
+  if (gCurrentLoopTime != 0) {
+    return rb_funcall(cTime,
+                      rb_intern("at"),
+                      1,
+                      INT2NUM(gCurrentLoopTime));
+  }
+  return Qnil;
+}
+
+
 /*********************
 Init_rubyeventmachine
 *********************/
@@ -638,6 +655,8 @@ extern "C" void Init_rubyeventmachine()
 
 	rb_define_module_function (EmModule, "attach_fd", (VALUE (*)(...))t_attach_fd, 3);
 	rb_define_module_function (EmModule, "detach_fd", (VALUE (*)(...))t_detach_fd, 1);
+
+	rb_define_module_function (EmModule, "current_time", (VALUE(*)(...))t_get_loop_time, 0);
 
 	rb_define_module_function (EmModule, "open_udp_socket", (VALUE(*)(...))t_open_udp_socket, 2);
 	rb_define_module_function (EmModule, "read_keyboard", (VALUE(*)(...))t_read_keyboard, 0);
