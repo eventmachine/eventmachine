@@ -515,6 +515,20 @@ static VALUE t__epoll (VALUE self)
 	return Qnil;
 }
 
+/**********
+t__epoll_p
+**********/
+
+static VALUE t__epoll_p (VALUE self)
+{
+  #ifdef HAVE_EPOLL
+  return Qtrue;
+  #else
+  return Qfalse;
+  #endif
+}
+
+
 /*********
 t__kqueue
 *********/
@@ -524,6 +538,19 @@ static VALUE t__kqueue (VALUE self)
 	// Temporary.
 	evma__kqueue();
 	return Qnil;
+}
+
+/***********
+t__kqueue_p
+***********/
+
+static VALUE t__kqueue_p (VALUE self)
+{
+  #ifdef HAVE_KQUEUE
+  return Qtrue;
+  #else
+  return Qfalse;
+  #endif
 }
 
 
@@ -684,6 +711,9 @@ extern "C" void Init_rubyeventmachine()
 	// Temporary:
 	rb_define_module_function (EmModule, "epoll", (VALUE(*)(...))t__epoll, 0);
 	rb_define_module_function (EmModule, "kqueue", (VALUE(*)(...))t__kqueue, 0);
+
+	rb_define_module_function (EmModule, "epoll?", (VALUE(*)(...))t__epoll_p, 0);
+	rb_define_module_function (EmModule, "kqueue?", (VALUE(*)(...))t__kqueue_p, 0);
 
 	rb_define_method (EmConnection, "get_outbound_data_size", (VALUE(*)(...))conn_get_outbound_data_size, 0);
 	rb_define_method (EmConnection, "associate_callback_target", (VALUE(*)(...))conn_associate_callback_target, 1);
