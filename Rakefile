@@ -169,3 +169,4 @@ task :gemspec => :clobber do
 end
 
 task :clobber => :clean
+task :test => :build
