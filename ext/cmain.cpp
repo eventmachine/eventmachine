@@ -30,7 +30,11 @@ extern "C" void ensure_eventmachine (const char *caller = "unknown caller")
 		const int err_size = 128;
 		char err_string[err_size];
 		snprintf (err_string, err_size, "eventmachine not initialized: %s", caller);
-		throw std::runtime_error (err_string);
+		#ifdef BUILD_FOR_RUBY
+			rb_raise(rb_eRuntimeError, err_string);
+		#else
+			throw std::runtime_error (err_string);
+		#endif
 	}
 }
 
@@ -44,7 +48,11 @@ extern "C" void evma_initialize_library (void(*cb)(const char*, int, const char*
 	// we're just being linked into.
 	//InstallSignalHandlers();
 	if (EventMachine)
-		throw std::runtime_error ("eventmachine already initialized: evma_initialize_library");
+		#ifdef BUILD_FOR_RUBY
+			rb_raise(rb_eRuntimeError, "eventmachine already initialized: evma_initialize_library");
+		#else
+			throw std::runtime_error ("eventmachine already initialized: evma_initialize_library");
+		#endif
 	EventMachine = new EventMachine_t (cb);
 	if (bUseEpoll)
 		EventMachine->_UseEpoll();
@@ -113,8 +121,7 @@ evma_attach_fd
 
 extern "C" const char *evma_attach_fd (int file_descriptor, int notify_readable, int notify_writable)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
+	ensure_eventmachine("evma_attach_fd");
 	return EventMachine->AttachFD (file_descriptor, (notify_readable ? true : false), (notify_writable ? true : false));
 }
 
@@ -124,14 +131,16 @@ evma_detach_fd
 
 extern "C" int evma_detach_fd (const char *binding)
 {
-	if (!EventMachine)
-		throw std::runtime_error ("not initialized");
-
+	ensure_eventmachine("evma_dettach_fd");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed)
 		return EventMachine->DetachFD (ed);
 	else
-		throw std::runtime_error ("invalid binding to detach");
+		#ifdef BUILD_FOR_RUBY
+			rb_raise(rb_eRuntimeError, "invalid binding to detach");
+		#else
+			throw std::runtime_error ("invalid binding to detach");
+		#endif
 }
 
 /**********************
@@ -396,8 +405,13 @@ evma_set_max_timer_count
 extern "C" void evma_set_max_timer_count (int ct)
 {
 	// This may only be called if the reactor is not running.
+
 	if (EventMachine)
-		throw std::runtime_error ("eventmachine already initialized: evma_set_max_timer_count");
+		#ifdef BUILD_FOR_RUBY
+			rb_raise(rb_eRuntimeError, "eventmachine already initialized: evma_set_max_timer_count");
+		#else
+			throw std::runtime_error ("eventmachine already initialized: evma_set_max_timer_count");
+		#endif
 	EventMachine_t::SetMaxTimerCount (ct);
 }
 
