@@ -188,7 +188,6 @@ class TestSendFile < Test::Unit::TestCase
 	  begin
 	    require 'fastfilereaderext'
     rescue LoadError
-      $stderr.puts "no fastfilereaderext, not running test_stream_large_file_data"
       return
     end
 		File.open( TestFilename, "w" ) {|f|
@@ -214,7 +213,6 @@ class TestSendFile < Test::Unit::TestCase
 	  begin
 	    require 'fastfilereaderext'
     rescue LoadError
-      $stderr.puts "no fastfilereaderext, not running test_stream_large_chunked_file_data"
       return
     end
 		File.open( TestFilename, "w" ) {|f|
