@@ -139,7 +139,7 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		int SendOutboundData (const char*, int);
 
-		void SetConnectPending (bool f) { bConnectPending = f; }
+		void SetConnectPending (bool f);
 
 		void SetNotifyReadable (bool readable) { bNotifyReadable = readable; }
 		void SetNotifyWritable (bool writable) { bNotifyWritable = writable; }

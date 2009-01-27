@@ -164,6 +164,9 @@ namespace :java do
   end
 end
 
-task :gemspec => :clean do
+task :gemspec => :clobber do
   open("eventmachine.gemspec", 'w') { |f| f.write Spec.to_ruby }
 end
+
+task :clobber => :clean
+task :test => :build

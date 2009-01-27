@@ -129,12 +129,12 @@ module Protocols
 					if chunksize > 0
 						@conn.set_text_mode(ln.to_i(16))
 					else
-						@content = @content.join
+						@content = @content ? @content.join : ''
 						@chunk_trailer = true
 					end
 				else
 					# We correctly come here after each chunk gets read.
-					p "Got A BLANK chunk line"
+					# p "Got A BLANK chunk line"
 				end
 
 			end
@@ -144,7 +144,7 @@ module Protocols
 			# We get a single chunk. Append it to the incoming content and switch back to line mode.
 			#
 			def receive_chunked_text text
-				p "RECEIVED #{text.length} CHUNK"
+				# p "RECEIVED #{text.length} CHUNK"
 				(@content ||= []) << text
 			end
 

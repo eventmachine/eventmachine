@@ -132,6 +132,7 @@ class TestEpoll < Test::Unit::TestCase
 
 
 	def test_unix_domain
+		fn = "/tmp/xxx.chain"
 		EM.epoll
 		s = EM.set_descriptor_table_size 60000
 		EM.run {
@@ -143,7 +144,6 @@ class TestEpoll < Test::Unit::TestCase
 			# Let's not sweat the Unix-ness of the filename, since this test can't possibly
 			# work on Windows anyway.
 			#
-			fn = "/tmp/xxx.chain"
 			File.unlink(fn) if File.exist?(fn)
 			EM.start_unix_domain_server fn, TestEchoServer
 			$n = 0
@@ -155,6 +155,8 @@ class TestEpoll < Test::Unit::TestCase
 		}
 		assert_equal(0, $n)
 		assert_equal(50, $max)
+	ensure
+		File.unlink(fn) if File.exist?(fn)
 	end
 
 end

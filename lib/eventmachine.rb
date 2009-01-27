@@ -1105,7 +1105,7 @@ module EventMachine
 	#--
 	# Perhaps misnamed since the underlying function uses socketpair and is full-duplex.
 	#
-	def self::popen cmd, handler=nil
+	def self::popen cmd, handler=nil, *args
 		klass = if (handler and handler.is_a?(Class))
 			handler
 		else
@@ -1115,7 +1115,7 @@ module EventMachine
 		w = Shellwords::shellwords( cmd )
 		w.unshift( w.first ) if w.first
 		s = invoke_popen( w )
-		c = klass.new s
+		c = klass.new s, *args
 		@conns[s] = c
 		yield(c) if block_given?
 		c
@@ -1381,6 +1381,10 @@ class Connection
   #
 	def initialize(*args) #:nodoc:
   end
+
+	def associate_callback_target(sig) #:nodoc:
+		# no-op for the time being, to match similar no-op in rubymain.cpp
+	end
 
 	# EventMachine::Connection#post_init is called by the event loop
 	# immediately after the network connection has been established,

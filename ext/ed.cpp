@@ -189,9 +189,7 @@ ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = EPOLLOUT;
 	#endif
-	#ifdef HAVE_KQUEUE
-	MyEventMachine->ArmKqueueWriter (this);
-	#endif
+	// 22Jan09: Moved ArmKqueueWriter into SetConnectPending() to fix assertion failure in _WriteOutboundData()
 }
 
 
@@ -263,6 +261,17 @@ int ConnectionDescriptor::ReportErrorStatus (const char *binding)
 	return -1;
 }
 
+/***************************************
+ConnectionDescriptor::SetConnectPending
+****************************************/
+
+void ConnectionDescriptor::SetConnectPending(bool f)
+{
+	bConnectPending = f;
+	#ifdef HAVE_KQUEUE
+	MyEventMachine->ArmKqueueWriter (this);
+	#endif
+}
 
 
 /**************************************
@@ -624,29 +633,36 @@ void ConnectionDescriptor::_WriteOutboundData()
 	assert (GetSocket() != INVALID_SOCKET);
 	int bytes_written = send (GetSocket(), output_buffer, nbytes, 0);
 
-	if (bytes_written > 0) {
-		OutboundDataSize -= bytes_written;
-		if ((size_t)bytes_written < nbytes) {
-			int len = nbytes - bytes_written;
-			char *buffer = (char*) malloc (len + 1);
-			if (!buffer)
-				throw std::runtime_error ("bad alloc throwing back data");
-			memcpy (buffer, output_buffer + bytes_written, len);
-			buffer [len] = 0;
-			OutboundPages.push_front (OutboundPage (buffer, len));
-		}
-
-		#ifdef HAVE_EPOLL
-		EpollEvent.events = (EPOLLIN | (SelectForWrite() ? EPOLLOUT : 0));
-		assert (MyEventMachine);
-		MyEventMachine->Modify (this);
-		#endif
-		#ifdef HAVE_KQUEUE
-		if (SelectForWrite())
-			MyEventMachine->ArmKqueueWriter (this);
-		#endif
+	bool err = false;
+	if (bytes_written < 0) {
+		err = true;
+		bytes_written = 0;
 	}
-	else {
+
+	assert (bytes_written >= 0);
+	OutboundDataSize -= bytes_written;
+	if ((size_t)bytes_written < nbytes) {
+		int len = nbytes - bytes_written;
+		char *buffer = (char*) malloc (len + 1);
+		if (!buffer)
+			throw std::runtime_error ("bad alloc throwing back data");
+		memcpy (buffer, output_buffer + bytes_written, len);
+		buffer [len] = 0;
+		OutboundPages.push_front (OutboundPage (buffer, len));
+	}
+
+	#ifdef HAVE_EPOLL
+	EpollEvent.events = (EPOLLIN | (SelectForWrite() ? EPOLLOUT : 0));
+	assert (MyEventMachine);
+	MyEventMachine->Modify (this);
+	#endif
+	#ifdef HAVE_KQUEUE
+	if (SelectForWrite())
+		MyEventMachine->ArmKqueueWriter (this);
+	#endif
+
+
+	if (err) {
 		#ifdef OS_UNIX
 		if ((errno != EINPROGRESS) && (errno != EWOULDBLOCK) && (errno != EINTR))
 		#endif

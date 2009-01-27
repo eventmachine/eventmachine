@@ -62,7 +62,6 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
     assert( RUBY_PLATFORM !~ /java/ )
 
     lines_received = []
-    Thread.abort_on_exception = true
     EventMachine.run {
       EventMachine.start_server( TestHost, TestPort, SimpleLineTest ) do |conn|
         conn.instance_eval "@line_buffer = lines_received"
@@ -90,7 +89,6 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
     assert( RUBY_PLATFORM !~ /java/ )
 
     lines_received = []
-    Thread.abort_on_exception = true
     EventMachine.run {
       EventMachine.start_server( TestHost, TestPort, SimpleLineTest ) do |conn|
         conn.instance_eval "@error_message = lines_received"
@@ -130,7 +128,6 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
     output = ''
     lines_received = []
     text_received = []
-    Thread.abort_on_exception = true
     EventMachine.run {
       EventMachine.start_server( TestHost, TestPort, LineAndTextTest ) do |conn|
         conn.instance_eval "@lines = lines_received; @text = text_received"
@@ -171,7 +168,6 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
     output = ''
     lines_received = []
     text_received = []
-    Thread.abort_on_exception = true
     EventMachine.run {
       EventMachine.start_server( TestHost, TestPort, BinaryTextTest ) do |conn|
         conn.instance_eval "@lines = lines_received; @text = text_received"

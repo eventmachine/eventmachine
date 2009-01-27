@@ -68,52 +68,61 @@ class TestHttpClient2 < Test::Unit::TestCase
 	end
 
 	def test_bad_server
+	  err = nil
 		EM.run {
 			http = EM::P::HttpClient2.connect Localhost, 9999
 			d = http.get "/"
-			d.errback {p d.internal_error; EM.stop }
+			d.errback { err = true; d.internal_error; EM.stop }
 		}
+		assert(err)
 	end
 
 	def test_get
+	  content = nil
 		EM.run {
 			http = EM::P::HttpClient2.connect "www.bayshorenetworks.com", 80
 			d = http.get "/"
 			d.callback {
-				p d.content
+				content = d.content
 				EM.stop
 			}
 		}
+		assert(content)
 	end
 
 	# Not a pipelined request because we wait for one response before we request the next.
 	def test_get_multiple
+	  content = nil
 		EM.run {
 			http = EM::P::HttpClient2.connect "www.bayshorenetworks.com", 80
 			d = http.get "/"
 			d.callback {
 				e = http.get "/"
 				e.callback {
-					p e.content
+					content = e.content
 					EM.stop
 				}
 			}
 		}
+		assert(content)
 	end
 
 	def test_get_pipeline
+	  headers, headers2 = nil, nil
 		EM.run {
 			http = EM::P::HttpClient2.connect "www.microsoft.com", 80
 			d = http.get("/")
 			d.callback {
-				p d.headers
+				headers = d.headers
 			}
 			e = http.get("/")
 			e.callback {
-				p e.headers
+				headers2 = e.headers
 			}
 			EM::Timer.new(1) {EM.stop}
 		}
+		assert(headers)
+		assert(headers2)
 	end
 
 

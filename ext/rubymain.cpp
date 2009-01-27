@@ -515,6 +515,20 @@ static VALUE t__epoll (VALUE self)
 	return Qnil;
 }
 
+/**********
+t__epoll_p
+**********/
+
+static VALUE t__epoll_p (VALUE self)
+{
+  #ifdef HAVE_EPOLL
+  return Qtrue;
+  #else
+  return Qfalse;
+  #endif
+}
+
+
 /*********
 t__kqueue
 *********/
@@ -524,6 +538,19 @@ static VALUE t__kqueue (VALUE self)
 	// Temporary.
 	evma__kqueue();
 	return Qnil;
+}
+
+/***********
+t__kqueue_p
+***********/
+
+static VALUE t__kqueue_p (VALUE self)
+{
+  #ifdef HAVE_KQUEUE
+  return Qtrue;
+  #else
+  return Qfalse;
+  #endif
 }
 
 
@@ -590,6 +617,23 @@ static VALUE conn_associate_callback_target (VALUE self, VALUE sig)
 }
 
 
+/***************
+t_get_loop_time
+****************/
+
+static VALUE t_get_loop_time (VALUE self)
+{
+  VALUE cTime = rb_path2class("Time");
+  if (gCurrentLoopTime != 0) {
+    return rb_funcall(cTime,
+                      rb_intern("at"),
+                      1,
+                      INT2NUM(gCurrentLoopTime));
+  }
+  return Qnil;
+}
+
+
 /*********************
 Init_rubyeventmachine
 *********************/
@@ -639,6 +683,8 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "attach_fd", (VALUE (*)(...))t_attach_fd, 3);
 	rb_define_module_function (EmModule, "detach_fd", (VALUE (*)(...))t_detach_fd, 1);
 
+	rb_define_module_function (EmModule, "current_time", (VALUE(*)(...))t_get_loop_time, 0);
+
 	rb_define_module_function (EmModule, "open_udp_socket", (VALUE(*)(...))t_open_udp_socket, 2);
 	rb_define_module_function (EmModule, "read_keyboard", (VALUE(*)(...))t_read_keyboard, 0);
 	rb_define_module_function (EmModule, "release_machine", (VALUE(*)(...))t_release_machine, 0);
@@ -665,6 +711,9 @@ extern "C" void Init_rubyeventmachine()
 	// Temporary:
 	rb_define_module_function (EmModule, "epoll", (VALUE(*)(...))t__epoll, 0);
 	rb_define_module_function (EmModule, "kqueue", (VALUE(*)(...))t__kqueue, 0);
+
+	rb_define_module_function (EmModule, "epoll?", (VALUE(*)(...))t__epoll_p, 0);
+	rb_define_module_function (EmModule, "kqueue?", (VALUE(*)(...))t__kqueue_p, 0);
 
 	rb_define_method (EmConnection, "get_outbound_data_size", (VALUE(*)(...))conn_get_outbound_data_size, 0);
 	rb_define_method (EmConnection, "associate_callback_target", (VALUE(*)(...))conn_associate_callback_target, 1);
