@@ -27,7 +27,11 @@ require File.dirname(__FILE__) + '/buftok'
 
 module EventMachine
   module Protocols
-
+    # A protocol that handles line-oriented data with interspersed binary text.
+    #
+    # This version is optimized for performance. See EventMachine::Protocols::LineText2
+    # for a version which is optimized for correctness with regard to binary text blocks
+    # that can switch back to line mode.
     class LineAndTextProtocol < Connection
       MaxLineLength = 16*1024
       MaxBinaryLength = 32*1024*1024

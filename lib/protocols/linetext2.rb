@@ -24,22 +24,20 @@
 # 
 # 
 
-
-# In the grand, time-honored tradition of re-inventing the wheel, we offer
-# here YET ANOTHER protocol that handles line-oriented data with interspersed
-# binary text. This one trades away some of the performance optimizations of
-# EventMachine::Protocols::LineAndTextProtocol in order to get better correctness
-# with regard to binary text blocks that can switch back to line mode. It also
-# permits the line-delimiter to change in midstream.
-# This was originally written to support Stomp.
-
-# TODO! We're not enforcing the limits on header lengths and text-lengths.
-# When we get around to that, call #receive_error if the user defined it, otherwise
-# throw exceptions.
-
 module EventMachine
 	module Protocols
+		# In the grand, time-honored tradition of re-inventing the wheel, we offer
+		# here YET ANOTHER protocol that handles line-oriented data with interspersed
+		# binary text. This one trades away some of the performance optimizations of
+		# EventMachine::Protocols::LineAndTextProtocol in order to get better correctness
+		# with regard to binary text blocks that can switch back to line mode. It also
+		# permits the line-delimiter to change in midstream.
+		# This was originally written to support Stomp.
 		module LineText2
+			# TODO! We're not enforcing the limits on header lengths and text-lengths.
+			# When we get around to that, call #receive_error if the user defined it, otherwise
+			# throw exceptions.
+      
 			MaxLineLength = 16*1024
 			MaxBinaryLength = 32*1024*1024
 
