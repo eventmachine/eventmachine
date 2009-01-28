@@ -1504,7 +1504,9 @@ class Connection
 	# connection objects. (Need an example to make that clear.)
 	#
 	def send_data data
-		EventMachine::send_data @signature, data, data.length
+	  size = data.bytesize if data.respond_to?(:bytesize)
+	  size ||= data.size
+		EventMachine::send_data @signature, data, size
 	end
 
 	# Returns true if the connection is in an error state, false otherwise.
