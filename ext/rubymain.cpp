@@ -244,7 +244,11 @@ static VALUE t_get_subprocess_status (VALUE self, VALUE signature)
 {
 	int status;
 	if (evma_get_subprocess_status (StringValuePtr (signature), &status)) {
+#ifdef WEXITSTATUS
+		return INT2NUM (WEXITSTATUS(status));
+#else
 		return INT2NUM (status);
+#endif
 	}
 
 	return Qnil;
