@@ -384,7 +384,6 @@ module EventMachine
 	def EventMachine::cancel_timer signature
 		@timers[signature] = proc{} if @timers.has_key?(signature)
 	end
-	private_class_method :cancel_timer
 
 
   # stop_event_loop may called from within a callback method
