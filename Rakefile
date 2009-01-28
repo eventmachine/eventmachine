@@ -121,18 +121,20 @@ using TCP/IP, especially if custom protocols are required.
 end
 
 namespace :ext do
+  ext_sources = FileList['ext/*.{h,cpp,rb,c}']
+  
   desc "Build C++ extension"
-  task :build => [:clean, :make]
+  task :build => [:make]
   
   desc "make extension"
-  task :make => [:makefile] do
+  task :make => ext_sources + ['ext/Makefile'] do
     chdir 'ext' do
       sh MAKE
     end
   end
-
+  
   desc 'Compile the makefile'
-  task :makefile do |t|
+  file 'ext/Makefile' => ext_sources do
     chdir 'ext' do
       ruby 'extconf.rb'
     end
