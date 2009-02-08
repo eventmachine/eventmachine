@@ -32,8 +32,14 @@ See the file COPYING for complete licensing information.
 
 #ifdef BUILD_FOR_RUBY
   #include <ruby.h>
-  #include <rubysig.h>
   #define EmSelect rb_thread_select
+
+  #ifdef HAVE_RBTRAP
+    #include <rubysig.h>
+  #else
+    #define TRAP_BEG
+    #define TRAP_END
+  #endif
 #else
   #define EmSelect select
 #endif
