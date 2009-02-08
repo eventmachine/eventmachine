@@ -26,7 +26,7 @@ desc "Run tests for #{Spec.name}."
 task :test do |t|
   # run_tests t
   # Rake +/ friends leave threads, etc, less stable test runs.
-  ruby "-Ilib -Iext -Ijava tests/testem.rb #{'-v' if ENV['VERBOSE']}"
+  ruby "-Ilib -Iext -Iext/fastfilereader -Ijava tests/testem.rb #{'-v' if ENV['VERBOSE']}"
 end
 
 namespace :test do
@@ -51,7 +51,7 @@ namespace :test do
       "test_pure.rb",
       "test_running.rb",
       "test_sasl.rb",
-      #"test_send_file.rb",
+      "test_send_file.rb",
       "test_servers.rb",
       "test_smtpclient.rb",
       "test_smtpserver.rb",
