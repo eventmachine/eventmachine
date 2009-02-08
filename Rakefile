@@ -78,6 +78,7 @@ task :clean do
   end
   Dir.glob('**/Makefile').each { |file| rm file }
   Dir.glob('**/*.{o,so,bundle,class,jar,dll,log}').each { |file| rm file }
+  Dir.glob('ext/**/conftest.dSYM').each{ |file| rm_rf file }
 end
 
 Spec = Gem::Specification.new do |s|
