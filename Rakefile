@@ -61,7 +61,7 @@ build_task = 'ext:build'
 build_task = 'java:build' if $eventmachine_library == :java
 build_task = :dummy_build if $eventmachine_library == :pure_ruby
 task :build => build_task do |t|
-  Dir.glob('{ext,java/src}/*.{so,bundle,dll,jar}').each do |f|
+  Dir.glob('{ext,java/src,ext/fastfilereader}/*.{so,bundle,dll,jar}').each do |f|
     mv f, "lib"
   end
 end
@@ -71,6 +71,9 @@ task :dummy_build
 # Basic clean definition, this is enhanced by imports aswell.
 task :clean do
   chdir 'ext' do
+    sh "#{MAKE} clean" if test ?e, 'Makefile'
+  end
+  chdir 'ext/fastfilereader' do
     sh "#{MAKE} clean" if test ?e, 'Makefile'
   end
   Dir.glob('**/Makefile').each { |file| rm file }
@@ -122,13 +125,19 @@ end
 
 namespace :ext do
   ext_sources = FileList['ext/*.{h,cpp,rb,c}']
+  ffr_sources = FileList['ext/fastfilereader/*.{h,cpp,rb}']
   
   desc "Build C++ extension"
   task :build => [:make]
   
-  desc "make extension"
+  desc "make extensions"
   task :make => ext_sources + ['ext/Makefile'] do
     chdir 'ext' do
+      sh MAKE
+    end
+  end
+  task :make => ffr_sources + ['ext/fastfilereader/Makefile'] do
+    chdir 'ext/fastfilereader' do
       sh MAKE
     end
   end
@@ -136,6 +145,13 @@ namespace :ext do
   desc 'Compile the makefile'
   file 'ext/Makefile' => ext_sources do
     chdir 'ext' do
+      ruby 'extconf.rb'
+    end
+  end
+
+  desc 'Compile fastfilereader makefile'
+  file 'ext/fastfilereader/Makefile' => ffr_sources do
+    chdir 'ext/fastfilereader' do
       ruby 'extconf.rb'
     end
   end
