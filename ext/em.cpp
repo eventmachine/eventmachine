@@ -545,7 +545,14 @@ bool EventMachine_t::_RunKqueueOnce()
 	struct kevent Karray [maxKevents];
 	struct timespec ts = {0, 10000000}; // Too frequent. Use blocking_region
 
-	int k = kevent (kqfd, NULL, 0, Karray, maxKevents, &ts);
+	int k;
+	#ifdef BUILD_FOR_RUBY
+	TRAP_BEG;
+	#endif
+	k = kevent (kqfd, NULL, 0, Karray, maxKevents, &ts);
+	#ifdef BUILD_FOR_RUBY
+	TRAP_END;
+	#endif
 	struct kevent *ke = Karray;
 	while (k > 0) {
 		EventableDescriptor *ed = (EventableDescriptor*) (ke->udata);
@@ -599,8 +606,11 @@ bool EventMachine_t::_RunKqueueOnce()
 
 
 	// TODO, replace this with rb_thread_blocking_region for 1.9 builds.
-	timeval tv = {0,0};
-	EmSelect (0, NULL, NULL, NULL, &tv);
+	#ifdef BUILD_FOR_RUBY
+	if (!rb_thread_alone()) {
+		rb_thread_schedule();
+	}
+	#endif
 
 	return true;
 	#else
