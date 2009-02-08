@@ -674,7 +674,7 @@ SelectData_t::_Select
 int SelectData_t::_Select()
 {
 	#ifdef HAVE_TBR
-	rb_thread_blocking_region (_SelectDataSelect, (void*)this, RB_UBF_DFL, 0);
+	rb_thread_blocking_region (_SelectDataSelect, (void*)this, RUBY_UBF_IO, 0);
 	return nSockets;
 	#endif
 
@@ -762,7 +762,7 @@ bool EventMachine_t::_RunSelectOnce()
 		//timeval tv = Quantum;
 		SelectData.tv = Quantum;
 		int s = SelectData._Select();
-		//rb_thread_blocking_region(xxx,(void*)&SelectData,RB_UBF_DFL,0);
+		//rb_thread_blocking_region(xxx,(void*)&SelectData,RUBY_UBF_IO,0);
 		//int s = EmSelect (SelectData.maxsocket+1, &(SelectData.fdreads), &(SelectData.fdwrites), NULL, &(SelectData.tv));
 		//int s = SelectData.nSockets;
 		if (s > 0) {

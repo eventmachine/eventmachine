@@ -34,7 +34,7 @@ require 'mkmf'
 
 add_define 'BUILD_FOR_RUBY'
 add_define 'HAVE_RBTRAP' if have_var('rb_trap_immediate', ['ruby.h', 'rubysig.h'])
-add_define "HAVE_TBR" if have_func('rb_thread_blocking_region') and have_macro('RB_UBF_DFL', 'ruby.h')
+add_define "HAVE_TBR" if have_func('rb_thread_blocking_region')# and have_macro('RUBY_UBF_IO', 'ruby.h')
 
 # Minor platform details between *nix and Windows:
 

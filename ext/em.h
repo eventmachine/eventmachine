@@ -40,6 +40,11 @@ See the file COPYING for complete licensing information.
     #define TRAP_BEG
     #define TRAP_END
   #endif
+
+  // 1.9.0 compat
+  #ifndef RUBY_UDF_IO
+    #define RUBY_UDF_IO RB_UDF_DFL
+  #endif
 #else
   #define EmSelect select
 #endif
