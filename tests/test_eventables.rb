@@ -27,10 +27,6 @@
 $:.unshift "../lib"
 require 'eventmachine'
 
-require 'test/unit/testsuite'
-require 'test/unit/ui/console/testrunner'
-
-
 class TestEventables < Test::Unit::TestCase
 
   class EvTest
@@ -68,6 +64,9 @@ end
 #--------------------------------------
 
 if __FILE__ == $0
+  require 'test/unit/testsuite'
+  require 'test/unit/ui/console/testrunner'
+
   runner = Test::Unit::UI::Console::TestRunner
   suite = Test::Unit::TestSuite.new("name")
   ObjectSpace.each_object(Class) do |testcase|
