@@ -33,7 +33,7 @@ end
 require 'mkmf'
 
 add_define 'BUILD_FOR_RUBY'
-
+add_define "HAVE_TBR_BEGIN" if have_func('rb_thread_blocking_region_begin')
 add_define "HAVE_TBR" if have_func('rb_thread_blocking_region') and have_macro('RB_UBF_DFL', 'ruby.h')
 
 # Minor platform details between *nix and Windows:

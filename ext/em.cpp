@@ -429,11 +429,11 @@ bool EventMachine_t::_RunEpollOnce()
 	int s;
 
 	#ifdef BUILD_FOR_RUBY
-	TRAP_BEG;
+	RB_TRAP_BEGIN;
 	#endif
 	s = epoll_wait (epfd, ev, MaxEpollDescriptors, 50);
 	#ifdef BUILD_FOR_RUBY
-	TRAP_END;
+	RB_TRAP_END;
 	#endif
 
 	if (s > 0) {
@@ -545,7 +545,14 @@ bool EventMachine_t::_RunKqueueOnce()
 	struct kevent Karray [maxKevents];
 	struct timespec ts = {0, 10000000}; // Too frequent. Use blocking_region
 
-	int k = kevent (kqfd, NULL, 0, Karray, maxKevents, &ts);
+	int k;
+	#ifdef BUILD_FOR_RUBY
+	RB_TRAP_BEGIN;
+	#endif
+	k = kevent (kqfd, NULL, 0, Karray, maxKevents, &ts);
+	#ifdef BUILD_FOR_RUBY
+	RB_TRAP_END;
+	#endif
 	struct kevent *ke = Karray;
 	while (k > 0) {
 		EventableDescriptor *ed = (EventableDescriptor*) (ke->udata);
@@ -669,7 +676,15 @@ int SelectData_t::_Select()
 	#endif
 
 	#ifndef HAVE_TBR
-	return EmSelect (maxsocket+1, &fdreads, &fdwrites, NULL, &tv);
+	int s;
+	#ifdef BUILD_FOR_RUBY
+	RB_TRAP_BEGIN;
+	#endif
+	s = EmSelect (maxsocket+1, &fdreads, &fdwrites, NULL, &tv);
+	#ifdef BUILD_FOR_RUBY
+	RB_TRAP_END;
+	#endif
+	return s;
 	#endif
 }
 #endif

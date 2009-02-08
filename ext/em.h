@@ -32,8 +32,27 @@ See the file COPYING for complete licensing information.
 
 #ifdef BUILD_FOR_RUBY
   #include <ruby.h>
-  #include <rubysig.h>
-  #define EmSelect rb_thread_select
+	#ifdef HAVE_TBR_BEGIN
+		#define EmSelect select
+		#undef HAVE_TBR
+		//#include <rubysig.h>
+		//#define RB_TRAP_BEGIN TRAP_BEG
+		//#define RB_TRAP_END   TRAP_END
+		struct rb_blocking_region_buffer;
+		RUBY_EXTERN struct rb_blocking_region_buffer *rb_thread_blocking_region_begin(void);
+		RUBY_EXTERN void rb_thread_blocking_region_end(struct rb_blocking_region_buffer *);
+		#define RB_TRAP_BEGIN do {struct rb_blocking_region_buffer* __region = rb_thread_blocking_region_begin();
+		#define RB_TRAP_END   rb_thread_blocking_region_end(__region);} while (0)
+	#elif HAVE_TBR
+		#define EmSelect rb_thread_select
+		#define RB_TRAP_BEGIN
+		#define RB_TRAP_END
+	#else
+		#define EmSelect rb_thread_select
+		#include <rubysig.h>
+		#define RB_TRAP_BEGIN TRAP_BEG
+		#define RB_TRAP_END   TRAP_END
+	#endif
 #else
   #define EmSelect select
 #endif
