@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{eventmachine}
-  s.version = "0.12.4"
+  s.version = "0.12.5"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Francis Cianfrocca"]
@@ -30,4 +30,3 @@ Gem::Specification.new do |s|
   else
   end
 end
-

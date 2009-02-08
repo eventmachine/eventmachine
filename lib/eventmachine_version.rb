@@ -25,7 +25,7 @@
 
 module EventMachine
 
-  VERSION = "0.12.4"
+  VERSION = "0.12.5"
 
 end
 
