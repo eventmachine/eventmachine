@@ -46,7 +46,7 @@ end
 
 # If running under rubygems...
 __DIR__ ||= File.expand_path(File.dirname(__FILE__))
-if Gem.path.map{|path| Dir.chdir(path){ Dir.pwd } }.any? {|path| %r(^#{Regexp.escape path}) =~ __DIR__}
+if Gem.path.map{|path| Dir.chdir(path){ Dir.pwd } rescue path }.any? {|path| %r(^#{Regexp.escape path}) =~ __DIR__}
   task :default => :gem_build
 else
   desc "Build gemspec, then build eventmachine, then run tests."
