@@ -520,8 +520,11 @@ bool EventMachine_t::_RunEpollOnce()
 		}
 	}
 
-	timeval tv = {0,0};
-	EmSelect (0, NULL, NULL, NULL, &tv);
+	#ifdef BUILD_FOR_RUBY
+	if (!rb_thread_alone()) {
+		rb_thread_schedule();
+	}
+	#endif
 
 	return true;
 	#else
