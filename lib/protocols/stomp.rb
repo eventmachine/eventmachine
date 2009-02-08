@@ -31,6 +31,29 @@ module EventMachine
 
 		# Implements Stomp (http://docs.codehaus.org/display/STOMP/Protocol).
 		#
+		# == Usage example
+		#
+		#   class StompClient < EM::Connection
+		#     include EM::Protocols::Stomp
+		#
+		#     def connection_completed
+		#       connect :login => 'guest', :passcode => 'guest'
+		#     end
+		#
+		#     def receive_msg msg
+		#       if msg.command == "CONNECTED"
+		#         subscribe '/some/topic'
+		#       else
+		#         p ['got a message', msg]
+		#         puts msg.body
+		#       end
+		#     end
+		#   end
+		#
+		#   EM.run{
+		#     EM.connect 'localhost', 61613, StompClient
+		#   }
+		#
 		module Stomp
 			include LineText2
 
