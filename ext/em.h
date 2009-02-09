@@ -42,8 +42,8 @@ See the file COPYING for complete licensing information.
   #endif
 
   // 1.9.0 compat
-  #ifndef RUBY_UDF_IO
-    #define RUBY_UDF_IO RB_UDF_DFL
+  #ifndef RUBY_UBF_IO
+    #define RUBY_UBF_IO RB_UBF_DFL
   #endif
 #else
   #define EmSelect select
