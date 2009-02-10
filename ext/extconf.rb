@@ -1,22 +1,4 @@
-# $Id$
-#
-#----------------------------------------------------------------------------
-#
-# Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
-# Gmail: blackhedd
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of either: 1) the GNU General Public License
-# as published by the Free Software Foundation; either version 2 of the
-# License, or (at your option) any later version; or 2) Ruby's License.
-#
-# See the file COPYING for complete licensing information.
-#
-#---------------------------------------------------------------------------
-#
-# extconf.rb for Ruby/EventMachine
-# We have to munge LDSHARED because this code needs a C++ link.
-#
+require 'mkmf'
 
 def check_libs libs = [], fatal = false
   libs.all? { |lib| have_library(lib) || (abort("could not find library: #{lib}") if fatal) }
@@ -29,8 +11,6 @@ end
 def add_define(name)
   $defs.push("-D#{name}")
 end
-
-require 'mkmf'
 
 add_define 'BUILD_FOR_RUBY'
 add_define 'HAVE_RBTRAP' if have_var('rb_trap_immediate', ['ruby.h', 'rubysig.h'])
@@ -48,8 +28,6 @@ else
   add_define 'OS_UNIX'
 
   add_define "HAVE_KQUEUE" if have_header("sys/event.h") and have_header("sys/queue.h")
-
-  # check_libs(%w[pthread], true)
 end
 
 # Main platform invariances:
