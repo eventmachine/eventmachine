@@ -69,6 +69,10 @@ class EventableDescriptor: public Bindable_t
 		virtual void StartTls() {}
 		virtual void SetTlsParms (const char *privkey_filename, const char *certchain_filename) {}
 
+		#ifdef WITH_SSL
+		virtual X509 *GetPeerCert() {}
+		#endif
+
 		// Properties: return 0/1 to signify T/F, and handle the values
 		// through arguments.
 		virtual int GetCommInactivityTimeout (int *value) {return 0;}
@@ -163,6 +167,11 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		virtual void StartTls();
 		virtual void SetTlsParms (const char *privkey_filename, const char *certchain_filename);
+
+		#ifdef WITH_SSL
+		virtual X509 *GetPeerCert();
+		#endif
+
 		void SetServerMode() {bIsServer = true;}
 
 		virtual bool GetPeername (struct sockaddr*);

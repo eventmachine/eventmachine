@@ -54,6 +54,11 @@ extern "C" {
 	const char *evma_open_keyboard();
 	void evma_set_tls_parms (const char *binding, const char *privatekey_filename, const char *certchain_filenane);
 	void evma_start_tls (const char *binding);
+
+	#ifdef WITH_SSL
+	X509 *evma_get_peer_cert (const char *binding);
+	#endif
+
 	int evma_get_peername (const char *binding, struct sockaddr*);
 	int evma_get_sockname (const char *binding, struct sockaddr*);
 	int evma_get_subprocess_pid (const char *binding, pid_t*);

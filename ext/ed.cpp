@@ -755,10 +755,24 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 }
 
 
+/*********************************
+ConnectionDescriptor::GetPeerCert
+*********************************/
+
+#ifdef WITH_SSL
+X509 *ConnectionDescriptor::GetPeerCert()
+{
+	if (!SslBox)
+		throw std::runtime_error ("SSL/TLS not running on this connection");
+	return SslBox->GetPeerCert();
+}
+#endif
+
 
 /*****************************************
 ConnectionDescriptor::_DispatchCiphertext
 *****************************************/
+
 #ifdef WITH_SSL
 void ConnectionDescriptor::_DispatchCiphertext()
 {

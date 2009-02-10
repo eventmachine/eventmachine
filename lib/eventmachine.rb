@@ -1578,6 +1578,10 @@ class Connection
 		EventMachine::start_tls @signature
 	end
 
+	def get_peer_cert
+	  EventMachine::get_peer_cert @signature
+	end
+
 
 	# send_datagram is for sending UDP messages.
 	# This method may be called from any Connection object that refers

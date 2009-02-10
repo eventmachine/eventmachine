@@ -405,6 +405,19 @@ int SslBox_t::PutPlaintext (const char *buf, int bufsize)
 		return 0;
 }
 
+/**********************
+SslBox_t::GetPeerCert
+**********************/
+
+X509 *SslBox_t::GetPeerCert()
+{
+	X509 *cert = NULL;
+
+	if (pSSL)
+		cert = SSL_get_peer_certificate(pSSL);
+
+	return cert;
+}
 
 #endif // WITH_SSL
 

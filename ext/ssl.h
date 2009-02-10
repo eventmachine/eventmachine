@@ -68,6 +68,8 @@ class SslBox_t
 		int GetCiphertext (char*, int);
 		bool IsHandshakeCompleted() {return bHandshakeCompleted;}
 
+		X509 *GetPeerCert();
+
 		void Shutdown();
 
 	protected:

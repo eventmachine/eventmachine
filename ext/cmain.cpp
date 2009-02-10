@@ -272,6 +272,20 @@ extern "C" void evma_set_tls_parms (const char *binding, const char *privatekey_
 		ed->SetTlsParms (privatekey_filename, certchain_filename);
 }
 
+/**************
+evma_get_peer_cert
+**************/
+
+#ifdef WITH_SSL
+extern "C" X509 *evma_get_peer_cert (const char *binding)
+{
+	ensure_eventmachine("evma_get_peer_cert");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return ed->GetPeerCert();
+	return NULL;
+}
+#endif
 
 /*****************
 evma_get_peername
