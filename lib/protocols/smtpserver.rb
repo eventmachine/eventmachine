@@ -120,7 +120,7 @@ module Protocols
 		def receive_line ln
 			@@parms[:verbose] and $>.puts ">>> #{ln}"
 			
-			return process_data_line ln if @state.include?(:data)
+			return process_data_line(ln) if @state.include?(:data)
 			
 			case ln
 			when EhloRegex
