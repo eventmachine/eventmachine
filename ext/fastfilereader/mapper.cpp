@@ -59,7 +59,11 @@ Mapper_t::Mapper_t (const string &filename)
 		throw runtime_error (strerror (errno));
 	FileSize = st.st_size;
 
+	#ifdef OS_WIN32
+	MapPoint = (char*) mmap (0, FileSize, PROT_READ, MAP_SHARED, Fd, 0);
+	#else
 	MapPoint = (const char*) mmap (0, FileSize, PROT_READ, MAP_SHARED, Fd, 0);
+	#endif
 	if (MapPoint == MAP_FAILED)
 		throw runtime_error (strerror (errno));
 }
@@ -150,7 +154,11 @@ Mapper_t::Mapper_t (const string &filename)
 	if (!hMapping)
 		throw runtime_error ("File not mapped");
 
+	#ifdef OS_WIN32
+	MapPoint = (char*) MapViewOfFile (hMapping, FILE_MAP_WRITE, 0, 0, 0);
+	#else
 	MapPoint = (const char*) MapViewOfFile (hMapping, FILE_MAP_WRITE, 0, 0, 0);
+	#endif
 	if (!MapPoint)
 		throw runtime_error ("Mappoint not read");
 }

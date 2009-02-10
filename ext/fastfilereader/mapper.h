@@ -49,7 +49,7 @@ class Mapper_t
 	private:
 		HANDLE hFile;
 		HANDLE hMapping;
-		const char *MapPoint;
+		char *MapPoint;
 	#endif // OS_WIN32
 
 };
