@@ -324,9 +324,13 @@ evma_get_subprocess_pid
 extern "C" int evma_get_subprocess_pid (const char *binding, pid_t *pid)
 {
 	ensure_eventmachine("evma_get_subprocess_pid");
-	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
-	if (ed) {
-		return ed->GetSubprocessPid (pid) ? 1 : 0;
+	PipeDescriptor *pd = dynamic_cast <PipeDescriptor*> (Bindable_t::GetObject (binding));
+	if (pd) {
+		return pd->GetSubprocessPid (pid) ? 1 : 0;
+	}
+	else if (pid && EventMachine->SubprocessPid) {
+		*pid = EventMachine->SubprocessPid;
+		return 1;
 	}
 	else
 		return 0;

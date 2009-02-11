@@ -43,6 +43,8 @@ static VALUE Intern_ssl_handshake_completed;
 static VALUE Intern_notify_readable;
 static VALUE Intern_notify_writable;
 
+static VALUE rb_cProcStatus;
+
 /****************
 t_event_callback
 ****************/
@@ -278,12 +280,20 @@ t_get_subprocess_status
 
 static VALUE t_get_subprocess_status (VALUE self, VALUE signature)
 {
+	VALUE proc_status = Qnil;
+
 	int status;
+	pid_t pid;
+
 	if (evma_get_subprocess_status (StringValuePtr (signature), &status)) {
-		return INT2NUM (status);
+		if (evma_get_subprocess_pid (StringValuePtr (signature), &pid)) {
+			proc_status = rb_obj_alloc(rb_cProcStatus);
+			rb_iv_set(proc_status, "status", INT2FIX(status));
+			rb_iv_set(proc_status, "pid", INT2FIX(pid));
+		}
 	}
 
-	return Qnil;
+	return proc_status;
 }
 
 /*****************************
@@ -685,6 +695,10 @@ Init_rubyeventmachine
 
 extern "C" void Init_rubyeventmachine()
 {
+	// Lookup Process::Status for get_subprocess_status
+	VALUE rb_mProcess = rb_const_get(rb_cObject, rb_intern("Process"));
+	rb_cProcStatus = rb_const_get(rb_mProcess, rb_intern("Status"));
+
 	// Tuck away some symbol values so we don't have to look 'em up every time we need 'em.
 	Intern_at_signature = rb_intern ("@signature");
 	Intern_at_timers = rb_intern ("@timers");
