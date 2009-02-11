@@ -197,6 +197,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		SslBox_t *SslBox;
 		std::string CertChainFilename;
 		std::string PrivateKeyFilename;
+		bool bHandshakeSignaled;
 		#endif
 		bool bIsServer;
 
@@ -209,6 +210,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		void _DispatchCiphertext();
 		int _SendRawOutboundData (const char*, int);
 		int _ReportErrorStatus();
+		void _CheckHandshakeStatus();
 
 };
 

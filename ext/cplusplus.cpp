@@ -167,6 +167,11 @@ void EM::Callback (const char *sig, int ev, const char *data, int length)
 			EM::Eventables.erase (sig);
 			delete e;
 			break;
+
+		case EM_SSL_HANDSHAKE_COMPLETED:
+			e = EM::Eventables [sig];
+			e->SslHandshakeCompleted();
+			break;
 	}
 }
 

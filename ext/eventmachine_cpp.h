@@ -48,6 +48,7 @@ namespace EM {
 			virtual void Accept (const char*) {}
 			virtual void Unbind() {}
 			virtual void PostInit() {}
+			virtual void SslHandshakeCompleted() {}
 
 			void StopReactor() {EM::StopReactor();}
 	};

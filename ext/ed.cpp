@@ -181,6 +181,7 @@ ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	OutboundDataSize (0),
 	#ifdef WITH_SSL
 	SslBox (NULL),
+	bHandshakeSignaled (false),
 	#endif
 	bIsServer (false),
 	LastIo (gCurrentLoopTime),
@@ -495,10 +496,12 @@ void ConnectionDescriptor::_DispatchInboundData (const char *buffer, int size)
 		int s;
 		char B [2048];
 		while ((s = SslBox->GetPlaintext (B, sizeof(B) - 1)) > 0) {
+			_CheckHandshakeStatus();
 			B [s] = 0;
 			if (EventCallback)
 				(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_READ, B, s);
 		}
+		_CheckHandshakeStatus();
 		// INCOMPLETE, s may indicate an SSL error that would force the connection down.
 		_DispatchCiphertext();
 	}
@@ -515,6 +518,21 @@ void ConnectionDescriptor::_DispatchInboundData (const char *buffer, int size)
 }
 
 
+
+/*******************************************
+ConnectionDescriptor::_CheckHandshakeStatus
+*******************************************/
+
+void ConnectionDescriptor::_CheckHandshakeStatus()
+{
+	#ifdef WITH_SSL
+	if (SslBox && (!bHandshakeSignaled) && SslBox->IsHandshakeCompleted()) {
+		bHandshakeSignaled = true;
+		if (EventCallback)
+			(*EventCallback)(GetBinding().c_str(), EM_SSL_HANDSHAKE_COMPLETED, NULL, 0);
+	}
+	#endif
+}
 
 
 

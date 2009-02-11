@@ -1426,6 +1426,12 @@ class Connection
 		puts "............>>>#{data.length}"
 	end
 
+	#
+	#
+	#
+	def ssl_handshake_completed
+	end
+
 	# EventMachine::Connection#unbind is called by the framework whenever a connection
 	# (either a server or client connection) is closed. The close can occur because
 	# your code intentionally closes it (see close_connection and close_connection_after_writing),

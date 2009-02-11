@@ -38,6 +38,7 @@ static VALUE Intern_run_deferred_callbacks;
 static VALUE Intern_delete;
 static VALUE Intern_call;
 static VALUE Intern_receive_data;
+static VALUE Intern_ssl_handshake_completed;
 
 static VALUE Intern_notify_readable;
 static VALUE Intern_notify_writable;
@@ -78,6 +79,13 @@ static void event_callback (const char *a1, int a2, const char *a3, int a4)
 		if (q == Qnil)
 			rb_raise (rb_eRuntimeError, "no timer");
 		rb_funcall (q, Intern_call, 0);
+	}
+	else if (a2 == EM_SSL_HANDSHAKE_COMPLETED) {
+		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
+		VALUE q = rb_hash_aref (t, rb_str_new2(a1));
+		if (q == Qnil)
+			rb_raise (rb_eRuntimeError, "no connection");
+		rb_funcall (q, Intern_ssl_handshake_completed, 0);
 	}
 	else
 		rb_funcall (EmModule, Intern_event_callback, 3, rb_str_new2(a1), (a2 << 1) | 1, rb_str_new(a3,a4));
@@ -650,6 +658,7 @@ extern "C" void Init_rubyeventmachine()
 	Intern_delete = rb_intern ("delete");
 	Intern_call = rb_intern ("call");
 	Intern_receive_data = rb_intern ("receive_data");
+	Intern_ssl_handshake_completed = rb_intern ("ssl_handshake_completed");
 
 	Intern_notify_readable = rb_intern ("notify_readable");
 	Intern_notify_writable = rb_intern ("notify_writable");
@@ -727,6 +736,8 @@ extern "C" void Init_rubyeventmachine()
 
 	rb_define_const (EmModule, "ConnectionNotifyReadable", INT2NUM(106));
 	rb_define_const (EmModule, "ConnectionNotifyWritable", INT2NUM(107));
+
+	rb_define_const (EmModule, "SslHandshakeCompleted", INT2NUM(108));
 
 }
 

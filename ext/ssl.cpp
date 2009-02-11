@@ -210,6 +210,7 @@ SslBox_t::SslBox_t
 
 SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile):
 	bIsServer (is_server),
+	bHandshakeCompleted (true),
 	pSSL (NULL),
 	pbioRead (NULL),
 	pbioWrite (NULL)
@@ -289,6 +290,7 @@ int SslBox_t::GetPlaintext (char *buf, int bufsize)
 			else
 				return 0;
 		}
+		bHandshakeCompleted = true;
 		// If handshake finished, FALL THROUGH and return the available plaintext.
 	}
 

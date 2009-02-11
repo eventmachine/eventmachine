@@ -66,6 +66,7 @@ class SslBox_t
 		bool PutCiphertext (const char*, int);
 		bool CanGetCiphertext();
 		int GetCiphertext (char*, int);
+		bool IsHandshakeCompleted() {return bHandshakeCompleted;}
 
 		void Shutdown();
 
@@ -73,6 +74,7 @@ class SslBox_t
 		SslContext_t *Context;
 
 		bool bIsServer;
+		bool bHandshakeCompleted;
 		SSL *pSSL;
 		BIO *pbioRead;
 		BIO *pbioWrite;
