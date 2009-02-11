@@ -134,7 +134,9 @@ class TestTimers < Test::Unit::TestCase
 		}
 
     assert(!EM.reactor_running?, 'Reactor running when it should not be.')
+    assert( EM.get_max_timers != 10001 )
     EM.set_max_timers( 10001 )
+    assert( EM.get_max_timers == 10001 )
 
 		EM.run {
 			ten_thousand_timers.call
