@@ -69,6 +69,7 @@ class EventMachine_t
 class EventMachine_t
 {
 	public:
+		static int GetMaxTimerCount();
 		static void SetMaxTimerCount (int);
 
 	public:

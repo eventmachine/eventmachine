@@ -412,6 +412,17 @@ extern "C" void evma_set_timer_quantum (int interval)
 	EventMachine->SetTimerQuantum (interval);
 }
 
+
+/************************
+evma_get_max_timer_count
+************************/
+
+extern "C" int evma_get_max_timer_count()
+{
+	return EventMachine_t::GetMaxTimerCount();
+}
+
+
 /************************
 evma_set_max_timer_count
 ************************/

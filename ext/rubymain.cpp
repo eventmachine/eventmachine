@@ -459,6 +459,15 @@ static VALUE t_set_timer_quantum (VALUE self, VALUE interval)
 }
 
 /********************
+t_get_max_timer_count
+********************/
+
+static VALUE t_get_max_timer_count (VALUE self)
+{
+  return INT2FIX (evma_get_max_timer_count());
+}
+
+/********************
 t_set_max_timer_count
 ********************/
 
@@ -729,6 +738,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "signal_loopbreak", (VALUE(*)(...))t_signal_loopbreak, 0);
 	rb_define_module_function (EmModule, "library_type", (VALUE(*)(...))t_library_type, 0);
 	rb_define_module_function (EmModule, "set_timer_quantum", (VALUE(*)(...))t_set_timer_quantum, 1);
+	rb_define_module_function (EmModule, "get_max_timer_count", (VALUE(*)(...))t_get_max_timer_count, 0);
 	rb_define_module_function (EmModule, "set_max_timer_count", (VALUE(*)(...))t_set_max_timer_count, 1);
 	rb_define_module_function (EmModule, "setuid_string", (VALUE(*)(...))t_setuid_string, 1);
 	rb_define_module_function (EmModule, "invoke_popen", (VALUE(*)(...))t_invoke_popen, 1);

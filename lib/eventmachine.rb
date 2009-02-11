@@ -924,6 +924,12 @@ module EventMachine
 		set_max_timer_count ct
 	end
 
+	# Gets the current maximum number of allowed timers
+	#
+	def self::get_max_timers
+		get_max_timer_count
+	end
+
 	#--
 	# The is the responder for the loopback-signalled event.
 	# It can be fired either by code running on a separate thread (EM#defer) or on
