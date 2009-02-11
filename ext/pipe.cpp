@@ -94,6 +94,9 @@ PipeDescriptor::~PipeDescriptor()
 
 	assert (MyEventMachine);
 
+	/* Another hack to make the SubprocessPid available to get_subprocess_status */
+	MyEventMachine->SubprocessPid = SubprocessPid;
+
 	// check if the process is already dead
 	if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) == 0) {
 		kill (SubprocessPid, SIGTERM);

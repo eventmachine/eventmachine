@@ -89,6 +89,7 @@ class EventMachine_t
 		static void SetuidString (const char*);
 		static int SetRlimitNofile (int);
 
+		pid_t SubprocessPid;
 		int SubprocessExitStatus;
 
 		// Temporary:
