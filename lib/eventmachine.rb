@@ -1426,9 +1426,13 @@ class Connection
 		puts "............>>>#{data.length}"
 	end
 
+	# #ssl_handshake_completed is called by EventMachine when the SSL/TLS handshake has
+	# been completed, as a result of calling #start_tls to initiate SSL/TLS on the connection.
 	#
+	# This callback exists because #post_init and #connection_completed are <b>not</b> reliable
+	# for indicating when an SSL/TLS connection is ready to have it's certificate queried for.
 	#
-	#
+	# See #get_peer_cert for application and example.
 	def ssl_handshake_completed
 	end
 
@@ -1578,6 +1582,69 @@ class Connection
 		EventMachine::start_tls @signature
 	end
 
+  # If SSL/TLS is active on the connection, #get_peer_cert returns the remote X509 certificate
+  # as a String, in the popular PEM format. This can then be used for arbitrary validation
+  # of a peer's certificate in your code.
+  #
+  # This should be called in/after the #ssl_handshake_completed callback, which indicates
+  # that SSL/TLS is active. Using this callback is important, because the certificate may not
+  # be available until the time it is executed. Using #post_init or #connection_completed is
+  # not adequate, because the SSL handshake may still be taking place.
+  #
+  # #get_peer_cert will return <b>nil</b> if:
+  #
+  # * EventMachine is not built with OpenSSL support
+  # * SSL/TLS is not active on the connection
+  # * SSL/TLS handshake is not yet complete
+  # * Remote peer for any other reason has not presented a certificate
+  #
+  # === Example:
+  #
+  #  module Handler
+  #
+  #   def post_init
+  #     puts "Starting TLS"
+  #     start_tls
+  #   end
+  #
+  #   def ssl_handshake_completed
+  #     puts get_peer_cert
+  #     close_connection
+  #   end
+  #
+  #   def unbind
+  #     EventMachine::stop_event_loop
+  #   end
+  #
+  #  end
+  #
+  #  EM.run {
+  #   EventMachine::connect "mail.google.com", 443, Handler
+  #  }
+  #
+  # Output:
+  #  -----BEGIN CERTIFICATE-----
+  #  MIIDIjCCAougAwIBAgIQbldpChBPqv+BdPg4iwgN8TANBgkqhkiG9w0BAQUFADBM
+  #  MQswCQYDVQQGEwJaQTElMCMGA1UEChMcVGhhd3RlIENvbnN1bHRpbmcgKFB0eSkg
+  #  THRkLjEWMBQGA1UEAxMNVGhhd3RlIFNHQyBDQTAeFw0wODA1MDIxNjMyNTRaFw0w
+  #  OTA1MDIxNjMyNTRaMGkxCzAJBgNVBAYTAlVTMRMwEQYDVQQIEwpDYWxpZm9ybmlh
+  #  MRYwFAYDVQQHEw1Nb3VudGFpbiBWaWV3MRMwEQYDVQQKEwpHb29nbGUgSW5jMRgw
+  #  FgYDVQQDEw9tYWlsLmdvb2dsZS5jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJ
+  #  AoGBALlkxdh2QXegdElukCSOV2+8PKiONIS+8Tu9K7MQsYpqtLNC860zwOPQ2NLI
+  #  3Zp4jwuXVTrtzGuiqf5Jioh35Ig3CqDXtLyZoypjZUQcq4mlLzHlhIQ4EhSjDmA7
+  #  Ffw9y3ckSOQgdBQWNLbquHh9AbEUjmhkrYxIqKXeCnRKhv6nAgMBAAGjgecwgeQw
+  #  KAYDVR0lBCEwHwYIKwYBBQUHAwEGCCsGAQUFBwMCBglghkgBhvhCBAEwNgYDVR0f
+  #  BC8wLTAroCmgJ4YlaHR0cDovL2NybC50aGF3dGUuY29tL1RoYXd0ZVNHQ0NBLmNy
+  #  bDByBggrBgEFBQcBAQRmMGQwIgYIKwYBBQUHMAGGFmh0dHA6Ly9vY3NwLnRoYXd0
+  #  ZS5jb20wPgYIKwYBBQUHMAKGMmh0dHA6Ly93d3cudGhhd3RlLmNvbS9yZXBvc2l0
+  #  b3J5L1RoYXd0ZV9TR0NfQ0EuY3J0MAwGA1UdEwEB/wQCMAAwDQYJKoZIhvcNAQEF
+  #  BQADgYEAsRwpLg1dgCR1gYDK185MFGukXMeQFUvhGqF8eT/CjpdvezyKVuz84gSu
+  #  6ccMXgcPQZGQN/F4Xug+Q01eccJjRSVfdvR5qwpqCj+6BFl5oiKDBsveSkrmL5dz
+  #  s2bn7TdTSYKcLeBkjXxDLHGBqLJ6TNCJ3c4/cbbG5JhGvoema94=
+  #  -----END CERTIFICATE-----
+  #
+  # You can do whatever you want with the certificate String, such as load it
+  # as a certificate object using the OpenSSL library, and check it's fields.
 	def get_peer_cert
 	  EventMachine::get_peer_cert @signature
 	end
