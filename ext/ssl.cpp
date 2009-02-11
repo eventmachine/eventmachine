@@ -210,7 +210,7 @@ SslBox_t::SslBox_t
 
 SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile):
 	bIsServer (is_server),
-	bHandshakeCompleted (true),
+	bHandshakeCompleted (false),
 	pSSL (NULL),
 	pbioRead (NULL),
 	pbioWrite (NULL)
