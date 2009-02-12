@@ -67,16 +67,15 @@ module EventMachine
 
       def initialize host, port = 11211
         @host, @port = host, port
-        @values = {}
-        @get_cbs = []
-        @set_cbs = []
-        @buffer = ''
       end
 
       def connection_completed
         set_delimiter "\r\n"
         set_line_mode
         @connected = true
+        @values = {}
+        @get_cbs = []
+        @set_cbs = []
         succeed
       end
 
