@@ -1838,6 +1838,7 @@ module Protocols
 	autoload :SmtpClient, 'protocols/smtpclient'
 	autoload :SmtpServer, 'protocols/smtpserver'
 	autoload :SASLauth, 'protocols/saslauth'
+	autoload :Memcache, 'protocols/memcache'
 	
 	#require 'protocols/postgres' UNCOMMENT THIS LINE WHEN THE POSTGRES CODE IS READY FOR PRIME TIME.
 end
