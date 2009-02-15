@@ -54,8 +54,8 @@ class TestKeyboardEvents < Test::Unit::TestCase
 	  EM.run {
 		  EM.open_keyboard KbHandler
 		  EM::Timer.new(1) { EM.stop }
-	  }
-  end if $stdout.tty? # don't run the test unless it stands a chance of validity.
+	  } if $stdout.tty? # don't run the test unless it stands a chance of validity.
+  end
 
 end
 
