@@ -1165,7 +1165,19 @@ module EventMachine
 		c
 	end
 
-
+	# Catch-all for errors raised during event loop callbacks.
+	#
+	# EM.error_handler{ |e|
+	#   puts "Error raised during event loop: #{e.message}"
+	# }
+	#
+	def EventMachine::error_handler cb = nil, &blk
+		if cb or blk
+			@error_handler = cb || blk
+		elsif instance_variable_defined? :@error_handler
+			remove_instance_variable :@error_handler
+		end
+	end
 
 	private
 	def EventMachine::event_callback conn_binding, opcode, data

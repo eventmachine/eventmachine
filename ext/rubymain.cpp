@@ -33,24 +33,36 @@ static VALUE EmConnection;
 static VALUE Intern_at_signature;
 static VALUE Intern_at_timers;
 static VALUE Intern_at_conns;
+static VALUE Intern_at_error_handler;
 static VALUE Intern_event_callback;
 static VALUE Intern_run_deferred_callbacks;
 static VALUE Intern_delete;
 static VALUE Intern_call;
 static VALUE Intern_receive_data;
 static VALUE Intern_ssl_handshake_completed;
-
 static VALUE Intern_notify_readable;
 static VALUE Intern_notify_writable;
 
 static VALUE rb_cProcStatus;
 
+struct em_event {
+	const char *a1;
+	int a2;
+	const char *a3;
+	int a4;
+};
+
 /****************
 t_event_callback
 ****************/
 
-static void event_callback (const char *a1, int a2, const char *a3, int a4)
+static void event_callback (struct em_event* e)
 {
+	const char *a1 = e->a1;
+	int a2 = e->a2;
+	const char *a3 = e->a3;
+	int a4 = e->a4;
+
 	if (a2 == EM_CONNECTION_READ) {
 		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
 		VALUE q = rb_hash_aref (t, rb_str_new2(a1));
@@ -93,7 +105,33 @@ static void event_callback (const char *a1, int a2, const char *a3, int a4)
 		rb_funcall (EmModule, Intern_event_callback, 3, rb_str_new2(a1), (a2 << 1) | 1, rb_str_new(a3,a4));
 }
 
+/*******************
+event_error_handler
+*******************/
 
+static void event_error_handler(void *, VALUE err)
+{
+	VALUE error_handler = rb_ivar_get(EmModule, Intern_at_error_handler);
+	rb_funcall (error_handler, Intern_call, 1, err);
+}
+
+/**********************
+event_callback_wrapper
+**********************/
+
+static void event_callback_wrapper (const char *a1, int a2, const char *a3, int a4)
+{
+	struct em_event e;
+	e.a1 = a1;
+	e.a2 = a2;
+	e.a3 = a3;
+	e.a4 = a4;
+
+	if (!rb_ivar_defined(EmModule, Intern_at_error_handler))
+		event_callback(&e);
+	else
+		rb_rescue((VALUE (*)(ANYARGS))event_callback, (VALUE)&e, (VALUE (*)(ANYARGS))event_error_handler, NULL);
+}
 
 /**************************
 t_initialize_event_machine
@@ -101,7 +139,7 @@ t_initialize_event_machine
 
 static VALUE t_initialize_event_machine (VALUE self)
 {
-	evma_initialize_library (event_callback);
+	evma_initialize_library (event_callback_wrapper);
 	return Qnil;
 }
 
@@ -703,6 +741,7 @@ extern "C" void Init_rubyeventmachine()
 	Intern_at_signature = rb_intern ("@signature");
 	Intern_at_timers = rb_intern ("@timers");
 	Intern_at_conns = rb_intern ("@conns");
+	Intern_at_error_handler = rb_intern("@error_handler");
 
 	Intern_event_callback = rb_intern ("event_callback");
 	Intern_run_deferred_callbacks = rb_intern ("run_deferred_callbacks");
@@ -710,7 +749,6 @@ extern "C" void Init_rubyeventmachine()
 	Intern_call = rb_intern ("call");
 	Intern_receive_data = rb_intern ("receive_data");
 	Intern_ssl_handshake_completed = rb_intern ("ssl_handshake_completed");
-
 	Intern_notify_readable = rb_intern ("notify_readable");
 	Intern_notify_writable = rb_intern ("notify_writable");
 

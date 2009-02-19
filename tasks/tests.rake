@@ -37,6 +37,7 @@ namespace :test do
       "test_basic.rb",
       "test_epoll.rb",
       "test_errors.rb",
+      "test_error_handler.rb",
       "test_eventables.rb",
       "test_exc.rb",
       "test_futures.rb",
