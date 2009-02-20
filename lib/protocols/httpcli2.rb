@@ -185,7 +185,16 @@ module Protocols
 				end
 
 				if clen
-					@conn.set_text_mode clen
+					# If the content length is zero we should not call set_text_mode,
+					# because a value of zero will make it wait forever, hanging the
+					# connection. Just return success instead, with empty content.
+					if clen == 0 then
+						@content = ""
+						@conn.pop_request
+						succeed
+					else
+						@conn.set_text_mode clen
+					end
 				elsif chunks
 					@chunking = true
 				else
