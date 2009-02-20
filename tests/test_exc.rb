@@ -38,7 +38,7 @@ class TestSomeExceptions < Test::Unit::TestCase
     # because the machine wasn't cleaned up properly.
 
     def test_a
-	assert_raise(RuntimeError) {
+	assert_raises(RuntimeError) {
 	    EventMachine.run {
 		raise "some exception"
 	    }
@@ -46,7 +46,7 @@ class TestSomeExceptions < Test::Unit::TestCase
     end
 
     def test_b
-	assert_raise(RuntimeError) {
+	assert_raises(RuntimeError) {
 	    EventMachine.run {
 		raise "some exception"
 	    }

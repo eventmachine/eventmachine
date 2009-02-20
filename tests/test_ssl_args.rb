@@ -41,13 +41,13 @@ class TestSslArgs < Test::Unit::TestCase
     # associate_callback_target is a pain! (build!)
     conn = EventMachine::Connection.new('foo')
     
-    assert_raise(EventMachine::FileNotFoundException) do
+    assert_raises(EventMachine::FileNotFoundException) do
       conn.start_tls(:private_key_file => priv_file)
     end
-    assert_raise(EventMachine::FileNotFoundException) do
+    assert_raises(EventMachine::FileNotFoundException) do
       conn.start_tls(:cert_chain_file => cert_file)
     end
-    assert_raise(EventMachine::FileNotFoundException) do
+    assert_raises(EventMachine::FileNotFoundException) do
       conn.start_tls(:private_key_file => priv_file, :cert_chain_file => cert_file)
     end
   end

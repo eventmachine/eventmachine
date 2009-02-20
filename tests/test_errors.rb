@@ -59,7 +59,7 @@ class TestErrors < Test::Unit::TestCase
 	# run.
 	#
 	def obsolete_test_unhandled_error
-		assert_raise( RuntimeError ) {
+		assert_raises( RuntimeError ) {
 			EM.run {
 				EM.add_timer(0) {raise "AAA"}
 			}

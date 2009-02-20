@@ -60,7 +60,7 @@ class TestHttpClient2 < Test::Unit::TestCase
 	def test_bad_port
 		EM.run {
 			EM.start_server Localhost, Localport, TestServer
-			assert_raise( ArgumentError ) {
+			assert_raises( ArgumentError ) {
 				EM::P::HttpClient2.connect Localhost, "xxx"
 			}
 			EM.stop

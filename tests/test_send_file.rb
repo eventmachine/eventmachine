@@ -92,7 +92,7 @@ class TestSendFile < Test::Unit::TestCase
 		data = ''
 
 		ex_class = RUBY_PLATFORM == 'java' ? NativeException : RuntimeError
-    assert_raise( ex_class ) {
+    assert_raises( ex_class ) {
 			EM.run {
 				EM.start_server TestHost, TestPort, TestModule
 				EM.add_timer(2) {EM.stop} # avoid hanging in case of error

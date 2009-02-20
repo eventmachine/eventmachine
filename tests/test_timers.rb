@@ -122,7 +122,7 @@ class TestTimers < Test::Unit::TestCase
 				ten_thousand_timers.call
 			else
 			  begin
-  				assert_raise( RuntimeError ) {
+  				assert_raises( RuntimeError ) {
   					ten_thousand_timers.call
   				}
   			rescue Object
