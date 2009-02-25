@@ -234,6 +234,9 @@ module EventMachine
 				@reactor_running = true
 				initialize_event_machine
 				(b = blk || block) and add_timer(0, b)
+				if @next_tick_queue && !@next_tick_queue.empty?
+					add_timer(0) { signal_loopbreak }
+				end
 				run_machine
 			ensure
 			  begin
@@ -1056,7 +1059,7 @@ module EventMachine
 	def self::next_tick pr=nil, &block
 		raise "no argument or block given" unless ((pr && pr.respond_to?(:call)) or block)
 		(@next_tick_queue ||= []) << ( pr || block )
-		EventMachine.signal_loopbreak
+		signal_loopbreak if reactor_running?
 =begin
 		(@next_tick_procs ||= []) << (pr || block)
 		if @next_tick_procs.length == 1

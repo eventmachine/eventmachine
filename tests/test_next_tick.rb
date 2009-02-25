@@ -68,6 +68,13 @@ class TestNextTick < Test::Unit::TestCase
 		}
 	end
 
+	def test_pre_run_queue
+		x = false
+		EM.next_tick { EM.stop; x = true }
+		EM.run { EM.add_timer(0.2) { EM.stop } }
+		assert x
+	end
+
 	# We now support an additional parameter for EM#run.
 	# You can pass two procs to EM#run now. The first is executed as the normal
 	# run block. The second (if given) is scheduled for execution after the
