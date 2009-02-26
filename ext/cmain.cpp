@@ -351,6 +351,14 @@ extern "C" int evma_get_subprocess_status (const char *binding, int *status)
 		return 0;
 }
 
+/*************************
+evma_get_connection_count
+*************************/
+
+extern "C" int evma_get_connection_count()
+{
+	return EventMachine->GetConnectionCount();
+}
 
 /*********************
 evma_signal_loopbreak

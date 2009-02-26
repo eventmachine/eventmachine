@@ -334,6 +334,15 @@ static VALUE t_get_subprocess_status (VALUE self, VALUE signature)
 	return proc_status;
 }
 
+/**********************
+t_get_connection_count
+**********************/
+
+static VALUE t_get_connection_count (VALUE self)
+{
+	return INT2NUM(evma_get_connection_count());
+}
+
 /*****************************
 t_get_comm_inactivity_timeout
 *****************************/
@@ -807,6 +816,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "get_comm_inactivity_timeout", (VALUE(*)(...))t_get_comm_inactivity_timeout, 1);
 	rb_define_module_function (EmModule, "set_comm_inactivity_timeout", (VALUE(*)(...))t_set_comm_inactivity_timeout, 2);
 	rb_define_module_function (EmModule, "set_rlimit_nofile", (VALUE(*)(...))t_set_rlimit_nofile, 1);
+	rb_define_module_function (EmModule, "get_connection_count", (VALUE(*)(...))t_get_connection_count, 0);
 
 	// Temporary:
 	rb_define_module_function (EmModule, "epoll", (VALUE(*)(...))t__epoll, 0);

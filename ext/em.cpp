@@ -1919,7 +1919,14 @@ const char *EventMachine_t::OpenKeyboard()
 }
 
 
+/**********************************
+EventMachine_t::GetConnectionCount
+**********************************/
 
+int EventMachine_t::GetConnectionCount ()
+{
+	return Descriptors.size();
+}
 
 
 //#endif // OS_UNIX

@@ -63,6 +63,7 @@ extern "C" {
 	int evma_get_sockname (const char *binding, struct sockaddr*);
 	int evma_get_subprocess_pid (const char *binding, pid_t*);
 	int evma_get_subprocess_status (const char *binding, int*);
+	int evma_get_connection_count();
 	int evma_send_data_to_connection (const char *binding, const char *data, int data_length);
 	int evma_send_datagram (const char *binding, const char *data, int data_length, const char *address, int port);
 	int evma_get_comm_inactivity_timeout (const char *binding, /*out*/int *value);

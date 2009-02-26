@@ -105,6 +105,8 @@ class EventMachine_t
 		pid_t SubprocessPid;
 		int SubprocessExitStatus;
 
+		int GetConnectionCount();
+
 		// Temporary:
 		void _UseEpoll();
 		void _UseKqueue();
