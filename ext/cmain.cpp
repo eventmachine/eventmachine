@@ -357,6 +357,7 @@ evma_get_connection_count
 
 extern "C" int evma_get_connection_count()
 {
+	ensure_eventmachine("evma_get_connection_count");
 	return EventMachine->GetConnectionCount();
 }
 
