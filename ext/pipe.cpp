@@ -97,21 +97,35 @@ PipeDescriptor::~PipeDescriptor()
 	/* Another hack to make the SubprocessPid available to get_subprocess_status */
 	MyEventMachine->SubprocessPid = SubprocessPid;
 
-	// check if the process is already dead
-	if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) == 0) {
-		kill (SubprocessPid, SIGTERM);
-		// wait 0.25s for process to die
-		struct timespec req = {0, 250000000};
+	/* 01Mar09: Updated to use a small nanosleep in a loop. When nanosleep is interrupted by SIGCHLD,
+	 * it resumes the system call after processing the signal (resulting in unnecessary latency).
+	 * Calling nanosleep in a loop avoids this problem.
+	 */
+	struct timespec req = {0, 50000000}; // 0.05s
+	int n;
+
+	// wait 0.25s for the process to die
+	for (n=0; n<5; n++) {
+		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) return;
 		nanosleep (&req, NULL);
-		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) == 0) {
-			kill (SubprocessPid, SIGKILL);
-			// wait 0.5s for process to die
-			struct timespec req = {0, 500000000};
-			nanosleep (&req, NULL);
-			if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) == 0)
-				throw std::runtime_error ("unable to reap subprocess");
-		}
 	}
+
+	// send SIGTERM and wait another 0.5s
+	kill (SubprocessPid, SIGTERM);
+	for (n=0; n<10; n++) {
+		nanosleep (&req, NULL);
+		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) return;
+	}
+
+	// send SIGKILL and wait another 1s
+	kill (SubprocessPid, SIGKILL);
+	for (n=0; n<20; n++) {
+		nanosleep (&req, NULL);
+		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) return;
+	}
+
+	// still not dead, give up!
+	throw std::runtime_error ("unable to reap subprocess");
 }
 
 
