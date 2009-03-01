@@ -105,6 +105,7 @@ class EventableDescriptor: public Bindable_t
 		time_t LastRead;
 		time_t LastWritten;
 		bool bCallbackUnbind;
+		int UnbindReasonCode;
 
 		#ifdef HAVE_EPOLL
 		struct epoll_event EpollEvent;

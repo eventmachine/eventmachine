@@ -933,6 +933,12 @@ module EventMachine
 		get_max_timer_count
 	end
 
+	# Returns the total number of connections (file descriptors) currently held by the reactor.
+	#
+	def self::connection_count
+	  self::get_connection_count
+	end
+
 	#--
 	# The is the responder for the loopback-signalled event.
 	# It can be fired either by code running on a separate thread (EM#defer) or on

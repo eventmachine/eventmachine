@@ -51,6 +51,7 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	LastRead (0),
 	LastWritten (0),
 	bCallbackUnbind (true),
+	UnbindReasonCode (0),
 	MyEventMachine (em)
 {
 	/* There are three ways to close a socket, all of which should
@@ -93,7 +94,7 @@ EventableDescriptor::~EventableDescriptor
 EventableDescriptor::~EventableDescriptor()
 {
 	if (EventCallback && bCallbackUnbind)
-		(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_UNBOUND, NULL, 0);
+		(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_UNBOUND, NULL, UnbindReasonCode);
 	Close();
 }
 
