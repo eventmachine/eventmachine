@@ -98,7 +98,11 @@ Spec = Gem::Specification.new do |s|
   # is broken. What we could do is CI submission, though, and always terminate
   # with a positive code...
   # s.test_file         = "tests/testem.rb"
-  s.extensions        = "Rakefile"
+
+  # XXX Using rake to compile extensions breaks when you have multiple ruby installations
+  # and your path isn't set. We can switch back to this once the Gem.exec patch is merged.
+  # s.extensions        = "Rakefile"
+  s.extensions        = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
 
   s.author            = "Francis Cianfrocca"
   s.email             = "garbagecat10@gmail.com"
