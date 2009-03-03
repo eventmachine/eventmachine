@@ -49,8 +49,16 @@ when /solaris/
 
   add_define 'OS_SOLARIS8'
 
-  # on Unix we need a g++ link, not gcc.
-  CONFIG['LDSHARED'] = "$(CXX) -shared"
+  # Patch by Tim Pease, fixes SUNWspro compile problems.
+  if CONFIG['CC'] == 'cc'
+    # SUN CHAIN
+    $CFLAGS = CONFIG['CFLAGS'] = "-g -O2 -fPIC -G"
+    CONFIG['CCDLFLAGS'] = "-fPIC"
+  else
+    # GNU CHAIN
+    # on Unix we need a g++ link, not gcc.
+    CONFIG['LDSHARED'] = "$(CXX) -shared"
+  end
 when /openbsd/
   # OpenBSD branch contributed by Guillaume Sellier.
 
