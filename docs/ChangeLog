@@ -1,12 +1,6 @@
-# $Id$
-#
-#
-
-#-------------------------------------------------------------
-01Oct06: Replaced EventMachine#open_datagram_server with a version that can take
-a Class or a Module, instead of just a Module. Thanks to Tobias Gustafsson for
-pointing out the missing case.
-
+01Oct06: Replaced EventMachine#open_datagram_server with a version that can
+  take a Class or a Module, instead of just a Module. Thanks to Tobias
+  Gustafsson for pointing out the missing case.
 04Oct06: Supported subsecond timer resolutions, per request by Jason Roelofs.
 05Oct06: Added EventMachine#set_quantum, which sets the timer resolution.
 15Nov06: Added Connection#set_comm_inactivity_timeout.
@@ -181,3 +175,37 @@ danielaquino, macournoyer.
 23Sep08: Added patch from tmm1 to avoid popen errors on exit.
 30Sep08: Added File.exists? checks in the args for start_tls, as suggested by
   Brian Lopez (brianmario).
+10Nov08: ruby 1.9 compatibility enhancements
+28Nov08: Allow for older ruby builds where RARRAY_LEN is not defined
+03Dec08: allow passing arguments to popen handlers
+13Jan09: SSL support for httpclient2 (David Smalley)
+22Jan09: Fixed errors on OSX with the kqueue reactor, fixed errors in the pure
+  ruby reactor. Added EM.current_time. Added EM.epoll? and EM.kqueue?
+27Jan09: Reactor errors are now raised as ruby RuntimeErrors.
+28Jan09: Documentation patch from alloy
+29Jan09: (Late sign-off) Use a longer timeout for connect_server (Ilya
+  Grigorik)
+07Feb09: Fix signal handling issues with threads+epoll
+07Feb09: Use rb_thread_schedule in the epoll reactor
+07Feb09: Use TRAP_BEG/END and rb_thread_schedule in kqueue reactor
+08Feb09: Added fastfilereader from swiftiply
+08Feb09: 1.9 fix for rb_trap_immediate
+08Feb09: Enable rb_thread_blocking_region for 1.9.0 and 1.9.1
+10Feb09: Support win32 builds for fastfilereader
+10Feb09: Added a new event to indicate completion of SSL handshake on TCP
+  connections
+10Feb09: Working get_peer_cert method. Returns the certificate as a Ruby
+  String in PEM format. (Jake Douglas)
+10Feb09: Added EM.get_max_timers
+11Feb09: Fix compile options for sun compiler (Alasdairrr)
+11Feb09: get_status returns a Process::Status object
+12Feb09: Add EM::Protocols::Memcache with simple get/set functionality
+19Feb09: Add catch-all EM.error_handler
+20Feb09: Support miniunit (1.9)
+20Feb09: Return success on content-length = 0 instead of start waiting forever
+  (Ugo Riboni)
+25Feb09: Allow next_tick to be used to pre-schedule reactor operations before
+  EM.run
+26Feb09: Added EM.get_connection_count
+01Mar09: Switch back to extconf for compiling gem extensions
+01Mar09: fixed a small bug with basic auth (mmmurf)
