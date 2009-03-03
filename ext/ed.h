@@ -70,7 +70,7 @@ class EventableDescriptor: public Bindable_t
 		virtual void SetTlsParms (const char *privkey_filename, const char *certchain_filename) {}
 
 		#ifdef WITH_SSL
-		virtual X509 *GetPeerCert() {}
+		virtual X509 *GetPeerCert() {return NULL;}
 		#endif
 
 		// Properties: return 0/1 to signify T/F, and handle the values
