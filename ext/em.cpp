@@ -1236,7 +1236,7 @@ const char *EventMachine_t::AttachFD (int fd, bool notify_readable, bool notify_
 	if (!cd)
 		throw std::runtime_error ("no connection allocated");
 
-	cd->SetConnectPending (true);
+	cd->SetConnectPending (false);
 	cd->SetNotifyReadable (notify_readable);
 	cd->SetNotifyWritable (notify_writable);
 

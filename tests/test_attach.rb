@@ -33,7 +33,7 @@ class TestAttach < Test::Unit::TestCase
   end
 
   class EchoClient < EM::Connection
-    def connection_completed
+    def initialize
       $sock.write("abc\n")
     end
 
@@ -63,4 +63,21 @@ class TestAttach < Test::Unit::TestCase
     assert_equal $sock.readline, "def\n"
   end
 
+
+  module PipeWatch
+    def notify_readable
+      $read = $r.readline
+      EM.stop
+    end
+  end
+
+  def test_attach_pipe
+    EM.run{
+      $r, $w = IO.pipe
+      EM.attach $r, PipeWatch
+      $w.write("ghi\n")
+    }
+
+    assert_equal $read, "ghi\n"
+  end
 end
