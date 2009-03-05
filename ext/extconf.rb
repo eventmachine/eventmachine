@@ -52,8 +52,8 @@ when /solaris/
   # Patch by Tim Pease, fixes SUNWspro compile problems.
   if CONFIG['CC'] == 'cc'
     # SUN CHAIN
-    $CFLAGS = CONFIG['CFLAGS'] = "-g -O2 -fPIC -G"
-    CONFIG['CCDLFLAGS'] = "-fPIC"
+    $CFLAGS = CONFIG['CFLAGS'] = "-KPIC -G"
+    CONFIG['CCDLFLAGS'] = "-KPIC"
   else
     # GNU CHAIN
     # on Unix we need a g++ link, not gcc.
