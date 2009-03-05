@@ -934,6 +934,23 @@ module EventMachine
 	end
 
 	# Returns the total number of connections (file descriptors) currently held by the reactor.
+	# Note that a tick must pass after the 'initiation' of a connection for this number to increment.
+	#
+	# For example, $count will be 0 in this case:
+	#
+	# EM.run {
+	#   EM.connect("rubyeventmachine.com", 80)
+	#   $count = EM.connection_count
+	# }
+	#
+	# In this example, $count will be 1 since the connection has been established in the next loop of the reactor.
+	#
+	# EM.run {
+	#   EM.connect("rubyeventmachine.com", 80)
+	#   EM.next_tick {
+	#     $count = EM.connection_count
+	#   }
+	# }
 	#
 	def self::connection_count
 	  self::get_connection_count
