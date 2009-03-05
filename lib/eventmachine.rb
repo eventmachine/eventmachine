@@ -544,6 +544,7 @@ module EventMachine
     end if port
     
     klass = if (handler and handler.is_a?(Class))
+      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
       handler
     else
       Class.new( Connection ) {handler and include handler}
@@ -685,6 +686,7 @@ module EventMachine
     end if port
 
     klass = if (handler and handler.is_a?(Class))
+      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
       handler
     else
       Class.new( Connection ) {handler and include handler}
@@ -752,6 +754,7 @@ module EventMachine
   # Thanks to Riham Aldakkak (eSpace Technologies) for the initial patch
   def  EventMachine::attach io, handler=nil, *args
     klass = if (handler and handler.is_a?(Class))
+      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
       handler
     else
       Class.new( Connection ) {handler and include handler}
@@ -883,6 +886,7 @@ module EventMachine
 	#
 	def self::open_datagram_socket address, port, handler=nil, *args
 		klass = if (handler and handler.is_a?(Class))
+		  raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
 			handler
 		else
 			Class.new( Connection ) {handler and include handler}
@@ -1138,6 +1142,7 @@ module EventMachine
 	#
 	def self::popen cmd, handler=nil, *args
 		klass = if (handler and handler.is_a?(Class))
+		  raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
 			handler
 		else
 			Class.new( Connection ) {handler and include handler}
@@ -1173,6 +1178,7 @@ module EventMachine
 	#
 	def EventMachine::open_keyboard handler=nil, *args
 		klass = if (handler and handler.is_a?(Class))
+		  raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
 			handler
 		else
 			Class.new( Connection ) {handler and include handler}
@@ -1361,6 +1367,7 @@ module EventMachine
   class << self
     def _open_file_for_writing filename, handler=nil
       klass = if (handler and handler.is_a?(Class))
+        raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
         handler
       else
         Class.new( Connection ) {handler and include handler}
