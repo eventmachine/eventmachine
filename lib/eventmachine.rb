@@ -1135,9 +1135,28 @@ module EventMachine
 
 
 
-	# TODO, must document popen. At this moment, it's only available on Unix.
-	# This limitation is expected to go away.
+	# Run an external process. This does not currently work on Windows.
+	#
+	#   module RubyCounter
+	#     def post_init
+	#       # count up to 5
+	#       send_data "5\n"
+	#     end
+	#     def receive_data data
+	#       puts "ruby sent me: #{data}"
+	#     end
+	#     def unbind
+	#       puts "ruby died with exit status: #{get_status.exitstatus}"
+	#     end
+	#   end
+	#
+	#   EM.run{
+	#     EM.popen("ruby -e' $stdout.sync = true; gets.to_i.times{ |i| puts i+1; sleep 1 } '", RubyCounter)
+	#   }
+	#
+	# Also see EM::DeferrableChildProcess and EM::system
 	#--
+	# At this moment, it's only available on Unix.
 	# Perhaps misnamed since the underlying function uses socketpair and is full-duplex.
 	#
 	def self::popen cmd, handler=nil, *args
