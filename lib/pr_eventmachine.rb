@@ -152,6 +152,11 @@ module EventMachine
     def epoll
     end
 
+    # #ssl? is not implemented for pure-Ruby implementation
+    def ssl?
+      false
+    end
+
     # #set_rlimit_nofile is a no-op in the pure-Ruby implementation. We simply return Ruby's built-in
     # per-process file-descriptor limit.
     def set_rlimit_nofile n

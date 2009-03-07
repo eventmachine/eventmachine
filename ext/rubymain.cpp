@@ -714,6 +714,20 @@ static VALUE t__kqueue_set (VALUE self, VALUE val)
 }
 
 
+/********
+t__ssl_p
+********/
+
+static VALUE t__ssl_p (VALUE self)
+{
+  #ifdef WITH_SSL
+  return Qtrue;
+  #else
+  return Qfalse;
+  #endif
+}
+
+
 /****************
 t_send_file_data
 ****************/
@@ -886,6 +900,8 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "kqueue", (VALUE(*)(...))t__kqueue, 0);
 	rb_define_module_function (EmModule, "kqueue=", (VALUE(*)(...))t__kqueue_set, 1);
 	rb_define_module_function (EmModule, "kqueue?", (VALUE(*)(...))t__kqueue_p, 0);
+
+	rb_define_module_function (EmModule, "ssl?", (VALUE(*)(...))t__ssl_p, 0);
 
 	rb_define_method (EmConnection, "get_outbound_data_size", (VALUE(*)(...))conn_get_outbound_data_size, 0);
 	rb_define_method (EmConnection, "associate_callback_target", (VALUE(*)(...))conn_associate_callback_target, 1);

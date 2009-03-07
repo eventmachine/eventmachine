@@ -47,4 +47,4 @@ class TestSSLMethods < Test::Unit::TestCase
     assert($client_cert_value.is_a?(String))
   end
 
-end
+end if EM.ssl?

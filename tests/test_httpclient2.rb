@@ -146,7 +146,7 @@ class TestHttpClient2 < Test::Unit::TestCase
       }
     }
     assert_equal(200, d.status)
-  end
+  end if EM.ssl?
 
 
 

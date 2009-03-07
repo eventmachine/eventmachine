@@ -65,4 +65,4 @@ class TestSslArgs < Test::Unit::TestCase
       assert(false, 'should not have raised an exception')
     end
   end
-end
+end if EM.ssl?
