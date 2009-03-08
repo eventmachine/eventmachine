@@ -1250,10 +1250,7 @@ module EventMachine
 		# runs down open connections). It should go on the other calls to user
 		# code, but the performance impact may be too large.
 		#
-		if opcode == ConnectionData
-			c = @conns[conn_binding] or raise ConnectionNotBound, "received data #{data} for unknown signature: #{conn_binding}"
-			c.receive_data data
-		elsif opcode == ConnectionUnbound
+		if opcode == ConnectionUnbound
 			if c = @conns.delete( conn_binding )
 				begin
 					c.unbind
@@ -1273,12 +1270,17 @@ module EventMachine
 			@conns[data] = c
 			blk and blk.call(c)
 			c # (needed?)
-		elsif opcode == TimerFired
-			t = @timers.delete( data ) or raise UnknownTimerFired, "timer data: #{data}"
-			t.call
 		elsif opcode == ConnectionCompleted
 			c = @conns[conn_binding] or raise ConnectionNotBound, "received ConnectionCompleted for unknown signature: #{conn_binding}"
 			c.connection_completed
+		##
+		# The remaining code is a fallback for the pure ruby reactor. Usually these events are handled in the C event_callback() in rubymain.cpp
+		elsif opcode == TimerFired
+			t = @timers.delete( data ) or raise UnknownTimerFired, "timer data: #{data}"
+			t.call
+		elsif opcode == ConnectionData
+			c = @conns[conn_binding] or raise ConnectionNotBound, "received data #{data} for unknown signature: #{conn_binding}"
+			c.receive_data data
 		elsif opcode == LoopbreakSignalled
 			run_deferred_callbacks
 		elsif opcode == ConnectionNotifyReadable
