@@ -623,7 +623,7 @@ module EventMachine
     end
 
     def heartbeat
-      if @inactivity_timeout and (@last_activity + @inactivity_timeout) < Reactor.instance.current_loop_time
+      if @inactivity_timeout and @inactivity_timeout > 0 and (@last_activity + @inactivity_timeout) < Reactor.instance.current_loop_time
         schedule_close true
       end
     end
