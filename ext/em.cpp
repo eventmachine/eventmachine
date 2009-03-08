@@ -86,6 +86,7 @@ EventMachine_t::EventMachine_t (void (*event_callback)(const char*, int, const c
 	LoopBreakerWriter (-1),
 	bEpoll (false),
 	bKqueue (false),
+	kqfd (-1),
 	epfd (-1)
 {
 	// Default time-slice is just smaller than one hundred mills.
