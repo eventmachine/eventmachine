@@ -42,14 +42,14 @@ class TestErrors < Test::Unit::TestCase
 	def setup
 	end
 
-	def teardown
+	def obsolete_teardown
 		# Calling #set_runtime_error_hook with no block restores the
 		# default handling of runtime_errors.
 		#
 		EM.set_runtime_error_hook
 	end
 
-	def test_a
+	def test_no_tests_stub
 	end
 
 	# EM has a default handler for RuntimeErrors that are emitted from
