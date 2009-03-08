@@ -52,5 +52,44 @@ class TestProcesses < Test::Unit::TestCase
 		assert( ls.length > 0)
 	end
 
+  def setup
+    $out = nil
+    $status = nil
+  end
+
+  def test_em_system
+    EM.run{
+      EM.system('ls'){ |out,status| $out, $status = out, status; EM.stop }
+    }
+
+    assert( $out.length > 0 )
+    assert_equal($status.exitstatus, 0)
+    assert_equal($status.class, Process::Status)
+  end
+
+  def test_em_system_with_proc
+    EM.run{
+      EM.system('ls', proc{ |out,status| $out, $status = out, status; EM.stop })
+    }
+
+    assert( $out.length > 0 )
+    assert_equal($status.exitstatus, 0)
+    assert_equal($status.class, Process::Status)
+  end
+
+  def test_em_system_with_two_procs
+    EM.run{
+      EM.system('sh', proc{ |process|
+        process.send_data("echo hello\n")
+        process.send_data("exit\n")
+      }, proc{ |out,status|
+        $out = out
+        $status = status
+        EM.stop
+      })
+    }
+
+    assert_equal($out, "hello\n")
+  end
 end
 
