@@ -109,7 +109,7 @@ static void event_callback (struct em_event* e)
 event_error_handler
 *******************/
 
-static void event_error_handler(void *, VALUE err)
+static void event_error_handler(VALUE unused, VALUE err)
 {
 	VALUE error_handler = rb_ivar_get(EmModule, Intern_at_error_handler);
 	rb_funcall (error_handler, Intern_call, 1, err);
@@ -130,7 +130,7 @@ static void event_callback_wrapper (const char *a1, int a2, const char *a3, int 
 	if (!rb_ivar_defined(EmModule, Intern_at_error_handler))
 		event_callback(&e);
 	else
-		rb_rescue((VALUE (*)(ANYARGS))event_callback, (VALUE)&e, (VALUE (*)(ANYARGS))event_error_handler, NULL);
+		rb_rescue((VALUE (*)(ANYARGS))event_callback, (VALUE)&e, (VALUE (*)(ANYARGS))event_error_handler, Qnil);
 }
 
 /**************************
