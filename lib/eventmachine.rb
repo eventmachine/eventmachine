@@ -538,6 +538,8 @@ module EventMachine
     begin
       port = Integer(port)
     rescue ArgumentError, TypeError
+      # there was no port, so server must be a unix domain socket
+      # the port argument is actually the handler, and the handler is one of the args
       args.unshift handler if handler
       handler = port
       port = nil
@@ -680,6 +682,8 @@ module EventMachine
     begin
       port = Integer(port)
     rescue ArgumentError, TypeError
+      # there was no port, so server must be a unix domain socket
+      # the port argument is actually the handler, and the handler is one of the args
       args.unshift handler if handler
       handler = port
       port = nil
