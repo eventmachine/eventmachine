@@ -30,6 +30,9 @@ Statics
 static VALUE EmModule;
 static VALUE EmConnection;
 
+static VALUE EM_eUnknownTimerFired;
+static VALUE EM_eConnectionNotBound;
+
 static VALUE Intern_at_signature;
 static VALUE Intern_at_timers;
 static VALUE Intern_at_conns;
@@ -67,21 +70,21 @@ static void event_callback (struct em_event* e)
 		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
 		VALUE q = rb_hash_aref (t, rb_str_new2(a1));
 		if (q == Qnil)
-			rb_raise (rb_eRuntimeError, "no connection");
+			rb_raise (EM_eConnectionNotBound, "received %d bytes of data for unknown signature: %s", a4, a1);
 		rb_funcall (q, Intern_receive_data, 1, rb_str_new (a3, a4));
 	}
 	else if (a2 == EM_CONNECTION_NOTIFY_READABLE) {
 		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
 		VALUE q = rb_hash_aref (t, rb_str_new2(a1));
 		if (q == Qnil)
-			rb_raise (rb_eRuntimeError, "no connection");
+			rb_raise (EM_eConnectionNotBound, "unknown connection: %s", a1);
 		rb_funcall (q, Intern_notify_readable, 0);
 	}
 	else if (a2 == EM_CONNECTION_NOTIFY_WRITABLE) {
 		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
 		VALUE q = rb_hash_aref (t, rb_str_new2(a1));
 		if (q == Qnil)
-			rb_raise (rb_eRuntimeError, "no connection");
+			rb_raise (EM_eConnectionNotBound, "unknown connection: %s", a1);
 		rb_funcall (q, Intern_notify_writable, 0);
 	}
 	else if (a2 == EM_LOOPBREAK_SIGNAL) {
@@ -91,14 +94,14 @@ static void event_callback (struct em_event* e)
 		VALUE t = rb_ivar_get (EmModule, Intern_at_timers);
 		VALUE q = rb_funcall (t, Intern_delete, 1, rb_str_new(a3, a4));
 		if (q == Qnil)
-			rb_raise (rb_eRuntimeError, "no timer");
+			rb_raise (EM_eUnknownTimerFired, "no such timer: %s", a1);
 		rb_funcall (q, Intern_call, 0);
 	}
 	else if (a2 == EM_SSL_HANDSHAKE_COMPLETED) {
 		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
 		VALUE q = rb_hash_aref (t, rb_str_new2(a1));
 		if (q == Qnil)
-			rb_raise (rb_eRuntimeError, "no connection");
+			rb_raise (EM_eConnectionNotBound, "unknown connection: %s", a1);
 		rb_funcall (q, Intern_ssl_handshake_completed, 0);
 	}
 	else
@@ -767,9 +770,9 @@ extern "C" void Init_rubyeventmachine()
 	EmModule = rb_define_module ("EventMachine");
 	EmConnection = rb_define_class_under (EmModule, "Connection", rb_cObject);
 
-	rb_define_class_under (EmModule, "ConnectionNotBound", rb_eException);
 	rb_define_class_under (EmModule, "NoHandlerForAcceptedConnection", rb_eException);
-	rb_define_class_under (EmModule, "UnknownTimerFired", rb_eException);
+	EM_eConnectionNotBound = rb_define_class_under (EmModule, "ConnectionNotBound", rb_eRuntimeError);
+	EM_eUnknownTimerFired = rb_define_class_under (EmModule, "UnknownTimerFired", rb_eRuntimeError);
 
 	rb_define_module_function (EmModule, "initialize_event_machine", (VALUE(*)(...))t_initialize_event_machine, 0);
 	rb_define_module_function (EmModule, "run_machine", (VALUE(*)(...))t_run_machine_without_threads, 0);
