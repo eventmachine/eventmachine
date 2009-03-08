@@ -933,8 +933,11 @@ const char *EventMachine_t::InstallOneshotTimer (int milliseconds)
 	#endif
 
 	Timer_t t;
-	multimap<Int64,Timer_t>::iterator i =
-		Timers.insert (make_pair (fire_at, t));
+	#ifdef OS_SOLARIS8
+	multimap<Int64,Timer_t>::iterator i = Timers.insert (multimap<Int64,Timer_t>::value_type (fire_at, t));
+	#else
+	multimap<Int64,Timer_t>::iterator i = Timers.insert (make_pair (fire_at, t));
+	#endif
 	return i->second.GetBindingChars();
 }
 

@@ -49,7 +49,11 @@ void EM::AddTimer (int milliseconds, void (*func)())
 {
 	if (func) {
 		const char *sig = evma_install_oneshot_timer (milliseconds);
+		#ifdef OS_SOLARIS8
+		Timers.insert (map<string, void(*)()>::value_type (sig, func));
+		#else
 		Timers.insert (make_pair (sig, func));
+		#endif
 	}
 }
 
@@ -72,7 +76,11 @@ void EM::Acceptor::Accept (const char *signature)
 {
 	Connection *c = MakeConnection();
 	c->Signature = signature;
+	#ifdef OS_SOLARIS8
+	Eventables.insert (std::map<std::string,EM::Eventable*>::value_type (c->Signature, c));
+	#else
 	Eventables.insert (make_pair (c->Signature, c));
+	#endif
 	c->PostInit();
 }
 
@@ -114,7 +122,11 @@ EM::Connection::Connect
 void EM::Connection::Connect (const char *host, int port)
 {
 	Signature = evma_connect_to_server (host, port);
+	#ifdef OS_SOLARIS8
+	Eventables.insert( std::map<std::string,EM::Eventable*>::value_type (Signature, this));
+	#else
 	Eventables.insert( make_pair (Signature, this));
+	#endif
 }
 
 /*******************
@@ -124,7 +136,11 @@ EM::Acceptor::Start
 void EM::Acceptor::Start (const char *host, int port)
 {
 	Signature = evma_create_tcp_server (host, port);
+	#ifdef OS_SOLARIS8
+	Eventables.insert( std::map<std::string,EM::Eventable*>::value_type (Signature, this));
+	#else
 	Eventables.insert( make_pair (Signature, this));
+	#endif
 }
 
 
