@@ -324,6 +324,7 @@ evma_get_subprocess_pid
 extern "C" int evma_get_subprocess_pid (const char *binding, pid_t *pid)
 {
 	ensure_eventmachine("evma_get_subprocess_pid");
+	#ifdef OS_UNIX
 	PipeDescriptor *pd = dynamic_cast <PipeDescriptor*> (Bindable_t::GetObject (binding));
 	if (pd) {
 		return pd->GetSubprocessPid (pid) ? 1 : 0;
@@ -334,6 +335,9 @@ extern "C" int evma_get_subprocess_pid (const char *binding, pid_t *pid)
 	}
 	else
 		return 0;
+	#else
+	return 0;
+	#endif
 }
 
 /**************************
