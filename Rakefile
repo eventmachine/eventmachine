@@ -90,7 +90,7 @@ Spec = Gem::Specification.new do |s|
   s.rdoc_options      = %w(--title EventMachine --main docs/README --line-numbers)
   s.extra_rdoc_files  = Dir['docs/*']
 
-  s.files             = %w(Rakefile) + Dir["{bin,tests,lib,ext,java,tasks}/**/*"]
+  s.files             = `git ls-files`.split("\n")
 
   s.require_path      = 'lib'
 
