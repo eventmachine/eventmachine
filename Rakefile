@@ -128,6 +128,65 @@ using TCP/IP, especially if custom protocols are required.
   s.version = EventMachine::VERSION
 end
 
+if RUBY_PLATFORM =~ /mswin/
+  Spec.platform = 'x86-mswin32-60'
+  Spec.files += %w[ lib/rubyeventmachine.so lib/fastfilereaderext.so ]
+  Spec.extensions = nil
+end
+
+# this is a hack right now, it requires installing msysgit in the global path so it can use tar/curl/etc.
+namespace :win32 do
+  task :check_git do
+    unless `git` =~ /rebase/
+      raise 'git not found, install msys git into the GLOBAL PATH: http://msysgit.googlecode.com/files/Git-1.6.2-preview20090308.exe'
+    end
+  end
+
+  task :check_vc6 do
+    begin
+      raise unless `nmake 2>&1` =~ /Microsoft/
+    rescue
+      raise 'VC6 not found, please run c:\vc\setvc.bat vc6'
+    end
+  end
+
+  task :check_perl do
+    unless `perl --version` =~ /ActiveState/
+      raise 'ActiveState perl required to build OpenSSL: http://downloads.activestate.com/ActivePerl/Windows/5.10/ActivePerl-5.10.0.1004-MSWin32-x86-287188.msi'
+    end
+  end
+
+  task :build_openssl => [:check_git, :check_perl, :check_vc6] do
+    mkdir_p 'build'
+    chdir 'build' do
+      unless File.exists?('openssl-0.9.8j')
+        sh 'curl http://www.openssl.org/source/openssl-0.9.8j.tar.gz > openssl.tar.gz'
+        sh 'tar zxvf openssl.tar.gz' rescue nil # fails because of symlinks
+      end
+
+      mkdir_p 'local'
+      chdir 'openssl-0.9.8j' do
+        sh "perl Configure VC-WIN32 --prefix=\"../local/\""
+        sh 'ms\do_ms.bat'
+        sh 'nmake -f ms\nt.mak install'
+      end
+
+      chdir '../ext' do
+        sh 'git clean -fd .'
+      end
+
+      mv 'local/include/openssl', '../ext/'
+      mv 'local/lib/ssleay32.lib', '../ext/'
+      mv 'local/lib/libeay32.lib', '../ext/'
+    end
+  end
+
+  task :gem => :build_openssl do
+    Rake::Task['build'].invoke
+    Rake::Task['gem'].invoke
+  end
+end
+
 namespace :ext do
   ext_sources = FileList['ext/*.{h,cpp,rb,c}']
   ffr_sources = FileList['ext/fastfilereader/*.{h,cpp,rb}']
