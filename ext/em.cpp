@@ -1236,6 +1236,8 @@ const char *EventMachine_t::AttachFD (int fd, bool notify_readable, bool notify_
 		}
 	}
 
+	SetSocketNonblocking(fd);
+
 	ConnectionDescriptor *cd = new ConnectionDescriptor (fd, this);
 	if (!cd)
 		throw std::runtime_error ("no connection allocated");
