@@ -28,22 +28,22 @@
 module EventMachine
 module Protocols
 
-  # = Example
+  # == Example
   #
-  #  
   #  EM.run{
-  #    include EM::Protocols
-  #    conn = HttpClient2.connect 'google.com', 80
+  #    conn = EM::Protocols::HttpClient2.connect 'google.com', 80
   #  
   #    req = conn.get('/')
-  #    req.callback{
-  #      p(req.content)
+  #    req.callback{ |response|
+  #      p(response.status)
+  #      p(response.headers)
+  #      p(response.content)
   #    }
+  #  }
 	class HttpClient2 < Connection
 		include LineText2
 
-
-		class Request
+		class Request # :nodoc:
 			include Deferrable
 
 			attr_reader :version
@@ -91,7 +91,7 @@ module Protocols
 			def receive_chunk_trailer ln
 				if ln.length == 0
 					@conn.pop_request
-					succeed
+					succeed(self)
 				else
 					p "Received chunk trailer line"
 				end
@@ -191,7 +191,7 @@ module Protocols
 					if clen == 0 then
 						@content = ""
 						@conn.pop_request
-						succeed
+						succeed(self)
 					else
 						@conn.set_text_mode clen
 					end
@@ -222,7 +222,7 @@ module Protocols
 			def receive_sized_text text
 				@content = text
 				@conn.pop_request
-				succeed
+				succeed(self)
 			end
 		end
 
@@ -230,10 +230,9 @@ module Protocols
 		# Can take either a pair of arguments (which will be interpreted as
 		# a hostname/ip-address and a port), or a hash.
 		# If the arguments are a hash, then supported values include:
-		#  :host => a hostname or ip-address;
+		#  :host => a hostname or ip-address
 		#  :port => a port number
-		#--
-		# TODO, support optional encryption arguments like :ssl
+		#  :ssl => true to enable ssl
 		def self.connect *args
 			if args.length == 2
 				args = {:host=>args[0], :port=>args[1]}
