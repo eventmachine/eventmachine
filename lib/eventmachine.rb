@@ -81,6 +81,7 @@ require 'em/messages'
 require 'em/streamer'
 require 'em/spawnable'
 require 'em/processes'
+require 'em/buftok'
 
 require 'shellwords'
 
@@ -1902,9 +1903,6 @@ class Connection
 
 end
 
-# Is inside of protocols/ but not in the namespace?
-require 'protocols/buftok'
-
 # This module contains various protocol implementations, including:
 # - HttpClient and HttpClient2
 # - Stomp
@@ -1921,22 +1919,20 @@ require 'protocols/buftok'
 # EventMachine::Protocols is also aliased to EM::P for easier usage.
 #
 module Protocols
-	# TODO / XXX: We're munging the LOAD_PATH!
-	# A good citizen would use eventmachine/protocols/tcptest.
 	# TODO : various autotools are completely useless with the lack of naming
 	# convention, we need to correct that!
-	autoload :TcpConnectTester, 'protocols/tcptest'
-	autoload :HttpClient, 'protocols/httpclient'
-	autoload :LineAndTextProtocol, 'protocols/line_and_text'
-	autoload :HeaderAndContentProtocol, 'protocols/header_and_content'
-	autoload :LineText2, 'protocols/linetext2'
-	autoload :HttpClient2, 'protocols/httpcli2'
-	autoload :Stomp, 'protocols/stomp'
-	autoload :SmtpClient, 'protocols/smtpclient'
-	autoload :SmtpServer, 'protocols/smtpserver'
-	autoload :SASLauth, 'protocols/saslauth'
-	autoload :Memcache, 'protocols/memcache'
-	autoload :Postgres3, 'protocols/postgres3'
+	autoload :TcpConnectTester, 'em/protocols/tcptest'
+	autoload :HttpClient, 'em/protocols/httpclient'
+	autoload :HttpClient2, 'em/protocols/httpclient2'
+	autoload :LineAndTextProtocol, 'em/protocols/line_and_text'
+	autoload :HeaderAndContentProtocol, 'em/protocols/header_and_content'
+	autoload :LineText2, 'em/protocols/linetext2'
+	autoload :Stomp, 'em/protocols/stomp'
+	autoload :SmtpClient, 'em/protocols/smtpclient'
+	autoload :SmtpServer, 'em/protocols/smtpserver'
+	autoload :SASLauth, 'em/protocols/saslauth'
+	autoload :Memcache, 'em/protocols/memcache'
+	autoload :Postgres3, 'em/protocols/postgres3'
 end
 
 end # module EventMachine

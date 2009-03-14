@@ -19,7 +19,7 @@ setup.rb
 	the GNU LGPL, Lesser General Public License version 2.1.
 
 
-lib/protocols/buftok.rb
+lib/em/buftok.rb
 	This file is Copyright (C) 2007 by Tony Arcieri. This file is
 	covered by the terms of Ruby's License (see the file COPYING).
 

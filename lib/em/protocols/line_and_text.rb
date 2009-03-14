@@ -23,7 +23,7 @@
 #
 # 
 # 
-require File.dirname(__FILE__) + '/buftok'
+require File.dirname(__FILE__) + '/../buftok'
 
 module EventMachine
   module Protocols
