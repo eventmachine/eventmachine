@@ -1,9 +1,4 @@
-$Id$
-
-[DOCUMENT UNDER CONSTRUCTION]
-
 EventMachine (EM) adds two different formalisms for lightweight concurrency to the Ruby programmer's toolbox: spawned processes and deferrables. This note will show you how to use deferrables. For more information, see the separate document LIGHTWEIGHT_CONCURRENCY.
-
 
 === What are Deferrables?
 

@@ -18,6 +18,16 @@
 # by default.  It allows input to be spoon-fed from some outside source which
 # receives arbitrary length datagrams which may-or-may-not contain the token
 # by which entities are delimited.
+#
+# Commonly used to parse lines out of incoming data:
+#
+#  module LineBufferedConnection
+#    def receive_data(data)
+#      (@buffer ||= BufferedTokenizer.new).extract(data).each do |line|
+#        receive_line(line)
+#      end
+#    end
+#  end
 
 class BufferedTokenizer
   # New BufferedTokenizers will operate on lines delimited by "\n" by default
@@ -121,6 +131,7 @@ class BufferedTokenizer
     buffer
   end
 
+  # Is the buffer empty?
   def empty?
     @input.empty?
   end

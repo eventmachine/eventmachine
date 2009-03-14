@@ -37,8 +37,9 @@ if Spec.has_rdoc
   Rake::RDocTask.new do |rd|
     rd.title = Spec.name
     rd.rdoc_dir = 'rdoc'
-    rd.main = "docs/README" if test ?e, "docs/README"
+    rd.main = "docs/README"
     rd.rdoc_files.include("lib/**/*.rb", *Spec.extra_rdoc_files)
+    rd.rdoc_files.exclude(*%w(lib/eventmachine_version lib/emva lib/evma/ lib/pr_eventmachine lib/jeventmachine))
   end
   Rake::Task[:clean].enhance [:clobber_rdoc]
 

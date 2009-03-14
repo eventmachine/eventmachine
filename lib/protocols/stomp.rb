@@ -1,4 +1,4 @@
-# $Id$
+#--
 #
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com
@@ -33,26 +33,26 @@ module EventMachine
 		#
 		# == Usage example
 		#
-		#   class StompClient < EM::Connection
-		#     include EM::Protocols::Stomp
+		#  class StompClient < EM::Connection
+		#    include EM::Protocols::Stomp
 		#
-		#     def connection_completed
-		#       connect :login => 'guest', :passcode => 'guest'
-		#     end
+		#    def connection_completed
+		#      connect :login => 'guest', :passcode => 'guest'
+		#    end
 		#
-		#     def receive_msg msg
-		#       if msg.command == "CONNECTED"
-		#         subscribe '/some/topic'
-		#       else
-		#         p ['got a message', msg]
-		#         puts msg.body
-		#       end
-		#     end
-		#   end
+		#    def receive_msg msg
+		#      if msg.command == "CONNECTED"
+		#        subscribe '/some/topic'
+		#      else
+		#        p ['got a message', msg]
+		#        puts msg.body
+		#      end
+		#    end
+		#  end
 		#
-		#   EM.run{
-		#     EM.connect 'localhost', 61613, StompClient
-		#   }
+		#  EM.run{
+		#    EM.connect 'localhost', 61613, StompClient
+		#  }
 		#
 		module Stomp
 			include LineText2

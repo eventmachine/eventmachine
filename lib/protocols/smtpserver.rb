@@ -1,4 +1,4 @@
-# $Id$
+#--
 #
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com
@@ -22,9 +22,6 @@
 #---------------------------------------------------------------------------
 #
 # 
-
-
-#require 'base64'
 
 module EventMachine
 module Protocols

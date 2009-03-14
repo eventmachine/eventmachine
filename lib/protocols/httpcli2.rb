@@ -1,4 +1,4 @@
-# $Id$
+#--
 #
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com
@@ -247,6 +247,34 @@ module Protocols
 			conn
 		end
 
+    # Get a url
+    #
+    #  req = conn.get(:uri => '/')
+    #  req.callback{|response| puts response.content }
+    #
+		def get args
+			if args.is_a?(String)
+				args = {:uri=>args}
+			end
+			args[:verb] = "GET"
+			request args
+		end
+
+    # Post to a url
+    #
+    #  req = conn.post('/data')
+    #  req.callback{|response| puts response.content }
+    #--
+    # XXX there's no way to supply a POST body.. wtf?
+		def post args
+			if args.is_a?(String)
+				args = {:uri=>args}
+			end
+			args[:verb] = "POST"
+			request args
+		end
+
+    # :stopdoc:
 
 		#--
 		# Compute and remember a string to be used as the host header in HTTP requests
@@ -289,23 +317,6 @@ module Protocols
 			(@requests || []).each {|r| r.fail}
 		end
 
-
-		def get args
-			if args.is_a?(String)
-				args = {:uri=>args}
-			end
-			args[:verb] = "GET"
-			request args
-		end
-
-		def post args
-			if args.is_a?(String)
-				args = {:uri=>args}
-			end
-			args[:verb] = "POST"
-			request args
-		end
-
 		def request args
 			args[:host_header] = @host_header unless args.has_key?(:host_header)
 			args[:authorization] = @authorization unless args.has_key?(:authorization)
@@ -338,6 +349,8 @@ module Protocols
 		def pop_request
 			@requests.pop
 		end
+
+    # :startdoc:
 	end
 
 

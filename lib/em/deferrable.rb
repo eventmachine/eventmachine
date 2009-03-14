@@ -1,4 +1,4 @@
-# $Id$
+#--
 #
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com

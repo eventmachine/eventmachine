@@ -1,4 +1,4 @@
-# $Id$
+#--
 #
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com
@@ -29,7 +29,7 @@
 module EventMachine
 module Protocols
 
-class TcpConnectTester < Connection
+class TcpConnectTester < Connection # :nodoc:
   include EventMachine::Deferrable
 
   def self.test( host, port )

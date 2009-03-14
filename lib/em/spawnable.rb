@@ -1,4 +1,4 @@
-# $Id$
+#--
 #
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com
@@ -21,14 +21,11 @@
 #
 #---------------------------------------------------------------------------
 #
-# 
-
-
-# Support for Erlang-style processes.
 #
 
-
 module EventMachine
+  # Support for Erlang-style processes.
+  #
 	class SpawnedProcess
 		#attr_accessor :receiver
 		def notify *x
@@ -49,6 +46,7 @@ module EventMachine
 		alias_method :resume, :notify
 		alias_method :run, :notify # for formulations like (EM.spawn {xxx}).run
 
+    #--
 		# I know I'm missing something stupid, but the inside of class << s
 		# can't see locally-bound values. It can see globals, though.
 		def set_receiver blk
@@ -60,7 +58,7 @@ module EventMachine
 
 	end
 
-	class YieldBlockFromSpawnedProcess
+	class YieldBlockFromSpawnedProcess # :nodoc:
 		def initialize block, notify
 			@block = [block,notify]
 		end
@@ -69,17 +67,18 @@ module EventMachine
 		end
 	end
 
+  # Spawn an erlang-style process
 	def EventMachine.spawn &block
 		s = SpawnedProcess.new
 		s.set_receiver block
 		s
 	end
 
-	def EventMachine.yield &block
+	def EventMachine.yield &block # :nodoc:
 		return YieldBlockFromSpawnedProcess.new( block, false )
 	end
 
-	def EventMachine.yield_and_notify &block
+	def EventMachine.yield_and_notify &block # :nodoc:
 		return YieldBlockFromSpawnedProcess.new( block, true )
 	end
 end

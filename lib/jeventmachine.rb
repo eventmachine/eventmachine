@@ -1,4 +1,4 @@
-# $Id$
+#--
 #
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com
@@ -22,7 +22,6 @@
 #---------------------------------------------------------------------------
 #
 # 
-
 
 # This module provides "glue" for the Java version of the EventMachine reactor core.
 # For C++ EventMachines, the analogous functionality is found in ext/rubymain.cpp,

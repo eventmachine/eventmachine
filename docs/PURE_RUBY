@@ -1,5 +1,3 @@
-$Id$
-
 EventMachine is supplied in three alternative versions.
 
 1) A version that includes a Ruby extension written in C++. This version requires compilation;

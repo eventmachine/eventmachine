@@ -1,8 +1,10 @@
-$Id$
-
 = RUBY/EventMachine
 
 Homepage::  http://rubyeventmachine.com
+Rubyforge Page:: http://rubyforge.org/projects/eventmachine
+Google Group:: http://groups.google.com/group/eventmachine
+Mailing List:: http://rubyforge.org/pipermail/eventmachine-talk
+RDoc:: http://eventmachine.rubyforge.org
 Copyright:: (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
 Email:: gmail address: garbagecat10
 
@@ -57,18 +59,23 @@ improved.
 
 Here's a fully-functional echo server written with EventMachine:
 
-      require 'rubygems'
-      require 'eventmachine'
+ require 'eventmachine'
 
-      module EchoServer
-        def receive_data data
-          send_data ">>>you sent: #{data}"
-          close_connection if data =~ /quit/i
-        end
-      end
+ module EchoServer
+   def post_init
+     puts "-- someone connected to the echo server!"
+   end
 
-      EventMachine::run {
-        EventMachine::start_server "192.168.0.100", 8081, EchoServer
-      }
+   def receive_data data
+     send_data ">>>you sent: #{data}"
+     close_connection if data =~ /quit/i
+   end
 
+   def unbind
+     puts "-- someone disconnected from the echo server!"
+   end
+ end
 
+ EventMachine::run {
+   EventMachine::start_server "127.0.0.1", 8081, EchoServer
+ }

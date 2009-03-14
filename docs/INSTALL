@@ -1,5 +1,3 @@
-$Id$
-
 If you have obtained an EventMachine source-tarball (.tar.gz):
 unzip and untar the tarball, and enter the directory that is
 created. In that directory, say:
@@ -7,8 +5,8 @@ ruby setup.rb
 (You may need to be root to execute this command.)
 
 To create documentation for EventMachine, simply type:
-rdoc
-in the distro directory. Rdocs will be created in subdirectory doc.
+rake rdoc
+in the distro directory. Rdocs will be created in subdirectory rdoc.
 
 If you have obtained a gem version of EventMachine, install it in the
 usual way (gem install eventmachine). You may need superuser privileges

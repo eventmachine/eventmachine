@@ -1,4 +1,4 @@
-# $Id$
+#--
 #
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com
@@ -23,57 +23,80 @@
 #
 # 
 
-
-#require 'base64'
 require 'ostruct'
 
 module EventMachine
 module Protocols
 
-
+  # Simple SMTP client
+  #
+  #   email = EM::Protocols::SmtpClient.send(
+  #     :domain=>"example.com",
+  #     :host=>'localhost',
+  #     :port=>25, # optional, defaults 25
+  #     :starttls=>true, # use ssl
+  #     :from=>"sender@example.com",
+  #     :to=> ["to_1@example.com", "to_2@example.com"],
+  #     :header=> {"Subject" => "This is a subject line"},
+  #     :body=> "This is the body of the email"
+  #   )
+  #   email.callback{
+  #     puts 'Email sent!'
+  #   }
+  #   email.errback{ |e|
+  #     puts 'Email failed!'
+  #   }
+  #
 	class SmtpClient < Connection
 		include EventMachine::Deferrable
 		include EventMachine::Protocols::LineText2
 
-		# This is the external entry point.
-		#
-		# The argument is a hash containing these values:
-		# :host => a string containing the IP address or host name of the SMTP server to connect to.
-		# :port => optional, defaults to 25.
-		# :domain => required String. This is passed as the argument to the EHLO command.
-		# :starttls => optional. If it evaluates true, then the client will initiate STARTTLS with
+		# :host => required String
+		#   a string containing the IP address or host name of the SMTP server to connect to.
+		# :port => optional
+		#   defaults to 25.
+		# :domain => required String
+		#   This is passed as the argument to the EHLO command.
+		# :starttls => optional Boolean
+		#   If it evaluates true, then the client will initiate STARTTLS with
 		#   the server, and abort the connection if the negotiation doesn't succeed.
 		#   TODO, need to be able to pass certificate parameters with this option.
-		# :auth => optional hash of auth parameters. If not given, then no auth will be attempted.
+		# :auth => optional Hash of auth parameters
+		#   If not given, then no auth will be attempted.
 		#   (In that case, the connection will be aborted if the server requires auth.)
 		#   Specify the hash value :type to determine the auth type, along with additional parameters
 		#   depending on the type.
 		#   Currently only :type => :plain is supported. Pass additional parameters :username (String),
 		#   and :password (either a String or a Proc that will be called at auth-time).
 		#   Example: :auth => {:type=>:plain, :username=>"mickey@disney.com", :password=>"mouse"}
-		# :from => required String. Specifies the sender of the message. Will be passed as the argument
+		# :from => required String
+		#   Specifies the sender of the message. Will be passed as the argument
 		#   to the MAIL FROM. Do NOT enclose the argument in angle-bracket (<>) characters.
 		#   The connection will abort if the server rejects the value.
-		# :to => required String or Array of Strings. The recipient(s) of the message. Do NOT enclose
+		# :to => required String or Array of Strings
+		#   The recipient(s) of the message. Do NOT enclose
 		#   any of the values in angle-brackets (<>) characters. It's NOT a fatal error if one or more
 		#   recipients are rejected by the server. (Of course, if ALL of them are, the server will most
 		#   likely trigger an error when we try to send data.) An array of codes containing the status
 		#   of each requested recipient is available after the call completes. TODO, we should define
 		#   an overridable stub that will be called on rejection of a recipient or a sender, giving
 		#   user code the chance to try again or abort the connection.
-		# :header => Required hash of values to be transmitted in the header of the message. The hash
-		#   keys are the names of the headers (do NOT append a trailing colon), and the values are strings
+		# :header => Required hash of values to be transmitted in the header of the message.
+		#   The hash keys are the names of the headers (do NOT append a trailing colon), and the values are strings
 		#   containing the header values. TODO, support Arrays of header values, which would cause us to
 		#   send that specific header line more than once.
+		#
 		#   Example: :header => {"Subject" => "Bogus", "CC" => "myboss@example.com"}
-		# :body => Optional string, defaults blank. This will be passed as the body of the email message.
+		# :body => Optional string, defaults blank.
+		#   This will be passed as the body of the email message.
 		#   TODO, this needs to be significantly beefed up. As currently written, this requires the caller
 		#   to properly format the input into CRLF-delimited lines of 7-bit characters in the standard
 		#   SMTP transmission format. We need to be able to automatically convert binary data, and add
 		#   correct line-breaks to text data. I think the :body parameter should remain as it is, and we
 		#   should add a :content parameter that contains autoconversions and/or conversion parameters.
 		#   Then we can check if either :body or :content is present and do the right thing.
-		# :verbose => Optional. If true, will cause a lot of information (including the server-side of the
+		# :verbose => Optional.
+		#   If true, will cause a lot of information (including the server-side of the
 		#   conversation) to be dumped to $>.
 		#
 		def self.send args={}
@@ -107,6 +130,8 @@ module Protocols
 			}
 
 		end
+
+    # :stopdoc:
 
 		attr_writer :args
 
@@ -302,6 +327,8 @@ module Protocols
 			@return_values.message = @msg
 			set_deferred_status :succeeded, @return_values
 		end
+
+    # :startdoc:
 	end
 end
 end

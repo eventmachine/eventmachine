@@ -32,6 +32,7 @@ module EventMachine
       ##
       # constants
 
+      # :stopdoc:
       unless defined? Cempty
         Cstored    = 'STORED'.freeze
         Cend       = 'END'.freeze
@@ -42,10 +43,16 @@ module EventMachine
         Cempty     = ''.freeze
         Cdelimiter = "\r\n".freeze
       end
+      # :startdoc:
 
       ##
       # commands
 
+      # Get the value associated with one or multiple keys
+      #
+      #  cache.get(:a){ |v| p v }
+      #  cache.get(:a,:b,:c,:d){ |a,b,c,d| p [a,b,c,d] }
+      #
       def get *keys
         raise ArgumentError unless block_given?
 
@@ -58,6 +65,11 @@ module EventMachine
         }
       end
 
+      # Set the value for a given key
+      #
+      #  cache.set :a, 'hello'
+      #  cache.set(:missing, 'abc'){ puts "stored the value!" }
+      #
       def set key, val, exptime = 0, &cb
         callback{
           val = val.to_s
@@ -68,6 +80,10 @@ module EventMachine
         }
       end
 
+      # Gets multiple values as a hash
+      #
+      #  cache.get_hash(:a, :b, :c, :d){ |h| puts h[:a] }
+      #
       def get_hash *keys
         raise ArgumentError unless block_given?
 
@@ -76,6 +92,11 @@ module EventMachine
         end
       end
 
+      # Delete the value associated with a key
+      #
+      #  cache.del :a
+      #  cache.del(:b){ puts "deleted the value!" }
+      #
       def delete key, expires = 0, &cb
         callback{
           send_data "delete #{key} #{expires}#{cb ? '' : ' noreply'}\r\n"
@@ -84,7 +105,14 @@ module EventMachine
       end
       alias del delete
 
-      def send_cmd cmd, key, flags = 0, exptime = 0, bytes = 0, noreply = false
+      # Connect to a memcached server (must support NOREPLY, memcached >= 1.2.4)
+      def self.connect host = 'localhost', port = 11211
+        EM.connect host, port, self, host, port
+      end
+
+      # :stopdoc:
+
+      def send_cmd cmd, key, flags = 0, exptime = 0, bytes = 0, noreply = false # :nodoc:
         send_data "#{cmd} #{key} #{flags} #{exptime} #{bytes}#{noreply ? ' noreply' : ''}\r\n"
       end
       private :send_cmd
@@ -92,14 +120,11 @@ module EventMachine
       ##
       # errors
 
-      class ParserError < StandardError; end
+      class ParserError < StandardError
+      end
 
       ##
       # em hooks
-
-      def self.connect host = 'localhost', port = 11211
-        EM.connect host, port, self, host, port
-      end
 
       def initialize host, port = 11211
         @host, @port = host, port
@@ -119,6 +144,7 @@ module EventMachine
         # set_line_mode
       end
 
+      #--
       # 19Feb09 Switched to a custom parser, LineText2 is recursive and can cause
       #         stack overflows when there is too much data.
       # include EM::P::LineText2
@@ -136,6 +162,7 @@ module EventMachine
         end
       end
 
+      #--
       # def receive_line line
       def process_cmd line
         case line.strip
@@ -177,6 +204,7 @@ module EventMachine
         end
       end
 
+      #--
       # def receive_binary_data data
       #   @values[@cur_key] = data[0..-3]
       # end
@@ -191,6 +219,8 @@ module EventMachine
           raise 'Unable to connect to memcached server'
         end
       end
+
+      # :startdoc:
     end
   end
 end
@@ -199,7 +229,7 @@ if __FILE__ == $0
   # ruby -I ext:lib -r eventmachine -rubygems lib/protocols/memcache.rb
   require 'em/spec'
 
-  class TestConnection
+  class TestConnection # :nodoc:
     include EM::P::Memcache
     def send_data data
       sent_data << data

@@ -1,4 +1,4 @@
-# $Id$
+#--
 #
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com
@@ -23,6 +23,7 @@
 #
 # 
 
+#--
 # This defines EventMachine::Deferrable#future, which requires
 # that the rest of EventMachine::Deferrable has already been seen.
 # (It's in deferrable.rb.)

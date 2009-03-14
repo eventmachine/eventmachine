@@ -1,4 +1,4 @@
-# $Id$
+#--
 #
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com
@@ -25,7 +25,7 @@
 
 
 module EventMachine
-module Eventable
+module Eventable # :nodoc:
 
   def listen_event event_name
   end
