@@ -8,6 +8,7 @@ module EventMachine
   # - LineAndTextProtocol and LineText2
   # - HeaderAndContentProtocol
   # - Postgres3
+  # - ObjectProtocol
   #
   # The protocol implementations live in separate files in the protocols/ subdirectory,
   # but are auto-loaded when they are first referenced in your application.
@@ -29,5 +30,6 @@ module EventMachine
     autoload :SASLauth, 'em/protocols/saslauth'
     autoload :Memcache, 'em/protocols/memcache'
     autoload :Postgres3, 'em/protocols/postgres3'
+    autoload :ObjectProtocol, 'em/protocols/object_protocol'
   end
 end
