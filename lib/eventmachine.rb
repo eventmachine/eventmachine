@@ -775,7 +775,7 @@ module EventMachine
   end
 
 
-  # Reconnect to a given host/port with the current EventMachine::Connection instance
+  # Connect to a given host/port and re-use the provided EventMachine::Connection instance
   #--
   # EXPERIMENTAL. DO NOT RELY ON THIS METHOD TO BE HERE IN THIS FORM, OR AT ALL.
   # (03Nov06)

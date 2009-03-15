@@ -24,7 +24,7 @@ module EventMachine
   # only by user code.
   #
   class Connection
-    attr_accessor :signature
+    attr_accessor :signature # :nodoc:
 
     # Override .new so subclasses don't have to call super and can ignore
     # connection-specific arguments
@@ -401,6 +401,7 @@ module EventMachine
       EventMachine::set_comm_inactivity_timeout @signature, value
     end
 
+    # Reconnect to a given host/port with the current EventMachine::Connection instance
     #--
     # EXPERIMENTAL. DO NOT RELY ON THIS METHOD TO REMAIN SUPPORTED.
     # (03Nov06)
