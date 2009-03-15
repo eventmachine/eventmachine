@@ -177,8 +177,6 @@ require 'shellwords'
 # Interesting thought.
 #
 module EventMachine
-  class FileNotFoundException < Exception # :nodoc:
-  end
   
   class << self
     attr_reader :threadpool # :nodoc:

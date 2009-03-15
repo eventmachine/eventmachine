@@ -1,4 +1,7 @@
 module EventMachine
+  class FileNotFoundException < Exception # :nodoc:
+  end
+
   # EventMachine::Connection is a class that is instantiated
   # by EventMachine's processing loop whenever a new connection
   # is created. (New connections can be either initiated locally
