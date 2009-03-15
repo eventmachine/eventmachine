@@ -177,12 +177,6 @@ require 'shellwords'
 # Interesting thought.
 #
 module EventMachine
-  
-  class << self
-    attr_reader :threadpool # :nodoc:
-  end
-
-
   # EventMachine::run initializes and runs an event loop.
   # This method only returns if user-callback code calls stop_event_loop.
   # Use the supplied block to define your clients and servers.
@@ -1044,7 +1038,7 @@ module EventMachine
   end
 
   def self.spawn_threadpool # :nodoc:
-    until @threadpool.size == 20
+    until @threadpool.size == @threadpool_size
       thread = Thread.new do
         while true
           op, cback = *@threadqueue.pop
@@ -1057,6 +1051,13 @@ module EventMachine
     end
   end
 
+  class << self
+    attr_reader :threadpool # :nodoc:
+
+    # Size of the EventMachine.defer threadpool (defaults to 20)
+    attr_accessor :threadpool_size
+    EventMachine.threadpool_size = 20
+  end
 
   # Schedules a proc for execution immediately after the next "turn" through the reactor
   # core. An advanced technique, this can be useful for improving memory management and/or
