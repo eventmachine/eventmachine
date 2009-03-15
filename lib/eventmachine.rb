@@ -73,7 +73,7 @@ else # :cascade
   end
 end
 
-require "eventmachine_version"
+require "em/version"
 require 'em/deferrable'
 require 'em/future'
 require 'em/eventable'

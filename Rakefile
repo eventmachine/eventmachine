@@ -87,7 +87,7 @@ Spec = Gem::Specification.new do |s|
   s.platform          = Gem::Platform::RUBY
 
   s.has_rdoc          = true
-  s.rdoc_options      = %w(--title EventMachine --main docs/README --line-numbers -x lib/eventmachine_version -x lib/emva -x lib/evma/ -x lib/pr_eventmachine -x lib/jeventmachine)
+  s.rdoc_options      = %w(--title EventMachine --main docs/README --line-numbers -x lib/em/version -x lib/emva -x lib/evma/ -x lib/pr_eventmachine -x lib/jeventmachine)
   s.extra_rdoc_files  = Dir['docs/*']
 
   s.files             = `git ls-files`.split("\n")
@@ -124,7 +124,7 @@ of EventMachine is to enable programs to easily interface with other programs
 using TCP/IP, especially if custom protocols are required.
   EOD
 
-  require 'lib/eventmachine_version'
+  require 'lib/em/version'
   s.version = EventMachine::VERSION
 end
 
