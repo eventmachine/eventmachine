@@ -267,47 +267,34 @@ module EventMachine
     end
   end
 
+  # Sugars a common use case. Will pass the given block to #run, but will terminate
+  # the reactor loop and exit the function as soon as the code in the block completes.
+  # (Normally, #run keeps running indefinitely, even after the block supplied to it
+  # finishes running, until user code calls #stop.)
+  #
+  def self.run_block &block
+    pr = proc {
+      block.call
+      EventMachine::stop
+    }
+    run(&pr)
+  end
 
-    # Sugars a common use case. Will pass the given block to #run, but will terminate
-    # the reactor loop and exit the function as soon as the code in the block completes.
-    # (Normally, #run keeps running indefinitely, even after the block supplied to it
-    # finishes running, until user code calls #stop.)
-    #
-    def self.run_block &block
-      pr = proc {
-        block.call
-        EventMachine::stop
-      }
-      run(&pr)
-    end
-
-    # fork_reactor forks a new process and calls EM#run inside of it, passing your block.
-    #--
-    # This implementation is subject to change, especially if we clean up the relationship
-    # of EM#run to @reactor_running.
-    # Original patch by Aman Gupta.
-    #
-    def self.fork_reactor &block
-      Kernel.fork do
-        if self.reactor_running?
-          self.stop_event_loop
-          self.release_machine
-          self.instance_variable_set( '@reactor_running', false )
-        end
-        self.run block
-      end
-    end
-
-
-  # +deprecated+
+  # fork_reactor forks a new process and calls EM#run inside of it, passing your block.
   #--
-  # EventMachine#run_without_threads is semantically identical
-  # to EventMachine#run, but it runs somewhat faster.
-  # However, it must not be used in applications that spin
-  # Ruby threads.
-  def self.run_without_threads &block # :nodoc:
-    #EventMachine::run false, &block
-    EventMachine::run(&block)
+  # This implementation is subject to change, especially if we clean up the relationship
+  # of EM#run to @reactor_running.
+  # Original patch by Aman Gupta.
+  #
+  def self.fork_reactor &block
+    Kernel.fork do
+      if self.reactor_running?
+        self.stop_event_loop
+        self.release_machine
+        self.instance_variable_set( '@reactor_running', false )
+      end
+      self.run block
+    end
   end
 
   # EventMachine#add_timer adds a one-shot timer to the event loop.
