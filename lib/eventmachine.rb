@@ -82,6 +82,8 @@ require 'em/streamer'
 require 'em/spawnable'
 require 'em/processes'
 require 'em/buftok'
+require 'em/timers'
+require 'em/protocols'
 
 require 'shellwords'
 
@@ -1841,96 +1843,7 @@ class Connection
   def stream_file_data filename, args={}
     EventMachine::FileStreamer.new( self, filename, args )
   end
-
-
-  # Creates a periodic timer
-  #
-  #  n = 0
-  #  timer = EventMachine::PeriodicTimer.new(5) do
-  #    puts "the time is #{Time.now}"
-  #    timer.cancel if (n+=1) > 5
-  #  end
-  #
-  class EventMachine::PeriodicTimer
-    # Create a new periodic timer that executes every interval seconds
-    def initialize interval, callback=nil, &block
-      @interval = interval
-      @code = callback || block
-      schedule
-    end
-
-    # Cancel the periodic timer
-    def cancel
-      @cancelled = true
-    end
-
-    # Fire the timer every interval seconds
-    attr_accessor :interval
-
-    def schedule # :nodoc:
-      EventMachine::add_timer @interval, proc {self.fire}
-    end
-    def fire # :nodoc:
-      unless @cancelled
-        @code.call
-        schedule
-      end
-    end
-  end
-
-  # Creates a new timer
-  #
-  #  timer = EventMachine::Timer.new(5) do
-  #    # this will never fire because we cancel it
-  #  end
-  #  timer.cancel
-  #
-  class EventMachine::Timer
-    # Create a new timer that fires after a given number of seconds
-    def initialize interval, callback=nil, &block
-      @signature = EventMachine::add_timer(interval, callback || block)
-    end
-
-    # Cancel the timer
-    def cancel
-      EventMachine.send :cancel_timer, @signature
-    end
-  end
-
 end
-
-# This module contains various protocol implementations, including:
-# - HttpClient and HttpClient2
-# - Stomp
-# - Memcache
-# - SmtpClient and SmtpServer
-# - SASLauth and SASLauthclient
-# - LineAndTextProtocol and LineText2
-# - HeaderAndContentProtocol
-# - Postgres3
-#
-# The protocol implementations live in separate files in the protocols/ subdirectory,
-# but are auto-loaded when they are first referenced in your application.
-#
-# EventMachine::Protocols is also aliased to EM::P for easier usage.
-#
-module Protocols
-  # TODO : various autotools are completely useless with the lack of naming
-  # convention, we need to correct that!
-  autoload :TcpConnectTester, 'em/protocols/tcptest'
-  autoload :HttpClient, 'em/protocols/httpclient'
-  autoload :HttpClient2, 'em/protocols/httpclient2'
-  autoload :LineAndTextProtocol, 'em/protocols/line_and_text'
-  autoload :HeaderAndContentProtocol, 'em/protocols/header_and_content'
-  autoload :LineText2, 'em/protocols/linetext2'
-  autoload :Stomp, 'em/protocols/stomp'
-  autoload :SmtpClient, 'em/protocols/smtpclient'
-  autoload :SmtpServer, 'em/protocols/smtpserver'
-  autoload :SASLauth, 'em/protocols/saslauth'
-  autoload :Memcache, 'em/protocols/memcache'
-  autoload :Postgres3, 'em/protocols/postgres3'
-end
-
 end # module EventMachine
 
 # Save everyone some typing.
