@@ -27,36 +27,34 @@
 # This defines EventMachine::Deferrable#future, which requires
 # that the rest of EventMachine::Deferrable has already been seen.
 # (It's in deferrable.rb.)
-#
-# A future is a sugaring of a typical deferrable usage.
 
 module EventMachine
     module Deferrable
 
-	class << self
-	    # Evaluate arg (which may be an expression or a block).
-	    # What's the class of arg?
-	    # If arg is an ordinary expression, then return it.
-	    # If arg is deferrable (responds to :set_deferred_status),
-	    # then look at the arguments. If either callback or errback
-	    # are defined, then use them. If neither are defined, then
-	    # use the supplied block (if any) as the callback.
-	    # Then return arg.
-	    def future arg, cb=nil, eb=nil, &blk
-		arg = arg.call if arg.respond_to?(:call)
+      # A future is a sugaring of a typical deferrable usage.
+      #--
+      # Evaluate arg (which may be an expression or a block).
+      # What's the class of arg?
+      # If arg is an ordinary expression, then return it.
+      # If arg is deferrable (responds to :set_deferred_status),
+      # then look at the arguments. If either callback or errback
+      # are defined, then use them. If neither are defined, then
+      # use the supplied block (if any) as the callback.
+      # Then return arg.
+      def self.future arg, cb=nil, eb=nil, &blk
+        arg = arg.call if arg.respond_to?(:call)
 
-		if arg.respond_to?(:set_deferred_status)
-		    if cb || eb
-			arg.callback(&cb) if cb
-			arg.errback(&eb) if eb
-		    else
-			arg.callback(&blk) if blk
-		    end
-		end
+        if arg.respond_to?(:set_deferred_status)
+          if cb || eb
+            arg.callback(&cb) if cb
+            arg.errback(&eb) if eb
+          else
+            arg.callback(&blk) if blk
+          end
+        end
 
-		arg
-	    end
-	end
+        arg
+      end
 
     end
 end

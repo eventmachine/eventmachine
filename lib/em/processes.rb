@@ -26,43 +26,43 @@
 
 module EventMachine
 
-	# EM::DeferrableChildProcess is a sugaring of a common use-case
-	# involving EM::popen.
-	# Call the #open method on EM::DeferrableChildProcess, passing
-	# a command-string. #open immediately returns an EM::Deferrable
-	# object. It also schedules the forking of a child process, which
-	# will execute the command passed to #open.
-	# When the forked child terminates, the Deferrable will be signalled
-	# and execute its callbacks, passing the data that the child process
-	# wrote to stdout.
-	#
-	class DeferrableChildProcess < EventMachine::Connection
-		include EventMachine::Deferrable
+  # EM::DeferrableChildProcess is a sugaring of a common use-case
+  # involving EM::popen.
+  # Call the #open method on EM::DeferrableChildProcess, passing
+  # a command-string. #open immediately returns an EM::Deferrable
+  # object. It also schedules the forking of a child process, which
+  # will execute the command passed to #open.
+  # When the forked child terminates, the Deferrable will be signalled
+  # and execute its callbacks, passing the data that the child process
+  # wrote to stdout.
+  #
+  class DeferrableChildProcess < EventMachine::Connection
+    include EventMachine::Deferrable
 
-		# Sugars a common use-case involving forked child processes.
-		# #open takes a String argument containing an shell command
-		# string (including arguments if desired). #open immediately
-		# returns an EventMachine::Deferrable object, without blocking.
-		#
-		# It also invokes EventMachine#popen to run the passed-in
-		# command in a forked child process.
-		#
-		# When the forked child terminates, the Deferrable that
-		# #open calls its callbacks, passing the data returned
-		# from the child process.
-		#
-		def self.open cmd
-			EventMachine.popen( cmd, DeferrableChildProcess )
-		end
+    # Sugars a common use-case involving forked child processes.
+    # #open takes a String argument containing an shell command
+    # string (including arguments if desired). #open immediately
+    # returns an EventMachine::Deferrable object, without blocking.
+    #
+    # It also invokes EventMachine#popen to run the passed-in
+    # command in a forked child process.
+    #
+    # When the forked child terminates, the Deferrable that
+    # #open calls its callbacks, passing the data returned
+    # from the child process.
+    #
+    def self.open cmd
+      EventMachine.popen( cmd, DeferrableChildProcess )
+    end
 
-		def receive_data data
-			(@data ||= []) << data
-		end
+    def receive_data data
+      (@data ||= []) << data
+    end
 
-		def unbind
-			succeed( @data.join )
-		end
-	end
+    def unbind
+      succeed( @data.join )
+    end
+  end
 
   class SystemCmd < EventMachine::Connection # :nodoc:
     def initialize cb
@@ -109,5 +109,3 @@ module EventMachine
     end
   end
 end
-
-

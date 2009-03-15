@@ -307,7 +307,7 @@ class Reactor
       open_loopbreaker
 
       loop {
-	@current_loop_time = Time.now
+        @current_loop_time = Time.now
 
         break if @stop_scheduled
         run_timers
@@ -330,7 +330,7 @@ class Reactor
     @timers.each {|t|
       if t.first <= @current_loop_time
         @timers.delete t
-	EventMachine::event_callback "", TimerFired, t.last
+        EventMachine::event_callback "", TimerFired, t.last
       else
         break
       end
@@ -374,24 +374,24 @@ class Reactor
   end
 
   def open_loopbreaker
-	  # Can't use an IO.pipe because they can't be set nonselectable in Windows.
-	  # Pick a random localhost UDP port.
+    # Can't use an IO.pipe because they can't be set nonselectable in Windows.
+    # Pick a random localhost UDP port.
     #@loopbreak_writer.close if @loopbreak_writer
     #rd,@loopbreak_writer = IO.pipe
-	@loopbreak_reader = UDPSocket.new
-	@loopbreak_writer = UDPSocket.new
-	bound = false
-	100.times {
-		@loopbreak_port = rand(10000) + 40000
-		begin
-			@loopbreak_reader.bind "localhost", @loopbreak_port
-			bound = true
-			break
-		rescue
-		end
-	}
-	raise "Unable to bind Loopbreaker" unless bound
-	LoopbreakReader.new(@loopbreak_reader)
+    @loopbreak_reader = UDPSocket.new
+    @loopbreak_writer = UDPSocket.new
+    bound = false
+    100.times {
+      @loopbreak_port = rand(10000) + 40000
+      begin
+        @loopbreak_reader.bind "localhost", @loopbreak_port
+        bound = true
+        break
+      rescue
+      end
+    }
+    raise "Unable to bind Loopbreaker" unless bound
+    LoopbreakReader.new(@loopbreak_reader)
   end
 
   def close_loopbreaker
@@ -401,7 +401,7 @@ class Reactor
 
   def signal_loopbreak
     #@loopbreak_writer.write '+' if @loopbreak_writer
-	@loopbreak_writer.send('+',0,"localhost",@loopbreak_port) if @loopbreak_writer
+    @loopbreak_writer.send('+',0,"localhost",@loopbreak_port) if @loopbreak_writer
   end
 
   def set_timer_quantum interval_in_seconds
@@ -445,17 +445,17 @@ module EventMachine
       @last_activity = Reactor.instance.current_loop_time
 
       if defined?(Fcntl::F_GETFL)
-	m = @io.fcntl(Fcntl::F_GETFL, 0)
-	@io.fcntl(Fcntl::F_SETFL, Fcntl::O_NONBLOCK | m)
+        m = @io.fcntl(Fcntl::F_GETFL, 0)
+        @io.fcntl(Fcntl::F_SETFL, Fcntl::O_NONBLOCK | m)
       else
-	      # Windows doesn't define F_GETFL.
-	      # It's not very reliable about setting descriptors nonblocking either.
-	      begin
-	      	s = Socket.for_fd(@io.fileno)
-	      	s.fcntl( Fcntl::F_SETFL, Fcntl::O_NONBLOCK )
-	      rescue Errno::EINVAL, Errno::EBADF
-		      STDERR.puts "Serious error: unable to set descriptor non-blocking"
-	      end
+        # Windows doesn't define F_GETFL.
+        # It's not very reliable about setting descriptors nonblocking either.
+        begin
+          s = Socket.for_fd(@io.fileno)
+          s.fcntl( Fcntl::F_SETFL, Fcntl::O_NONBLOCK )
+        rescue Errno::EINVAL, Errno::EBADF
+          STDERR.puts "Serious error: unable to set descriptor non-blocking"
+        end
       end
       # TODO, should set CLOEXEC on Unix?
 
@@ -669,9 +669,9 @@ module EventMachine
     def eventable_write
       if @pending
         @pending = false
-	if 0 == io.getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR).unpack("i").first
+        if 0 == io.getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR).unpack("i").first
           EventMachine::event_callback uuid, ConnectionCompleted, ""
-	end
+        end
       else
         super
       end
@@ -748,9 +748,9 @@ module EventMachine
     def eventable_write
       if @pending
         @pending = false
-	if 0 == io.getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR).unpack("i").first
+        if 0 == io.getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR).unpack("i").first
           EventMachine::event_callback uuid, ConnectionCompleted, ""
-	end
+        end
       else
         super
       end

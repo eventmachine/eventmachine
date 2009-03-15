@@ -153,9 +153,9 @@ module Deferrable
   #
   #
   def timeout seconds
-	  cancel_timeout
-	  me = self
-	  @deferred_timeout = EventMachine::Timer.new(seconds) {me.fail}
+    cancel_timeout
+    me = self
+    @deferred_timeout = EventMachine::Timer.new(seconds) {me.fail}
   end
 
 
@@ -163,35 +163,35 @@ module Deferrable
   #
   #
   def cancel_timeout
-	  if @deferred_timeout
-		  @deferred_timeout.cancel
-		  @deferred_timeout = nil
-	  end
+    if @deferred_timeout
+      @deferred_timeout.cancel
+      @deferred_timeout = nil
+    end
   end
 
 
   # Equivalent to set_deferred_status(:succeeded, ...)
   #
   def set_deferred_success *args
-	  set_deferred_status :succeeded, *args
+    set_deferred_status :succeeded, *args
   end
 
   # Equivalent to set_deferred_status(:failed, ...)
   #
   def set_deferred_failure *args
-	  set_deferred_status :failed, *args
+    set_deferred_status :failed, *args
   end
 
   # And still more sugar
   #
   def succeed *args
-	  set_deferred_success(*args)
+    set_deferred_success(*args)
   end
 
   # Can't get enough sugar
   #
   def fail *args
-	  set_deferred_failure(*args)
+    set_deferred_failure(*args)
   end
 end
 
@@ -201,7 +201,7 @@ end
 # as a way of communicating deferred status to some other part of a program.
 #
 class DefaultDeferrable
-	include Deferrable
+  include Deferrable
 end
 
 end
