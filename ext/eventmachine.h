@@ -85,9 +85,8 @@ extern "C" {
 
 	int evma_set_rlimit_nofile (int n_files);
 
-	// Temporary:
-	void evma__epoll();
-	void evma__kqueue();
+	void evma_set_epoll (int use);
+	void evma_set_kqueue (int use);
 
 #if __cplusplus
 }

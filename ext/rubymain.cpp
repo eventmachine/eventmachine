@@ -609,17 +609,6 @@ static VALUE t_read_keyboard (VALUE self)
 }
 
 
-/********
-t__epoll
-********/
-
-static VALUE t__epoll (VALUE self)
-{
-	// Temporary.
-	evma__epoll();
-	return Qnil;
-}
-
 /**********
 t__epoll_p
 **********/
@@ -633,17 +622,32 @@ static VALUE t__epoll_p (VALUE self)
   #endif
 }
 
+/********
+t__epoll
+********/
 
-/*********
-t__kqueue
-*********/
-
-static VALUE t__kqueue (VALUE self)
+static VALUE t__epoll (VALUE self)
 {
-	// Temporary.
-	evma__kqueue();
-	return Qnil;
+	if (t__epoll_p(self) == Qfalse)
+		return Qfalse;
+
+	evma_set_epoll (1);
+	return Qtrue;
 }
+
+/***********
+t__epoll_set
+***********/
+
+static VALUE t__epoll_set (VALUE self, VALUE val)
+{
+	if (t__epoll_p(self) == Qfalse)
+		return Qfalse;
+
+	evma_set_epoll (val == Qtrue ? 1 : 0);
+	return val;
+}
+
 
 /***********
 t__kqueue_p
@@ -656,6 +660,32 @@ static VALUE t__kqueue_p (VALUE self)
   #else
   return Qfalse;
   #endif
+}
+
+/*********
+t__kqueue
+*********/
+
+static VALUE t__kqueue (VALUE self)
+{
+	if (t__kqueue_p(self) == Qfalse)
+		return Qfalse;
+
+	evma_set_kqueue (1);
+	return Qtrue;
+}
+
+/*************
+t__kqueue_set
+*************/
+
+static VALUE t__kqueue_set (VALUE self, VALUE val)
+{
+	if (t__kqueue_p(self) == Qfalse)
+		return Qfalse;
+
+	evma_set_kqueue (val == Qtrue ? 1 : 0);
+	return val;
 }
 
 
@@ -821,11 +851,12 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "set_rlimit_nofile", (VALUE(*)(...))t_set_rlimit_nofile, 1);
 	rb_define_module_function (EmModule, "get_connection_count", (VALUE(*)(...))t_get_connection_count, 0);
 
-	// Temporary:
 	rb_define_module_function (EmModule, "epoll", (VALUE(*)(...))t__epoll, 0);
-	rb_define_module_function (EmModule, "kqueue", (VALUE(*)(...))t__kqueue, 0);
-
+	rb_define_module_function (EmModule, "epoll=", (VALUE(*)(...))t__epoll_set, 1);
 	rb_define_module_function (EmModule, "epoll?", (VALUE(*)(...))t__epoll_p, 0);
+
+	rb_define_module_function (EmModule, "kqueue", (VALUE(*)(...))t__kqueue, 0);
+	rb_define_module_function (EmModule, "kqueue=", (VALUE(*)(...))t__kqueue_set, 1);
 	rb_define_module_function (EmModule, "kqueue?", (VALUE(*)(...))t__kqueue_p, 0);
 
 	rb_define_method (EmConnection, "get_outbound_data_size", (VALUE(*)(...))conn_get_outbound_data_size, 0);

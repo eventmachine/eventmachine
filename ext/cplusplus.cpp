@@ -33,7 +33,7 @@ EM::Run
 
 void EM::Run (void (*start_func)())
 {
-	evma__epoll();
+	evma_set_epoll (1);
 	evma_initialize_library (EM::Callback);
 	if (start_func)
 		AddTimer (0, start_func);

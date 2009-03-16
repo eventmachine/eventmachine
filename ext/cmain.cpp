@@ -491,22 +491,22 @@ extern "C" int evma_get_outbound_data_size (const char *binding)
 }
 
 
-/***********
-evma__epoll
-***********/
+/**************
+evma_set_epoll
+**************/
 
-extern "C" void evma__epoll()
+extern "C" void evma_set_epoll (int use)
 {
-	bUseEpoll = 1;
+	bUseEpoll = !!use;
 }
 
-/************
-evma__kqueue
-************/
+/***************
+evma_set_kqueue
+***************/
 
-extern "C" void evma__kqueue()
+extern "C" void evma_set_kqueue (int use)
 {
-	bUseKqueue = 1;
+	bUseKqueue = !!use;
 }
 
 
