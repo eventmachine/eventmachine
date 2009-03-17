@@ -55,6 +55,10 @@ See the file COPYING for complete licensing information.
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <pwd.h>
+#ifdef HAVE_INOTIFY
+#include <sys/inotify.h>
+#define INOTIFY_EVENT_SIZE  (sizeof(struct inotify_event))
+#endif
 typedef int SOCKET;
 #define closesocket close
 #define INVALID_SOCKET -1

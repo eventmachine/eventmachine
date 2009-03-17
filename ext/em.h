@@ -60,6 +60,7 @@ typedef __int64 Int64;
 extern time_t gCurrentLoopTime;
 
 class EventableDescriptor;
+class InotifyDescriptor;
 
 
 /********************
@@ -107,6 +108,14 @@ class EventMachine_t
 
 		int GetConnectionCount();
 
+		const char *AddWatch	(const char*);
+		void 		RmWatch		(const char*);
+
+		#ifdef HAVE_KQUEUE
+		void _HandleKqueueFileEvent (struct kevent*);
+		void _RegisterKqueueFileEvent(int);
+		#endif
+
 		// Temporary:
 		void _UseEpoll();
 		void _UseKqueue();
@@ -127,6 +136,7 @@ class EventMachine_t
 
 	public:
 		void _ReadLoopBreaker();
+		void _ReadInotifyEvents();
 
 	private:
 		enum {
@@ -139,6 +149,7 @@ class EventMachine_t
 		};
 
 		multimap<Int64, Timer_t> Timers;
+		map<int, Bindable_t*> Watches;
 		vector<EventableDescriptor*> Descriptors;
 		vector<EventableDescriptor*> NewDescriptors;
 		set<EventableDescriptor*> ModifiedDescriptors;
@@ -159,6 +170,8 @@ class EventMachine_t
 
 		bool bKqueue;
 		int kqfd; // Kqueue file-descriptor
+
+		InotifyDescriptor *inotify; // pollable descriptor for our inotify instance
 };
 
 

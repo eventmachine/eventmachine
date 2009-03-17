@@ -85,9 +85,9 @@ class EventableDescriptor: public Bindable_t
 	private:
 		bool bCloseNow;
 		bool bCloseAfterWriting;
-		int MySocket;
 
 	protected:
+		int MySocket;
 		enum {
 			// 4 seconds is too short, most other libraries default to OS settings
 			// which in 2.6 kernel defaults to a 60 second connect timeout. 
@@ -374,6 +374,23 @@ class KeyboardDescriptor: public EventableDescriptor
 };
 
 
+/***********************
+class InotifyDescriptor
+************************/
+
+class InotifyDescriptor: public EventableDescriptor
+{
+	public:
+		InotifyDescriptor (EventMachine_t*);
+		virtual ~InotifyDescriptor();
+
+		void Read();
+		void Write();
+
+		virtual void Heartbeat() {}
+		virtual bool SelectForRead() {return true;}
+		virtual bool SelectForWrite() {return false;}
+};
 
 #endif // __EventableDescriptor__H_
 

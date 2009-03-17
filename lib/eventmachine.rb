@@ -85,6 +85,7 @@ require 'em/buftok'
 require 'em/timers'
 require 'em/protocols'
 require 'em/connection'
+require 'em/filewatcher'
 
 require 'shellwords'
 
@@ -1202,6 +1203,91 @@ module EventMachine
 
     s = read_keyboard
     c = klass.new s, *args
+    @conns[s] = c
+    block_given? and yield c
+    c
+  end
+
+  # EventMachine's file monitoring API. Currently supported are the following events
+  # on individual files, using inotify on Linux systems, and kqueue for OSX/BSD:
+  #
+  # * File modified (written to)
+  # * File moved/renamed
+  # * File deleted
+  #
+  # EventMachine::watch takes a filename and a handler Module containing your custom callback methods.
+  # This will setup the low level monitoring on the specified file, and create a new EventMachine::FileWatcher 
+  # object with your Module mixed in. FileWatcher is a subclass of EM::Connection, so callbacks on this object
+  # work in the familiar way. The callbacks that will be fired by EventMachine are:
+  #
+  # * file_modified
+  # * file_moved
+  # * file_deleted
+  #
+  # You can access the filename being monitored from within this object using FileWatcher#path.
+  #
+  # When a file is deleted, FileWatcher#stop_watching will be called after your file_deleted callback, 
+  # to clean up the underlying monitoring and remove EventMachine's reference to the now-useless FileWatcher.
+  # This will in turn call unbind, if you wish to use it.
+  #
+  # The corresponding system-level Errno will be raised when attempting to monitor non-existent files,
+  # files with wrong permissions, or if an error occurs dealing with inotify/kqueue.
+  #
+  # === Usage example:
+  #
+  #  Make sure we have a file to monitor:
+  #  / $ echo "bar" > /tmp/foo
+  #
+  #  module Handler
+  #
+  #    def file_modified
+  #      puts "#{path} modified"
+  #    end
+  #
+  #    def file_moved
+  #      puts "#{path} moved"
+  #    end
+  #
+  #    def file_deleted
+  #      puts "#{path} deleted"
+  #    end
+  #
+  #    def unbind
+  #      puts "#{path} monitoring ceased"
+  #    end
+  #
+  #  end
+  #
+  #  EM.run {
+  #    EM.watch("/tmp/foo", Handler)
+  #  }
+  #
+  #  / $ echo "baz" >> /tmp/foo    =>    "/tmp/foo modified"
+  #  / $ mv /tmp/foo /tmp/oof      =>    "/tmp/foo moved"
+  #  / $ rm /tmp/oof               =>    "/tmp/foo deleted"
+  #                                =>    "/tmp/foo monitoring ceased"
+  #
+  # Note that we have not implemented the ability to pick up on the new filename after a rename. 
+  # Calling #path will always return the filename you originally used.
+  #
+  def self.watch(filename, handler=nil, *args)
+    klass = if (handler and handler.is_a?(Class))
+      raise ArgumentError, 'must provide module or subclass of EventMachine::FileWatcher' unless FileWatcher > handler
+      handler
+    else
+      Class.new( FileWatcher ) {handler and include handler}
+    end
+
+    arity = klass.instance_method(:initialize).arity
+    expected = arity >= 0 ? arity : -(arity + 1)
+    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
+      raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
+    end
+
+    s = EM::watch_file(filename)
+    c = klass.new s, *args
+    # we have to set the path like this because of how Connection.new works
+    c.instance_variable_set("@path", filename)
     @conns[s] = c
     block_given? and yield c
     c

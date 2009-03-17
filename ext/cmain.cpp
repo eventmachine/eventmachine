@@ -183,7 +183,25 @@ extern "C" const char *evma_open_keyboard()
 	return EventMachine->OpenKeyboard();
 }
 
+/***************
+evma_watch_file
+****************/
 
+extern "C" const char *evma_watch_file(const char *fname)
+{
+	ensure_eventmachine("evma_watch_file");
+	return EventMachine->AddWatch(fname);
+}
+
+/*****************
+evma_unwatch_file
+******************/
+
+extern "C" void *evma_unwatch_file(const char *sig)
+{
+	ensure_eventmachine("evma_unwatch_file");
+	EventMachine->RmWatch(sig);
+}
 
 /****************************
 evma_send_data_to_connection

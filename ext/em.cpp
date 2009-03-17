@@ -87,7 +87,8 @@ EventMachine_t::EventMachine_t (void (*event_callback)(const char*, int, const c
 	bEpoll (false),
 	bKqueue (false),
 	kqfd (-1),
-	epfd (-1)
+	epfd (-1),
+	inotify (NULL)
 {
 	// Default time-slice is just smaller than one hundred mills.
 	Quantum.tv_sec = 0;
@@ -128,6 +129,11 @@ EventMachine_t::~EventMachine_t()
 
 	close (LoopBreakerReader);
 	close (LoopBreakerWriter);
+
+	// Remove any file watch descriptors
+	// XXX - We are iterating here and passing to RmWatch which also iterates. Redundant.
+	for(map<int, Bindable_t*>::iterator i=Watches.begin(); i != Watches.end(); i++)
+		RmWatch(i->second->GetBinding().c_str());
 
 	if (epfd != -1)
 		close (epfd);
@@ -565,15 +571,19 @@ bool EventMachine_t::_RunKqueueOnce()
 	#endif
 	struct kevent *ke = Karray;
 	while (k > 0) {
-		EventableDescriptor *ed = (EventableDescriptor*) (ke->udata);
-		assert (ed);
+		if (ke->filter == EVFILT_VNODE) {
+			_HandleKqueueFileEvent(ke);
+		} else {
+			EventableDescriptor *ed = (EventableDescriptor*) (ke->udata);
+			assert (ed);
 
-		if (ke->filter == EVFILT_READ)
-			ed->Read();
-		else if (ke->filter == EVFILT_WRITE)
-			ed->Write();
-		else
-			cerr << "Discarding unknown kqueue event " << ke->filter << endl;
+			if (ke->filter == EVFILT_READ)
+				ed->Read();
+			else if (ke->filter == EVFILT_WRITE)
+				ed->Write();
+			else
+				cerr << "Discarding unknown kqueue event " << ke->filter << endl;
+		}
 
 		--k;
 		++ke;
@@ -1933,6 +1943,177 @@ int EventMachine_t::GetConnectionCount ()
 {
 	return Descriptors.size();
 }
+
+
+/************************
+EventMachine_t::AddWatch
+*************************/
+
+const char *EventMachine_t::AddWatch(const char *fpath)
+{
+	struct stat sb;
+	int sres;
+	int wd = -1;
+
+	sres = stat(fpath, &sb);
+
+	if (sres == -1) {
+		char errbuf[300];
+		sprintf(errbuf, "error registering file %s for watching: %s", fpath, strerror(errno));
+		throw std::runtime_error(errbuf);
+	}
+
+	#ifdef HAVE_INOTIFY
+	if (!inotify) {
+		inotify = new InotifyDescriptor(this);
+		assert (inotify);
+		Add(inotify);
+	}
+
+	wd = inotify_add_watch(inotify->GetSocket(), fpath, IN_MODIFY | IN_DELETE_SELF | IN_MOVE_SELF);
+	if (wd == -1) {
+		char errbuf[300];
+		sprintf(errbuf, "failed to open file %s for registering with inotify: %s", fpath, strerror(errno));
+		throw std::runtime_error(errbuf);
+	}
+	#endif
+
+	#ifdef HAVE_KQUEUE
+	if (!bKqueue)
+		throw std::runtime_error("must enable kqueue");
+
+	// With kqueue we have to open the file first and use the resulting fd to register for events
+	wd = open(fpath, O_RDONLY);
+	if (wd == -1) {
+		char errbuf[300];
+		sprintf(errbuf, "failed to open file %s for registering with kqueue: %s", fpath, strerror(errno));
+		throw std::runtime_error(errbuf);
+	}
+	_RegisterKqueueFileEvent(wd);
+	#endif
+
+	if (wd != -1) {
+		Bindable_t* b = new Bindable_t();
+		Watches.insert(make_pair (wd, b));
+
+		return b->GetBinding().c_str();
+	}
+
+	throw std::runtime_error("no file watching support on this system"); // is this the right thing to do?
+}
+
+
+/***********************
+EventMachine_t::RmWatch
+************************/
+
+void EventMachine_t::RmWatch(const char *sig)
+{
+	for(map<int, Bindable_t*>::iterator i=Watches.begin(); i != Watches.end(); i++) 
+	{
+		if (strncmp(i->second->GetBinding().c_str(), sig, strlen(sig)) == 0) {
+			Watches.erase(i->first);
+
+			#ifdef HAVE_INOTIFY
+			inotify_rm_watch(inotify->GetSocket(), i->first);
+			#elif HAVE_KQUEUE
+			// With kqueue, closing the monitored fd automatically clears all registered events for it
+			close(i->first);
+			#endif
+
+			if (EventCallback)
+				(*EventCallback)(i->second->GetBinding().c_str(), EM_CONNECTION_UNBOUND, NULL, 0);
+
+			delete i->second;
+			return;
+		}
+	}
+	throw std::runtime_error("attempted to remove invalid watch signature");
+}
+
+
+/***********************************
+EventMachine_t::_ReadInotify_Events
+************************************/
+
+void EventMachine_t::_ReadInotifyEvents()
+{
+	#ifdef HAVE_INOTIFY
+	struct inotify_event event;
+	char *msg;
+
+	while (read(inotify->GetSocket(), &event, INOTIFY_EVENT_SIZE) > 0) {
+		assert(event.len == 0);
+		if ((event.mask & IN_MODIFY) == IN_MODIFY)
+			msg = "modified";
+		else if ((event.mask & IN_DELETE_SELF) == IN_DELETE_SELF)
+			msg = "deleted";
+		else if ((event.mask & IN_MOVE_SELF) == IN_MOVE_SELF)
+			msg = "moved";
+		else
+			msg = "";
+
+		if (EventCallback && strlen(msg) > 0)
+			(*EventCallback)(Watches [event->wd]->GetBinding().c_str(), EM_CONNECTION_READ, msg, strlen(msg));
+	}
+	#endif
+}
+
+
+/**************************************
+EventMachine_t::_HandleKqueueFileEvent
+***************************************/
+
+#ifdef HAVE_KQUEUE
+void EventMachine_t::_HandleKqueueFileEvent(struct kevent *event)
+{
+	char *msg;
+
+	if ((event->fflags & NOTE_WRITE) == NOTE_WRITE)
+		msg = "modified";
+	else if ((event->fflags & NOTE_DELETE) == NOTE_DELETE)
+		msg = "deleted";
+	else if ((event->fflags & NOTE_RENAME) == NOTE_RENAME)
+		msg = "moved";
+	else
+		msg = "";
+
+	if (EventCallback && strlen(msg) > 0)
+		(*EventCallback)(Watches [(int) event->ident]->GetBinding().c_str(), EM_CONNECTION_READ, msg, strlen(msg));
+
+	// re-register for the next event on this fd unless it was just deleted
+	if (msg != "deleted")
+		_RegisterKqueueFileEvent(event->ident);
+}
+#endif
+
+
+/****************************************
+EventMachine_t::_RegisterKqueueFileEvent
+*****************************************/
+
+#ifdef HAVE_KQUEUE
+void EventMachine_t::_RegisterKqueueFileEvent(int fd)
+{
+	struct kevent newevent;
+	int kqres;
+
+	// Setup the event with our fd and proper flags
+	// XXX	We are currently using EV_ONESHOT and re-registering again after the event is read.
+	//		This is because omitting EV_ONESHOT causes the event to be spewed continuously.
+	//		Seems silly, but it looks like this may be how normal operations with kqueue occur within the reactor.
+	EV_SET(&newevent, fd, EVFILT_VNODE, EV_ADD | EV_ONESHOT, NOTE_DELETE | NOTE_RENAME | NOTE_WRITE, 0, 0);
+
+	// Attempt to register the event
+	kqres = kevent(kqfd, &newevent, 1, NULL, 0, NULL);
+	if (kqres == -1) {
+		char errbuf[200];
+		sprintf(errbuf, "failed to register file watch descriptor with kqueue: %s", strerror(errno));
+		close(fd);
+		throw std::runtime_error(errbuf);
+	}
+}
+#endif
 
 
 //#endif // OS_UNIX
