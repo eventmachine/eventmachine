@@ -46,6 +46,7 @@ class StringIO # :nodoc:
     end
     str
   end
+  alias read_exactly_n_bytes readbytes
 end
 
 
