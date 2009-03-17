@@ -2054,7 +2054,7 @@ void EventMachine_t::_ReadInotifyEvents()
 			msg = "";
 
 		if (EventCallback && strlen(msg) > 0)
-			(*EventCallback)(Watches [event->wd]->GetBinding().c_str(), EM_CONNECTION_READ, msg, strlen(msg));
+			(*EventCallback)(Watches [event.wd]->GetBinding().c_str(), EM_CONNECTION_READ, msg, strlen(msg));
 	}
 	#endif
 }

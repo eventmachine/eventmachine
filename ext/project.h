@@ -55,10 +55,6 @@ See the file COPYING for complete licensing information.
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <pwd.h>
-#ifdef HAVE_INOTIFY
-#include <sys/inotify.h>
-#define INOTIFY_EVENT_SIZE  (sizeof(struct inotify_event))
-#endif
 typedef int SOCKET;
 #define closesocket close
 #define INVALID_SOCKET -1
@@ -104,6 +100,23 @@ using namespace std;
 #ifdef HAVE_KQUEUE
 #include <sys/event.h>
 #include <sys/queue.h>
+#endif
+
+#ifdef HAVE_INOTIFY
+#include <sys/inotify.h>
+#endif
+
+#ifdef HAVE_OLD_INOTIFY
+#include <sys/syscall.h>
+#include <linux/inotify.h>
+static inline int inotify_init (void) { return syscall (__NR_inotify_init); }
+static inline int inotify_add_watch (int fd, const char *name, __u32 mask) { return syscall (__NR_inotify_add_watch, fd, name, mask); }
+static inline int inotify_rm_watch (int fd, __u32 wd) { return syscall (__NR_inotify_rm_watch, fd, wd); }
+#define HAVE_INOTIFY 1
+#endif
+
+#ifdef HAVE_INOTIFY
+#define INOTIFY_EVENT_SIZE  (sizeof(struct inotify_event))
 #endif
 
 #include "binder.h"

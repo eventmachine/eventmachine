@@ -29,6 +29,9 @@ module EventMachine
     # Should be redefined with the user's custom callback that will be fired when the file is deleted.
     # When the file is deleted, stop_watching will be called after this to make sure everything is
     # cleaned up correctly.
+    #
+    # Note that on linux (with inotify), file_deleted will not be called until all open file descriptors to
+    # the file have been closed.
     def file_deleted
     end
 

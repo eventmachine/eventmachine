@@ -15,7 +15,8 @@ end
 add_define 'BUILD_FOR_RUBY'
 add_define 'HAVE_RBTRAP' if have_var('rb_trap_immediate', ['ruby.h', 'rubysig.h'])
 add_define "HAVE_TBR" if have_func('rb_thread_blocking_region')# and have_macro('RUBY_UBF_IO', 'ruby.h')
-add_define "HAVE_INOTIFY" if have_func('inotify_init', ['sys/inotify.h'])
+add_define "HAVE_INOTIFY" if inotify = have_func('inotify_init', 'sys/inotify.h')
+add_define "HAVE_OLD_INOTIFY" if !inotify && have_macro('__NR_inotify_init', 'sys/syscall.h')
 
 # Minor platform details between *nix and Windows:
 
