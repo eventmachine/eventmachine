@@ -83,6 +83,9 @@ extern "C" {
 	const char *evma__write_file (const char *filename);
 	const char *evma_popen (char * const*cmd_strings);
 
+	const char *evma_watch_file (const char *fname);
+	void *evma_unwatch_file (const char *sig);
+
 	int evma_set_rlimit_nofile (int n_files);
 
 	void evma_set_epoll (int use);

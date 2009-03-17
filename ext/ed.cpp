@@ -1520,3 +1520,63 @@ int DatagramDescriptor::SetCommInactivityTimeout (int *value)
   return out;
 }
 
+
+/************************************
+InotifyDescriptor::InotifyDescriptor
+*************************************/
+
+InotifyDescriptor::InotifyDescriptor (EventMachine_t *em):
+	EventableDescriptor(0, em)
+{
+	bCallbackUnbind = false;
+
+	#ifndef HAVE_INOTIFY
+	throw std::runtime_error("no inotify support on this system");
+	#else
+
+	int fd = inotify_init();
+	if (fd == -1) {
+		char buf[200];
+		snprintf (buf, sizeof(buf)-1, "unable to create inotify descriptor: %s", strerror(errno));
+		throw std::runtime_error (buf);
+	}
+
+	MySocket = fd;
+	SetSocketNonblocking(MySocket);
+	#ifdef HAVE_EPOLL
+	EpollEvent.events = EPOLLIN;
+	#endif
+
+	#endif
+}
+
+
+/*************************************
+InotifyDescriptor::~InotifyDescriptor
+**************************************/
+
+InotifyDescriptor::~InotifyDescriptor()
+{
+	close(MySocket);
+	MySocket = INVALID_SOCKET;
+}
+
+/***********************
+InotifyDescriptor::Read
+************************/
+
+void InotifyDescriptor::Read()
+{
+	assert (MyEventMachine);
+	MyEventMachine->_ReadInotifyEvents();
+}
+
+
+/************************
+InotifyDescriptor::Write
+*************************/
+
+void InotifyDescriptor::Write()
+{
+	throw std::runtime_error("bad code path in inotify");
+}
