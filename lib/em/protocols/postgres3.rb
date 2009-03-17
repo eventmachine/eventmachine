@@ -29,8 +29,6 @@ require 'postgres-pr/message'
 require 'postgres-pr/connection'
 require 'stringio'
 
-include PostgresPR
-
 class StringIO # :nodoc:
   # Reads exactly +n+ bytes.
   #
@@ -111,6 +109,7 @@ module EventMachine; module Protocols
 #    end
 #  }
 class Postgres3 < EventMachine::Connection
+  include PostgresPR
 
 	def initialize
 		@data = ""
