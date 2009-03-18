@@ -1215,7 +1215,7 @@ module EventMachine
   # * File moved/renamed
   # * File deleted
   #
-  # EventMachine::watch takes a filename and a handler Module containing your custom callback methods.
+  # EventMachine::watch_file takes a filename and a handler Module containing your custom callback methods.
   # This will setup the low level monitoring on the specified file, and create a new EventMachine::FileWatch
   # object with your Module mixed in. FileWatch is a subclass of EM::Connection, so callbacks on this object
   # work in the familiar way. The callbacks that will be fired by EventMachine are:

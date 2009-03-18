@@ -1,7 +1,7 @@
 module EventMachine
 
   # This is subclassed from EventMachine::Connection for use with the file monitoring API. Read the
-  # documentation on the instance methods of this class, and for a full explanation see EventMachine.watch.
+  # documentation on the instance methods of this class, and for a full explanation see EventMachine.watch_file.
   class FileWatch < Connection
     # :stopdoc:
     Cmodified = 'modified'.freeze
@@ -20,7 +20,7 @@ module EventMachine
       end
     end
 
-    # Returns the path that EventMachine::watch was originally called with. The current implementation
+    # Returns the path that EventMachine::watch_file was originally called with. The current implementation
     # does not pick up on the new filename after a rename occurs.
     def path
       @path
