@@ -3,9 +3,11 @@ module EventMachine
   # This is subclassed from EventMachine::Connection for use with the file monitoring API. Read the
   # documentation on the instance methods of this class, and for a full explanation see EventMachine.watch.
   class FileWatch < Connection
-    Cmodified = 'modified'.freeze # :nodoc:
-    Cdeleted = 'deleted'.freeze # :nodoc:
-    Cmoved = 'moved'.freeze # :nodoc:
+    # :stopdoc:
+    Cmodified = 'modified'.freeze
+    Cdeleted = 'deleted'.freeze
+    Cmoved = 'moved'.freeze
+    # :startdoc:
 
     def receive_data(data) #:nodoc:
       case data
