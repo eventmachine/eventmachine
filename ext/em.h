@@ -83,7 +83,6 @@ class EventMachine_t
 		const char *InstallOneshotTimer (int);
 		const char *ConnectToServer (const char *, int);
 		const char *ConnectToUnixServer (const char *);
-		const char *AttachFD (int, bool, bool);
 
 		const char *CreateTcpServer (const char *, int);
 		const char *OpenDatagramSocket (const char *, int);
@@ -95,7 +94,10 @@ class EventMachine_t
 
 		void Add (EventableDescriptor*);
 		void Modify (EventableDescriptor*);
+
+		const char *AttachFD (int, bool, bool);
 		int DetachFD (EventableDescriptor*);
+
 		void ArmKqueueWriter (EventableDescriptor*);
 		void ArmKqueueReader (EventableDescriptor*);
 
@@ -108,8 +110,9 @@ class EventMachine_t
 
 		int GetConnectionCount();
 
-		const char *AddWatch	(const char*);
-		void 		RmWatch		(const char*);
+		const char *WatchFile (const char*);
+		void UnwatchFile (int);
+		void UnwatchFile (const char*);
 
 		#ifdef HAVE_KQUEUE
 		void _HandleKqueueFileEvent (struct kevent*);
@@ -149,7 +152,7 @@ class EventMachine_t
 		};
 
 		multimap<Int64, Timer_t> Timers;
-		map<int, Bindable_t*> Watches;
+		map<int, Bindable_t*> Files;
 		vector<EventableDescriptor*> Descriptors;
 		vector<EventableDescriptor*> NewDescriptors;
 		set<EventableDescriptor*> ModifiedDescriptors;

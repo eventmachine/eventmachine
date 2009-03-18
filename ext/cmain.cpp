@@ -183,24 +183,24 @@ extern "C" const char *evma_open_keyboard()
 	return EventMachine->OpenKeyboard();
 }
 
-/***************
-evma_watch_file
-****************/
+/*******************
+evma_watch_filename
+*******************/
 
-extern "C" const char *evma_watch_file(const char *fname)
+extern "C" const char *evma_watch_filename (const char *fname)
 {
-	ensure_eventmachine("evma_watch_file");
-	return EventMachine->AddWatch(fname);
+	ensure_eventmachine("evma_watch_filename");
+	return EventMachine->WatchFile(fname);
 }
 
-/*****************
-evma_unwatch_file
-******************/
+/*********************
+evma_unwatch_filename
+*********************/
 
-extern "C" void *evma_unwatch_file(const char *sig)
+extern "C" void *evma_unwatch_filename (const char *sig)
 {
 	ensure_eventmachine("evma_unwatch_file");
-	EventMachine->RmWatch(sig);
+	EventMachine->UnwatchFile(sig);
 }
 
 /****************************

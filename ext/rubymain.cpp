@@ -609,27 +609,27 @@ static VALUE t_read_keyboard (VALUE self)
 }
 
 
-/************
-t_watch_file
-*************/
+/****************
+t_watch_filename
+****************/
 
-static VALUE t_watch_file (VALUE self, VALUE fname)
+static VALUE t_watch_filename (VALUE self, VALUE fname)
 {
 	try {
-		return rb_str_new2(evma_watch_file(StringValuePtr(fname)));
+		return rb_str_new2(evma_watch_filename(StringValuePtr(fname)));
 	} catch (std::runtime_error e) {
 		rb_sys_fail(e.what());
 	}
 }
 
 
-/**************
-t_unwatch_file
-***************/
+/******************
+t_unwatch_filename
+******************/
 
-static VALUE t_unwatch_file (VALUE self, VALUE sig)
+static VALUE t_unwatch_filename (VALUE self, VALUE sig)
 {
-	evma_unwatch_file(StringValuePtr(sig));
+	evma_unwatch_filename(StringValuePtr(sig));
 	return Qnil;
 }
 
@@ -863,8 +863,8 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "attach_fd", (VALUE (*)(...))t_attach_fd, 3);
 	rb_define_module_function (EmModule, "detach_fd", (VALUE (*)(...))t_detach_fd, 1);
 
-	rb_define_module_function (EmModule, "watch_file", (VALUE (*)(...))t_watch_file, 1);
-	rb_define_module_function (EmModule, "unwatch_file", (VALUE (*)(...))t_unwatch_file, 1);
+	rb_define_module_function (EmModule, "watch_filename", (VALUE (*)(...))t_watch_filename, 1);
+	rb_define_module_function (EmModule, "unwatch_filename", (VALUE (*)(...))t_unwatch_filename, 1);
 
 	rb_define_module_function (EmModule, "current_time", (VALUE(*)(...))t_get_loop_time, 0);
 

@@ -131,9 +131,8 @@ EventMachine_t::~EventMachine_t()
 	close (LoopBreakerWriter);
 
 	// Remove any file watch descriptors
-	// XXX - We are iterating here and passing to RmWatch which also iterates. Redundant.
-	for(map<int, Bindable_t*>::iterator i=Watches.begin(); i != Watches.end(); i++)
-		RmWatch(i->second->GetBinding().c_str());
+	for(map<int, Bindable_t*>::iterator i=Files.begin(); i != Files.end(); i++)
+		UnwatchFile (i->first);
 
 	if (epfd != -1)
 		close (epfd);
@@ -569,6 +568,7 @@ bool EventMachine_t::_RunKqueueOnce()
 	#ifdef BUILD_FOR_RUBY
 	TRAP_END;
 	#endif
+
 	struct kevent *ke = Karray;
 	while (k > 0) {
 		if (ke->filter == EVFILT_VNODE) {
@@ -1946,10 +1946,10 @@ int EventMachine_t::GetConnectionCount ()
 
 
 /************************
-EventMachine_t::AddWatch
+EventMachine_t::WatchFile
 *************************/
 
-const char *EventMachine_t::AddWatch(const char *fpath)
+const char *EventMachine_t::WatchFile (const char *fpath)
 {
 	struct stat sb;
 	int sres;
@@ -1994,7 +1994,7 @@ const char *EventMachine_t::AddWatch(const char *fpath)
 
 	if (wd != -1) {
 		Bindable_t* b = new Bindable_t();
-		Watches.insert(make_pair (wd, b));
+		Files.insert(make_pair (wd, b));
 
 		return b->GetBinding().c_str();
 	}
@@ -2003,28 +2003,35 @@ const char *EventMachine_t::AddWatch(const char *fpath)
 }
 
 
-/***********************
-EventMachine_t::RmWatch
-************************/
+/***************************
+EventMachine_t::UnwatchFile
+***************************/
 
-void EventMachine_t::RmWatch(const char *sig)
+void EventMachine_t::UnwatchFile (int wd)
 {
-	for(map<int, Bindable_t*>::iterator i=Watches.begin(); i != Watches.end(); i++) 
+	Bindable_t *b = Files[wd];
+	assert(b);
+	Files.erase(wd);
+
+	#ifdef HAVE_INOTIFY
+	inotify_rm_watch(inotify->GetSocket(), wd);
+	#elif HAVE_KQUEUE
+	// With kqueue, closing the monitored fd automatically clears all registered events for it
+	close(wd);
+	#endif
+
+	if (EventCallback)
+		(*EventCallback)(b->GetBinding().c_str(), EM_CONNECTION_UNBOUND, NULL, 0);
+
+	delete b;
+}
+
+void EventMachine_t::UnwatchFile (const char *sig)
+{
+	for(map<int, Bindable_t*>::iterator i=Files.begin(); i != Files.end(); i++)
 	{
 		if (strncmp(i->second->GetBinding().c_str(), sig, strlen(sig)) == 0) {
-			Watches.erase(i->first);
-
-			#ifdef HAVE_INOTIFY
-			inotify_rm_watch(inotify->GetSocket(), i->first);
-			#elif HAVE_KQUEUE
-			// With kqueue, closing the monitored fd automatically clears all registered events for it
-			close(i->first);
-			#endif
-
-			if (EventCallback)
-				(*EventCallback)(i->second->GetBinding().c_str(), EM_CONNECTION_UNBOUND, NULL, 0);
-
-			delete i->second;
+			UnwatchFile (i->first);
 			return;
 		}
 	}
@@ -2044,17 +2051,20 @@ void EventMachine_t::_ReadInotifyEvents()
 
 	while (read(inotify->GetSocket(), &event, INOTIFY_EVENT_SIZE) > 0) {
 		assert(event.len == 0);
-		if ((event.mask & IN_MODIFY) == IN_MODIFY)
+		if (event.mask & IN_MODIFY)
 			msg = "modified";
-		else if ((event.mask & IN_DELETE_SELF) == IN_DELETE_SELF)
+		else if (event.mask & IN_DELETE_SELF)
 			msg = "deleted";
-		else if ((event.mask & IN_MOVE_SELF) == IN_MOVE_SELF)
+		else if (event.mask & IN_MOVE_SELF)
 			msg = "moved";
 		else
 			msg = "";
 
 		if (EventCallback && strlen(msg) > 0)
-			(*EventCallback)(Watches [event.wd]->GetBinding().c_str(), EM_CONNECTION_READ, msg, strlen(msg));
+			(*EventCallback)(Files [event.wd]->GetBinding().c_str(), EM_CONNECTION_READ, msg, strlen(msg));
+
+		if (EventCallback && event.mask & IN_DELETE_SELF)
+			UnwatchFile (event.wd);
 	}
 	#endif
 }
@@ -2069,20 +2079,22 @@ void EventMachine_t::_HandleKqueueFileEvent(struct kevent *event)
 {
 	char *msg;
 
-	if ((event->fflags & NOTE_WRITE) == NOTE_WRITE)
+	if (event->fflags & NOTE_WRITE)
 		msg = "modified";
-	else if ((event->fflags & NOTE_DELETE) == NOTE_DELETE)
+	else if (event->fflags & NOTE_DELETE)
 		msg = "deleted";
-	else if ((event->fflags & NOTE_RENAME) == NOTE_RENAME)
+	else if (event->fflags & NOTE_RENAME)
 		msg = "moved";
 	else
 		msg = "";
 
 	if (EventCallback && strlen(msg) > 0)
-		(*EventCallback)(Watches [(int) event->ident]->GetBinding().c_str(), EM_CONNECTION_READ, msg, strlen(msg));
+		(*EventCallback)(Files [(int) event->ident]->GetBinding().c_str(), EM_CONNECTION_READ, msg, strlen(msg));
 
 	// re-register for the next event on this fd unless it was just deleted
-	if (msg != "deleted")
+	if (event->fflags & NOTE_DELETE)
+		UnwatchFile (event->ident);
+	else
 		_RegisterKqueueFileEvent(event->ident);
 }
 #endif
