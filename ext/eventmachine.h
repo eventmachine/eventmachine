@@ -86,6 +86,9 @@ extern "C" {
 	const char *evma_watch_filename (const char *fname);
 	void *evma_unwatch_filename (const char *sig);
 
+	const char *evma_watch_pid (int);
+	void *evma_unwatch_pid (const char *sig);
+
 	int evma_set_rlimit_nofile (int n_files);
 
 	void evma_set_epoll (int use);

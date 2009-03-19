@@ -203,6 +203,26 @@ extern "C" void *evma_unwatch_filename (const char *sig)
 	EventMachine->UnwatchFile(sig);
 }
 
+/**************
+evma_watch_pid
+**************/
+
+extern "C" const char *evma_watch_pid (int pid)
+{
+	ensure_eventmachine("evma_watch_pid");
+	return EventMachine->WatchPid(pid);
+}
+
+/****************
+evma_unwatch_pid
+****************/
+
+extern "C" void *evma_unwatch_pid (const char *sig)
+{
+	ensure_eventmachine("evma_unwatch_pid");
+	EventMachine->UnwatchPid(sig);
+}
+
 /****************************
 evma_send_data_to_connection
 ****************************/

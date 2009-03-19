@@ -634,6 +634,31 @@ static VALUE t_unwatch_filename (VALUE self, VALUE sig)
 }
 
 
+/***********
+t_watch_pid
+***********/
+
+static VALUE t_watch_pid (VALUE self, VALUE pid)
+{
+	try {
+		return rb_str_new2(evma_watch_pid(NUM2INT(pid)));
+	} catch (std::runtime_error e) {
+		rb_sys_fail(e.what());
+	}
+}
+
+
+/*************
+t_unwatch_pid
+*************/
+
+static VALUE t_unwatch_pid (VALUE self, VALUE sig)
+{
+	evma_unwatch_pid(StringValuePtr(sig));
+	return Qnil;
+}
+
+
 /**********
 t__epoll_p
 **********/
@@ -865,6 +890,9 @@ extern "C" void Init_rubyeventmachine()
 
 	rb_define_module_function (EmModule, "watch_filename", (VALUE (*)(...))t_watch_filename, 1);
 	rb_define_module_function (EmModule, "unwatch_filename", (VALUE (*)(...))t_unwatch_filename, 1);
+
+	rb_define_module_function (EmModule, "watch_pid", (VALUE (*)(...))t_watch_pid, 1);
+	rb_define_module_function (EmModule, "unwatch_pid", (VALUE (*)(...))t_unwatch_pid, 1);
 
 	rb_define_module_function (EmModule, "current_time", (VALUE(*)(...))t_get_loop_time, 0);
 

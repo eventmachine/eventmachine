@@ -86,6 +86,7 @@ require 'em/timers'
 require 'em/protocols'
 require 'em/connection'
 require 'em/file_watch'
+require 'em/process_watch'
 
 require 'shellwords'
 
@@ -1286,6 +1287,48 @@ module EventMachine
     c = klass.new s, *args
     # we have to set the path like this because of how Connection.new works
     c.instance_variable_set("@path", filename)
+    @conns[s] = c
+    block_given? and yield c
+    c
+  end
+
+  # EventMachine's process monitoring API. Currently supported using kqueue for OSX/BSD.
+  #
+  # === Usage example:
+  #
+  #  module ProcessWatcher
+  #    def process_exited
+  #      put 'the forked child died!'
+  #    end
+  #  end
+  #
+  #  pid = fork{ sleep }
+  #
+  #  EM.run{
+  #    EM.watch_process(pid, ProcessWatcher)
+  #    EM.add_timer(1){ Process.kill('TERM', pid) }
+  #  }
+  #
+  def self.watch_process(pid, handler=nil, *args)
+    pid = pid.to_i
+
+    klass = if (handler and handler.is_a?(Class))
+      raise ArgumentError, 'must provide module or subclass of EventMachine::ProcessWatch' unless ProcessWatch > handler
+      handler
+    else
+      Class.new( ProcessWatch ) {handler and include handler}
+    end
+
+    arity = klass.instance_method(:initialize).arity
+    expected = arity >= 0 ? arity : -(arity + 1)
+    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
+      raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
+    end
+
+    s = EM::watch_pid(pid)
+    c = klass.new s, *args
+    # we have to set the path like this because of how Connection.new works
+    c.instance_variable_set("@pid", pid)
     @conns[s] = c
     block_given? and yield c
     c

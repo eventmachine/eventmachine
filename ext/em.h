@@ -119,6 +119,14 @@ class EventMachine_t
 		void _RegisterKqueueFileEvent(int);
 		#endif
 
+		const char *WatchPid (int);
+		void UnwatchPid (int);
+		void UnwatchPid (const char *);
+
+		#ifdef HAVE_KQUEUE
+		void _HandleKqueuePidEvent (struct kevent*);
+		#endif
+
 		// Temporary:
 		void _UseEpoll();
 		void _UseKqueue();
@@ -153,6 +161,7 @@ class EventMachine_t
 
 		multimap<Int64, Timer_t> Timers;
 		map<int, Bindable_t*> Files;
+		map<int, Bindable_t*> Pids;
 		vector<EventableDescriptor*> Descriptors;
 		vector<EventableDescriptor*> NewDescriptors;
 		set<EventableDescriptor*> ModifiedDescriptors;

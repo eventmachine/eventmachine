@@ -571,18 +571,29 @@ bool EventMachine_t::_RunKqueueOnce()
 
 	struct kevent *ke = Karray;
 	while (k > 0) {
-		if (ke->filter == EVFILT_VNODE) {
-			_HandleKqueueFileEvent(ke);
-		} else {
-			EventableDescriptor *ed = (EventableDescriptor*) (ke->udata);
-			assert (ed);
+		switch (ke->filter)
+		{
+			case EVFILT_VNODE:
+				_HandleKqueueFileEvent (ke);
+				break;
 
-			if (ke->filter == EVFILT_READ)
-				ed->Read();
-			else if (ke->filter == EVFILT_WRITE)
-				ed->Write();
-			else
-				cerr << "Discarding unknown kqueue event " << ke->filter << endl;
+			case EVFILT_PROC:
+				_HandleKqueuePidEvent (ke);
+				break;
+
+			case EVFILT_READ:
+			case EVFILT_WRITE:
+				EventableDescriptor *ed = (EventableDescriptor*) (ke->udata);
+				assert (ed);
+
+				if (ke->filter == EVFILT_READ)
+					ed->Read();
+				else if (ke->filter == EVFILT_WRITE)
+					ed->Write();
+				else
+					cerr << "Discarding unknown kqueue event " << ke->filter << endl;
+
+				break;
 		}
 
 		--k;
@@ -1946,6 +1957,78 @@ int EventMachine_t::GetConnectionCount ()
 
 
 /************************
+EventMachine_t::WatchPid
+************************/
+
+const char *EventMachine_t::WatchPid (int pid)
+{
+	#ifdef HAVE_KQUEUE
+	if (!bKqueue)
+		throw std::runtime_error("must enable kqueue");
+
+	struct kevent event;
+	int kqres;
+
+	EV_SET(&event, pid, EVFILT_PROC, EV_ADD, NOTE_EXIT | NOTE_FORK, 0, 0);
+
+	// Attempt to register the event
+	kqres = kevent(kqfd, &event, 1, NULL, 0, NULL);
+	if (kqres == -1) {
+		char errbuf[200];
+		sprintf(errbuf, "failed to register file watch descriptor with kqueue: %s", strerror(errno));
+		throw std::runtime_error(errbuf);
+	}
+	#endif
+
+	#ifdef HAVE_KQUEUE
+	Bindable_t* b = new Bindable_t();
+	Pids.insert(make_pair (pid, b));
+
+	return b->GetBinding().c_str();
+	#endif
+
+	throw std::runtime_error("no pid watching support on this system");
+}
+
+/**************************
+EventMachine_t::UnwatchPid
+**************************/
+
+void EventMachine_t::UnwatchPid (int pid)
+{
+	Bindable_t *b = Pids[pid];
+	assert(b);
+	Pids.erase(pid);
+
+	#ifdef HAVE_KQUEUE
+	struct kevent k;
+
+	EV_SET(&k, pid, EVFILT_PROC, EV_DELETE, 0, 0, 0);
+	int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
+	// t==-1 if the process already exited; ignore this for now
+	#endif
+
+	if (EventCallback)
+		(*EventCallback)(b->GetBinding().c_str(), EM_CONNECTION_UNBOUND, NULL, 0);
+
+	delete b;
+}
+
+void EventMachine_t::UnwatchPid (const char *sig)
+{
+	for(map<int, Bindable_t*>::iterator i=Pids.begin(); i != Pids.end(); i++)
+	{
+		if (strncmp(i->second->GetBinding().c_str(), sig, strlen(sig)) == 0) {
+			UnwatchPid (i->first);
+			return;
+		}
+	}
+
+	throw std::runtime_error("attempted to remove invalid pid signature");
+}
+
+
+/*************************
 EventMachine_t::WatchFile
 *************************/
 
@@ -2068,6 +2151,32 @@ void EventMachine_t::_ReadInotifyEvents()
 	}
 	#endif
 }
+
+
+/*************************************
+EventMachine_t::_HandleKqueuePidEvent
+*************************************/
+
+#ifdef HAVE_KQUEUE
+void EventMachine_t::_HandleKqueuePidEvent(struct kevent *event)
+{
+	char *msg;
+
+	if (event->fflags & NOTE_EXIT)
+		msg = "exit";
+	else if (event->fflags & NOTE_FORK)
+		msg = "fork";
+	else
+		msg = "";
+
+	if (EventCallback && strlen(msg) > 0)
+		(*EventCallback)(Pids [(int) event->ident]->GetBinding().c_str(), EM_CONNECTION_READ, msg, strlen(msg));
+
+	// stop watching the pid if it died
+	if (event->fflags & NOTE_EXIT)
+		UnwatchPid (event->ident);
+}
+#endif
 
 
 /**************************************
