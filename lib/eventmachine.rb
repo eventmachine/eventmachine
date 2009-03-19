@@ -86,6 +86,9 @@ require 'em/timers'
 require 'em/protocols'
 require 'em/connection'
 require 'em/filewatcher'
+require 'em/callback'
+require 'em/queue'
+require 'em/channel'
 
 require 'shellwords'
 
@@ -236,6 +239,7 @@ module EventMachine
         if @next_tick_queue && !@next_tick_queue.empty?
           add_timer(0) { signal_loopbreak }
         end
+        @reactor_thread = Thread.current
         run_machine
       ensure
         begin
@@ -271,6 +275,22 @@ module EventMachine
       EventMachine::stop
     }
     run(&pr)
+  end
+
+  # Returns true if the calling thread is the same thread as the reactor.
+  def self.reactor_thread?
+    Thread.current == @reactor_thread
+  end
+
+  # Runs the given callback on the reactor thread, or immediately if called
+  # from the reactor thread. Accepts the same arguments as EM::Callback
+  def self.schedule(*a, &b)
+    cb = Callback(*a, &b)
+    if reactor_thread?
+      cb.call
+    else
+      next_tick { cb.call }
+    end
   end
 
   # fork_reactor forks a new process and calls EM#run inside of it, passing your block.
@@ -1030,8 +1050,8 @@ module EventMachine
     unless @threadpool
       require 'thread'
       @threadpool = []
-      @threadqueue = Queue.new
-      @resultqueue = Queue.new
+      @threadqueue = ::Queue.new
+      @resultqueue = ::Queue.new
       spawn_threadpool
     end
 

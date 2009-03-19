@@ -42,16 +42,16 @@ class TestBasic < Test::Unit::TestCase
 
   def test_libtype
     lt = EventMachine.library_type
-		em_lib = (ENV["EVENTMACHINE_LIBRARY"] || $eventmachine_library || :xxx).to_sym
-		
-		# Running from test runner, under jruby.
-		if RUBY_PLATFORM == 'java'
-			unless em_lib == :pure_ruby
-				assert_equal( :java, lt )
-				return
-			end
-		end
-		
+    em_lib = (ENV["EVENTMACHINE_LIBRARY"] || $eventmachine_library || :xxx).to_sym
+
+    # Running from test runner, under jruby.
+    if RUBY_PLATFORM == 'java'
+      unless em_lib == :pure_ruby
+        assert_equal( :java, lt )
+        return
+      end
+    end
+
     case em_lib
     when :pure_ruby
       assert_equal( :pure_ruby, lt )
@@ -60,12 +60,12 @@ class TestBasic < Test::Unit::TestCase
     when :java
       assert_equal( :java, lt )
     else
-			# Running from jruby as a standalone test.
-			if RUBY_PLATFORM == 'java'
-				assert_equal( :java, lt )
-			else
-      	assert_equal( :extension, lt )
-			end
+      # Running from jruby as a standalone test.
+      if RUBY_PLATFORM == 'java'
+        assert_equal( :java, lt )
+      else
+        assert_equal( :extension, lt )
+      end
     end
   end
 
@@ -116,10 +116,10 @@ class TestBasic < Test::Unit::TestCase
   # even after the supplied block completes.
   def test_run_block
     assert !EM.reactor_running?
-      a = nil
-      EM.run_block { a = "Worked" }
-      assert a
-      assert !EM.reactor_running?
+    a = nil
+    EM.run_block { a = "Worked" }
+    assert a
+    assert !EM.reactor_running?
   end
 
 
@@ -136,24 +136,24 @@ class TestBasic < Test::Unit::TestCase
   TestPort = 9070
 
   class UnbindError < EM::Connection
-	  def initialize *args
-		  super
-	  end
-	  def connection_completed
-		  close_connection_after_writing
-	  end
-	  def unbind
-		  raise "Blooey"
-	  end
+    def initialize *args
+      super
+    end
+    def connection_completed
+      close_connection_after_writing
+    end
+    def unbind
+      raise "Blooey"
+    end
   end
 
   def xxx_test_unbind_error
-	  assert_raises( RuntimeError ) {
-		  EM.run {
-			  EM.start_server TestHost, TestPort
-			  EM.connect TestHost, TestPort, UnbindError
-		  }
-	  }
+    assert_raises( RuntimeError ) {
+      EM.run {
+        EM.start_server TestHost, TestPort
+        EM.connect TestHost, TestPort, UnbindError
+      }
+    }
   end
 
   #------------------------------------
@@ -177,26 +177,26 @@ class TestBasic < Test::Unit::TestCase
   #
 
   class PostInitError < EM::Connection
-	  def post_init
-		  aaa bbb # should produce a Ruby exception
-	  end
+    def post_init
+      aaa bbb # should produce a Ruby exception
+    end
   end
   # This test causes issues, the machine becomes unreleasable after 
   # release_machine suffers an exception in event_callback.
   def xxx_test_post_init_error
-	  assert_raises( EventMachine::ConnectionNotBound ) {
-		  EM.run {
-		  	EM::Timer.new(1) {EM.stop}
-			EM.start_server TestHost, TestPort
-			EM.connect TestHost, TestPort, PostInitError
-		  }
-	  }
-	  EM.run {
-	    EM.stop
-	  }
-	  assert !EM.reactor_running?
+    assert_raises( EventMachine::ConnectionNotBound ) {
+      EM.run {
+        EM::Timer.new(1) {EM.stop}
+        EM.start_server TestHost, TestPort
+        EM.connect TestHost, TestPort, PostInitError
+      }
+    }
+    EM.run {
+      EM.stop
+    }
+    assert !EM.reactor_running?
   end
-  
+
   module BrsTestSrv
     def receive_data data
       $received << data
@@ -211,21 +211,39 @@ class TestBasic < Test::Unit::TestCase
       close_connection_after_writing
     end
   end
-  
+
   # From ticket #50
   def test_byte_range_send
     $received = ''
     $sent = (0..255).to_a.pack('C*')
     EM::run {
-      
+
       EM::start_server TestHost, TestPort, BrsTestSrv
-      
+
       EM::connect TestHost, TestPort, BrsTestCli
-      
+
       EM::add_timer(0.5) { assert(false, 'test timed out'); EM.stop; Kernel.warn "test timed out!" }
     }
     assert_equal($sent, $received)
   end
 
+  def test_schedule_on_reactor_thread
+    x = false
+    EM.run do
+      EM.schedule { x = true }
+      EM.stop
+    end
+    assert x
+  end
+  
+  def test_schedule_from_thread
+    x = false
+    assert !x
+    EM.run do
+      Thread.new { EM.schedule { x = true } }.join
+      EM.stop
+    end
+    assert x
+  end
 end
 
