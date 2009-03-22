@@ -373,7 +373,7 @@ module EventMachine
   # Cancel a timer using its signature. You can also use EventMachine::Timer#cancel
   #
   def self.cancel_timer signature
-    @timers[signature] = proc{} if @timers.has_key?(signature)
+    @timers[signature] = false if @timers.has_key?(signature)
   end
 
 
@@ -1391,7 +1391,9 @@ module EventMachine
     ##
     # The remaining code is a fallback for the pure ruby reactor. Usually these events are handled in the C event_callback() in rubymain.cpp
     elsif opcode == TimerFired
-      t = @timers.delete( data ) or raise UnknownTimerFired, "timer data: #{data}"
+      t = @timers.delete( data )
+      return if t == false # timer cancelled
+      t or raise UnknownTimerFired, "timer data: #{data}"
       t.call
     elsif opcode == ConnectionData
       c = @conns[conn_binding] or raise ConnectionNotBound, "received data #{data} for unknown signature: #{conn_binding}"

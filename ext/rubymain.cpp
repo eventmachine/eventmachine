@@ -93,9 +93,13 @@ static void event_callback (struct em_event* e)
 	else if (a2 == EM_TIMER_FIRED) {
 		VALUE t = rb_ivar_get (EmModule, Intern_at_timers);
 		VALUE q = rb_funcall (t, Intern_delete, 1, rb_str_new(a3, a4));
-		if (q == Qnil)
+		if (q == Qnil) {
 			rb_raise (EM_eUnknownTimerFired, "no such timer: %s", a1);
-		rb_funcall (q, Intern_call, 0);
+		} else if (q == Qfalse) {
+			/* Timer Canceled */
+		} else {
+			rb_funcall (q, Intern_call, 0);
+		}
 	}
 	else if (a2 == EM_SSL_HANDSHAKE_COMPLETED) {
 		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
