@@ -446,7 +446,7 @@ void ConnectionDescriptor::Read()
 		// to user code.
 		
 
-		int r = recv (sd, readbuffer, sizeof(readbuffer) - 1, 0);
+		int r = read (sd, readbuffer, sizeof(readbuffer) - 1);
 		//cerr << "<R:" << r << ">";
 
 		if (r > 0) {
