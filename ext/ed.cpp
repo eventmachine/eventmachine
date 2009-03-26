@@ -650,7 +650,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 	assert (nbytes > 0);
 
 	assert (GetSocket() != INVALID_SOCKET);
-	int bytes_written = send (GetSocket(), output_buffer, nbytes, 0);
+	int bytes_written = write (GetSocket(), output_buffer, nbytes);
 
 	bool err = false;
 	if (bytes_written < 0) {

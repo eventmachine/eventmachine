@@ -80,4 +80,22 @@ class TestAttach < Test::Unit::TestCase
 
     assert_equal $read, "ghi\n"
   end
+
+  module PipeReader
+    def receive_data data
+      $read = data
+      EM.stop
+    end
+  end
+
+  def test_read_write_pipe
+    EM.run{
+      $r, $w = IO.pipe
+      EM.attach $r, PipeReader
+      writer = EM.attach($w)
+      writer.send_data 'ghi'
+    }
+
+    assert_equal $read, "ghi"
+  end
 end
