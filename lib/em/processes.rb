@@ -38,6 +38,10 @@ module EventMachine
   #
   class DeferrableChildProcess < EventMachine::Connection
     include EventMachine::Deferrable
+    def initialize
+      super
+      @data = []
+    end
 
     # Sugars a common use-case involving forked child processes.
     # #open takes a String argument containing an shell command
@@ -56,7 +60,7 @@ module EventMachine
     end
 
     def receive_data data
-      (@data ||= []) << data
+      @data << data
     end
 
     def unbind
