@@ -85,10 +85,11 @@ require 'em/buftok'
 require 'em/timers'
 require 'em/protocols'
 require 'em/connection'
-require 'em/filewatcher'
 require 'em/callback'
 require 'em/queue'
 require 'em/channel'
+require 'em/file_watch'
+require 'em/process_watch'
 
 require 'shellwords'
 
@@ -392,7 +393,7 @@ module EventMachine
   # Cancel a timer using its signature. You can also use EventMachine::Timer#cancel
   #
   def self.cancel_timer signature
-    @timers[signature] = proc{} if @timers.has_key?(signature)
+    @timers[signature] = false if @timers.has_key?(signature)
   end
 
 
@@ -1235,19 +1236,19 @@ module EventMachine
   # * File moved/renamed
   # * File deleted
   #
-  # EventMachine::watch takes a filename and a handler Module containing your custom callback methods.
-  # This will setup the low level monitoring on the specified file, and create a new EventMachine::FileWatcher 
-  # object with your Module mixed in. FileWatcher is a subclass of EM::Connection, so callbacks on this object
+  # EventMachine::watch_file takes a filename and a handler Module containing your custom callback methods.
+  # This will setup the low level monitoring on the specified file, and create a new EventMachine::FileWatch
+  # object with your Module mixed in. FileWatch is a subclass of EM::Connection, so callbacks on this object
   # work in the familiar way. The callbacks that will be fired by EventMachine are:
   #
   # * file_modified
   # * file_moved
   # * file_deleted
   #
-  # You can access the filename being monitored from within this object using FileWatcher#path.
+  # You can access the filename being monitored from within this object using FileWatch#path.
   #
-  # When a file is deleted, FileWatcher#stop_watching will be called after your file_deleted callback, 
-  # to clean up the underlying monitoring and remove EventMachine's reference to the now-useless FileWatcher.
+  # When a file is deleted, FileWatch#stop_watching will be called after your file_deleted callback, 
+  # to clean up the underlying monitoring and remove EventMachine's reference to the now-useless FileWatch.
   # This will in turn call unbind, if you wish to use it.
   #
   # The corresponding system-level Errno will be raised when attempting to monitor non-existent files,
@@ -1256,10 +1257,9 @@ module EventMachine
   # === Usage example:
   #
   #  Make sure we have a file to monitor:
-  #  / $ echo "bar" > /tmp/foo
+  #  $ echo "bar" > /tmp/foo
   #
   #  module Handler
-  #
   #    def file_modified
   #      puts "#{path} modified"
   #    end
@@ -1275,27 +1275,26 @@ module EventMachine
   #    def unbind
   #      puts "#{path} monitoring ceased"
   #    end
-  #
   #  end
   #
   #  EM.run {
-  #    EM.watch("/tmp/foo", Handler)
+  #    EM.watch_file("/tmp/foo", Handler)
   #  }
   #
-  #  / $ echo "baz" >> /tmp/foo    =>    "/tmp/foo modified"
-  #  / $ mv /tmp/foo /tmp/oof      =>    "/tmp/foo moved"
-  #  / $ rm /tmp/oof               =>    "/tmp/foo deleted"
-  #                                =>    "/tmp/foo monitoring ceased"
+  #  $ echo "baz" >> /tmp/foo    =>    "/tmp/foo modified"
+  #  $ mv /tmp/foo /tmp/oof      =>    "/tmp/foo moved"
+  #  $ rm /tmp/oof               =>    "/tmp/foo deleted"
+  #                              =>    "/tmp/foo monitoring ceased"
   #
-  # Note that we have not implemented the ability to pick up on the new filename after a rename. 
+  # Note that we have not implemented the ability to pick up on the new filename after a rename.
   # Calling #path will always return the filename you originally used.
   #
-  def self.watch(filename, handler=nil, *args)
+  def self.watch_file(filename, handler=nil, *args)
     klass = if (handler and handler.is_a?(Class))
-      raise ArgumentError, 'must provide module or subclass of EventMachine::FileWatcher' unless FileWatcher > handler
+      raise ArgumentError, 'must provide module or subclass of EventMachine::FileWatch' unless FileWatch > handler
       handler
     else
-      Class.new( FileWatcher ) {handler and include handler}
+      Class.new( FileWatch ) {handler and include handler}
     end
 
     arity = klass.instance_method(:initialize).arity
@@ -1304,10 +1303,52 @@ module EventMachine
       raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
     end
 
-    s = EM::watch_file(filename)
+    s = EM::watch_filename(filename)
     c = klass.new s, *args
     # we have to set the path like this because of how Connection.new works
     c.instance_variable_set("@path", filename)
+    @conns[s] = c
+    block_given? and yield c
+    c
+  end
+
+  # EventMachine's process monitoring API. Currently supported using kqueue for OSX/BSD.
+  #
+  # === Usage example:
+  #
+  #  module ProcessWatcher
+  #    def process_exited
+  #      put 'the forked child died!'
+  #    end
+  #  end
+  #
+  #  pid = fork{ sleep }
+  #
+  #  EM.run{
+  #    EM.watch_process(pid, ProcessWatcher)
+  #    EM.add_timer(1){ Process.kill('TERM', pid) }
+  #  }
+  #
+  def self.watch_process(pid, handler=nil, *args)
+    pid = pid.to_i
+
+    klass = if (handler and handler.is_a?(Class))
+      raise ArgumentError, 'must provide module or subclass of EventMachine::ProcessWatch' unless ProcessWatch > handler
+      handler
+    else
+      Class.new( ProcessWatch ) {handler and include handler}
+    end
+
+    arity = klass.instance_method(:initialize).arity
+    expected = arity >= 0 ? arity : -(arity + 1)
+    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
+      raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
+    end
+
+    s = EM::watch_pid(pid)
+    c = klass.new s, *args
+    # we have to set the path like this because of how Connection.new works
+    c.instance_variable_set("@pid", pid)
     @conns[s] = c
     block_given? and yield c
     c
@@ -1370,7 +1411,9 @@ module EventMachine
     ##
     # The remaining code is a fallback for the pure ruby reactor. Usually these events are handled in the C event_callback() in rubymain.cpp
     elsif opcode == TimerFired
-      t = @timers.delete( data ) or raise UnknownTimerFired, "timer data: #{data}"
+      t = @timers.delete( data )
+      return if t == false # timer cancelled
+      t or raise UnknownTimerFired, "timer data: #{data}"
       t.call
     elsif opcode == ConnectionData
       c = @conns[conn_binding] or raise ConnectionNotBound, "received data #{data} for unknown signature: #{conn_binding}"

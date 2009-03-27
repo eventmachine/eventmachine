@@ -31,7 +31,7 @@ class TestFileWatch < Test::Unit::TestCase
       $tmp_path = file.path
 
       # watch it
-      watch = EM.watch(file.path, FileWatcher)
+      watch = EM.watch_file(file.path, FileWatcher)
       $path = watch.path
 
       # modify it

@@ -85,8 +85,7 @@ module EventMachine
     # several incoming packets into one, to improve performance. The implication for your
     # code is that you generally will need to implement some kind of a state machine
     # in your redefined implementation of receive_data. For a better understanding
-    # of this, read through the examples of specific protocol handlers given
-    # elsewhere in this package. (STUB, WE MUST ADD THESE!)
+    # of this, read through the examples of specific protocol handlers in EventMachine::Protocols
     #
     # The base-class implementation of receive_data (which will be invoked if
     # you don't redefine it) simply prints the size of each incoming data packet
@@ -349,8 +348,16 @@ module EventMachine
     # #get_peername is used with stream-connections to obtain the identity
     # of the remotely-connected peer. If a peername is available, this method
     # returns a sockaddr structure. The method returns nil if no peername is available.
-    # You can use Socket#unpack_sockaddr_in and its variants to obtain the
+    # You can use Socket.unpack_sockaddr_in and its variants to obtain the
     # values contained in the peername structure returned from #get_peername.
+    #
+    #  require 'socket'
+    #  module Handler
+    #    def receive_data data
+    #      port, ip = Socket.unpack_sockaddr_in(get_peername)
+    #      puts "got #{data.inspect} from #{ip}:#{port}"
+    #    end
+    #  end
     def get_peername
       EventMachine::get_peername @signature
     end

@@ -132,6 +132,10 @@ if RUBY_PLATFORM =~ /mswin/
   Spec.platform = 'x86-mswin32-60'
   Spec.files += %w[ lib/rubyeventmachine.so lib/fastfilereaderext.so ]
   Spec.extensions = nil
+elsif RUBY_PLATFORM =~ /java/
+  Spec.platform = 'jruby'
+  Spec.files += %w[ lib/em_reactor.jar ]
+  Spec.extensions = nil
 end
 
 # this is a hack right now, it requires installing msysgit in the global path so it can use tar/curl/etc.
@@ -243,6 +247,10 @@ namespace :java do
     chdir('java/src') do
       sh "jar -cf em_reactor.jar com/rubyeventmachine/*.class"
     end
+  end
+
+  task :gem => :build do
+    Rake::Task['gem'].invoke
   end
 end
 
