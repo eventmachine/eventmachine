@@ -119,6 +119,10 @@ static inline int inotify_rm_watch (int fd, __u32 wd) { return syscall (__NR_ino
 #define INOTIFY_EVENT_SIZE  (sizeof(struct inotify_event))
 #endif
 
+#ifdef HAVE_WRITEV
+#include <sys/uio.h>
+#endif
+
 #include "binder.h"
 #include "em.h"
 #include "epoll.h"

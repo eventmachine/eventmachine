@@ -17,6 +17,7 @@ add_define 'HAVE_RBTRAP' if have_var('rb_trap_immediate', ['ruby.h', 'rubysig.h'
 add_define "HAVE_TBR" if have_func('rb_thread_blocking_region')# and have_macro('RUBY_UBF_IO', 'ruby.h')
 add_define "HAVE_INOTIFY" if inotify = have_func('inotify_init', 'sys/inotify.h')
 add_define "HAVE_OLD_INOTIFY" if !inotify && have_macro('__NR_inotify_init', 'sys/syscall.h')
+add_define 'HAVE_WRITEV' if have_func('writev', 'sys/uio.h')
 
 # Minor platform details between *nix and Windows:
 
@@ -61,6 +62,7 @@ when /solaris/
     # on Unix we need a g++ link, not gcc.
     CONFIG['LDSHARED'] = "$(CXX) -shared"
   end
+
 when /openbsd/
   # OpenBSD branch contributed by Guillaume Sellier.
 

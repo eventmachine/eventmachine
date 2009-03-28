@@ -624,8 +624,24 @@ void ConnectionDescriptor::_WriteOutboundData()
 	}
 
 	LastIo = gCurrentLoopTime;
-	char output_buffer [16 * 1024];
 	size_t nbytes = 0;
+
+	#ifdef HAVE_WRITEV
+	int iovcnt = OutboundPages.size();
+	// Max of 16 outbound pages at a time
+	if (iovcnt > 16) iovcnt = 16;
+
+	struct iovec iov[ iovcnt ];
+
+	for(int i = 0; i < iovcnt; i++){
+		OutboundPage *op = &(OutboundPages[i]);
+		iov[i].iov_base = (void *)(op->Buffer + op->Offset);
+		iov[i].iov_len	= op->Length - op->Offset;
+
+		nbytes += iov[i].iov_len;
+	}
+	#else
+	char output_buffer [16 * 1024];
 
 	while ((OutboundPages.size() > 0) && (nbytes < sizeof(output_buffer))) {
 		OutboundPage *op = &(OutboundPages[0]);
@@ -642,6 +658,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 			nbytes += len;
 		}
 	}
+	#endif
 
 	// We should never have gotten here if there were no data to write,
 	// so assert that as a sanity check.
@@ -650,7 +667,11 @@ void ConnectionDescriptor::_WriteOutboundData()
 	assert (nbytes > 0);
 
 	assert (GetSocket() != INVALID_SOCKET);
+	#ifdef HAVE_WRITEV
+	int bytes_written = writev (GetSocket(), iov, iovcnt);
+	#else
 	int bytes_written = write (GetSocket(), output_buffer, nbytes);
+	#endif
 
 	bool err = false;
 	if (bytes_written < 0) {
@@ -660,6 +681,31 @@ void ConnectionDescriptor::_WriteOutboundData()
 
 	assert (bytes_written >= 0);
 	OutboundDataSize -= bytes_written;
+
+	#ifdef HAVE_WRITEV
+	if (!err) {
+		int sent = bytes_written;
+		deque<OutboundPage>::iterator op = OutboundPages.begin();
+
+		for (int i = 0; i < iovcnt; i++) {
+			if (iov[i].iov_len <= sent) {
+				// Sent this page in full, free it.
+				op->Free();
+				OutboundPages.pop_front();
+
+				sent -= iov[i].iov_len;
+			} else {
+				// Sent part (or none) of this page, increment offset to send the remainder
+				op->Offset += sent;
+				break;
+			}
+
+			// Shouldn't be possible run out of pages before the loop ends
+			assert(op != OutboundPages.end());
+			*op++;
+		}
+	}
+	#else
 	if ((size_t)bytes_written < nbytes) {
 		int len = nbytes - bytes_written;
 		char *buffer = (char*) malloc (len + 1);
@@ -669,6 +715,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 		buffer [len] = 0;
 		OutboundPages.push_front (OutboundPage (buffer, len));
 	}
+	#endif
 
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = (EPOLLIN | (SelectForWrite() ? EPOLLOUT : 0));
