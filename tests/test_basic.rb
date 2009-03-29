@@ -227,6 +227,12 @@ class TestBasic < Test::Unit::TestCase
     assert_equal($sent, $received)
   end
 
+  def test_reactor_thread?
+    assert !EM.reactor_thread?
+    EM.run { assert EM.reactor_thread?; EM.stop }
+    assert !EM.reactor_thread?
+  end
+
   def test_schedule_on_reactor_thread
     x = false
     EM.run do

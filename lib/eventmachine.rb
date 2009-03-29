@@ -255,6 +255,7 @@ module EventMachine
           @threadpool = nil
         end
         @reactor_running = false
+        @reactor_thread = nil
       end
 
       until @tails.empty?
@@ -287,7 +288,7 @@ module EventMachine
   # from the reactor thread. Accepts the same arguments as EM::Callback
   def self.schedule(*a, &b)
     cb = Callback(*a, &b)
-    if reactor_thread?
+    if reactor_running? && reactor_thread?
       cb.call
     else
       next_tick { cb.call }
