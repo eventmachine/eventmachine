@@ -208,9 +208,10 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile):
+SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const char *binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
+	bVerifyPeer (verify_peer),
 	pSSL (NULL),
 	pbioRead (NULL),
 	pbioWrite (NULL)
@@ -231,6 +232,12 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	pSSL = SSL_new (Context->pCtx);
 	assert (pSSL);
 	SSL_set_bio (pSSL, pbioRead, pbioWrite);
+
+	// Store a pointer to the binding signature in the SSL object so we can retrieve it later
+	SSL_set_ex_data(pSSL, 0, (void*) binding);
+
+	if (bVerifyPeer)
+		SSL_set_verify(pSSL, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, ssl_verify_wrapper);
 
 	if (!bIsServer)
 		SSL_connect (pSSL);
@@ -417,6 +424,36 @@ X509 *SslBox_t::GetPeerCert()
 		cert = SSL_get_peer_certificate(pSSL);
 
 	return cert;
+}
+
+
+/******************
+ssl_verify_wrapper
+*******************/
+
+extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
+{
+	const char *binding;
+	X509 *cert;
+	SSL *ssl;
+	BUF_MEM *buf;
+	BIO *out;
+	int result;
+
+	cert = X509_STORE_CTX_get_current_cert(ctx);
+	ssl = (SSL*) X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+	binding = (const char*) SSL_get_ex_data(ssl, 0);
+
+	out = BIO_new(BIO_s_mem());
+	PEM_write_bio_X509(out, cert);
+	BIO_write(out, "\0", 1);
+	BIO_get_mem_ptr(out, &buf);
+
+	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
+	result = (cd->VerifySslPeer(buf->data) == true ? 1 : 0);
+	BUF_MEM_free(buf);
+
+	return result;
 }
 
 #endif // WITH_SSL

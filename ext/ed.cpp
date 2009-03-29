@@ -183,6 +183,8 @@ ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	#ifdef WITH_SSL
 	SslBox (NULL),
 	bHandshakeSignaled (false),
+	bSslVerifyPeer (false),
+	bSslPeerAccepted(false),
 	#endif
 	bIsServer (false),
 	LastIo (gCurrentLoopTime),
@@ -502,8 +504,14 @@ void ConnectionDescriptor::_DispatchInboundData (const char *buffer, int size)
 			if (EventCallback)
 				(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_READ, B, s);
 		}
+
+		// If our SSL handshake had a problem, shut down the connection.
+		if (s == -2) {
+			ScheduleClose(false);
+			return;
+		}
+
 		_CheckHandshakeStatus();
-		// INCOMPLETE, s may indicate an SSL error that would force the connection down.
 		_DispatchCiphertext();
 	}
 	else {
@@ -772,7 +780,7 @@ void ConnectionDescriptor::StartTls()
 	if (SslBox)
 		throw std::runtime_error ("SSL/TLS already running on connection");
 
-	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename);
+	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, GetBinding().c_str());
 	_DispatchCiphertext();
 	#endif
 
@@ -786,7 +794,7 @@ void ConnectionDescriptor::StartTls()
 ConnectionDescriptor::SetTlsParms
 *********************************/
 
-void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char *certchain_filename)
+void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer)
 {
 	#ifdef WITH_SSL
 	if (SslBox)
@@ -795,6 +803,7 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 		PrivateKeyFilename = privkey_filename;
 	if (certchain_filename && *certchain_filename)
 		CertChainFilename = certchain_filename;
+	bSslVerifyPeer = verify_peer;
 	#endif
 
 	#ifdef WITHOUT_SSL
@@ -813,6 +822,35 @@ X509 *ConnectionDescriptor::GetPeerCert()
 	if (!SslBox)
 		throw std::runtime_error ("SSL/TLS not running on this connection");
 	return SslBox->GetPeerCert();
+}
+#endif
+
+
+/***********************************
+ConnectionDescriptor::VerifySslPeer
+***********************************/
+
+#ifdef WITH_SSL
+bool ConnectionDescriptor::VerifySslPeer(const char *cert)
+{
+	bSslPeerAccepted = false;
+
+	if (EventCallback)
+		(*EventCallback)(GetBinding().c_str(), EM_SSL_VERIFY, cert, strlen(cert));
+
+	return bSslPeerAccepted;
+}
+#endif
+
+
+/***********************************
+ConnectionDescriptor::AcceptSslPeer
+***********************************/
+
+#ifdef WITH_SSL
+void ConnectionDescriptor::AcceptSslPeer()
+{
+	bSslPeerAccepted = true;
 }
 #endif
 

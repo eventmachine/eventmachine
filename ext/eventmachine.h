@@ -33,7 +33,8 @@ extern "C" {
 		EM_LOOPBREAK_SIGNAL = 105,
 		EM_CONNECTION_NOTIFY_READABLE = 106,
 		EM_CONNECTION_NOTIFY_WRITABLE = 107,
-		EM_SSL_HANDSHAKE_COMPLETED = 108
+		EM_SSL_HANDSHAKE_COMPLETED = 108,
+		EM_SSL_VERIFY = 109
 
 	};
 
@@ -52,11 +53,12 @@ extern "C" {
 	const char *evma_create_unix_domain_server (const char *filename);
 	const char *evma_open_datagram_socket (const char *server, int port);
 	const char *evma_open_keyboard();
-	void evma_set_tls_parms (const char *binding, const char *privatekey_filename, const char *certchain_filenane);
+	void evma_set_tls_parms (const char *binding, const char *privatekey_filename, const char *certchain_filenane, int verify_peer);
 	void evma_start_tls (const char *binding);
 
 	#ifdef WITH_SSL
 	X509 *evma_get_peer_cert (const char *binding);
+	void evma_accept_ssl_peer (const char *binding);
 	#endif
 
 	int evma_get_peername (const char *binding, struct sockaddr*);

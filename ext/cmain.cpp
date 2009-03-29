@@ -302,17 +302,17 @@ extern "C" void evma_start_tls (const char *binding)
 evma_set_tls_parms
 ******************/
 
-extern "C" void evma_set_tls_parms (const char *binding, const char *privatekey_filename, const char *certchain_filename)
+extern "C" void evma_set_tls_parms (const char *binding, const char *privatekey_filename, const char *certchain_filename, int verify_peer)
 {
 	ensure_eventmachine("evma_set_tls_parms");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed)
-		ed->SetTlsParms (privatekey_filename, certchain_filename);
+		ed->SetTlsParms (privatekey_filename, certchain_filename, (verify_peer == 1 ? true : false));
 }
 
-/**************
+/******************
 evma_get_peer_cert
-**************/
+******************/
 
 #ifdef WITH_SSL
 extern "C" X509 *evma_get_peer_cert (const char *binding)
@@ -322,6 +322,20 @@ extern "C" X509 *evma_get_peer_cert (const char *binding)
 	if (ed)
 		return ed->GetPeerCert();
 	return NULL;
+}
+#endif
+
+/********************
+evma_accept_ssl_peer
+********************/
+
+#ifdef WITH_SSL
+extern "C" void evma_accept_ssl_peer (const char *binding)
+{
+	ensure_eventmachine("evma_accept_ssl_peer");
+	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
+	if (cd)
+		cd->AcceptSslPeer();
 }
 #endif
 

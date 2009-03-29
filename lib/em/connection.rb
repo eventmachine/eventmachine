@@ -105,6 +105,15 @@ module EventMachine
     def ssl_handshake_completed
     end
 
+    # #ssl_verify_peer is called by EventMachine when :verify_peer => true has been passed to #start_tls.
+    # It will be called with each certificate in the certificate chain provided by the remote peer.
+    # The cert will be passed as a String in PEM format, the same as in #get_peer_cert. It is up to user defined
+    # code to perform a check on the certificates. The return value from this callback is used to accept or deny the peer.
+    # A return value that is not nil or false triggers acceptance. If the peer is not accepted, the connection
+    # will be subsequently closed. See 'tests/test_ssl_verify.rb' for a simple example.
+    def ssl_verify_peer(cert)
+    end
+
     # EventMachine::Connection#unbind is called by the framework whenever a connection
     # (either a server or client connection) is closed. The close can occur because
     # your code intentionally closes it (see close_connection and close_connection_after_writing),
@@ -220,13 +229,37 @@ module EventMachine
     # #start_tls takes an optional parameter hash that allows you to specify certificate
     # and other options to be used with this Connection object. Here are the currently-supported
     # options:
-    # :cert_chain_file : takes a String, which is interpreted as the name of a readable file in the
-    #   local filesystem. The file is expected to contain a chain of X509 certificates in
-    #   PEM format, with the most-resolved certificate at the top of the file, successive
-    #   intermediate certs in the middle, and the root (or CA) cert at the bottom.
     #
-    # :private_key_file : tales a String, which is interpreted as the name of a readable file in the
-    #   local filesystem. The file must contain a private key in PEM format.
+    # * :cert_chain_file :
+    # takes a String, which is interpreted as the name of a readable file in the
+    # local filesystem. The file is expected to contain a chain of X509 certificates in
+    # PEM format, with the most-resolved certificate at the top of the file, successive
+    # intermediate certs in the middle, and the root (or CA) cert at the bottom.
+    #
+    # * :private_key_file :
+    # takes a String, which is interpreted as the name of a readable file in the
+    # local filesystem. The file must contain a private key in PEM format.
+    #
+    # * :verify_peer :
+    # takes either true or false. Default is false. This indicates whether a server should request a
+    # certificate from a peer, to be verified by user code. If true, the #ssl_verify_peer callback
+    # on the Connection object is called with each certificate in the certificate chain provided by
+    # the peer. See documentation on #ssl_verify_peer for how to use this.
+    #
+    # === Usage example:
+    #
+    #  require 'rubygems'
+    #  require 'eventmachine'
+    #
+    #  module Handler
+    #    def post_init
+    #      start_tls(:private_key_file => '/tmp/server.key', :cert_chain_file => '/tmp/server.crt', :verify_peer => false)
+    #    end
+    #  end
+    #
+    #  EM.run {
+    #    EM.start_server("127.0.0.1", 9999, Handler)
+    #  }
     #
     #--
     # TODO: support passing an encryption parameter, which can be string or Proc, to get a passphrase
@@ -238,7 +271,7 @@ module EventMachine
     # behaved than the ones for raw chunks of memory.
     #
     def start_tls args={}
-      priv_key, cert_chain = args.values_at(:private_key_file, :cert_chain_file)
+      priv_key, cert_chain, verify_peer = args.values_at(:private_key_file, :cert_chain_file, :verify_peer)
 
       [priv_key, cert_chain].each do |file|
         next if file.nil? or file.empty?
@@ -246,7 +279,7 @@ module EventMachine
           "Could not find #{file} for start_tls" unless File.exists? file
       end
 
-      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '')
+      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer)
       EventMachine::start_tls @signature
     end
 

@@ -57,7 +57,7 @@ class SslBox_t
 class SslBox_t
 {
 	public:
-		SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile);
+		SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const char *binding);
 		virtual ~SslBox_t();
 
 		int PutPlaintext (const char*, int);
@@ -75,6 +75,7 @@ class SslBox_t
 	protected:
 		SslContext_t *Context;
 
+		bool bVerifyPeer;
 		bool bIsServer;
 		bool bHandshakeCompleted;
 		SSL *pSSL;
@@ -83,6 +84,9 @@ class SslBox_t
 
 		PageList OutboundQ;
 };
+
+extern "C" int ssl_verify_wrapper(int, X509_STORE_CTX*);
+
 #endif // WITH_SSL
 
 

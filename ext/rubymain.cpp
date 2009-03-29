@@ -43,6 +43,7 @@ static VALUE Intern_delete;
 static VALUE Intern_call;
 static VALUE Intern_receive_data;
 static VALUE Intern_ssl_handshake_completed;
+static VALUE Intern_ssl_verify_peer;
 static VALUE Intern_notify_readable;
 static VALUE Intern_notify_writable;
 
@@ -107,6 +108,15 @@ static void event_callback (struct em_event* e)
 		if (q == Qnil)
 			rb_raise (EM_eConnectionNotBound, "unknown connection: %s", a1);
 		rb_funcall (q, Intern_ssl_handshake_completed, 0);
+	}
+	else if (a2 == EM_SSL_VERIFY) {
+		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
+		VALUE q = rb_hash_aref (t, rb_str_new2(a1));
+		if (q == Qnil)
+			rb_raise (EM_eConnectionNotBound, "unknown connection: %s", a1);
+		VALUE r = rb_funcall (q, Intern_ssl_verify_peer, 1, rb_str_new(a3, a4));
+		if (RTEST(r))
+			evma_accept_ssl_peer (a1);
 	}
 	else
 		rb_funcall (EmModule, Intern_event_callback, 3, rb_str_new2(a1), (a2 << 1) | 1, rb_str_new(a3,a4));
@@ -238,20 +248,20 @@ static VALUE t_start_tls (VALUE self, VALUE signature)
 t_set_tls_parms
 ***************/
 
-static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE privkeyfile, VALUE certchainfile)
+static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE privkeyfile, VALUE certchainfile, VALUE verify_peer)
 {
 	/* set_tls_parms takes a series of positional arguments for specifying such things
 	 * as private keys and certificate chains.
 	 * It's expected that the parameter list will grow as we add more supported features.
 	 * ALL of these parameters are optional, and can be specified as empty or NULL strings.
 	 */
-	evma_set_tls_parms (StringValuePtr (signature), StringValuePtr (privkeyfile), StringValuePtr (certchainfile) );
+	evma_set_tls_parms (StringValuePtr (signature), StringValuePtr (privkeyfile), StringValuePtr (certchainfile), (verify_peer == Qtrue ? 1 : 0));
 	return Qnil;
 }
 
-/***********
+/***************
 t_get_peer_cert
-***********/
+***************/
 
 static VALUE t_get_peer_cert (VALUE self, VALUE signature)
 {
@@ -859,6 +869,7 @@ extern "C" void Init_rubyeventmachine()
 	Intern_call = rb_intern ("call");
 	Intern_receive_data = rb_intern ("receive_data");
 	Intern_ssl_handshake_completed = rb_intern ("ssl_handshake_completed");
+	Intern_ssl_verify_peer = rb_intern ("ssl_verify_peer");
 	Intern_notify_readable = rb_intern ("notify_readable");
 	Intern_notify_writable = rb_intern ("notify_writable");
 
@@ -879,7 +890,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "start_tcp_server", (VALUE(*)(...))t_start_server, 2);
 	rb_define_module_function (EmModule, "stop_tcp_server", (VALUE(*)(...))t_stop_server, 1);
 	rb_define_module_function (EmModule, "start_unix_server", (VALUE(*)(...))t_start_unix_server, 1);
-	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 3);
+	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 4);
 	rb_define_module_function (EmModule, "start_tls", (VALUE(*)(...))t_start_tls, 1);
 	rb_define_module_function (EmModule, "get_peer_cert", (VALUE(*)(...))t_get_peer_cert, 1);
 	rb_define_module_function (EmModule, "send_data", (VALUE(*)(...))t_send_data, 3);
