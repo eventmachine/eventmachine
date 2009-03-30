@@ -947,6 +947,7 @@ module EventMachine
 
   # Returns the total number of connections (file descriptors) currently held by the reactor.
   # Note that a tick must pass after the 'initiation' of a connection for this number to increment.
+  # It's usually accurate, but don't rely on the exact precision of this number unless you really know EM internals.
   #
   # For example, $count will be 0 in this case:
   #

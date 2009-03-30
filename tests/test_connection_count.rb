@@ -29,10 +29,10 @@ class TestConnectionCount < Test::Unit::TestCase
 
   def test_with_some_connections
     EM.run {
-      EM.start_server("127.0.0.1", 9999, Server)
       $initial = EM.connection_count
+      EM.start_server("127.0.0.1", 9999, Server)
+      $server_started = EM.connection_count
       EM.next_tick{
-        $server_started = EM.connection_count
         EM.connect("127.0.0.1", 9999, Client)
       }
     }

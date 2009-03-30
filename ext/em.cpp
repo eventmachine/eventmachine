@@ -1952,7 +1952,7 @@ EventMachine_t::GetConnectionCount
 
 int EventMachine_t::GetConnectionCount ()
 {
-	return Descriptors.size();
+	return Descriptors.size() + NewDescriptors.size();
 }
 
 
