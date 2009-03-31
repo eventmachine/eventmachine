@@ -102,6 +102,7 @@ static void event_callback (struct em_event* e)
 			rb_funcall (q, Intern_call, 0);
 		}
 	}
+	#ifdef WITH_SSL
 	else if (a2 == EM_SSL_HANDSHAKE_COMPLETED) {
 		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
 		VALUE q = rb_hash_aref (t, rb_str_new2(a1));
@@ -118,6 +119,7 @@ static void event_callback (struct em_event* e)
 		if (RTEST(r))
 			evma_accept_ssl_peer (a1);
 	}
+	#endif
 	else
 		rb_funcall (EmModule, Intern_event_callback, 3, rb_str_new2(a1), (a2 << 1) | 1, rb_str_new(a3,a4));
 }
