@@ -99,10 +99,10 @@ extern "C" const char *evma_install_oneshot_timer (int seconds)
 evma_connect_to_server
 **********************/
 
-extern "C" const char *evma_connect_to_server (const char *server, int port)
+extern "C" const char *evma_connect_to_server (const char *bind_addr, int bind_port, const char *server, int port)
 {
 	ensure_eventmachine("evma_connect_to_server");
-	return EventMachine->ConnectToServer (server, port);
+	return EventMachine->ConnectToServer (bind_addr, bind_port, server, port);
 }
 
 /***************************

@@ -26,6 +26,7 @@
 
 $:.unshift File.expand_path(File.dirname(__FILE__) + "/../lib")
 require 'eventmachine'
+require 'socket'
 require 'test/unit'
 
 class TestBasic < Test::Unit::TestCase
@@ -225,6 +226,31 @@ class TestBasic < Test::Unit::TestCase
       EM::add_timer(0.5) { assert(false, 'test timed out'); EM.stop; Kernel.warn "test timed out!" }
     }
     assert_equal($sent, $received)
+  end
+
+  def test_bind_connect
+    if `ifconfig` !~ /((\d{1,3}(\.|\b))){4}/
+      local_ip = '127.0.0.1'
+    else
+      local_ip = $~.to_s
+    end
+
+    bind_port = rand(33333)+1025
+
+    test = self
+    EM.run do
+      EM.start_server(TestHost, TestPort, Module.new do
+        define_method :post_init do
+          begin
+            test.assert_equal bind_port, Socket.unpack_sockaddr_in(get_peername).first
+            test.assert_equal local_ip, Socket.unpack_sockaddr_in(get_peername).last
+          ensure
+            EM.stop_event_loop
+          end
+        end
+      end)
+      EM.bind_connect local_ip, bind_port, TestHost, TestPort
+    end
   end
 
   def test_reactor_thread?

@@ -340,7 +340,6 @@ public class EmReactor {
 		(Connections.get(sig)).scheduleOutboundDatagram( bb, recipAddress, recipPort);
 	}
 
-	
 	/**
 	 * 
 	 * @param address
@@ -349,11 +348,27 @@ public class EmReactor {
 	 * @throws ClosedChannelException
 	 */
 	public String connectTcpServer (String address, int port) throws ClosedChannelException {
+		return connectTcpServer(null, 0, address, port);
+	}
+
+	/**
+	 *
+	 * @param bindAddr
+	 * @param bindPort
+	 * @param address
+	 * @param port
+	 * @return
+	 * @throws ClosedChannelException
+	 */
+	public String connectTcpServer (String bindAddr, int bindPort, String address, int port) throws ClosedChannelException {
 		String b = createBinding();
 				
 		try {
 			SocketChannel sc = SocketChannel.open();
 			sc.configureBlocking(false);
+			if (bindAddr != null)
+				sc.socket().bind(new InetSocketAddress (bindAddr, bindPort));
+
 			EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector);
 
 			if (sc.connect (new InetSocketAddress (address, port))) {

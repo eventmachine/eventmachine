@@ -128,15 +128,19 @@ public class Application {
 		reactor.timers.put(s, t);
 		
 	}
-	
-	public void connect (String host, int port, Connection c) {
+
+	public void bindConnect (String bindAddr, int bindPort, String host, int port, Connection c) {
 		try {
-			String s = reactor.connectTcpServer(host, port);
+			String s = reactor.connectTcpServer(bindAddr, bindPort, host, port);
 			c.application = this;
 			c.signature = s;
 			reactor.connections.put(s, c);
 			c.postInit();
 		} catch (ClosedChannelException e) {}
+	}
+
+	public void connect (String host, int port, Connection c) {
+		bindConnect(null, 0, host, port, c);
 	}
 	
 	public void startServer (SocketAddress sa, ConnectionFactory f) throws EmReactorException {

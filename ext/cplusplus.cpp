@@ -115,18 +115,27 @@ void EM::Connection::Close (bool afterWriting)
 }
 
 
+/***************************
+EM::Connection::BindConnect
+***************************/
+
+void EM::Connection::BindConnect (const char *bind_addr, int bind_port, const char *host, int port)
+{
+	Signature = evma_connect_to_server (bind_addr, bind_port, host, port);
+	#ifdef OS_SOLARIS8
+	Eventables.insert( std::map<std::string,EM::Eventable*>::value_type (Signature, this));
+	#else
+	Eventables.insert( make_pair (Signature, this));
+	#endif
+}
+
 /***********************
 EM::Connection::Connect
 ***********************/
 
 void EM::Connection::Connect (const char *host, int port)
 {
-	Signature = evma_connect_to_server (host, port);
-	#ifdef OS_SOLARIS8
-	Eventables.insert( std::map<std::string,EM::Eventable*>::value_type (Signature, this));
-	#else
-	Eventables.insert( make_pair (Signature, this));
-	#endif
+	this->BindConnect(NULL, 0, host, port);
 }
 
 /*******************

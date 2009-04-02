@@ -76,7 +76,11 @@ module EventMachine
     # #connect_server. Return a connection descriptor to the caller.
     # TODO, what do we return here if we can't connect?
     def connect_server host, port
-      EvmaTCPClient.connect(host, port).uuid
+      bind_connect_server nil, nil, host, port
+    end
+
+    def bind_connect_server bind_addr, bind_port, host, port
+      EvmaTCPClient.connect(bind_addr, bind_port, host, port).uuid
     end
 
     # #send_data
@@ -645,8 +649,10 @@ end
 module EventMachine
   class EvmaTCPClient < StreamObject
 
-    def self.connect host, port
+    def self.connect bind_addr, bind_port, host, port
       sd = Socket.new( Socket::AF_INET, Socket::SOCK_STREAM, 0 )
+      sd.bind( Socket.pack_sockaddr_in( bind_port, bind_addr ))  if bind_addr
+
       begin
         # TODO, this assumes a current Ruby snapshot.
         # We need to degrade to a nonblocking connect otherwise.

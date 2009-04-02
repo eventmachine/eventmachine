@@ -680,7 +680,7 @@ module EventMachine
   # to have them behave differently with respect to post_init
   # if at all possible.
   #
-  def self.connect server, port=nil, handler=nil, *args
+  def self.bind_connect bind_addr, bind_port, server, port=nil, handler=nil, *args
     begin
       port = Integer(port)
     rescue ArgumentError, TypeError
@@ -705,7 +705,11 @@ module EventMachine
     end
 
     s = if port
-          connect_server server, port
+          if bind_addr
+            bind_connect_server bind_addr, bind_port, server, port
+          else
+            connect_server server, port
+          end
         else
           connect_unix_server server
         end
@@ -714,6 +718,10 @@ module EventMachine
     @conns[s] = c
     block_given? and yield c
     c
+  end
+
+  def self.connect server, port=nil, handler=nil, *args
+    bind_connect nil, nil, server, port, handler, *args
   end
 
   # EventMachine::attach registers a given file descriptor or IO object with the eventloop

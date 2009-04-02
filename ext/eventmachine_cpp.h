@@ -63,6 +63,7 @@ namespace EM {
 			virtual ~Connection() {}
 
 			virtual void Connect (const char*, int);
+			virtual void BindConnect (const char *, int, const char*, int);
 
 			void SendData (const char *data);
 			void SendData (const char *data, int length);

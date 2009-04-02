@@ -42,7 +42,7 @@ extern "C" {
 	void evma_run_machine();
 	void evma_release_library();
 	const char *evma_install_oneshot_timer (int seconds);
-	const char *evma_connect_to_server (const char *server, int port);
+	const char *evma_connect_to_server (const char *bind_addr, int bind_port, const char *server, int port);
 	const char *evma_connect_to_unix_server (const char *server);
 
 	const char *evma_attach_fd (int file_descriptor, int read_mode, int write_mode);

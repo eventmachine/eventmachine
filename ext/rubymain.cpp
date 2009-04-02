@@ -430,9 +430,30 @@ static VALUE t_connect_server (VALUE self, VALUE server, VALUE port)
 	// Specifically, if the value of port comes in as a string rather than an integer,
 	// NUM2INT will throw a type error, but FIX2INT will generate garbage.
 
-	const char *f = evma_connect_to_server (StringValuePtr(server), NUM2INT(port));
+	const char *f = evma_connect_to_server (NULL, 0, StringValuePtr(server), NUM2INT(port));
 	if (!f || !*f)
 		rb_raise (rb_eRuntimeError, "no connection");
+	return rb_str_new2 (f);
+}
+
+/*********************
+t_bind_connect_server
+*********************/
+
+static VALUE t_bind_connect_server (VALUE self, VALUE bind_addr, VALUE bind_port, VALUE server, VALUE port)
+{
+	// Avoid FIX2INT in this case, because it doesn't deal with type errors properly.
+	// Specifically, if the value of port comes in as a string rather than an integer,
+	// NUM2INT will throw a type error, but FIX2INT will generate garbage.
+
+	const char *f;
+	try {
+		f = evma_connect_to_server (StringValuePtr(bind_addr), NUM2INT(bind_port), StringValuePtr(server), NUM2INT(port));
+		if (!f || !*f)
+			rb_raise (rb_eRuntimeError, "no connection");
+	} catch (std::runtime_error e) {
+		rb_sys_fail(e.what());
+	}
 	return rb_str_new2 (f);
 }
 
@@ -900,6 +921,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "close_connection", (VALUE(*)(...))t_close_connection, 2);
 	rb_define_module_function (EmModule, "report_connection_error_status", (VALUE(*)(...))t_report_connection_error_status, 1);
 	rb_define_module_function (EmModule, "connect_server", (VALUE(*)(...))t_connect_server, 2);
+	rb_define_module_function (EmModule, "bind_connect_server", (VALUE(*)(...))t_bind_connect_server, 4);
 	rb_define_module_function (EmModule, "connect_unix_server", (VALUE(*)(...))t_connect_unix_server, 1);
 
 	rb_define_module_function (EmModule, "attach_fd", (VALUE (*)(...))t_attach_fd, 3);

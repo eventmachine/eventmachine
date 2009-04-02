@@ -97,9 +97,31 @@ public class ConnectTest {
 		});
 		a.run();
 	}
-	
-	
-	
+
+	public final void testBindConnect() throws IOException {
+		class Server extends Connection {
+			public void postInit() {
+				// TODO: get peername here and check if the port is 33333
+				// doesnt seem like peername is impl yet?
+				System.out.println("post init!");
+			}
+		};
+
+		Application a = new Application();
+		a.addTimer(0, new Timer() {
+			public void fire() {
+				application.startServer(new InetSocketAddress("localhost", 20000), new Server());
+			}
+		});
+		a.addTimer(500, new Timer() {
+			public void fire() {
+				application.bindConnect("localhost", 33333, "localhost", 20000);
+			}
+		});
+
+		a.run();
+	}
+
 	class C1 extends Connection {
 		Application application;
 		public C1 (Application a) {

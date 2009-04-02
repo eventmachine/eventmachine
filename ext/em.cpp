@@ -967,7 +967,7 @@ const char *EventMachine_t::InstallOneshotTimer (int milliseconds)
 EventMachine_t::ConnectToServer
 *******************************/
 
-const char *EventMachine_t::ConnectToServer (const char *server, int port)
+const char *EventMachine_t::ConnectToServer (const char *bind_addr, int bind_port, const char *server, int port)
 {
 	/* We want to spend no more than a few seconds waiting for a connection
 	 * to a remote host. So we use a nonblocking connect.
@@ -996,9 +996,10 @@ const char *EventMachine_t::ConnectToServer (const char *server, int port)
 		return NULL;
 
 	int family, bind_size;
-	struct sockaddr *bind_as = name2address (server, port, &family, &bind_size);
-	if (!bind_as)
+	struct sockaddr bind_as, *bind_as_ptr = name2address (server, port, &family, &bind_size);
+	if (!bind_as_ptr)
 		return NULL;
+	bind_as = *bind_as_ptr; // copy because name2address points to a static
 
 	int sd = socket (family, SOCK_STREAM, 0);
 	if (sd == INVALID_SOCKET)
@@ -1041,12 +1042,27 @@ const char *EventMachine_t::ConnectToServer (const char *server, int port)
 	// Disable slow-start (Nagle algorithm).
 	int one = 1;
 	setsockopt (sd, IPPROTO_TCP, TCP_NODELAY, (char*) &one, sizeof(one));
+	// Set reuseaddr to improve performance on restarts
+	setsockopt (sd, SOL_SOCKET, SO_REUSEADDR, (char*) &one, sizeof(one));
+
+	if (bind_addr) {
+		int bind_to_size, bind_to_family;
+		struct sockaddr *bind_to = name2address (bind_addr, bind_port, &bind_to_family, &bind_to_size);
+		if (!bind_to) {
+			closesocket (sd);
+			throw std::runtime_error ("bad bind address");
+		}
+		if (bind (sd, bind_to, bind_to_size) < 0) {
+			closesocket (sd);
+			throw std::runtime_error ("couldn't bind to address");
+		}
+	}
 
 	const char *out = NULL;
 
 	#ifdef OS_UNIX
 	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
-	if (connect (sd, bind_as, bind_size) == 0) {
+	if (connect (sd, &bind_as, bind_size) == 0) {
 		// This is a connect success, which Linux appears
 		// never to give when the socket is nonblocking,
 		// even if the connection is intramachine or to
@@ -1119,7 +1135,7 @@ const char *EventMachine_t::ConnectToServer (const char *server, int port)
 
 	#ifdef OS_WIN32
 	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
-	if (connect (sd, bind_as, bind_size) == 0) {
+	if (connect (sd, &bind_as, bind_size) == 0) {
 		// This is a connect success, which Windows appears
 		// never to give when the socket is nonblocking,
 		// even if the connection is intramachine or to

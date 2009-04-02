@@ -81,7 +81,7 @@ class EventMachine_t
 		void ScheduleHalt();
 		void SignalLoopBreaker();
 		const char *InstallOneshotTimer (int);
-		const char *ConnectToServer (const char *, int);
+		const char *ConnectToServer (const char *, int, const char *, int);
 		const char *ConnectToUnixServer (const char *);
 
 		const char *CreateTcpServer (const char *, int);

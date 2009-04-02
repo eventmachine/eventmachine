@@ -85,7 +85,10 @@ module EventMachine
     @em.sendDatagram sig, data, length, address, port
   end
   def self.connect_server server, port
-    @em.connectTcpServer server, port
+    bind_connect_server nil, nil, server, port
+  end
+  def self.bind_connect_server bind_addr, bind_port, server, port
+    @em.connectTcpServer bind_addr, bind_port, server, port
   end
   def self.close_connection sig, after_writing
     @em.closeConnection sig, after_writing
