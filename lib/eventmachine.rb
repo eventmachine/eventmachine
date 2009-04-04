@@ -720,8 +720,8 @@ module EventMachine
     c
   end
 
-  def self.connect server, port=nil, handler=nil, *args
-    bind_connect nil, nil, server, port, handler, *args
+  def self.connect server, port=nil, handler=nil, *args, &blk
+    bind_connect nil, nil, server, port, handler, *args, &blk
   end
 
   # EventMachine::attach registers a given file descriptor or IO object with the eventloop
