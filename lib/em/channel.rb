@@ -1,6 +1,4 @@
 module EventMachine
-  # == EventMachine::Channel
-  #
   # Provides a simple interface to push items to a number of subscribers. The
   # channel will schedule all operations on the main reactor thread for thread
   # safe reactor operations.
@@ -8,8 +6,14 @@ module EventMachine
   # This provides a convenient way for connections to consume messages from 
   # long running code in defer, without threading issues.
   #
-  # See examples/ex_channel.rb for example usage.
+  #  channel = EM::Channel.new
+  #  sid = channel.subscribe{ |msg| p [:got, msg] }
+  #  channel.push('hello world')
+  #  channel.unsubscribe(sid)
+  #
+  # See examples/ex_channel.rb for a detailed example.
   class Channel
+    # Create a new channel
     def initialize
       @subs = {}
       @uid = 0
@@ -36,7 +40,7 @@ module EventMachine
     alias << push
 
     private
-    def gen_id
+    def gen_id # :nodoc:
       @uid += 1
     end
   end

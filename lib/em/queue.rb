@@ -1,13 +1,21 @@
 module EventMachine
-  # == EventMachine::Queue
-  #
   # A cross thread, reactor scheduled, linear queue.
   #
   # This class provides a simple "Queue" like abstraction on top of the reactor
   # scheduler. It services two primary purposes:
   # * API sugar for stateful protocols
   # * Pushing processing onto the same thread as the reactor
+  #
+  # See examples/ex_queue.rb for a detailed example.
+  #
+  #  q = EM::Queue.new
+  #  q.push('one', 'two', 'three')
+  #  3.times do
+  #    q.pop{ |msg| puts(msg) }
+  #  end
+  #
   class Queue
+    # Create a new queue
     def initialize
       @items = []
       @popq  = []
