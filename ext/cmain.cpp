@@ -197,7 +197,7 @@ extern "C" const char *evma_watch_filename (const char *fname)
 evma_unwatch_filename
 *********************/
 
-extern "C" void *evma_unwatch_filename (const char *sig)
+extern "C" void evma_unwatch_filename (const char *sig)
 {
 	ensure_eventmachine("evma_unwatch_file");
 	EventMachine->UnwatchFile(sig);
@@ -217,7 +217,7 @@ extern "C" const char *evma_watch_pid (int pid)
 evma_unwatch_pid
 ****************/
 
-extern "C" void *evma_unwatch_pid (const char *sig)
+extern "C" void evma_unwatch_pid (const char *sig)
 {
 	ensure_eventmachine("evma_unwatch_pid");
 	EventMachine->UnwatchPid(sig);
