@@ -86,10 +86,10 @@ class BufferedTokenizer
     entities.unshift @input.join
 
 =begin
-	# Note added by FC, 10Jul07. This paragraph contains a regression. It breaks
-	# empty tokens. Think of the empty line that delimits an HTTP header. It will have
-	# two "\n" delimiters in a row, and this code mishandles the resulting empty token.
-	# It someone figures out how to fix the problem, we can re-enable this code branch.
+    # Note added by FC, 10Jul07. This paragraph contains a regression. It breaks
+    # empty tokens. Think of the empty line that delimits an HTTP header. It will have
+    # two "\n" delimiters in a row, and this code mishandles the resulting empty token.
+    # It someone figures out how to fix the problem, we can re-enable this code branch.
     # Multi-character token support.
     # Split any tokens that were incomplete on the last iteration buf complete now.
     entities.map! do |e|

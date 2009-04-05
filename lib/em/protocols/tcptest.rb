@@ -24,34 +24,30 @@
 #
 # 
 
-
-
 module EventMachine
-module Protocols
+  module Protocols
 
-class TcpConnectTester < Connection # :nodoc:
-  include EventMachine::Deferrable
+    class TcpConnectTester < Connection # :nodoc:
+      include EventMachine::Deferrable
 
-  def self.test( host, port )
-    EventMachine.connect( host, port, self )
-  end
+      def self.test( host, port )
+        EventMachine.connect( host, port, self )
+      end
 
-  def post_init
-    @start_time = Time.now
-  end
+      def post_init
+        @start_time = Time.now
+      end
 
-  def connection_completed
-    @completed = true
-    set_deferred_status :succeeded, (Time.now - @start_time)
-    close_connection
-  end
+      def connection_completed
+        @completed = true
+        set_deferred_status :succeeded, (Time.now - @start_time)
+        close_connection
+      end
 
-  def unbind
-    set_deferred_status :failed, (Time.now - @start_time)  unless @completed
+      def unbind
+        set_deferred_status :failed, (Time.now - @start_time)  unless @completed
+      end
+    end
+
   end
 end
-
-
-end
-end
-

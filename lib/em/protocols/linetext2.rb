@@ -22,140 +22,139 @@
 #---------------------------------------------------------------------------
 #
 # 
-# 
 
 module EventMachine
-	module Protocols
-		# In the grand, time-honored tradition of re-inventing the wheel, we offer
-		# here YET ANOTHER protocol that handles line-oriented data with interspersed
-		# binary text. This one trades away some of the performance optimizations of
-		# EventMachine::Protocols::LineAndTextProtocol in order to get better correctness
-		# with regard to binary text blocks that can switch back to line mode. It also
-		# permits the line-delimiter to change in midstream.
-		# This was originally written to support Stomp.
-		module LineText2
-			# TODO! We're not enforcing the limits on header lengths and text-lengths.
-			# When we get around to that, call #receive_error if the user defined it, otherwise
-			# throw exceptions.
-      
-			MaxLineLength = 16*1024
-			MaxBinaryLength = 32*1024*1024
+  module Protocols
+    # In the grand, time-honored tradition of re-inventing the wheel, we offer
+    # here YET ANOTHER protocol that handles line-oriented data with interspersed
+    # binary text. This one trades away some of the performance optimizations of
+    # EventMachine::Protocols::LineAndTextProtocol in order to get better correctness
+    # with regard to binary text blocks that can switch back to line mode. It also
+    # permits the line-delimiter to change in midstream.
+    # This was originally written to support Stomp.
+    module LineText2
+      # TODO! We're not enforcing the limits on header lengths and text-lengths.
+      # When we get around to that, call #receive_error if the user defined it, otherwise
+      # throw exceptions.
 
-			#--
-			# Will be called recursively until there's no data to read.
-			# That way the user-defined handlers we call can modify the
-			# handling characteristics on a per-token basis.
-			#
-			def receive_data data
-				return unless (data and data.length > 0)
+      MaxLineLength = 16*1024
+      MaxBinaryLength = 32*1024*1024
 
-				# Do this stuff in lieu of a constructor.
-				@lt2_mode ||= :lines
-				@lt2_delimiter ||= "\n"
-				@lt2_linebuffer ||= []
+      #--
+      # Will be called recursively until there's no data to read.
+      # That way the user-defined handlers we call can modify the
+      # handling characteristics on a per-token basis.
+      #
+      def receive_data data
+        return unless (data and data.length > 0)
 
-				if @lt2_mode == :lines
-					if ix = data.index( @lt2_delimiter )
-						@lt2_linebuffer << data[0...ix]
-						ln = @lt2_linebuffer.join
-						@lt2_linebuffer.clear
-						if @lt2_delimiter == "\n"
-							ln.chomp!
-						end
-						receive_line ln
-						receive_data data[(ix+@lt2_delimiter.length)..-1]
-					else
-						@lt2_linebuffer << data
-					end
-				elsif @lt2_mode == :text
-					if @lt2_textsize
-						needed = @lt2_textsize - @lt2_textpos
-						will_take = if data.length > needed
-							needed
-						else
-							data.length
-						end
+        # Do this stuff in lieu of a constructor.
+        @lt2_mode ||= :lines
+        @lt2_delimiter ||= "\n"
+        @lt2_linebuffer ||= []
 
-						@lt2_textbuffer << data[0...will_take]
-						tail = data[will_take..-1]
+        if @lt2_mode == :lines
+          if ix = data.index( @lt2_delimiter )
+            @lt2_linebuffer << data[0...ix]
+            ln = @lt2_linebuffer.join
+            @lt2_linebuffer.clear
+            if @lt2_delimiter == "\n"
+              ln.chomp!
+            end
+            receive_line ln
+            receive_data data[(ix+@lt2_delimiter.length)..-1]
+          else
+            @lt2_linebuffer << data
+          end
+        elsif @lt2_mode == :text
+          if @lt2_textsize
+            needed = @lt2_textsize - @lt2_textpos
+            will_take = if data.length > needed
+                          needed
+                        else
+                          data.length
+                        end
 
-						@lt2_textpos += will_take
-						if @lt2_textpos >= @lt2_textsize
-							# Reset line mode (the default behavior) BEFORE calling the
-							# receive_binary_data. This makes it possible for user code
-							# to call set_text_mode, enabling chains of text blocks
-							# (which can possibly be of different sizes).
-							set_line_mode
-							receive_binary_data @lt2_textbuffer.join
-							receive_end_of_binary_data
-						end
+            @lt2_textbuffer << data[0...will_take]
+            tail = data[will_take..-1]
 
-						receive_data tail
-					else
-						receive_binary_data data
-					end
-				end
-			end
+            @lt2_textpos += will_take
+            if @lt2_textpos >= @lt2_textsize
+              # Reset line mode (the default behavior) BEFORE calling the
+              # receive_binary_data. This makes it possible for user code
+              # to call set_text_mode, enabling chains of text blocks
+              # (which can possibly be of different sizes).
+              set_line_mode
+              receive_binary_data @lt2_textbuffer.join
+              receive_end_of_binary_data
+            end
+
+            receive_data tail
+          else
+            receive_binary_data data
+          end
+        end
+      end
 
 
-			def set_delimiter delim
-				@lt2_delimiter = delim.to_s
-			end
+      def set_delimiter delim
+        @lt2_delimiter = delim.to_s
+      end
 
-			# Called internally but also exposed to user code, for the case in which
-			# processing of binary data creates a need to transition back to line mode.
-			# We support an optional parameter to "throw back" some data, which might
-			# be an umprocessed chunk of the transmitted binary data, or something else
-			# entirely.
-			def set_line_mode data=""
-				@lt2_mode = :lines
-				(@lt2_linebuffer ||= []).clear
-				receive_data data.to_s
-			end
+      # Called internally but also exposed to user code, for the case in which
+      # processing of binary data creates a need to transition back to line mode.
+      # We support an optional parameter to "throw back" some data, which might
+      # be an umprocessed chunk of the transmitted binary data, or something else
+      # entirely.
+      def set_line_mode data=""
+        @lt2_mode = :lines
+        (@lt2_linebuffer ||= []).clear
+        receive_data data.to_s
+      end
 
-			def set_text_mode size=nil
-				if size == 0
-					set_line_mode
-				else
-					@lt2_mode = :text
-					(@lt2_textbuffer ||= []).clear
-					@lt2_textsize = size # which can be nil, signifying no limit
-					@lt2_textpos = 0
-				end
-			end
+      def set_text_mode size=nil
+        if size == 0
+          set_line_mode
+        else
+          @lt2_mode = :text
+          (@lt2_textbuffer ||= []).clear
+          @lt2_textsize = size # which can be nil, signifying no limit
+          @lt2_textpos = 0
+        end
+      end
 
-			# Alias for #set_text_mode, added for back-compatibility with LineAndTextProtocol.
-			def set_binary_mode size=nil
-				set_text_mode size
-			end
+      # Alias for #set_text_mode, added for back-compatibility with LineAndTextProtocol.
+      def set_binary_mode size=nil
+        set_text_mode size
+      end
 
-			# In case of a dropped connection, we'll send a partial buffer to user code
-			# when in sized text mode. User overrides of #receive_binary_data need to
-			# be aware that they may get a short buffer.
-			def unbind
-				if @lt2_mode == :text and @lt2_textpos > 0
-					receive_binary_data @lt2_textbuffer.join
-				end
-			end
+      # In case of a dropped connection, we'll send a partial buffer to user code
+      # when in sized text mode. User overrides of #receive_binary_data need to
+      # be aware that they may get a short buffer.
+      def unbind
+        if @lt2_mode == :text and @lt2_textpos > 0
+          receive_binary_data @lt2_textbuffer.join
+        end
+      end
 
-			# Stub. Should be subclassed by user code.
-			def receive_line ln
-				# no-op
-			end
+      # Stub. Should be subclassed by user code.
+      def receive_line ln
+        # no-op
+      end
 
-			# Stub. Should be subclassed by user code.
-			def receive_binary_data data
-				# no-op
-			end
+      # Stub. Should be subclassed by user code.
+      def receive_binary_data data
+        # no-op
+      end
 
-			# Stub. Should be subclassed by user code.
-			# This is called when transitioning internally from text mode
-			# back to line mode. Useful when client code doesn't want
-			# to keep track of how much data it's received.
-			def receive_end_of_binary_data
-				# no-op
-			end
-		end
-	end
+      # Stub. Should be subclassed by user code.
+      # This is called when transitioning internally from text mode
+      # back to line mode. Useful when client code doesn't want
+      # to keep track of how much data it's received.
+      def receive_end_of_binary_data
+        # no-op
+      end
+    end
+  end
 end
 

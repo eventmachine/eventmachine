@@ -24,8 +24,6 @@
 # 
 # 
 
-
-
 module EventMachine
   module Protocols
 
@@ -62,7 +60,7 @@ module EventMachine
         attr_accessor :command
         # Hash containing headers such as destination and message-id
         attr_accessor :header
-				alias :headers :header
+        alias :headers :header
         # Body of the message
         attr_accessor :body
 
@@ -144,10 +142,10 @@ module EventMachine
 
       # :startdoc:
 
-			# Invoked with an incoming Stomp::Message received from the STOMP server
-			def receive_msg msg
-				# stub, overwrite this in your handler
-			end
+      # Invoked with an incoming Stomp::Message received from the STOMP server
+      def receive_msg msg
+        # stub, overwrite this in your handler
+      end
 
       # CONNECT command, for authentication
       #
@@ -176,14 +174,14 @@ module EventMachine
       # ACK command, for acknowledging receipt of messages
       #
       #  module StompClient
-			#    include EM::P::Stomp
-			#
+      #    include EM::P::Stomp
+      #
       #    def connection_completed
       #      connect :login => 'guest', :passcode => 'guest'
-			#      # subscribe with ack mode
-			#      subscribe '/some/topic', true
+      #      # subscribe with ack mode
+      #      subscribe '/some/topic', true
       #    end
-			#
+      #
       #    def receive_msg msg
       #      if msg.command == "MESSAGE"
       #        ack msg.headers['message-id']
