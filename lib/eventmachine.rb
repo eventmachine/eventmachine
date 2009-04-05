@@ -76,8 +76,6 @@ end
 require "em/version"
 require 'em/deferrable'
 require 'em/future'
-require 'em/eventable'
-require 'em/messages'
 require 'em/streamer'
 require 'em/spawnable'
 require 'em/processes'
