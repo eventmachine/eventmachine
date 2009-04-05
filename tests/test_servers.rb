@@ -29,52 +29,48 @@ require 'eventmachine'
 require 'socket'
 require 'test/unit'
 
-
 class TestServers < Test::Unit::TestCase
 
-	Host = "127.0.0.1"
-	Port = 9555
-	
-	module NetstatHelper
-	  GlobalUdp4Rexp = /udp.*\s+(?:\*|(?:0\.){3}0)[:.](\d+)\s/i
-	  GlobalTcp4Rexp = /tcp.*\s+(?:\*|(?:0\.){3}0)[:.](\d+)\s/i
-	  LocalUdpRexp = /udp.*\s+(?:127\.0\.0\.1|::1)[:.](\d+)\s/i
-	  LocalTcpRexp = /tcp.*\s+(?:127\.0\.0\.1|::1)[:.](\d+)\s/i
-	  def grep_netstat(pattern)
-	    `netstat -an`.scan(/^.*$/).grep(pattern)
+  Host = "127.0.0.1"
+  Port = 9555
+
+  module NetstatHelper
+    GlobalUdp4Rexp = /udp.*\s+(?:\*|(?:0\.){3}0)[:.](\d+)\s/i
+    GlobalTcp4Rexp = /tcp.*\s+(?:\*|(?:0\.){3}0)[:.](\d+)\s/i
+    LocalUdpRexp = /udp.*\s+(?:127\.0\.0\.1|::1)[:.](\d+)\s/i
+    LocalTcpRexp = /tcp.*\s+(?:127\.0\.0\.1|::1)[:.](\d+)\s/i
+    def grep_netstat(pattern)
+      `netstat -an`.scan(/^.*$/).grep(pattern)
     end
   end
-	include NetstatHelper
+  include NetstatHelper
 
-	class TestStopServer < EM::Connection
-		def initialize *args
-			super
-		end
-		def post_init
-			# TODO,sucks that this isn't OOPy enough.
-			EM.stop_server @server_instance
-		end
-	end
-	
-	def run_test_stop_server
-	  EM.run {
-	    sig = EM.start_server(Host, Port)
-	    assert(grep_netstat(LocalTcpRexp).grep(%r(#{Port})).size >= 1, "Server didn't start")
-	    EM.stop_server sig
-	    # Give the server some time to shutdown.
-	    EM.add_timer(0.1) {
-    		assert(grep_netstat(LocalTcpRexp).grep(%r(#{Port})).empty?, "Servers didn't stop")  	    
-  	    EM.stop
-	    }
-	  }
-	end
-	def test_stop_server
-	  assert(grep_netstat(LocalTcpRexp).grep(Port).empty?, "Port already in use")
-		5.times {run_test_stop_server}
-		assert(grep_netstat(LocalTcpRexp).grep(%r(#{Port})).empty?, "Servers didn't stop")
-	end
+  class TestStopServer < EM::Connection
+    def initialize *args
+      super
+    end
+    def post_init
+      # TODO,sucks that this isn't OOPy enough.
+      EM.stop_server @server_instance
+    end
+  end
 
+  def run_test_stop_server
+    EM.run {
+      sig = EM.start_server(Host, Port)
+      assert(grep_netstat(LocalTcpRexp).grep(%r(#{Port})).size >= 1, "Server didn't start")
+      EM.stop_server sig
+      # Give the server some time to shutdown.
+      EM.add_timer(0.1) {
+        assert(grep_netstat(LocalTcpRexp).grep(%r(#{Port})).empty?, "Servers didn't stop")
+        EM.stop
+      }
+    }
+  end
+  def test_stop_server
+    assert(grep_netstat(LocalTcpRexp).grep(Port).empty?, "Port already in use")
+    5.times {run_test_stop_server}
+    assert(grep_netstat(LocalTcpRexp).grep(%r(#{Port})).empty?, "Servers didn't stop")
+  end
 
 end
-
-

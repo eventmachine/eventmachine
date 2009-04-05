@@ -176,7 +176,7 @@ class TestHeaderAndContentProtocol < Test::Unit::TestCase
       "GET / HTTP/1.0",
       "Accept: aaa",
       "User-Agent: bbb",
-      "Host:	    ccc",
+      "Host: ccc",
       "x-tempest-header:ddd"
     ]
 

@@ -29,8 +29,6 @@ $:.unshift "../lib"
 require 'eventmachine'
 require 'test/unit'
 
-
-
 class TestNextTick < Test::Unit::TestCase
 
   def test_tick_arg

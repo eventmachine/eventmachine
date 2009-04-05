@@ -36,47 +36,47 @@ require 'test/unit'
 
 class TestErrors < Test::Unit::TestCase
 
-	Localhost = "127.0.0.1"
-	Localport = 9801
+  Localhost = "127.0.0.1"
+  Localport = 9801
 
-	def setup
-	end
+  def setup
+  end
 
-	def obsolete_teardown
-		# Calling #set_runtime_error_hook with no block restores the
-		# default handling of runtime_errors.
-		#
-		EM.set_runtime_error_hook
-	end
+  def obsolete_teardown
+    # Calling #set_runtime_error_hook with no block restores the
+    # default handling of runtime_errors.
+    #
+    EM.set_runtime_error_hook
+  end
 
-	def test_no_tests_stub
-	end
+  def test_no_tests_stub
+  end
 
-	# EM has a default handler for RuntimeErrors that are emitted from
-	# user written code. You can override the handler if you wish, but it's
-	# easier to call #set_runtime_error_hook.
-	# Ordinarily, an error in user code invoked by the reactor aborts the
-	# run.
-	#
-	def obsolete_test_unhandled_error
-		assert_raises( RuntimeError ) {
-			EM.run {
-				EM.add_timer(0) {raise "AAA"}
-			}
-		}
+  # EM has a default handler for RuntimeErrors that are emitted from
+  # user written code. You can override the handler if you wish, but it's
+  # easier to call #set_runtime_error_hook.
+  # Ordinarily, an error in user code invoked by the reactor aborts the
+  # run.
+  #
+  def obsolete_test_unhandled_error
+    assert_raises( RuntimeError ) {
+      EM.run {
+        EM.add_timer(0) {raise "AAA"}
+      }
+    }
 
-	end
+  end
 
-	def obsolete_test_handled_error
-		err = nil
-		EM.run {
-			EM.set_runtime_error_hook {
-				err = true
-				EM.stop
-			}
-			EM.add_timer(0) {raise "AAA"}
-		}
-		assert err
-	end
+  def obsolete_test_handled_error
+    err = nil
+    EM.run {
+      EM.set_runtime_error_hook {
+        err = true
+        EM.stop
+      }
+      EM.add_timer(0) {raise "AAA"}
+    }
+    assert err
+  end
 end
 

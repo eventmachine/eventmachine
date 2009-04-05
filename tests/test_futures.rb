@@ -28,8 +28,6 @@ $:.unshift "../lib"
 require 'eventmachine'
 require 'test/unit'
 
-
-
 class TestFutures < Test::Unit::TestCase
 
   def setup
@@ -45,21 +43,19 @@ class TestFutures < Test::Unit::TestCase
       assert_equal(101, EventMachine::Deferrable.future(p1) )
   end
 
-
-
   class MyFuture
       include EventMachine::Deferrable
       def initialize *args
-	  super
-	  set_deferred_status :succeeded, 40
+        super
+        set_deferred_status :succeeded, 40
       end
   end
 
   class MyErrorFuture
       include EventMachine::Deferrable
       def initialize *args
-	  super
-	  set_deferred_status :failed, 41
+        super
+        set_deferred_status :failed, 41
       end
   end
 
@@ -67,7 +63,7 @@ class TestFutures < Test::Unit::TestCase
   def test_future_1
       # Call future with one additional argument and it will be treated as a callback.
       def my_future
-	  MyFuture.new
+        MyFuture.new
       end
 
       value = nil
@@ -90,7 +86,7 @@ class TestFutures < Test::Unit::TestCase
       # treated as a callback.
       value = nil
       EventMachine::Deferrable.future MyFuture.new do |v|
-	  value=v
+        value=v
       end
       assert_equal( 40, value )
   end
@@ -107,108 +103,96 @@ class TestFutures < Test::Unit::TestCase
       n = 0 # counter assures that all the tests actually run.
       rc = RecursiveCallback.new
       rc.callback {|a|
-	  assert_equal(100, a)
-	  n += 1
-	  rc.set_deferred_status :succeeded, 101, 101
+        assert_equal(100, a)
+        n += 1
+        rc.set_deferred_status :succeeded, 101, 101
       }
       rc.callback {|a,b|
-	  assert_equal(101, a)
-	  assert_equal(101, b)
-	  n += 1
-	  rc.set_deferred_status :succeeded, 102, 102, 102
+        assert_equal(101, a)
+        assert_equal(101, b)
+        n += 1
+        rc.set_deferred_status :succeeded, 102, 102, 102
       }
       rc.callback {|a,b,c|
-	  assert_equal(102, a)
-	  assert_equal(102, b)
-	  assert_equal(102, c)
-	  n += 1
+        assert_equal(102, a)
+        assert_equal(102, b)
+        assert_equal(102, c)
+        n += 1
       }
       rc.set_deferred_status :succeeded, 100
       assert_equal(3, n)
   end
 
+  def test_syntactic_sugar
+    rc = RecursiveCallback.new
+    rc.set_deferred_success 100
+    rc.set_deferred_failure 200
+  end
 
+  # It doesn't raise an error to set deferred status more than once.
+  # In fact, this is a desired and useful idiom when it happens INSIDE
+  # a callback or errback.
+  # However, it's less useful otherwise, and in fact would generally be
+  # indicative of a programming error. However, we would like to be resistant
+  # to such errors. So whenever we set deferred status, we also clear BOTH
+  # stacks of handlers.
+  #
+  def test_double_calls
+    s = 0
+    e = 0
 
-	def test_syntactic_sugar
-		rc = RecursiveCallback.new
-		rc.set_deferred_success 100
-		rc.set_deferred_failure 200
-	end
+    d = EM::DefaultDeferrable.new
+    d.callback {s += 1}
+    d.errback {e += 1}
 
+    d.succeed	# We expect the callback to be called, and the errback to be DISCARDED.
+    d.fail	  # Presumably an error. We expect the errback NOT to be called.
+    d.succeed	# We expect the callback to have been discarded and NOT to be called again.
 
+    assert_equal(1, s)
+    assert_equal(0, e)
+  end
 
-	# It doesn't raise an error to set deferred status more than once.
-	# In fact, this is a desired and useful idiom when it happens INSIDE
-	# a callback or errback.
-	# However, it's less useful otherwise, and in fact would generally be
-	# indicative of a programming error. However, we would like to be resistant
-	# to such errors. So whenever we set deferred status, we also clear BOTH
-	# stacks of handlers.
-	#
-	def test_double_calls
-		s = 0
-		e = 0
+  # Adding a callback to a Deferrable that is already in a success state executes the callback
+  # immediately. The same applies to a an errback added to an already-failed Deferrable.
+  # HOWEVER, we expect NOT to be able to add errbacks to succeeded Deferrables, or callbacks
+  # to failed ones.
+  #
+  # We illustrate this with a rather contrived test. The test calls #fail after #succeed,
+  # which ordinarily would not happen in a real program.
+  #
+  # What we're NOT attempting to specify is what happens if a Deferrable is succeeded and then
+  # failed (or vice-versa). Should we then be able to add callbacks/errbacks of the appropriate
+  # type for immediate execution? For now at least, the official answer is "don't do that."
+  #
+  def test_delayed_callbacks
+    s1 = 0
+    s2 = 0
+    e = 0
 
-		d = EM::DefaultDeferrable.new
-		d.callback {s += 1}
-		d.errback {e += 1}
+    d = EM::DefaultDeferrable.new
+    d.callback {s1 += 1}
 
-		d.succeed	# We expect the callback to be called, and the errback to be DISCARDED.
-		d.fail	# Presumably an error. We expect the errback NOT to be called.
-		d.succeed	# We expect the callback to have been discarded and NOT to be called again.
+    d.succeed # Triggers and discards the callback.
 
-		assert_equal(1, s)
-		assert_equal(0, e)
-	end
+    d.callback {s2 += 1} # This callback is executed immediately and discarded.
 
+    d.errback {e += 1} # This errback should be DISCARDED and never execute.
+    d.fail # To prove it, fail and assert e is 0
 
-	# Adding a callback to a Deferrable that is already in a success state executes the callback
-	# immediately. The same applies to a an errback added to an already-failed Deferrable.
-	# HOWEVER, we expect NOT to be able to add errbacks to succeeded Deferrables, or callbacks
-	# to failed ones.
-	#
-	# We illustrate this with a rather contrived test. The test calls #fail after #succeed,
-	# which ordinarily would not happen in a real program.
-	#
-	# What we're NOT attempting to specify is what happens if a Deferrable is succeeded and then
-	# failed (or vice-versa). Should we then be able to add callbacks/errbacks of the appropriate
-	# type for immediate execution? For now at least, the official answer is "don't do that."
-	#
-	def test_delayed_callbacks
-		s1 = 0
-		s2 = 0
-		e = 0
+    assert_equal( [1,1], [s1,s2] )
+    assert_equal( 0, e )
+  end
 
-		d = EM::DefaultDeferrable.new
-		d.callback {s1 += 1}
-
-		d.succeed	# Triggers and discards the callback.
-
-		d.callback {s2 += 1}	# This callback is executed immediately and discarded.
-
-		d.errback {e += 1}	# This errback should be DISCARDED and never execute.
-		d.fail		# To prove it, let's 
-
-		assert_equal( [1,1], [s1,s2] )
-		assert_equal( 0, e )
-	end
-
-
-
-
-	#
-	#
-	#
-	def test_timeout
-		n = 0
-		EM.run {
-			d = EM::DefaultDeferrable.new
-			d.callback {n = 1; EM.stop}
-			d.errback {n = 2; EM.stop}
-			d.timeout(1)
-		}
-		assert_equal( 2, n )
-	end
+  def test_timeout
+    n = 0
+    EM.run {
+      d = EM::DefaultDeferrable.new
+      d.callback {n = 1; EM.stop}
+      d.errback {n = 2; EM.stop}
+      d.timeout(1)
+    }
+    assert_equal( 2, n )
+  end
 
 end
-

@@ -30,27 +30,27 @@ require 'test/unit'
 
 class TestProcesses < Test::Unit::TestCase
 
-	# EM::DeferrableChildProcess is a sugaring of a common use-case
-	# involving EM::popen.
-	# Call the #open method on EM::DeferrableChildProcess, passing
-	# a command-string. #open immediately returns an EM::Deferrable
-	# object. It also schedules the forking of a child process, which
-	# will execute the command passed to #open.
-	# When the forked child terminates, the Deferrable will be signalled
-	# and execute its callbacks, passing the data that the child process
-	# wrote to stdout.
-	#
-	def test_deferrable_child_process
-		ls = ""
-		EM.run {
-			d = EM::DeferrableChildProcess.open( "ls -ltr" )
-			d.callback {|data_from_child|
-				ls = data_from_child
-				EM.stop
-			}
-		}
-		assert( ls.length > 0)
-	end
+  # EM::DeferrableChildProcess is a sugaring of a common use-case
+  # involving EM::popen.
+  # Call the #open method on EM::DeferrableChildProcess, passing
+  # a command-string. #open immediately returns an EM::Deferrable
+  # object. It also schedules the forking of a child process, which
+  # will execute the command passed to #open.
+  # When the forked child terminates, the Deferrable will be signalled
+  # and execute its callbacks, passing the data that the child process
+  # wrote to stdout.
+  #
+  def test_deferrable_child_process
+    ls = ""
+    EM.run {
+      d = EM::DeferrableChildProcess.open( "ls -ltr" )
+      d.callback {|data_from_child|
+        ls = data_from_child
+        EM.stop
+      }
+    }
+    assert( ls.length > 0)
+  end
 
   def setup
     $out = nil
@@ -92,4 +92,3 @@ class TestProcesses < Test::Unit::TestCase
     assert_equal($out, "hello\n")
   end
 end
-

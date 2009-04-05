@@ -67,10 +67,9 @@ class TestPure < Test::Unit::TestCase
     assert_raises( RuntimeError ) { run_exception }
   end
   def test_exception_2
-		ex_class = RUBY_PLATFORM == 'java' ? NativeException : RuntimeError
+    ex_class = RUBY_PLATFORM == 'java' ? NativeException : RuntimeError
     assert_raises( ex_class ) { run_exception }
   end
-
 
 
   # Under some circumstances, the pure Ruby library would emit an Errno::ECONNREFUSED
@@ -114,8 +113,6 @@ class TestPure < Test::Unit::TestCase
     assert_equal( false, timeout )
   end
 
-
-
   def test_reactor_running
     a = false
     EM.run {
@@ -124,6 +121,5 @@ class TestPure < Test::Unit::TestCase
     }
     assert a
   end
-
 
 end

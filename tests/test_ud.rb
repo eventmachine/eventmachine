@@ -30,14 +30,7 @@ require 'test/unit'
 
 class TestUserDefinedEvents < Test::Unit::TestCase
 
-  def setup
-  end
-
-  def teardown
-  end
-
   def test_a
   end
 
 end
-

@@ -218,9 +218,7 @@ class TestBasic < Test::Unit::TestCase
     $received = ''
     $sent = (0..255).to_a.pack('C*')
     EM::run {
-
       EM::start_server TestHost, TestPort, BrsTestSrv
-
       EM::connect TestHost, TestPort, BrsTestCli
 
       EM::add_timer(0.5) { assert(false, 'test timed out'); EM.stop; Kernel.warn "test timed out!" }

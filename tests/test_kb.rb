@@ -37,10 +37,10 @@ class TestKeyboardEvents < Test::Unit::TestCase
   end
 
   module KbHandler
-	  include EM::Protocols::LineText2
-	  def receive_line d
-		  EM::stop if d == "STOP"
-	  end
+    include EM::Protocols::LineText2
+    def receive_line d
+      EM::stop if d == "STOP"
+    end
   end
 
   # This test doesn't actually do anything useful but is here to
@@ -51,11 +51,10 @@ class TestKeyboardEvents < Test::Unit::TestCase
   # When someone figures that out, then we can make this a real test.
   #
   def test_kb
-	  EM.run {
-		  EM.open_keyboard KbHandler
-		  EM::Timer.new(1) { EM.stop }
-	  } if $stdout.tty? # don't run the test unless it stands a chance of validity.
+    EM.run {
+      EM.open_keyboard KbHandler
+      EM::Timer.new(1) { EM.stop }
+    } if $stdout.tty? # don't run the test unless it stands a chance of validity.
   end
 
 end
-

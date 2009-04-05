@@ -29,19 +29,14 @@ require 'eventmachine'
 require 'test/unit'
 
 class TestRunning < Test::Unit::TestCase
-	def setup
-	end
-	def teardown
-	end
-
-	def test_running
-		assert_equal( false, EM::reactor_running? )
-		r = false
-		EM.run {
-			r = EM::reactor_running?
-			EM.stop
-		}
-		assert_equal( true, r )
-	end
+  def test_running
+    assert_equal( false, EM::reactor_running? )
+    r = false
+    EM.run {
+      r = EM::reactor_running?
+      EM.stop
+    }
+    assert_equal( true, r )
+  end
 end
 
