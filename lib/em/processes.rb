@@ -38,7 +38,8 @@ module EventMachine
   #
   class DeferrableChildProcess < EventMachine::Connection
     include EventMachine::Deferrable
-    def initialize
+
+    def initialize # :nodoc:
       super
       @data = []
     end
@@ -59,11 +60,11 @@ module EventMachine
       EventMachine.popen( cmd, DeferrableChildProcess )
     end
 
-    def receive_data data
+    def receive_data data # :nodoc:
       @data << data
     end
 
-    def unbind
+    def unbind # :nodoc:
       succeed( @data.join )
     end
   end
