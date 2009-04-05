@@ -133,7 +133,7 @@ if RUBY_PLATFORM =~ /mswin/
   Spec.files += %w[ lib/rubyeventmachine.so lib/fastfilereaderext.so ]
   Spec.extensions = nil
 elsif RUBY_PLATFORM =~ /java/
-  Spec.platform = 'jruby'
+  Spec.platform = 'java'
   Spec.files += %w[ lib/em_reactor.jar ]
   Spec.extensions = nil
 end
