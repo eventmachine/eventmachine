@@ -185,6 +185,7 @@ namespace :win32 do
     end
   end
 
+  desc "build binary win32 gem"
   task :gem => :build_openssl do
     Rake::Task['build'].invoke
     Rake::Task['gem'].invoke
@@ -224,7 +225,7 @@ namespace :ext do
     end
   end
 end
-  
+
 namespace :java do
   # This task creates the JRuby JAR file and leaves it in the lib directory.
   # This step is required before executing the jgem task.
@@ -249,6 +250,7 @@ namespace :java do
     end
   end
 
+  desc "build a java binary gem"
   task :gem => :build do
     Rake::Task['gem'].invoke
   end
