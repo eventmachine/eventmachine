@@ -131,8 +131,8 @@ EventMachine_t::~EventMachine_t()
 	close (LoopBreakerWriter);
 
 	// Remove any file watch descriptors
-	for(map<int, Bindable_t*>::iterator i=Files.begin(); i != Files.end(); i++)
-		UnwatchFile (i->first);
+	for(map<int, Bindable_t*>::iterator f=Files.begin(); f != Files.end(); f++)
+		UnwatchFile (f->first);
 
 	if (epfd != -1)
 		close (epfd);
