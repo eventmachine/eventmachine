@@ -104,13 +104,13 @@ module EventMachine
   #  }
   #
   # Like EventMachine.popen, EventMachine.system currently does not work on windows.
-  #
+  # It returns the pid of the spawned process.
   def EventMachine::system cmd, *args, &cb
     cb ||= args.pop if args.last.is_a? Proc
     init = args.pop if args.last.is_a? Proc
 
-    EM.popen(cmd, SystemCmd, cb) do |c|
+    EM.get_subprocess_pid(EM.popen(cmd, SystemCmd, cb) do |c|
       init[c] if init
-    end
+    end.signature)
   end
 end

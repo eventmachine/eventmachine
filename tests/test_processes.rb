@@ -67,6 +67,16 @@ class TestProcesses < Test::Unit::TestCase
     assert_equal($status.class, Process::Status)
   end
 
+  def test_em_system_pid
+    $pids = []
+
+    EM.run{
+      $pids << EM.system('echo hi', proc{ |out,status|$pids << status.pid; EM.stop })
+    }
+
+    assert_equal $pids[0], $pids[1]
+  end
+
   def test_em_system_with_proc
     EM.run{
       EM.system('ls', proc{ |out,status| $out, $status = out, status; EM.stop })
