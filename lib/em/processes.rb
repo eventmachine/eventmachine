@@ -109,6 +109,9 @@ module EventMachine
     cb ||= args.pop if args.last.is_a? Proc
     init = args.pop if args.last.is_a? Proc
 
+    # merge remaining arguments into the command
+    cmd = ([cmd] + args.map{|a|a.to_s.dump}).join(' ')
+
     EM.get_subprocess_pid(EM.popen(cmd, SystemCmd, cb) do |c|
       init[c] if init
     end.signature)

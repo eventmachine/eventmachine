@@ -99,6 +99,30 @@ class TestProcesses < Test::Unit::TestCase
       })
     }
 
-    assert_equal($out, "hello\n")
+    assert_equal("hello\n", $out)
+  end
+
+  def test_em_system_cmd_arguments
+    EM.run{
+      EM.system('sh', '--version', proc{ |process|
+      }, proc{ |out,status|
+        $out = out
+        $status = status
+        EM.stop
+      })
+    }
+
+    assert_match(/version/i, $out)
+  end
+
+  def test_em_system_spaced_arguments
+    EM.run{
+      EM.system('ruby', '-e', 'puts "hello"', proc{ |out,status|
+        $out = out
+        EM.stop
+      })
+    }
+
+    assert_equal("hello\n", $out)
   end
 end
