@@ -191,6 +191,7 @@ module EventMachine
     # connection objects. (Need an example to make that clear.)
     #
     def send_data data
+      data = data.to_s
       size = data.bytesize if data.respond_to?(:bytesize)
       size ||= data.size
       EventMachine::send_data @signature, data, size
