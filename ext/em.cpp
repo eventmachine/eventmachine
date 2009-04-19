@@ -2216,11 +2216,8 @@ void EventMachine_t::_HandleKqueueFileEvent(struct kevent *event)
 	if (EventCallback && strlen(msg) > 0)
 		(*EventCallback)(Files [(int) event->ident]->GetBinding().c_str(), EM_CONNECTION_READ, msg, strlen(msg));
 
-	// re-register for the next event on this fd unless it was just deleted
 	if (event->fflags & NOTE_DELETE)
 		UnwatchFile (event->ident);
-	else
-		_RegisterKqueueFileEvent(event->ident);
 }
 #endif
 
@@ -2236,10 +2233,7 @@ void EventMachine_t::_RegisterKqueueFileEvent(int fd)
 	int kqres;
 
 	// Setup the event with our fd and proper flags
-	// XXX	We are currently using EV_ONESHOT and re-registering again after the event is read.
-	//		This is because omitting EV_ONESHOT causes the event to be spewed continuously.
-	//		Seems silly, but it looks like this may be how normal operations with kqueue occur within the reactor.
-	EV_SET(&newevent, fd, EVFILT_VNODE, EV_ADD | EV_ONESHOT, NOTE_DELETE | NOTE_RENAME | NOTE_WRITE, 0, 0);
+	EV_SET(&newevent, fd, EVFILT_VNODE, EV_ADD | EV_CLEAR, NOTE_DELETE | NOTE_RENAME | NOTE_WRITE, 0, 0);
 
 	// Attempt to register the event
 	kqres = kevent(kqfd, &newevent, 1, NULL, 0, NULL);
