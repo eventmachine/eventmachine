@@ -251,6 +251,7 @@ module EventMachine
             @resultqueue = nil
           end
           @threadpool = nil
+          @next_tick_queue = nil
         end
         @reactor_running = false
         @reactor_thread = nil

@@ -67,6 +67,20 @@ class TestNextTick < Test::Unit::TestCase
     assert x
   end
 
+  def test_cleanup_after_stop
+    x = true
+    EM.run{
+      EM.next_tick{
+        EM.stop
+        EM.next_tick{ x=false }
+      }
+    }
+    EM.run{
+      EM.next_tick{ EM.stop }
+    }
+    assert x
+  end
+
   # We now support an additional parameter for EM#run.
   # You can pass two procs to EM#run now. The first is executed as the normal
   # run block. The second (if given) is scheduled for execution after the
