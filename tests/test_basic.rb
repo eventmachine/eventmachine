@@ -227,7 +227,7 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_bind_connect
-    if `ifconfig` !~ /((\d{1,3}(\.|\b))){4}/
+    if `/sbin/ifconfig` !~ /((\d{1,3}(\.|\b))){4}/
       local_ip = '127.0.0.1'
     else
       local_ip = $~.to_s

@@ -2146,24 +2146,19 @@ void EventMachine_t::_ReadInotifyEvents()
 {
 	#ifdef HAVE_INOTIFY
 	struct inotify_event event;
-	char *msg;
+
+	assert(EventCallback);
 
 	while (read(inotify->GetSocket(), &event, INOTIFY_EVENT_SIZE) > 0) {
 		assert(event.len == 0);
 		if (event.mask & IN_MODIFY)
-			msg = "modified";
-		else if (event.mask & IN_DELETE_SELF)
-			msg = "deleted";
-		else if (event.mask & IN_MOVE_SELF)
-			msg = "moved";
-		else
-			msg = "";
-
-		if (EventCallback && strlen(msg) > 0)
-			(*EventCallback)(Files [event.wd]->GetBinding().c_str(), EM_CONNECTION_READ, msg, strlen(msg));
-
-		if (EventCallback && event.mask & IN_DELETE_SELF)
+			(*EventCallback)(Files [event.wd]->GetBinding().c_str(), EM_CONNECTION_READ, "modified", 8);
+		if (event.mask & IN_MOVE_SELF)
+			(*EventCallback)(Files [event.wd]->GetBinding().c_str(), EM_CONNECTION_READ, "moved", 5);
+		if (event.mask & IN_DELETE_SELF) {
+			(*EventCallback)(Files [event.wd]->GetBinding().c_str(), EM_CONNECTION_READ, "deleted", 7);
 			UnwatchFile (event.wd);
+		}
 	}
 	#endif
 }
@@ -2176,21 +2171,15 @@ EventMachine_t::_HandleKqueuePidEvent
 #ifdef HAVE_KQUEUE
 void EventMachine_t::_HandleKqueuePidEvent(struct kevent *event)
 {
-	char *msg;
+	assert(EventCallback);
 
-	if (event->fflags & NOTE_EXIT)
-		msg = "exit";
-	else if (event->fflags & NOTE_FORK)
-		msg = "fork";
-	else
-		msg = "";
-
-	if (EventCallback && strlen(msg) > 0)
-		(*EventCallback)(Pids [(int) event->ident]->GetBinding().c_str(), EM_CONNECTION_READ, msg, strlen(msg));
-
-	// stop watching the pid if it died
-	if (event->fflags & NOTE_EXIT)
+	if (event->fflags & NOTE_FORK)
+		(*EventCallback)(Pids [(int) event->ident]->GetBinding().c_str(), EM_CONNECTION_READ, "fork", 4);
+	if (event->fflags & NOTE_EXIT) {
+		(*EventCallback)(Pids [(int) event->ident]->GetBinding().c_str(), EM_CONNECTION_READ, "exit", 4);
+		// stop watching the pid if it died
 		UnwatchPid (event->ident);
+	}
 }
 #endif
 
@@ -2202,22 +2191,16 @@ EventMachine_t::_HandleKqueueFileEvent
 #ifdef HAVE_KQUEUE
 void EventMachine_t::_HandleKqueueFileEvent(struct kevent *event)
 {
-	char *msg;
+	assert(EventCallback);
 
 	if (event->fflags & NOTE_WRITE)
-		msg = "modified";
-	else if (event->fflags & NOTE_DELETE)
-		msg = "deleted";
-	else if (event->fflags & NOTE_RENAME)
-		msg = "moved";
-	else
-		msg = "";
-
-	if (EventCallback && strlen(msg) > 0)
-		(*EventCallback)(Files [(int) event->ident]->GetBinding().c_str(), EM_CONNECTION_READ, msg, strlen(msg));
-
-	if (event->fflags & NOTE_DELETE)
+		(*EventCallback)(Files [(int) event->ident]->GetBinding().c_str(), EM_CONNECTION_READ, "modified", 8);
+	if (event->fflags & NOTE_RENAME)
+		(*EventCallback)(Files [(int) event->ident]->GetBinding().c_str(), EM_CONNECTION_READ, "moved", 5);
+	if (event->fflags & NOTE_DELETE) {
+		(*EventCallback)(Files [(int) event->ident]->GetBinding().c_str(), EM_CONNECTION_READ, "deleted", 7);
 		UnwatchFile (event->ident);
+	}
 }
 #endif
 
