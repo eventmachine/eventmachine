@@ -227,11 +227,7 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_bind_connect
-    if `/sbin/ifconfig` !~ /((\d{1,3}(\.|\b))){4}/
-      local_ip = '127.0.0.1'
-    else
-      local_ip = $~.to_s
-    end
+    local_ip = UDPSocket.open {|s| s.connect('google.com', 80); s.addr.last }
 
     bind_port = rand(33333)+1025
 
