@@ -179,6 +179,9 @@ class EventMachine_t
 	private:
 		bool bEpoll;
 		int epfd; // Epoll file-descriptor
+		#ifdef HAVE_EPOLL
+		struct epoll_event epoll_events [MaxEpollDescriptors];
+		#endif
 
 		bool bKqueue;
 		int kqfd; // Kqueue file-descriptor

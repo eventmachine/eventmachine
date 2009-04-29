@@ -440,26 +440,25 @@ bool EventMachine_t::_RunEpollOnce()
 {
 	#ifdef HAVE_EPOLL
 	assert (epfd != -1);
-	struct epoll_event ev [MaxEpollDescriptors];
 	int s;
 
 	#ifdef BUILD_FOR_RUBY
 	TRAP_BEG;
 	#endif
-	s = epoll_wait (epfd, ev, MaxEpollDescriptors, 50);
+	s = epoll_wait (epfd, epoll_events, MaxEpollDescriptors, 50);
 	#ifdef BUILD_FOR_RUBY
 	TRAP_END;
 	#endif
 
 	if (s > 0) {
 		for (int i=0; i < s; i++) {
-			EventableDescriptor *ed = (EventableDescriptor*) ev[i].data.ptr;
+			EventableDescriptor *ed = (EventableDescriptor*) epoll_events[i].data.ptr;
 
-			if (ev[i].events & (EPOLLERR | EPOLLHUP))
+			if (epoll_events[i].events & (EPOLLERR | EPOLLHUP))
 				ed->ScheduleClose (false);
-			if (ev[i].events & EPOLLIN)
+			if (epoll_events[i].events & EPOLLIN)
 				ed->Read();
-			if (ev[i].events & EPOLLOUT) {
+			if (epoll_events[i].events & EPOLLOUT) {
 				ed->Write();
 				epoll_ctl (epfd, EPOLL_CTL_MOD, ed->GetSocket(), ed->GetEpollEvent());
 				// Ignoring return value
