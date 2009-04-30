@@ -353,7 +353,7 @@ module EventMachine
     code = args.shift || block
     if code
       # check too many timers!
-      s = add_oneshot_timer((interval * 1000).to_i)
+      s = add_oneshot_timer((interval.to_f * 1000).to_i)
       @timers[s] = code
       s
     end
