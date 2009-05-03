@@ -11,3 +11,4 @@ Makefile
 *.log
 *.def
 *.pdb
+java/src/.project
