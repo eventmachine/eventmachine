@@ -152,7 +152,8 @@ class EventMachine_t
 	private:
 		enum {
 			HeartbeatInterval = 2,
-			MaxEpollDescriptors = 64*1024
+			MaxEpollDescriptors = 64*1024,
+			MaxEvents = 4096
 		};
 		void (*EventCallback)(const char*, int, const char*, int);
 
@@ -180,11 +181,14 @@ class EventMachine_t
 		bool bEpoll;
 		int epfd; // Epoll file-descriptor
 		#ifdef HAVE_EPOLL
-		struct epoll_event epoll_events [MaxEpollDescriptors];
+		struct epoll_event epoll_events [MaxEvents];
 		#endif
 
 		bool bKqueue;
 		int kqfd; // Kqueue file-descriptor
+		#ifdef HAVE_KQUEUE
+		struct kevent Karray [MaxEvents];
+		#endif
 
 		InotifyDescriptor *inotify; // pollable descriptor for our inotify instance
 };

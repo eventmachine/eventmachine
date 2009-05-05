@@ -445,7 +445,7 @@ bool EventMachine_t::_RunEpollOnce()
 	#ifdef BUILD_FOR_RUBY
 	TRAP_BEG;
 	#endif
-	s = epoll_wait (epfd, epoll_events, MaxEpollDescriptors, 50);
+	s = epoll_wait (epfd, epoll_events, MaxEvents, 50);
 	#ifdef BUILD_FOR_RUBY
 	TRAP_END;
 	#endif
@@ -555,15 +555,13 @@ bool EventMachine_t::_RunKqueueOnce()
 {
 	#ifdef HAVE_KQUEUE
 	assert (kqfd != -1);
-	const int maxKevents = 2000;
-	struct kevent Karray [maxKevents];
 	struct timespec ts = {0, 10000000}; // Too frequent. Use blocking_region
 
 	int k;
 	#ifdef BUILD_FOR_RUBY
 	TRAP_BEG;
 	#endif
-	k = kevent (kqfd, NULL, 0, Karray, maxKevents, &ts);
+	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, &ts);
 	#ifdef BUILD_FOR_RUBY
 	TRAP_END;
 	#endif
