@@ -131,6 +131,8 @@ class EventMachine_t
 		void _UseEpoll();
 		void _UseKqueue();
 
+		bool UsingKqueue() { return bKqueue; }
+		bool UsingEpoll() { return bEpoll; }
 
 	private:
 		bool _RunOnce();
