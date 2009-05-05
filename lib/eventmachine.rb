@@ -913,7 +913,7 @@ module EventMachine
       raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
     end
 
-    s = open_udp_socket address, port
+    s = open_udp_socket address, port.to_i
     c = klass.new s, *args
     @conns[s] = c
     block_given? and yield c
