@@ -562,7 +562,7 @@ module EventMachine
     end
 
     s = if port
-          start_tcp_server server, port
+          start_tcp_server server, port.to_i
         else
           start_unix_server server
         end
@@ -720,7 +720,7 @@ module EventMachine
   end
 
   def self.connect server, port=nil, handler=nil, *args, &blk
-    bind_connect nil, nil, server, port, handler, *args, &blk
+    bind_connect nil, nil, server, port.to_i, handler, *args, &blk
   end
 
   # EventMachine::attach registers a given file descriptor or IO object with the eventloop
