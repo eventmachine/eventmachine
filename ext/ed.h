@@ -215,6 +215,10 @@ class ConnectionDescriptor: public EventableDescriptor
 		#endif
 		bool bIsServer;
 
+		#ifdef HAVE_KQUEUE
+		bool bGotExtraKqueueEvent;
+		#endif
+
 		time_t LastIo;
 		int InactivityTimeout;
 

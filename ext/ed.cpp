@@ -186,6 +186,9 @@ ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	bSslVerifyPeer (false),
 	bSslPeerAccepted(false),
 	#endif
+	#ifdef HAVE_KQUEUE
+	bGotExtraKqueueEvent(false),
+	#endif
 	bIsServer (false),
 	LastIo (gCurrentLoopTime),
 	InactivityTimeout (0)
@@ -599,6 +602,22 @@ void ConnectionDescriptor::Write()
 				(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_NOTIFY_WRITABLE, NULL, 0);
 			return;
 		}
+
+		/* 5May09: Kqueue bugs on OSX cause one extra writable event to fire even though we're using
+		   EV_ONESHOT. We ignore this extra event once, but only the first time. If it happens again,
+		   we should fall through to the assert(nbytes>0) failure to catch any EM bugs which might cause
+		   ::Write to be called in a busy-loop.
+		*/
+		#ifdef HAVE_KQUEUE
+		if (MyEventMachine->UsingKqueue()) {
+			if (OutboundDataSize == 0 && !bGotExtraKqueueEvent) {
+				bGotExtraKqueueEvent = true;
+				return;
+			} else if (OutboundDataSize > 0) {
+				bGotExtraKqueueEvent = false;
+			}
+		}
+		#endif
 
 		_WriteOutboundData();
 	}
