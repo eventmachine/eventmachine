@@ -153,8 +153,8 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		void SetConnectPending (bool f);
 
-		void SetNotifyReadable (bool readable) { bNotifyReadable = readable; }
-		void SetNotifyWritable (bool writable) { bNotifyWritable = writable; }
+		void SetNotifyReadable (bool);
+		void SetNotifyWritable (bool);
 
 		virtual void Read();
 		virtual void Write();
