@@ -57,7 +57,7 @@ typedef long long Int64;
 typedef __int64 Int64;
 #endif
 
-extern time_t gCurrentLoopTime;
+extern Int64 gCurrentLoopTime;
 
 class EventableDescriptor;
 class InotifyDescriptor;
@@ -137,6 +137,7 @@ class EventMachine_t
 	private:
 		bool _RunOnce();
 		bool _RunTimers();
+		void _UpdateTime();
 		void _AddNewDescriptors();
 		void _ModifyDescriptors();
 		void _InitializeLoopBreaker();
@@ -169,7 +170,7 @@ class EventMachine_t
 		vector<EventableDescriptor*> NewDescriptors;
 		set<EventableDescriptor*> ModifiedDescriptors;
 
-		time_t NextHeartbeatTime;
+		Int64 NextHeartbeatTime;
 
 		int LoopBreakerReader;
 		int LoopBreakerWriter;

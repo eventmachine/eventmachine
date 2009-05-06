@@ -48,8 +48,6 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	bCloseAfterWriting (false),
 	MySocket (sd),
 	EventCallback (NULL),
-	LastRead (0),
-	LastWritten (0),
 	bCallbackUnbind (true),
 	UnbindReasonCode (0),
 	MyEventMachine (em)
@@ -508,7 +506,6 @@ void ConnectionDescriptor::Read()
 
 		if (r > 0) {
 			total_bytes_read += r;
-			LastRead = gCurrentLoopTime;
 
 			// Add a null-terminator at the the end of the buffer
 			// that we will send to the callback.
@@ -1305,7 +1302,6 @@ void DatagramDescriptor::Read()
 
 		// In UDP, a zero-length packet is perfectly legal.
 		if (r >= 0) {
-			LastRead = gCurrentLoopTime;
 
 			// Add a null-terminator at the the end of the buffer
 			// that we will send to the callback.
@@ -1556,16 +1552,9 @@ bool ConnectionDescriptor::GetSockname (struct sockaddr *s)
 ConnectionDescriptor::GetCommInactivityTimeout
 **********************************************/
 
-int ConnectionDescriptor::GetCommInactivityTimeout (int *value)
+float ConnectionDescriptor::GetCommInactivityTimeout()
 {
-	if (value) {
-		*value = InactivityTimeout;
-		return 1;
-	}
-	else {
-		// TODO, extended logging, got bad parameter.
-		return 0;  
-	}
+	return ((float)InactivityTimeout / 1000000LL);
 }
 
 
@@ -1573,27 +1562,13 @@ int ConnectionDescriptor::GetCommInactivityTimeout (int *value)
 ConnectionDescriptor::SetCommInactivityTimeout
 **********************************************/
 
-int ConnectionDescriptor::SetCommInactivityTimeout (int *value)
+int ConnectionDescriptor::SetCommInactivityTimeout (float value)
 {
-	int out = 0;
-
-	if (value) {
-		if ((*value==0) || (*value >= 2)) {
-			// Replace the value and send the old one back to the caller.
-			int v = *value;
-			*value = InactivityTimeout;
-			InactivityTimeout = v;
-			out = 1;
-		}
-		else {
-			// TODO, extended logging, got bad value.
-		}
+	if (value > 0) {
+		InactivityTimeout = (Int64)(value * 1000000LL);
+		return 1;
 	}
-	else {
-		// TODO, extended logging, got bad parameter.
-	}
-
-	return out;
+	return 0;
 }
 
 /*******************************
@@ -1633,43 +1608,22 @@ bool DatagramDescriptor::GetSockname (struct sockaddr *s)
 DatagramDescriptor::GetCommInactivityTimeout
 ********************************************/
 
-int DatagramDescriptor::GetCommInactivityTimeout (int *value)
+float DatagramDescriptor::GetCommInactivityTimeout()
 {
-  if (value) {
-    *value = InactivityTimeout;
-    return 1;
-  }
-  else {
-    // TODO, extended logging, got bad parameter.
-    return 0;  
-  }
+	return ((float)InactivityTimeout / 1000000LL);
 }
 
 /********************************************
 DatagramDescriptor::SetCommInactivityTimeout
 ********************************************/
 
-int DatagramDescriptor::SetCommInactivityTimeout (int *value)
+int DatagramDescriptor::SetCommInactivityTimeout (float value)
 {
-  int out = 0;
-
-  if (value) {
-    if ((*value==0) || (*value >= 2)) {
-      // Replace the value and send the old one back to the caller.
-      int v = *value;
-      *value = InactivityTimeout;
-      InactivityTimeout = v;
-      out = 1;
-    }
-    else {
-      // TODO, extended logging, got bad value.
-    }
-  }
-  else {
-    // TODO, extended logging, got bad parameter.
-  }
-
-  return out;
+	if (value > 0) {
+		InactivityTimeout = (Int64)(value * 1000000LL);
+		return 1;
+	}
+	return 0;
 }
 
 

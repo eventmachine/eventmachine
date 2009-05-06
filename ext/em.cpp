@@ -26,7 +26,7 @@ See the file COPYING for complete licensing information.
 // Keep a global variable floating around
 // with the current loop time as set by the Event Machine.
 // This avoids the need for frequent expensive calls to time(NULL);
-time_t gCurrentLoopTime;
+Int64 gCurrentLoopTime;
 
 #ifdef OS_WIN32
 unsigned gTickCountTickover;
@@ -97,7 +97,7 @@ EventMachine_t::EventMachine_t (void (*event_callback)(const char*, int, const c
 	gTerminateSignalReceived = false;
 	// Make sure the current loop time is sane, in case we do any initializations of
 	// objects before we start running.
-	gCurrentLoopTime = time(NULL);
+	_UpdateTime();
 
 	/* We initialize the network library here (only on Windows of course)
 	 * and initialize "loop breakers." Our destructor also does some network-level
@@ -344,6 +344,32 @@ void EventMachine_t::_InitializeLoopBreaker()
 	#endif
 }
 
+/***************************
+EventMachine_t::_UpdateTime
+***************************/
+
+void EventMachine_t::_UpdateTime()
+{
+	#ifdef OS_UNIX
+	struct timeval tv;
+	gettimeofday (&tv, NULL);
+	gCurrentLoopTime = (((Int64)(tv.tv_sec)) * 1000000LL) + ((Int64)(tv.tv_usec));
+	#endif
+
+	#ifdef OS_WIN32
+	unsigned tick = GetTickCount();
+	if (tick < gLastTickCount)
+		gTickCountTickover += 1;
+	gLastTickCount = tick;
+	gCurrentLoopTime = ((Int64)gTickCountTickover << 32) + (Int64)tick;
+	#endif
+
+	#ifndef OS_UNIX
+	#ifndef OS_WIN32
+	gCurrentLoopTime = (Int64)time(NULL) * 1000000LL;
+	#endif
+	#endif
+}
 
 /*******************
 EventMachine_t::Run
@@ -393,7 +419,7 @@ void EventMachine_t::Run()
 	#endif
 
 	while (true) {
-		gCurrentLoopTime = time(NULL);
+		_UpdateTime();
 		if (!_RunTimers())
 			break;
 
@@ -893,25 +919,11 @@ bool EventMachine_t::_RunTimers()
 	// Just keep inspecting and processing the list head until we hit
 	// one that hasn't expired yet.
 
-	#ifdef OS_UNIX
-	struct timeval tv;
-	gettimeofday (&tv, NULL);
-	Int64 now = (((Int64)(tv.tv_sec)) * 1000000LL) + ((Int64)(tv.tv_usec));
-	#endif
-
-	#ifdef OS_WIN32
-	unsigned tick = GetTickCount();
-	if (tick < gLastTickCount)
-		gTickCountTickover += 1;
-	gLastTickCount = tick;
-	Int64 now = ((Int64)gTickCountTickover << 32) + (Int64)tick;
-	#endif
-
 	while (true) {
 		multimap<Int64,Timer_t>::iterator i = Timers.begin();
 		if (i == Timers.end())
 			break;
-		if (i->first > now)
+		if (i->first > gCurrentLoopTime)
 			break;
 		if (EventCallback)
 			(*EventCallback) ("", EM_TIMER_FIRED, i->second.GetBinding().c_str(), i->second.GetBinding().length());

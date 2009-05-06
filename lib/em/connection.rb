@@ -421,7 +421,7 @@ module EventMachine
       EventMachine::get_subprocess_status @signature
     end
 
-    # comm_inactivity_timeout returns the current value (in seconds) of the inactivity-timeout
+    # comm_inactivity_timeout returns the current value (float in seconds) of the inactivity-timeout
     # property of network-connection and datagram-socket objects. A nonzero value
     # indicates that the connection or socket will automatically be closed if no read or write
     # activity takes place for at least that number of seconds.
@@ -436,13 +436,13 @@ module EventMachine
     end
 
     # comm_inactivity_timeout= allows you to set the inactivity-timeout property for
-    # a network connection or datagram socket. Specify a non-negative numeric value in seconds.
+    # a network connection or datagram socket. Specify a non-negative float value in seconds.
     # If the value is greater than zero, the connection or socket will automatically be closed
     # if no read or write activity takes place for at least that number of seconds.
     # Specify a value of zero to indicate that no automatic timeout should take place.
     # Zero is the default value.
     def set_comm_inactivity_timeout value
-      EventMachine::set_comm_inactivity_timeout @signature, value
+      EventMachine::set_comm_inactivity_timeout @signature, value.to_f
     end
 
     # Reconnect to a given host/port with the current EventMachine::Connection instance

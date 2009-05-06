@@ -368,10 +368,7 @@ t_get_comm_inactivity_timeout
 
 static VALUE t_get_comm_inactivity_timeout (VALUE self, VALUE signature)
 {
-	int timeout;
-	if (evma_get_comm_inactivity_timeout (StringValuePtr (signature), &timeout))
-		return INT2FIX (timeout);
-	return Qnil;
+	return rb_float_new(evma_get_comm_inactivity_timeout(StringValuePtr(signature)));
 }
 
 /*****************************
@@ -380,10 +377,10 @@ t_set_comm_inactivity_timeout
 
 static VALUE t_set_comm_inactivity_timeout (VALUE self, VALUE signature, VALUE timeout)
 {
-	int ti = FIX2INT (timeout);
-	if (evma_set_comm_inactivity_timeout (StringValuePtr (signature), &ti));
+	float ti = RFLOAT(timeout)->value;
+	if (evma_set_comm_inactivity_timeout (StringValuePtr (signature), ti));
 		return Qtrue;
-	return Qnil;
+	return Qfalse;
 }
 
 

@@ -444,22 +444,22 @@ extern "C" const char *evma__write_file (const char *filename)
 evma_get_comm_inactivity_timeout
 ********************************/
 
-extern "C" int evma_get_comm_inactivity_timeout (const char *binding, int *value)
+extern "C" float evma_get_comm_inactivity_timeout (const char *binding)
 {
 	ensure_eventmachine("evma_get_comm_inactivity_timeout");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed) {
-		return ed->GetCommInactivityTimeout (value);
+		return ed->GetCommInactivityTimeout();
 	}
 	else
-		return 0; //Perhaps this should be an exception. Access to an unknown binding.
+		return 0.0; //Perhaps this should be an exception. Access to an unknown binding.
 }
 
 /********************************
 evma_set_comm_inactivity_timeout
 ********************************/
 
-extern "C" int evma_set_comm_inactivity_timeout (const char *binding, int *value)
+extern "C" int evma_set_comm_inactivity_timeout (const char *binding, float value)
 {
 	ensure_eventmachine("evma_set_comm_inactivity_timeout");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));

@@ -73,10 +73,8 @@ class EventableDescriptor: public Bindable_t
 		virtual X509 *GetPeerCert() {return NULL;}
 		#endif
 
-		// Properties: return 0/1 to signify T/F, and handle the values
-		// through arguments.
-		virtual int GetCommInactivityTimeout (int *value) {return 0;}
-		virtual int SetCommInactivityTimeout (int *value) {return 0;}
+		virtual float GetCommInactivityTimeout() {return 0.0;}
+		virtual int SetCommInactivityTimeout (float value) {return 0;}
 
 		#ifdef HAVE_EPOLL
 		struct epoll_event *GetEpollEvent() { return &EpollEvent; }
@@ -96,14 +94,13 @@ class EventableDescriptor: public Bindable_t
 			//
 			// updating to 50 seconds, so we catch it before the OS does
 
-			PendingConnectTimeout = 50 // can easily be made an instance variable
+			// can easily be made an instance variable
+			PendingConnectTimeout = 50000000 // now in usec
 		};
 
 		void (*EventCallback)(const char*, int, const char*, int);
-    
-		time_t CreatedAt;
-		time_t LastRead;
-		time_t LastWritten;
+
+		Int64 CreatedAt;
 		bool bCallbackUnbind;
 		int UnbindReasonCode;
 
@@ -180,8 +177,8 @@ class ConnectionDescriptor: public EventableDescriptor
 		virtual bool GetPeername (struct sockaddr*);
 		virtual bool GetSockname (struct sockaddr*);
 
-		virtual int GetCommInactivityTimeout (int *value);
-		virtual int SetCommInactivityTimeout (int *value);
+		virtual float GetCommInactivityTimeout();
+		virtual int SetCommInactivityTimeout (float value);
 
 
 	protected:
@@ -219,7 +216,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		bool bGotExtraKqueueEvent;
 		#endif
 
-		time_t LastIo;
+		Int64 LastIo;
 		int InactivityTimeout;
 
 	private:
@@ -259,8 +256,8 @@ class DatagramDescriptor: public EventableDescriptor
 		virtual bool GetPeername (struct sockaddr*);
 		virtual bool GetSockname (struct sockaddr*);
 
-    virtual int GetCommInactivityTimeout (int *value);
-    virtual int SetCommInactivityTimeout (int *value);
+    virtual float GetCommInactivityTimeout();
+    virtual int SetCommInactivityTimeout (float value);
 
 		static int SendDatagram (const char*, const char*, int, const char*, int);
 
@@ -280,7 +277,7 @@ class DatagramDescriptor: public EventableDescriptor
 
 		struct sockaddr_in ReturnAddress;
 
-		time_t LastIo;
+		Int64 LastIo;
 		int InactivityTimeout;
 };
 
@@ -341,7 +338,7 @@ class PipeDescriptor: public EventableDescriptor
 
 	protected:
 		bool bReadAttemptedAfterClose;
-		time_t LastIo;
+		Int64 LastIo;
 		int InactivityTimeout;
 
 		deque<OutboundPage> OutboundPages;
@@ -374,7 +371,7 @@ class KeyboardDescriptor: public EventableDescriptor
 
 	protected:
 		bool bReadAttemptedAfterClose;
-		time_t LastIo;
+		Int64 LastIo;
 		int InactivityTimeout;
 
 	private:

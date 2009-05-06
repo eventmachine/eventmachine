@@ -68,8 +68,8 @@ extern "C" {
 	int evma_get_connection_count();
 	int evma_send_data_to_connection (const char *binding, const char *data, int data_length);
 	int evma_send_datagram (const char *binding, const char *data, int data_length, const char *address, int port);
-	int evma_get_comm_inactivity_timeout (const char *binding, /*out*/int *value);
-	int evma_set_comm_inactivity_timeout (const char *binding, /*in,out*/int *value);
+	float evma_get_comm_inactivity_timeout (const char *binding);
+	int evma_set_comm_inactivity_timeout (const char *binding, float value);
 	int evma_get_outbound_data_size (const char *binding);
 	int evma_send_file_data_to_connection (const char *binding, const char *filename);
 

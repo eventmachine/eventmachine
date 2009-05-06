@@ -164,7 +164,6 @@ void PipeDescriptor::Read()
 
 		if (r > 0) {
 			total_bytes_read += r;
-			LastRead = gCurrentLoopTime;
 
 			// Add a null-terminator at the the end of the buffer
 			// that we will send to the callback.
