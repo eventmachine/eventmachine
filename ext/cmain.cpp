@@ -636,3 +636,28 @@ extern "C" int evma_send_file_data_to_connection (const char *binding, const cha
 	return 0;
 }
 
+
+/****************
+evma_start_proxy
+*****************/
+
+extern "C" void evma_start_proxy (const char *from, const char *to)
+{
+	ensure_eventmachine("evma_start_proxy");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (from));
+	if (ed)
+		ed->StartProxy(to);
+}
+
+
+/***************
+evma_stop_proxy
+****************/
+
+extern "C" void evma_stop_proxy (const char *from)
+{
+	ensure_eventmachine("evma_stop_proxy");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (from));
+	if (ed)
+		ed->StopProxy();
+}

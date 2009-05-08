@@ -126,6 +126,25 @@ module EventMachine
     def unbind
     end
 
+    # EventMachine::Connection#proxy_target_unbound is called by the reactor after attempting
+    # to relay incoming data to a descriptor (set as a proxy target descriptor with
+    # EventMachine::enable_proxy) that has already been closed.
+    def proxy_target_unbound
+    end
+
+    # EventMachine::Connection#proxy_incoming_to is called only by user code. It sets up
+    # a low-level proxy relay for all data inbound for this connection, to the connection given
+    # as the argument. This is essentially just a helper method for enable_proxy.
+    # See EventMachine::enable_proxy documentation for details.
+    def proxy_incoming_to(conn)
+      EventMachine::enable_proxy(self, conn)
+    end
+
+    # Helper method for EventMachine::disable_proxy(self)
+    def stop_proxying
+      EventMachine::disable_proxy(self)
+    end
+
     # EventMachine::Connection#close_connection is called only by user code, and never
     # by the event loop. You may call this method against a connection object in any
     # callback handler, whether or not the callback was made against the connection

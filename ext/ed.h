@@ -80,6 +80,9 @@ class EventableDescriptor: public Bindable_t
 		struct epoll_event *GetEpollEvent() { return &EpollEvent; }
 		#endif
 
+		virtual void StartProxy(const char*);
+		virtual void StopProxy();
+
 	private:
 		bool bCloseNow;
 		bool bCloseAfterWriting;
@@ -99,10 +102,12 @@ class EventableDescriptor: public Bindable_t
 		};
 
 		void (*EventCallback)(const char*, int, const char*, int);
+		void _GenericInboundDispatch(const char*, int);
 
 		Int64 CreatedAt;
 		bool bCallbackUnbind;
 		int UnbindReasonCode;
+		char *ProxyTarget;
 
 		#ifdef HAVE_EPOLL
 		struct epoll_event EpollEvent;

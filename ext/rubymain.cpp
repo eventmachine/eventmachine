@@ -46,6 +46,7 @@ static VALUE Intern_ssl_handshake_completed;
 static VALUE Intern_ssl_verify_peer;
 static VALUE Intern_notify_readable;
 static VALUE Intern_notify_writable;
+static VALUE Intern_proxy_target_unbound;
 
 static VALUE rb_cProcStatus;
 
@@ -120,6 +121,13 @@ static void event_callback (struct em_event* e)
 			evma_accept_ssl_peer (a1);
 	}
 	#endif
+	else if (a2 == EM_PROXY_TARGET_UNBOUND) {
+		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
+		VALUE q = rb_hash_aref (t, rb_str_new2(a1));
+		if (q == Qnil)
+			rb_raise (EM_eConnectionNotBound, "unknown connection: %s", a1);
+		rb_funcall (q, Intern_proxy_target_unbound, 0);
+	}
 	else
 		rb_funcall (EmModule, Intern_event_callback, 3, rb_str_new2(a1), (a2 << 1) | 1, rb_str_new(a3,a4));
 }
@@ -867,6 +875,28 @@ static VALUE t_get_loop_time (VALUE self)
 }
 
 
+/*************
+t_start_proxy
+**************/
+
+static VALUE t_start_proxy (VALUE self, VALUE from, VALUE to)
+{
+	evma_start_proxy(StringValuePtr(from), StringValuePtr(to));
+	return Qnil;
+}
+
+
+/************
+t_stop_proxy
+*************/
+
+static VALUE t_stop_proxy (VALUE self, VALUE from)
+{
+	evma_stop_proxy(StringValuePtr(from));
+	return Qnil;
+}
+
+
 /*********************
 Init_rubyeventmachine
 *********************/
@@ -892,6 +922,7 @@ extern "C" void Init_rubyeventmachine()
 	Intern_ssl_verify_peer = rb_intern ("ssl_verify_peer");
 	Intern_notify_readable = rb_intern ("notify_readable");
 	Intern_notify_writable = rb_intern ("notify_writable");
+	Intern_proxy_target_unbound = rb_intern ("proxy_target_unbound");
 
 	// INCOMPLETE, we need to define class Connections inside module EventMachine
 	// run_machine and run_machine_without_threads are now identical.
@@ -923,6 +954,9 @@ extern "C" void Init_rubyeventmachine()
 
 	rb_define_module_function (EmModule, "attach_fd", (VALUE (*)(...))t_attach_fd, 3);
 	rb_define_module_function (EmModule, "detach_fd", (VALUE (*)(...))t_detach_fd, 1);
+
+	rb_define_module_function (EmModule, "start_proxy", (VALUE (*)(...))t_start_proxy, 2);
+	rb_define_module_function (EmModule, "stop_proxy", (VALUE (*)(...))t_stop_proxy, 1);
 
 	rb_define_module_function (EmModule, "watch_filename", (VALUE (*)(...))t_watch_filename, 1);
 	rb_define_module_function (EmModule, "unwatch_filename", (VALUE (*)(...))t_unwatch_filename, 1);

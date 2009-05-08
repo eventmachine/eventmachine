@@ -50,6 +50,7 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	EventCallback (NULL),
 	bCallbackUnbind (true),
 	UnbindReasonCode (0),
+	ProxyTarget(NULL),
 	MyEventMachine (em)
 {
 	/* There are three ways to close a socket, all of which should
@@ -93,6 +94,7 @@ EventableDescriptor::~EventableDescriptor()
 {
 	if (EventCallback && bCallbackUnbind)
 		(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_UNBOUND, NULL, UnbindReasonCode);
+	StopProxy();
 	Close();
 }
 
@@ -163,6 +165,52 @@ bool EventableDescriptor::IsCloseScheduled()
 {
 	// KEEP THIS SYNCHRONIZED WITH ::ScheduleClose.
 	return (bCloseNow || bCloseAfterWriting);
+}
+
+
+/*******************************
+EventableDescriptor::StartProxy
+*******************************/
+
+void EventableDescriptor::StartProxy(const char *to)
+{
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (to));
+	if (ed) {
+		StopProxy();
+		ProxyTarget = strdup(to);
+		return;
+	}
+	throw std::runtime_error ("Tried to proxy to an invalid descriptor");
+}
+
+
+/******************************
+EventableDescriptor::StopProxy
+******************************/
+
+void EventableDescriptor::StopProxy()
+{
+	if (ProxyTarget) {
+		free(ProxyTarget);
+		ProxyTarget = NULL;
+	}
+}
+
+
+/********************************************
+EventableDescriptor::_GenericInboundDispatch
+********************************************/
+
+void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
+{
+	assert(EventCallback);
+
+	if (!ProxyTarget)
+		(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_READ, buf, size);
+	else if (ConnectionDescriptor::SendDataToConnection(ProxyTarget, buf, size) == -1) {
+		(*EventCallback)(GetBinding().c_str(), EM_PROXY_TARGET_UNBOUND, NULL, 0);
+		StopProxy();
+	}
 }
 
 
@@ -553,8 +601,7 @@ void ConnectionDescriptor::_DispatchInboundData (const char *buffer, int size)
 		while ((s = SslBox->GetPlaintext (B, sizeof(B) - 1)) > 0) {
 			_CheckHandshakeStatus();
 			B [s] = 0;
-			if (EventCallback)
-				(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_READ, B, s);
+			_GenericInboundDispatch(B, s);
 		}
 
 		// If our SSL handshake had a problem, shut down the connection.
@@ -567,14 +614,12 @@ void ConnectionDescriptor::_DispatchInboundData (const char *buffer, int size)
 		_DispatchCiphertext();
 	}
 	else {
-			if (EventCallback)
-				(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_READ, buffer, size);
+		_GenericInboundDispatch(buffer, size);
 	}
 	#endif
 
 	#ifdef WITHOUT_SSL
-	if (EventCallback)
-		(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_READ, buffer, size);
+	_GenericInboundDispatch(buffer, size);
 	#endif
 }
 
@@ -1323,8 +1368,7 @@ void DatagramDescriptor::Read()
 			memset (&ReturnAddress, 0, sizeof(ReturnAddress));
 			memcpy (&ReturnAddress, &sin, slen);
 
-			if (EventCallback)
-				(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_READ, readbuffer, r);
+			_GenericInboundDispatch(readbuffer, r);
 
 		}
 		else {

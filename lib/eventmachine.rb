@@ -1377,6 +1377,69 @@ module EventMachine
     end
   end
 
+  # enable_proxy allows for direct writing of incoming data back out to another descriptor, at the C++ level in the reactor.
+  # This is especially useful for proxies where high performance is required. Propogating data from a server response
+  # all the way up to Ruby, and then back down to the reactor to be sent back to the client, is often unnecessary and
+  # incurs a significant performance decrease.
+  #
+  # The two arguments are Connections, 'from' and 'to'. 'from' is the connection whose inbound data you want
+  # relayed back out. 'to' is the connection to write it to.
+  #
+  # Once you call this method, the 'from' connection will no longer get receive_data callbacks from the reactor,
+  # except in the case that 'to' connection has already closed when attempting to write to it. You can see
+  # in the example, that proxy_target_unbound will be called when this occurs. After that, further incoming
+  # data will be passed into receive_data as normal.
+  #
+  # Note also that this feature supports different types of descriptors - TCP, UDP, and pipes. You can relay
+  # data from one kind to another.
+  #
+  # Example:
+  #
+  #  module ProxyConnection
+  #    def initialize(client, request)
+  #      @client, @request = client, request
+  #    end
+  #
+  #    def post_init
+  #      EM::enable_proxy(self, @client)
+  #    end
+  #
+  #    def connection_completed
+  #      send_data @request
+  #    end
+  #
+  #    def proxy_target_unbound
+  #      close_connection
+  #    end
+  #
+  #    def unbind
+  #      @client.close_connection_after_writing
+  #    end
+  #  end
+  #
+  #  module ProxyServer
+  #    def receive_data(data)
+  #      (@buf ||= "") << data
+  #      if @buf =~ /\r\n\r\n/ # all http headers received
+  #        EM.connect("10.0.0.15", 80, ProxyConnection, self, data)
+  #      end
+  #    end
+  #  end
+  #
+  #  EM.run {
+  #    EM.start_server("127.0.0.1", 8080, ProxyServer)
+  #  }
+  def self.enable_proxy(from, to)
+    EM::start_proxy(from.signature, to.signature)
+  end
+
+  # disable_proxy takes just one argument, a Connection that has proxying enabled via enable_proxy.
+  # Calling this method will remove that functionality and your connection will begin receiving
+  # data via receive_data again.
+  def self.disable_proxy(from)
+    EM::stop_proxy(from.signature)
+  end
+
   private
 
   def self.event_callback conn_binding, opcode, data # :nodoc:

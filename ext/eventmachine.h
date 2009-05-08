@@ -34,7 +34,8 @@ extern "C" {
 		EM_CONNECTION_NOTIFY_READABLE = 106,
 		EM_CONNECTION_NOTIFY_WRITABLE = 107,
 		EM_SSL_HANDSHAKE_COMPLETED = 108,
-		EM_SSL_VERIFY = 109
+		EM_SSL_VERIFY = 109,
+		EM_PROXY_TARGET_UNBOUND = 110
 
 	};
 
@@ -90,6 +91,9 @@ extern "C" {
 
 	const char *evma_watch_pid (int);
 	void evma_unwatch_pid (const char *sig);
+
+	void evma_start_proxy(const char*, const char*);
+	void evma_stop_proxy(const char*);
 
 	int evma_set_rlimit_nofile (int n_files);
 

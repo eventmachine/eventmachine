@@ -172,8 +172,7 @@ void PipeDescriptor::Read()
 			// the option to do some things faster. Additionally it's
 			// a security guard against buffer overflows.
 			readbuffer [r] = 0;
-			if (EventCallback)
-				(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_READ, readbuffer, r);
+			_GenericInboundDispatch(readbuffer, r);
 			}
 		else if (r == 0) {
 			break;

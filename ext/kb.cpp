@@ -77,6 +77,5 @@ void KeyboardDescriptor::Read()
 {
 	char c;
 	read (GetSocket(), &c, 1);
-	if (EventCallback)
-		(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_READ, &c, 1);
+	_GenericInboundDispatch(&c, 1);
 }
