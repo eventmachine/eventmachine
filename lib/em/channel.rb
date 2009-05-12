@@ -39,6 +39,16 @@ module EventMachine
     end
     alias << push
 
+    # Receive exactly one message from the channel.
+    def pop(*a, &b)
+      EM.schedule {
+        name = subscribe do |*args|
+          unsubscribe(name)
+          EM::Callback(*a, &b).call(*args)
+        end
+      }
+    end
+
     private
     def gen_id # :nodoc:
       @uid += 1

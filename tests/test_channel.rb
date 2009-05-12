@@ -25,6 +25,18 @@ class TestEventMachineChannel < Test::Unit::TestCase
     assert_not_equal 1, s
   end
 
+  def test_channel_pop
+    s = 0
+    EM.run do
+      c = EM::Channel.new
+      c.pop{ |v| s = v }
+      c << 1
+      c << 2
+      EM.next_tick { EM.stop }
+    end
+    assert_equal 1, s
+  end
+
   def test_channel_reactor_thread_push
     out = []
     c = EM::Channel.new
