@@ -21,7 +21,9 @@ See the file COPYING for complete licensing information.
 #include "eventmachine.h"
 #include <ruby.h>
 
-
+#ifndef RFLOAT_VALUE
+#define RFLOAT_VALUE(arg) RFLOAT(arg)->value
+#endif
 
 /*******
 Statics
@@ -385,7 +387,7 @@ t_set_comm_inactivity_timeout
 
 static VALUE t_set_comm_inactivity_timeout (VALUE self, VALUE signature, VALUE timeout)
 {
-	float ti = RFLOAT(timeout)->value;
+	float ti = RFLOAT_VALUE(timeout);
 	if (evma_set_comm_inactivity_timeout (StringValuePtr (signature), ti));
 		return Qtrue;
 	return Qfalse;
