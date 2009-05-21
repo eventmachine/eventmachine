@@ -69,6 +69,11 @@ when /darwin/
 when /linux/
   # on Unix we need a g++ link, not gcc.
   CONFIG['LDSHARED'] = "$(CXX) -shared"
+
+when /aix/
+  # on Unix we need a g++ link, not gcc.
+  CONFIG['LDSHARED'] = "$(CXX) -shared -Wl,-G"
+
 else
   # on Unix we need a g++ link, not gcc.
   CONFIG['LDSHARED'] = "$(CXX) -shared"

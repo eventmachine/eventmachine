@@ -69,9 +69,16 @@ typedef int SOCKET;
 #ifndef INADDR_NONE
 #define INADDR_NONE ((unsigned long)-1)
 #endif
-#endif
-#endif
+#endif /* OS_SOLARIS8 */
 
+#ifdef _AIX
+#include <strings.h>
+#ifndef AF_LOCAL
+#define AF_LOCAL AF_UNIX
+#endif
+#endif /* _AIX */
+
+#endif /* OS_UNIX */
 
 #ifdef OS_WIN32
 #define WIN32_LEAN_AND_MEAN
