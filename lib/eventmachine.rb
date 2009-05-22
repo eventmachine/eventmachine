@@ -1440,6 +1440,20 @@ module EventMachine
     EM::stop_proxy(from.signature)
   end
 
+  # Retrieve the heartbeat interval. This is how often EventMachine will check for dead connections
+  # that have had an InactivityTimeout set via Connection#set_comm_inactivity_timeout.
+  # Default is 2 seconds.
+  def self.heartbeat_interval
+    EM::get_heartbeat_interval
+  end
+
+  # Set the heartbeat interval. This is how often EventMachine will check for dead connections
+  # that have had an InactivityTimeout set via Connection#set_comm_inactivity_timeout.
+  # Takes a Numeric number of seconds. Default is 2.
+  def self.heartbeat_interval= (time)
+    EM::set_heartbeat_interval time.to_f
+  end
+
   private
 
   def self.event_callback conn_binding, opcode, data # :nodoc:

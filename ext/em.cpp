@@ -88,7 +88,8 @@ EventMachine_t::EventMachine_t (void (*event_callback)(const char*, int, const c
 	bKqueue (false),
 	kqfd (-1),
 	epfd (-1),
-	inotify (NULL)
+	inotify (NULL),
+	HeartbeatInterval(2)
 {
 	// Default time-slice is just smaller than one hundred mills.
 	Quantum.tv_sec = 0;
@@ -2239,5 +2240,28 @@ void EventMachine_t::_RegisterKqueueFileEvent(int fd)
 #endif
 
 
+/************************************
+EventMachine_t::GetHeartbeatInterval
+*************************************/
+
+float EventMachine_t::GetHeartbeatInterval()
+{
+	return ((float)HeartbeatInterval / 1000000LL);
+}
+
+
+/************************************
+EventMachine_t::SetHeartbeatInterval
+*************************************/
+
+int EventMachine_t::SetHeartbeatInterval(float interval)
+{
+	int iv = (int)(interval * 1000000LL);
+	if (iv > 0) {
+		HeartbeatInterval = iv;
+		return 1;
+	}
+	return 0;
+}
 //#endif // OS_UNIX
 

@@ -82,6 +82,8 @@ extern "C" {
 	void evma_set_max_timer_count (int);
 	void evma_setuid_string (const char *username);
 	void evma_stop_machine();
+	float evma_get_heartbeat_interval();
+	int evma_set_heartbeat_interval(float);
 
 	const char *evma__write_file (const char *filename);
 	const char *evma_popen (char * const*cmd_strings);

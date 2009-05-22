@@ -899,6 +899,29 @@ static VALUE t_stop_proxy (VALUE self, VALUE from)
 }
 
 
+/************************
+t_get_heartbeat_interval
+*************************/
+
+static VALUE t_get_heartbeat_interval (VALUE self)
+{
+	return rb_float_new(evma_get_heartbeat_interval());
+}
+
+
+/************************
+t_set_heartbeat_interval
+*************************/
+
+static VALUE t_set_heartbeat_interval (VALUE self, VALUE interval)
+{
+	float iv = RFLOAT_VALUE(interval);
+	if (evma_set_heartbeat_interval(iv))
+		return Qtrue;
+	return Qfalse;
+}
+
+
 /*********************
 Init_rubyeventmachine
 *********************/
@@ -980,6 +1003,8 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "setuid_string", (VALUE(*)(...))t_setuid_string, 1);
 	rb_define_module_function (EmModule, "invoke_popen", (VALUE(*)(...))t_invoke_popen, 1);
 	rb_define_module_function (EmModule, "send_file_data", (VALUE(*)(...))t_send_file_data, 2);
+	rb_define_module_function (EmModule, "get_heartbeat_interval", (VALUE(*)(...))t_get_heartbeat_interval, 0);
+	rb_define_module_function (EmModule, "set_heartbeat_interval", (VALUE(*)(...))t_set_heartbeat_interval, 1);
 
 	// Provisional:
 	rb_define_module_function (EmModule, "_write_file", (VALUE(*)(...))t__write_file, 1);

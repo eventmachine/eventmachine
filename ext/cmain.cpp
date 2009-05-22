@@ -661,3 +661,25 @@ extern "C" void evma_stop_proxy (const char *from)
 	if (ed)
 		ed->StopProxy();
 }
+
+
+/***************************
+evma_get_heartbeat_interval
+****************************/
+
+extern "C" float evma_get_heartbeat_interval()
+{
+	ensure_eventmachine("evma_get_heartbeat_interval");
+	return EventMachine->GetHeartbeatInterval();
+}
+
+
+/***************************
+evma_set_heartbeat_interval
+****************************/
+
+extern "C" int evma_set_heartbeat_interval(float interval)
+{
+	ensure_eventmachine("evma_set_heartbeat_interval");
+	return EventMachine->SetHeartbeatInterval(interval);
+}

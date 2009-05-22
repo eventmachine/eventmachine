@@ -271,5 +271,15 @@ class TestBasic < Test::Unit::TestCase
     end
     assert x
   end
+
+  def test_set_heartbeat_interval
+    interval = 0.5
+    EM.run {
+      EM.set_heartbeat_interval interval
+      $interval = EM.get_heartbeat_interval
+      EM.stop
+    }
+    assert_equal(interval, $interval)
+  end
 end
 

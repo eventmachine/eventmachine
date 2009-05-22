@@ -109,6 +109,8 @@ class EventMachine_t
 		int SubprocessExitStatus;
 
 		int GetConnectionCount();
+		float GetHeartbeatInterval();
+		int SetHeartbeatInterval(float);
 
 		const char *WatchFile (const char*);
 		void UnwatchFile (int);
@@ -154,10 +156,10 @@ class EventMachine_t
 
 	private:
 		enum {
-			HeartbeatInterval = 2,
 			MaxEpollDescriptors = 64*1024,
 			MaxEvents = 4096
 		};
+		int HeartbeatInterval;
 		void (*EventCallback)(const char*, int, const char*, int);
 
 		class Timer_t: public Bindable_t {
