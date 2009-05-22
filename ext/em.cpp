@@ -351,24 +351,20 @@ EventMachine_t::_UpdateTime
 
 void EventMachine_t::_UpdateTime()
 {
-	#ifdef OS_UNIX
+	#if defined(OS_UNIX)
 	struct timeval tv;
 	gettimeofday (&tv, NULL);
 	gCurrentLoopTime = (((Int64)(tv.tv_sec)) * 1000000LL) + ((Int64)(tv.tv_usec));
-	#endif
 
-	#ifdef OS_WIN32
+	#elif defined(OS_WIN32)
 	unsigned tick = GetTickCount();
 	if (tick < gLastTickCount)
 		gTickCountTickover += 1;
 	gLastTickCount = tick;
 	gCurrentLoopTime = ((Int64)gTickCountTickover << 32) + (Int64)tick;
-	#endif
 
-	#ifndef OS_UNIX
-	#ifndef OS_WIN32
+	#else
 	gCurrentLoopTime = (Int64)time(NULL) * 1000000LL;
-	#endif
 	#endif
 }
 
@@ -2246,7 +2242,7 @@ EventMachine_t::GetHeartbeatInterval
 
 float EventMachine_t::GetHeartbeatInterval()
 {
-	return ((float)HeartbeatInterval / 1000000LL);
+	return ((float)HeartbeatInterval / 1000000);
 }
 
 
@@ -2256,7 +2252,7 @@ EventMachine_t::SetHeartbeatInterval
 
 int EventMachine_t::SetHeartbeatInterval(float interval)
 {
-	int iv = (int)(interval * 1000000LL);
+	int iv = (int)(interval * 1000000);
 	if (iv > 0) {
 		HeartbeatInterval = iv;
 		return 1;

@@ -1598,7 +1598,7 @@ ConnectionDescriptor::GetCommInactivityTimeout
 
 float ConnectionDescriptor::GetCommInactivityTimeout()
 {
-	return ((float)InactivityTimeout / 1000000LL);
+	return ((float)InactivityTimeout / 1000000);
 }
 
 
@@ -1609,7 +1609,7 @@ ConnectionDescriptor::SetCommInactivityTimeout
 int ConnectionDescriptor::SetCommInactivityTimeout (float value)
 {
 	if (value > 0) {
-		InactivityTimeout = (Int64)(value * 1000000LL);
+		InactivityTimeout = (Int64)(value * 1000000);
 		return 1;
 	}
 	return 0;
@@ -1654,7 +1654,7 @@ DatagramDescriptor::GetCommInactivityTimeout
 
 float DatagramDescriptor::GetCommInactivityTimeout()
 {
-	return ((float)InactivityTimeout / 1000000LL);
+	return ((float)InactivityTimeout / 1000000);
 }
 
 /********************************************
@@ -1664,7 +1664,7 @@ DatagramDescriptor::SetCommInactivityTimeout
 int DatagramDescriptor::SetCommInactivityTimeout (float value)
 {
 	if (value > 0) {
-		InactivityTimeout = (Int64)(value * 1000000LL);
+		InactivityTimeout = (Int64)(value * 1000000);
 		return 1;
 	}
 	return 0;
