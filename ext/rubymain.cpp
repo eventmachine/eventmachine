@@ -870,8 +870,9 @@ static VALUE t_get_loop_time (VALUE self)
   if (gCurrentLoopTime != 0) {
     return rb_funcall(cTime,
                       rb_intern("at"),
-                      1,
-                      INT2NUM(gCurrentLoopTime));
+                      2,
+                      INT2NUM(gCurrentLoopTime / 1000000),
+                      INT2NUM(gCurrentLoopTime % 1000000));
   }
   return Qnil;
 }
