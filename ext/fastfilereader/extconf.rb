@@ -55,6 +55,7 @@ when /solaris/
     # on Unix we need a g++ link, not gcc.
     CONFIG['LDSHARED'] = "$(CXX) -shared"
   end
+
 when /openbsd/
   # OpenBSD branch contributed by Guillaume Sellier.
 
@@ -66,7 +67,6 @@ when /darwin/
   CONFIG['LDSHARED'] = "$(CXX) " + CONFIG['LDSHARED'].split[1..-1].join(' ')
 
 when /linux/
-
   # on Unix we need a g++ link, not gcc.
   CONFIG['LDSHARED'] = "$(CXX) -shared"
 else

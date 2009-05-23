@@ -70,25 +70,25 @@ when /openbsd/
   CONFIG['LDSHARED'] = "$(CXX) -shared -lstdc++"
 
 when /darwin/
-
   # on Unix we need a g++ link, not gcc.
   # Ff line contributed by Daniel Harple.
   CONFIG['LDSHARED'] = "$(CXX) " + CONFIG['LDSHARED'].split[1..-1].join(' ')
 
 when /linux/
+  add_define 'HAVE_EPOLL' if have_func('epoll_create', 'sys/epoll.h')
 
   # Original epoll test is inadequate because 2.4 kernels have the header
   # but not the code.
   # add_define 'HAVE_EPOLL' if have_header('sys/epoll.h')
-  if have_header('sys/epoll.h')
-    File.open("hasEpollTest.c", "w") {|f|
-      f.puts "#include <sys/epoll.h>"
-      f.puts "int main() { epoll_create(1024); return 0;}"
-    }
-    (e = system( "gcc hasEpollTest.c -o hasEpollTest " )) and (e = $?.to_i)
-    `rm -f hasEpollTest.c hasEpollTest`
-    add_define 'HAVE_EPOLL' if e == 0
-  end
+  # if have_header('sys/epoll.h')
+  #   File.open("hasEpollTest.c", "w") {|f|
+  #     f.puts "#include <sys/epoll.h>"
+  #     f.puts "int main() { epoll_create(1024); return 0;}"
+  #   }
+  #   (e = system( "gcc hasEpollTest.c -o hasEpollTest " )) and (e = $?.to_i)
+  #   `rm -f hasEpollTest.c hasEpollTest`
+  #   add_define 'HAVE_EPOLL' if e == 0
+  # end
 
   # on Unix we need a g++ link, not gcc.
   CONFIG['LDSHARED'] = "$(CXX) -shared"
