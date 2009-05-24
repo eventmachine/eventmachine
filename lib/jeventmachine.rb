@@ -88,7 +88,7 @@ module EventMachine
     bind_connect_server nil, nil, server, port
   end
   def self.bind_connect_server bind_addr, bind_port, server, port
-    @em.connectTcpServer bind_addr, bind_port, server, port
+    @em.connectTcpServer bind_addr, bind_port.to_i, server, port
   end
   def self.close_connection sig, after_writing
     @em.closeConnection sig, after_writing
