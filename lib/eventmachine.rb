@@ -381,19 +381,18 @@ module EventMachine
   def self.add_periodic_timer *args, &block
     interval = args.shift
     code = args.shift || block
-    if code
-      block_1 = proc {
-        code.call
-        EventMachine::add_periodic_timer interval, code
-      }
-      add_timer interval, block_1
-    end
+
+    EventMachine::PeriodicTimer.new(interval, code)
   end
 
   # Cancel a timer using its signature. You can also use EventMachine::Timer#cancel
   #
-  def self.cancel_timer signature
-    @timers[signature] = false if @timers.has_key?(signature)
+  def self.cancel_timer timer_or_sig
+    if timer_or_sig.respond_to? :cancel
+      timer_or_sig.cancel
+    else
+      @timers[timer_or_sig] = false if @timers.has_key?(timer_or_sig)
+    end
   end
 
 

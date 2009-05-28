@@ -74,12 +74,33 @@ class TestTimers < Test::Unit::TestCase
     assert( x == 4 )
   end
 
+  def test_add_periodic_timer
+    x = 0
+    EM.run {
+      t = EM.add_periodic_timer(0.1) do
+        x += 1
+        EM.stop  if x == 4
+      end
+      assert t.respond_to?(:cancel)
+    }
+  end
+
   def test_periodic_timer_cancel
     x = 0
     EventMachine.run {
       pt = EventMachine::PeriodicTimer.new(0.25, proc { x += 1 })
       pt.cancel
       EventMachine::Timer.new(0.5) {EventMachine.stop}
+    }
+    assert( x == 0 )
+  end
+
+  def test_add_periodic_timer_cancel
+    x = 0
+    EventMachine.run {
+      pt = EM.add_periodic_timer(0.25) { x += 1 }
+      EM.cancel_timer(pt)
+      EM.add_timer(0.5) { EM.stop }
     }
     assert( x == 0 )
   end
