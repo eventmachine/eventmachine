@@ -246,7 +246,11 @@ module EventMachine
         ensure
           if @threadpool
             @threadpool.each { |t| t.exit }
-            @threadpool.each { |t| t.kill! if t.alive? }
+            @threadpool.each do |t|
+              next unless t.alive?
+              # ruby 1.9 has no kill!
+              t.respond_to?(:kill!) ? t.kill! : t.kill
+            end
             @threadqueue = nil
             @resultqueue = nil
           end
