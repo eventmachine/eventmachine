@@ -243,17 +243,25 @@ module EventMachine
 
     raise @wrapped_exception if @wrapped_exception
   end
-  
+
   def self.start_crank
     ruby_setup
     _start_crank
   end
-  
+
   def self.stop_crank
     _stop_crank
     ruby_teardown
   end
-  
+
+  def self.crank_until(timeout = nil)
+    timedout = false
+    crank_until_timer = Timer.new(timeout) { timedout = true } if timeout
+    EM.crank until timedout || yield
+    crank_until_timer && crank_until_timer.cancel
+    !timedout
+  end
+
   def self.ruby_setup
     @conns = {}
     @acceptors = {}
@@ -266,7 +274,7 @@ module EventMachine
     end
     @reactor_thread = Thread.current
   end
-  # private_module_method :ruby_setup
+  private_class_method :ruby_setup
   
   
   def self.ruby_teardown
@@ -287,7 +295,7 @@ module EventMachine
     @reactor_running = false
     @reactor_thread = nil
   end
-  # private_module_method :ruby_cleanup
+  private_class_method :ruby_teardown
 
   # Sugars a common use case. Will pass the given block to #run, but will terminate
   # the reactor loop and exit the function as soon as the code in the block completes.
