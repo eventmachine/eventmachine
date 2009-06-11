@@ -226,48 +226,68 @@ module EventMachine
 
     if reactor_running?
       (b = blk || block) and b.call # next_tick(b)
-    else
-      @conns = {}
-      @acceptors = {}
-      @timers = {}
-      @wrapped_exception = nil
-      begin
-        @reactor_running = true
-        initialize_event_machine
-        (b = blk || block) and add_timer(0, b)
-        if @next_tick_queue && !@next_tick_queue.empty?
-          add_timer(0) { signal_loopbreak }
-        end
-        @reactor_thread = Thread.current
-        run_machine
-      ensure
-        begin
-          release_machine
-        ensure
-          if @threadpool
-            @threadpool.each { |t| t.exit }
-            @threadpool.each do |t|
-              next unless t.alive?
-              # ruby 1.9 has no kill!
-              t.respond_to?(:kill!) ? t.kill! : t.kill
-            end
-            @threadqueue = nil
-            @resultqueue = nil
-          end
-          @threadpool = nil
-          @next_tick_queue = nil
-        end
-        @reactor_running = false
-        @reactor_thread = nil
-      end
-
-      until @tails.empty?
-        @tails.pop.call
-      end
-
-      raise @wrapped_exception if @wrapped_exception
+      return
     end
+
+    begin
+      ruby_setup
+      (b = blk || block) and add_timer(0, b)
+      run_machine
+    ensure
+      ruby_teardown
+    end
+
+    until @tails.empty?
+      @tails.pop.call
+    end
+
+    raise @wrapped_exception if @wrapped_exception
   end
+  
+  def self.start_crank
+    ruby_setup
+    _start_crank
+  end
+  
+  def self.stop_crank
+    _stop_crank
+    ruby_teardown
+  end
+  
+  def self.ruby_setup
+    @conns = {}
+    @acceptors = {}
+    @timers = {}
+    @wrapped_exception = nil
+    @reactor_running = true
+    initialize_event_machine
+    if @next_tick_queue && !@next_tick_queue.empty?
+      add_timer(0) { signal_loopbreak }
+    end
+    @reactor_thread = Thread.current
+  end
+  # private_module_method :ruby_setup
+  
+  
+  def self.ruby_teardown
+    release_machine
+  ensure
+    if @threadpool
+      @threadpool.each { |t| t.exit }
+      @threadpool.each do |t|
+        next unless t.alive?
+        # ruby 1.9 has no kill!
+        t.respond_to?(:kill!) ? t.kill! : t.kill
+      end
+      @threadqueue = nil
+      @resultqueue = nil
+    end
+    @threadpool = nil
+    @next_tick_queue = nil
+    @reactor_running = false
+    @reactor_thread = nil
+  end
+  # private_module_method :ruby_cleanup
 
   # Sugars a common use case. Will pass the given block to #run, but will terminate
   # the reactor loop and exit the function as soon as the code in the block completes.

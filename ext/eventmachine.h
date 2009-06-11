@@ -41,6 +41,9 @@ extern "C" {
 
 	void evma_initialize_library (void(*)(const char*, int, const char*, int));
 	void evma_run_machine();
+	void evma_start_crank();
+	void evma_stop_crank();
+	bool evma_crank();
 	void evma_release_library();
 	const char *evma_install_oneshot_timer (int seconds);
 	const char *evma_connect_to_server (const char *bind_addr, int bind_port, const char *server, int port);

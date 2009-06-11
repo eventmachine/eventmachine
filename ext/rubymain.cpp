@@ -922,6 +922,24 @@ static VALUE t_set_heartbeat_interval (VALUE self, VALUE interval)
 	return Qfalse;
 }
 
+static VALUE t_crank (VALUE self)
+{
+	if (evma_crank())
+		return Qtrue;
+	return Qfalse;
+}
+
+static VALUE t_start_crank (VALUE self)
+{
+	evma_start_crank();
+	return Qnil;
+}
+
+static VALUE t_stop_crank (VALUE self)
+{
+	evma_stop_crank();
+	return Qnil;
+}
 
 /*********************
 Init_rubyeventmachine
@@ -1006,6 +1024,9 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "send_file_data", (VALUE(*)(...))t_send_file_data, 2);
 	rb_define_module_function (EmModule, "get_heartbeat_interval", (VALUE(*)(...))t_get_heartbeat_interval, 0);
 	rb_define_module_function (EmModule, "set_heartbeat_interval", (VALUE(*)(...))t_set_heartbeat_interval, 1);
+	rb_define_module_function (EmModule, "crank", (VALUE(*)(...))t_crank, 0);
+	rb_define_module_function (EmModule, "_start_crank", (VALUE(*)(...))t_start_crank, 0);
+	rb_define_module_function (EmModule, "_stop_crank", (VALUE(*)(...))t_stop_crank, 0);
 
 	// Provisional:
 	rb_define_module_function (EmModule, "_write_file", (VALUE(*)(...))t__write_file, 1);

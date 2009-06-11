@@ -136,6 +136,9 @@ class EventMachine_t
 		bool UsingKqueue() { return bKqueue; }
 		bool UsingEpoll() { return bEpoll; }
 
+		bool Crank();
+		void StartCrank();
+		void StopCrank();
 	private:
 		bool _RunOnce();
 		bool _RunTimers();

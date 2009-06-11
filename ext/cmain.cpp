@@ -683,3 +683,25 @@ extern "C" int evma_set_heartbeat_interval(float interval)
 	ensure_eventmachine("evma_set_heartbeat_interval");
 	return EventMachine->SetHeartbeatInterval(interval);
 }
+
+/*********
+evma_crank
+*********/
+
+extern "C" bool evma_crank()
+{
+	ensure_eventmachine("evma_crank");
+	return EventMachine->Crank();
+}
+
+extern "C" void evma_start_crank()
+{
+	ensure_eventmachine("evma_start_crank");
+	return EventMachine->StartCrank();
+}
+
+extern "C" void evma_stop_crank()
+{
+	ensure_eventmachine("evma_stop_crank");
+	return EventMachine->StopCrank();
+}

@@ -374,6 +374,18 @@ EventMachine_t::Run
 
 void EventMachine_t::Run()
 {
+	StartCrank();
+
+	while (true) {
+		if (!Crank())
+			break;
+	}
+
+	StopCrank();
+}
+
+void EventMachine_t::StartCrank()
+{
 	#ifdef OS_WIN32
 	HookControlC (true);
 	#endif
@@ -414,28 +426,32 @@ void EventMachine_t::Run()
 		Add (ld);
 	}
 	#endif
+}
 
-	while (true) {
-		_UpdateTime();
-		if (!_RunTimers())
-			break;
-
-		/* _Add must precede _Modify because the same descriptor might
-		 * be on both lists during the same pass through the machine,
-		 * and to modify a descriptor before adding it would fail.
-		 */
-		_AddNewDescriptors();
-		_ModifyDescriptors();
-
-		if (!_RunOnce())
-			break;
-		if (gTerminateSignalReceived)
-			break;
-	}
-
+void EventMachine_t::StopCrank()
+{
 	#ifdef OS_WIN32
 	HookControlC (false);
 	#endif
+}
+
+bool EventMachine_t::Crank()
+{
+	_UpdateTime();
+	if (!_RunTimers())
+		return false;
+
+	/* _Add must precede _Modify because the same descriptor might
+	 * be on both lists during the same pass through the machine,
+	 * and to modify a descriptor before adding it would fail.
+	 */
+	_AddNewDescriptors();
+	_ModifyDescriptors();
+
+	if (!_RunOnce())
+		return false;
+	if (gTerminateSignalReceived)
+		return false;
 }
 
 
