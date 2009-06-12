@@ -37,8 +37,13 @@ See the file COPYING for complete licensing information.
   #ifdef HAVE_RBTRAP
     #include <rubysig.h>
   #else
-    #define TRAP_BEG
-    #define TRAP_END
+    extern "C" {
+      void rb_enable_interrupt(void);
+      void rb_disable_interrupt(void);
+    }
+
+    #define TRAP_BEG rb_enable_interrupt()
+    #define TRAP_END do { rb_disable_interrupt(); rb_thread_check_ints(); } while(0)
   #endif
 
   // 1.9.0 compat
