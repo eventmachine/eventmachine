@@ -33,8 +33,15 @@ bool SetSocketNonblocking (SOCKET sd)
 	#endif
 	
 	#ifdef OS_WIN32
+	#ifdef BUILD_FOR_RUBY
+	// 14Jun09 Ruby provides its own wrappers for ioctlsocket. On 1.8 this is a simple wrapper,
+	// however, 1.9 keeps its own state about the socket.
+	// NOTE: F_GETFL is not supported
+	return (fcntl (sd, F_SETFL, O_NONBLOCK) == 0) ? true : false;
+	#else
 	unsigned long one = 1;
 	return (ioctlsocket (sd, FIONBIO, &one) == 0) ? true : false;
+	#endif
 	#endif
 }
 
