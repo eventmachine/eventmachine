@@ -47,7 +47,7 @@ public class EmReactor {
 	public final int EM_LOOPBREAK_SIGNAL = 105;
 	
 	private Selector mySelector;
-	private TreeMap<Long, String> Timers;
+	private TreeMap<Long, LinkedList<String>> Timers;
 	private TreeMap<String, EventableChannel> Connections;
 	private TreeMap<String, ServerSocketChannel> Acceptors;
 
@@ -59,7 +59,7 @@ public class EmReactor {
 	private int timerQuantum;
 	
 	public EmReactor() {
-		Timers = new TreeMap<Long, String>();
+		Timers = new TreeMap<Long, LinkedList<String>>();
 		Connections = new TreeMap<String, EventableChannel>();
 		Acceptors = new TreeMap<String, ServerSocketChannel>();
 		
@@ -235,18 +235,34 @@ public class EmReactor {
 			//System.out.println (k - now);
 			if (k > now)
 				break;
-			String s = Timers.remove(k);
-			eventCallback ("", EM_TIMER_FIRED, ByteBuffer.wrap(s.getBytes()));
+
+			LinkedList<String> callbacks = Timers.get(k);
+			Timers.remove(k);
+
+			// Fire all timers at this timestamp
+			ListIterator<String> iter = callbacks.listIterator(0);
+			while (iter.hasNext()) {
+				eventCallback ("", EM_TIMER_FIRED, ByteBuffer.wrap(iter.next().getBytes()));
+			}
 		}
 	}
-	
+
 	public String installOneshotTimer (int milliseconds) {
 		BindingIndex++;
 		String s = createBinding();
-		Timers.put(new Date().getTime() + milliseconds, s);
+		long deadline = new Date().getTime() + milliseconds;
+
+		if (Timers.containsKey(deadline)) {
+			Timers.get(deadline).add(s);
+		} else {
+			LinkedList<String> callbacks = new LinkedList<String>();
+			callbacks.add(s);
+			Timers.put(deadline, callbacks);
+		}
+
 		return s;
 	}
-	
+
 	public String startTcpServer (SocketAddress sa) throws EmReactorException {
 		try {
 			ServerSocketChannel server = ServerSocketChannel.open();
