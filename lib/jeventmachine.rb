@@ -29,6 +29,7 @@
 
 require 'java'
 require 'em_reactor'
+require 'socket'
 
 module EventMachine
   # TODO: These event numbers are defined in way too many places.
@@ -131,6 +132,11 @@ module EventMachine
   end
   def self.library_type
     :java
+  end
+  def self.get_peername sig
+    if peer = @em.getPeerName(sig)
+      Socket.pack_sockaddr_in *peer
+    end
   end
 
   class Connection

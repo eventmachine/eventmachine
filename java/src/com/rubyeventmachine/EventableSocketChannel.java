@@ -40,6 +40,7 @@ import java.nio.channels.*;
 import java.nio.*;
 import java.util.*;
 import java.io.*;
+import java.net.Socket;
 import javax.net.ssl.*;
 import javax.net.ssl.SSLEngineResult.*;
 
@@ -240,5 +241,10 @@ public class EventableSocketChannel implements EventableChannel {
 	public void setCommInactivityTimeout (long seconds) {
 		// TODO
 		System.out.println ("SOCKET: SET COMM INACTIVITY UNIMPLEMENTED " + seconds);
+	}
+
+	public Object[] getPeerName () {
+		Socket sock = channel.socket();
+		return new Object[]{ sock.getPort(), sock.getInetAddress().getHostAddress() };
 	}
 }

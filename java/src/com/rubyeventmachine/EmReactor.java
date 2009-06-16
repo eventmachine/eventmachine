@@ -436,4 +436,8 @@ public class EmReactor {
 			throw new RuntimeException ("attempt to set invalid timer-quantum value: "+mills);
 		timerQuantum = mills;
 	}
+
+	public Object[] getPeerName (String sig) {
+		return Connections.get(sig).getPeerName();
+	}
 }

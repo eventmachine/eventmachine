@@ -168,4 +168,13 @@ public class EventableDatagramChannel implements EventableChannel {
 		// TODO
 		System.out.println ("DATAGRAM: SET COMM INACTIVITY UNIMPLEMENTED " + seconds);
 	}
+
+	public Object[] getPeerName () {
+		if (returnAddress != null) {
+			InetSocketAddress inetAddr = (InetSocketAddress) returnAddress;
+			return new Object[]{ inetAddr.getPort(), inetAddr.getHostName() };
+		} else {
+			return null;
+		}
+	}
 }

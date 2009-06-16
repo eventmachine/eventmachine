@@ -54,4 +54,6 @@ public interface EventableChannel {
 	public boolean writeOutboundData();
 
 	public void setCommInactivityTimeout (long seconds);
+
+	public Object[] getPeerName();
 }
