@@ -34,6 +34,7 @@ static VALUE EmConnection;
 
 static VALUE EM_eUnknownTimerFired;
 static VALUE EM_eConnectionNotBound;
+static VALUE EM_eUnsupported;
 
 static VALUE Intern_at_signature;
 static VALUE Intern_at_timers;
@@ -723,7 +724,7 @@ t__epoll
 static VALUE t__epoll (VALUE self)
 {
 	if (t__epoll_p(self) == Qfalse)
-		return Qfalse;
+		rb_raise (EM_eUnsupported, "epoll is not supported on this platform");
 
 	evma_set_epoll (1);
 	return Qtrue;
@@ -736,7 +737,7 @@ t__epoll_set
 static VALUE t__epoll_set (VALUE self, VALUE val)
 {
 	if (t__epoll_p(self) == Qfalse)
-		return Qfalse;
+		rb_raise (EM_eUnsupported, "epoll is not supported on this platform");
 
 	evma_set_epoll (val == Qtrue ? 1 : 0);
 	return val;
@@ -763,7 +764,7 @@ t__kqueue
 static VALUE t__kqueue (VALUE self)
 {
 	if (t__kqueue_p(self) == Qfalse)
-		return Qfalse;
+		rb_raise (EM_eUnsupported, "kqueue is not supported on this platform");
 
 	evma_set_kqueue (1);
 	return Qtrue;
@@ -776,7 +777,7 @@ t__kqueue_set
 static VALUE t__kqueue_set (VALUE self, VALUE val)
 {
 	if (t__kqueue_p(self) == Qfalse)
-		return Qfalse;
+		rb_raise (EM_eUnsupported, "kqueue is not supported on this platform");
 
 	evma_set_kqueue (val == Qtrue ? 1 : 0);
 	return val;
@@ -959,6 +960,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_class_under (EmModule, "NoHandlerForAcceptedConnection", rb_eException);
 	EM_eConnectionNotBound = rb_define_class_under (EmModule, "ConnectionNotBound", rb_eRuntimeError);
 	EM_eUnknownTimerFired = rb_define_class_under (EmModule, "UnknownTimerFired", rb_eRuntimeError);
+	EM_eUnsupported = rb_define_class_under (EmModule, "Unsupported", rb_eRuntimeError);
 
 	rb_define_module_function (EmModule, "initialize_event_machine", (VALUE(*)(...))t_initialize_event_machine, 0);
 	rb_define_module_function (EmModule, "run_machine", (VALUE(*)(...))t_run_machine_without_threads, 0);

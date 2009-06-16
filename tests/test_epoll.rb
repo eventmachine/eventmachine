@@ -94,7 +94,6 @@ class TestEpoll < Test::Unit::TestCase
     n = 0
     work_proc = proc {n += 1}
     callback_proc = proc {EM.stop}
-    EM.epoll
     EM.run {
       EM.defer work_proc, callback_proc
     }
@@ -120,7 +119,6 @@ class TestEpoll < Test::Unit::TestCase
 
   def test_datagrams
     $in = $out = ""
-    EM.epoll
     EM.run {
       EM.open_datagram_socket "127.0.0.1", 9500, TestDatagramServer
       EM.open_datagram_socket "127.0.0.1", 0, TestDatagramClient
