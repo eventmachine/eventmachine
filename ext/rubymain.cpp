@@ -867,13 +867,8 @@ t_get_loop_time
 
 static VALUE t_get_loop_time (VALUE self)
 {
-  VALUE cTime = rb_path2class("Time");
   if (gCurrentLoopTime != 0) {
-    return rb_funcall(cTime,
-                      rb_intern("at"),
-                      2,
-                      INT2NUM(gCurrentLoopTime / 1000000),
-                      INT2NUM(gCurrentLoopTime % 1000000));
+    return rb_time_new(gCurrentLoopTime / 1000000, gCurrentLoopTime % 1000000);
   }
   return Qnil;
 }
