@@ -256,6 +256,18 @@ namespace :java do
   end
 end
 
+namespace :osx do
+  desc "Build OSX binary gem"
+  task :gem do
+    Spec.platform = RUBY_PLATFORM.sub(/darwin.+$/, 'darwin')
+    Spec.files += %w[ lib/rubyeventmachine.bundle lib/fastfilereaderext.bundle ]
+    Spec.extensions = nil
+
+    Rake::Task['build'].invoke
+    Rake::Task['gem'].invoke
+  end
+end
+
 task :gemspec => :clobber do
   open("eventmachine.gemspec", 'w') { |f| f.write Spec.to_ruby }
 end
