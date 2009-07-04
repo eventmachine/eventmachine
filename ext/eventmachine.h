@@ -39,43 +39,43 @@ extern "C" {
 
 	};
 
-	void evma_initialize_library (void(*)(const char*, int, const char*, int));
+	void evma_initialize_library (void(*)(const unsigned long, int, const char*, const unsigned long));
 	void evma_run_machine();
 	void evma_release_library();
-	const char *evma_install_oneshot_timer (int seconds);
-	const char *evma_connect_to_server (const char *bind_addr, int bind_port, const char *server, int port);
-	const char *evma_connect_to_unix_server (const char *server);
+	const unsigned long evma_install_oneshot_timer (int seconds);
+	const unsigned long evma_connect_to_server (const char *bind_addr, int bind_port, const char *server, int port);
+	const unsigned long evma_connect_to_unix_server (const char *server);
 
-	const char *evma_attach_fd (int file_descriptor, int read_mode, int write_mode);
-	int evma_detach_fd (const char *binding);
+	const unsigned long evma_attach_fd (int file_descriptor, int read_mode, int write_mode);
+	int evma_detach_fd (const unsigned long binding);
 
-	void evma_stop_tcp_server (const char *signature);
-	const char *evma_create_tcp_server (const char *address, int port);
-	const char *evma_create_unix_domain_server (const char *filename);
-	const char *evma_open_datagram_socket (const char *server, int port);
-	const char *evma_open_keyboard();
-	void evma_set_tls_parms (const char *binding, const char *privatekey_filename, const char *certchain_filenane, int verify_peer);
-	void evma_start_tls (const char *binding);
+	void evma_stop_tcp_server (const unsigned long signature);
+	const unsigned long evma_create_tcp_server (const char *address, int port);
+	const unsigned long evma_create_unix_domain_server (const char *filename);
+	const unsigned long evma_open_datagram_socket (const char *server, int port);
+	const unsigned long evma_open_keyboard();
+	void evma_set_tls_parms (const unsigned long binding, const char *privatekey_filename, const char *certchain_filenane, int verify_peer);
+	void evma_start_tls (const unsigned long binding);
 
 	#ifdef WITH_SSL
-	X509 *evma_get_peer_cert (const char *binding);
-	void evma_accept_ssl_peer (const char *binding);
+	X509 *evma_get_peer_cert (const unsigned long binding);
+	void evma_accept_ssl_peer (const unsigned long binding);
 	#endif
 
-	int evma_get_peername (const char *binding, struct sockaddr*);
-	int evma_get_sockname (const char *binding, struct sockaddr*);
-	int evma_get_subprocess_pid (const char *binding, pid_t*);
-	int evma_get_subprocess_status (const char *binding, int*);
+	int evma_get_peername (const unsigned long binding, struct sockaddr*);
+	int evma_get_sockname (const unsigned long binding, struct sockaddr*);
+	int evma_get_subprocess_pid (const unsigned long binding, pid_t*);
+	int evma_get_subprocess_status (const unsigned long binding, int*);
 	int evma_get_connection_count();
-	int evma_send_data_to_connection (const char *binding, const char *data, int data_length);
-	int evma_send_datagram (const char *binding, const char *data, int data_length, const char *address, int port);
-	float evma_get_comm_inactivity_timeout (const char *binding);
-	int evma_set_comm_inactivity_timeout (const char *binding, float value);
-	int evma_get_outbound_data_size (const char *binding);
-	int evma_send_file_data_to_connection (const char *binding, const char *filename);
+	int evma_send_data_to_connection (const unsigned long binding, const char *data, int data_length);
+	int evma_send_datagram (const unsigned long binding, const char *data, int data_length, const char *address, int port);
+	float evma_get_comm_inactivity_timeout (const unsigned long binding);
+	int evma_set_comm_inactivity_timeout (const unsigned long binding, float value);
+	int evma_get_outbound_data_size (const unsigned long binding);
+	int evma_send_file_data_to_connection (const unsigned long binding, const char *filename);
 
-	void evma_close_connection (const char *binding, int after_writing);
-	int evma_report_connection_error_status (const char *binding);
+	void evma_close_connection (const unsigned long binding, int after_writing);
+	int evma_report_connection_error_status (const unsigned long binding);
 	void evma_signal_loopbreak();
 	void evma_set_timer_quantum (int);
 	int evma_get_max_timer_count();
@@ -85,17 +85,17 @@ extern "C" {
 	float evma_get_heartbeat_interval();
 	int evma_set_heartbeat_interval(float);
 
-	const char *evma__write_file (const char *filename);
-	const char *evma_popen (char * const*cmd_strings);
+	const unsigned long evma__write_file (const char *filename);
+	const unsigned long evma_popen (char * const*cmd_strings);
 
-	const char *evma_watch_filename (const char *fname);
-	void evma_unwatch_filename (const char *sig);
+	const unsigned long evma_watch_filename (const char *fname);
+	void evma_unwatch_filename (const unsigned long);
 
-	const char *evma_watch_pid (int);
-	void evma_unwatch_pid (const char *sig);
+	const unsigned long evma_watch_pid (int);
+	void evma_unwatch_pid (const unsigned long);
 
-	void evma_start_proxy(const char*, const char*);
-	void evma_stop_proxy(const char*);
+	void evma_start_proxy(const unsigned long, const unsigned long);
+	void evma_stop_proxy(const unsigned long);
 
 	int evma_set_rlimit_nofile (int n_files);
 

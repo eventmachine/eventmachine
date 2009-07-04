@@ -60,7 +60,7 @@ class EventableDescriptor: public Bindable_t
 		void ScheduleClose (bool after_writing);
 		bool IsCloseScheduled();
 
-		void SetEventCallback (void (*cb)(const char*, int, const char*, int));
+		void SetEventCallback (void (*cb)(const unsigned long, int, const char*, const unsigned long));
 
 		virtual bool GetPeername (struct sockaddr*) {return false;}
 		virtual bool GetSockname (struct sockaddr*) {return false;}
@@ -80,7 +80,7 @@ class EventableDescriptor: public Bindable_t
 		struct epoll_event *GetEpollEvent() { return &EpollEvent; }
 		#endif
 
-		virtual void StartProxy(const char*);
+		virtual void StartProxy(const unsigned long);
 		virtual void StopProxy();
 
 	private:
@@ -101,13 +101,13 @@ class EventableDescriptor: public Bindable_t
 			PendingConnectTimeout = 50000000 // now in usec
 		};
 
-		void (*EventCallback)(const char*, int, const char*, int);
+		void (*EventCallback)(const unsigned long, int, const char*, const unsigned long);
 		void _GenericInboundDispatch(const char*, int);
 
 		Int64 CreatedAt;
 		bool bCallbackUnbind;
 		int UnbindReasonCode;
-		char *ProxyTarget;
+		unsigned long ProxyTarget;
 
 		#ifdef HAVE_EPOLL
 		struct epoll_event EpollEvent;
@@ -147,9 +147,9 @@ class ConnectionDescriptor: public EventableDescriptor
 		ConnectionDescriptor (int, EventMachine_t*);
 		virtual ~ConnectionDescriptor();
 
-		static int SendDataToConnection (const char*, const char*, int);
-		static void CloseConnection (const char*, bool);
-		static int ReportErrorStatus (const char*);
+		static int SendDataToConnection (const unsigned long, const char*, int);
+		static void CloseConnection (const unsigned long, bool);
+		static int ReportErrorStatus (const unsigned long);
 
 		int SendOutboundData (const char*, int);
 
@@ -264,7 +264,7 @@ class DatagramDescriptor: public EventableDescriptor
     virtual float GetCommInactivityTimeout();
     virtual int SetCommInactivityTimeout (float value);
 
-		static int SendDatagram (const char*, const char*, int, const char*, int);
+		static int SendDatagram (const unsigned long, const char*, int, const char*, int);
 
 
 	protected:
@@ -306,7 +306,7 @@ class AcceptorDescriptor: public EventableDescriptor
 
 		virtual bool GetSockname (struct sockaddr*);
 
-		static void StopAcceptor (const char *binding);
+		static void StopAcceptor (const unsigned long binding);
 };
 
 /********************

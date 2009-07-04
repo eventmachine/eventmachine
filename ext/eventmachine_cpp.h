@@ -26,7 +26,7 @@ See the file COPYING for complete licensing information.
 
 namespace EM {
 
-	void Callback (const char *sig, int event, const char *data, int length);
+	void Callback (const unsigned long sig, int event, const char *data, const unsigned long length);
 	void Run (void(*)(void));
 	void AddTimer (int, void(*)());
 	void StopReactor();
@@ -40,12 +40,12 @@ namespace EM {
 			Eventable() {}
 			virtual ~Eventable() {}
 
-			std::string Signature;
+			unsigned long Signature;
 
 			// Called by the framework
 			virtual void ReceiveData (const char *data, int length) {}
 			virtual void ConnectionCompleted() {}
-			virtual void Accept (const char*) {}
+			virtual void Accept (const unsigned long) {}
 			virtual void Unbind() {}
 			virtual void PostInit() {}
 			virtual void SslHandshakeCompleted() {}
@@ -81,7 +81,7 @@ namespace EM {
 			virtual ~Acceptor() {}
 
 			void Start (const char*, int);
-			void Accept (const char*);
+			void Accept (const unsigned long);
 
 			virtual Connection *MakeConnection() {return new Connection();}
 	};

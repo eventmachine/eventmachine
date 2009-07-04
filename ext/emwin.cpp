@@ -138,7 +138,7 @@ bool EventMachine_t::_RunTimers()
 		if (i->first > gCurrentLoopTime)
 			break;
 		if (EventCallback)
-			(*EventCallback) ("", EM_TIMER_FIRED, i->second.GetBinding().c_str(), i->second.GetBinding().length());
+			(*EventCallback) (NULL, EM_TIMER_FIRED, NULL, i->second.GetBinding());
 		Timers.erase (i);
 	}
 	return true;
@@ -158,7 +158,7 @@ const char *EventMachine_t::InstallOneshotTimer (int seconds)
 
 	Timer_t t;
 	Timers.insert (make_pair (time(NULL) + seconds, t));
-	return t.GetBinding().c_str();
+	return t.GetBinding();
 }
 
 
@@ -230,7 +230,7 @@ const char *EventMachine_t::CreateTcpServer (const char *server, int port)
 		if (!ad)
 			throw std::runtime_error ("unable to allocate acceptor");
 		Add (ad);
-		output_binding = ad->GetBinding().c_str();
+		output_binding = ad->GetBinding();
 
 		CreateIoCompletionPort ((HANDLE)sd_accept, Iocp, NULL, 0);
 		SOCKET sd = socket (AF_INET, SOCK_STREAM, 0);

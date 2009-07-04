@@ -100,7 +100,7 @@ EventableDescriptor::~EventableDescriptor
 EventableDescriptor::~EventableDescriptor()
 {
 	if (EventCallback && bCallbackUnbind)
-		(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_UNBOUND, NULL, UnbindReasonCode);
+		(*EventCallback)(GetBinding(), EM_CONNECTION_UNBOUND, NULL, UnbindReasonCode);
 	StopProxy();
 	Close();
 }
@@ -110,7 +110,7 @@ EventableDescriptor::~EventableDescriptor()
 EventableDescriptor::SetEventCallback
 *************************************/
 
-void EventableDescriptor::SetEventCallback (void(*cb)(const char*, int, const char*, int))
+void EventableDescriptor::SetEventCallback (void(*cb)(const unsigned long, int, const char*, const unsigned long))
 {
 	EventCallback = cb;
 }
@@ -179,12 +179,12 @@ bool EventableDescriptor::IsCloseScheduled()
 EventableDescriptor::StartProxy
 *******************************/
 
-void EventableDescriptor::StartProxy(const char *to)
+void EventableDescriptor::StartProxy(unsigned long to)
 {
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (to));
 	if (ed) {
 		StopProxy();
-		ProxyTarget = strdup(to);
+		ProxyTarget = to;
 		return;
 	}
 	throw std::runtime_error ("Tried to proxy to an invalid descriptor");
@@ -198,7 +198,6 @@ EventableDescriptor::StopProxy
 void EventableDescriptor::StopProxy()
 {
 	if (ProxyTarget) {
-		free(ProxyTarget);
 		ProxyTarget = NULL;
 	}
 }
@@ -213,9 +212,9 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 	assert(EventCallback);
 
 	if (!ProxyTarget)
-		(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_READ, buf, size);
+		(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf, size);
 	else if (ConnectionDescriptor::SendDataToConnection(ProxyTarget, buf, size) == -1) {
-		(*EventCallback)(GetBinding().c_str(), EM_PROXY_TARGET_UNBOUND, NULL, 0);
+		(*EventCallback)(GetBinding(), EM_PROXY_TARGET_UNBOUND, NULL, 0);
 		StopProxy();
 	}
 }
@@ -272,7 +271,7 @@ ConnectionDescriptor::~ConnectionDescriptor()
 STATIC: ConnectionDescriptor::SendDataToConnection
 **************************************************/
 
-int ConnectionDescriptor::SendDataToConnection (const char *binding, const char *data, int data_length)
+int ConnectionDescriptor::SendDataToConnection (const unsigned long binding, const char *data, int data_length)
 {
 	// TODO: This is something of a hack, or at least it's a static method of the wrong class.
 	// TODO: Poor polymorphism here. We should be calling one virtual method
@@ -296,7 +295,7 @@ int ConnectionDescriptor::SendDataToConnection (const char *binding, const char 
 STATIC: ConnectionDescriptor::CloseConnection
 *********************************************/
 
-void ConnectionDescriptor::CloseConnection (const char *binding, bool after_writing)
+void ConnectionDescriptor::CloseConnection (const unsigned long binding, bool after_writing)
 {
 	// TODO: This is something of a hack, or at least it's a static method of the wrong class.
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
@@ -308,7 +307,7 @@ void ConnectionDescriptor::CloseConnection (const char *binding, bool after_writ
 STATIC: ConnectionDescriptor::ReportErrorStatus
 ***********************************************/
 
-int ConnectionDescriptor::ReportErrorStatus (const char *binding)
+int ConnectionDescriptor::ReportErrorStatus (const unsigned long binding)
 {
 	// TODO: This is something of a hack, or at least it's a static method of the wrong class.
 	// TODO: Poor polymorphism here. We should be calling one virtual method
@@ -538,7 +537,7 @@ void ConnectionDescriptor::Read()
 
 	if (bNotifyReadable) {
 		if (EventCallback)
-			(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_NOTIFY_READABLE, NULL, 0);
+			(*EventCallback)(GetBinding(), EM_CONNECTION_NOTIFY_READABLE, NULL, 0);
 		return;
 	}
 
@@ -642,7 +641,7 @@ void ConnectionDescriptor::_CheckHandshakeStatus()
 	if (SslBox && (!bHandshakeSignaled) && SslBox->IsHandshakeCompleted()) {
 		bHandshakeSignaled = true;
 		if (EventCallback)
-			(*EventCallback)(GetBinding().c_str(), EM_SSL_HANDSHAKE_COMPLETED, NULL, 0);
+			(*EventCallback)(GetBinding(), EM_SSL_HANDSHAKE_COMPLETED, NULL, 0);
 	}
 	#endif
 }
@@ -679,7 +678,7 @@ void ConnectionDescriptor::Write()
 		#endif
 		if ((o == 0) && (error == 0)) {
 			if (EventCallback)
-				(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_COMPLETED, "", 0);
+				(*EventCallback)(GetBinding(), EM_CONNECTION_COMPLETED, "", 0);
 
 			// 5May09: Moved epoll/kqueue read/write arming into SetConnectPending, so it can be called
 			// from EventMachine_t::AttachFD as well.
@@ -693,7 +692,7 @@ void ConnectionDescriptor::Write()
 
 		if (bNotifyWritable) {
 			if (EventCallback)
-				(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_NOTIFY_WRITABLE, NULL, 0);
+				(*EventCallback)(GetBinding(), EM_CONNECTION_NOTIFY_WRITABLE, NULL, 0);
 			return;
 		}
 
@@ -893,7 +892,7 @@ void ConnectionDescriptor::StartTls()
 	if (SslBox)
 		throw std::runtime_error ("SSL/TLS already running on connection");
 
-	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, GetBinding().c_str());
+	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, GetBinding());
 	_DispatchCiphertext();
 	#endif
 
@@ -949,7 +948,7 @@ bool ConnectionDescriptor::VerifySslPeer(const char *cert)
 	bSslPeerAccepted = false;
 
 	if (EventCallback)
-		(*EventCallback)(GetBinding().c_str(), EM_SSL_VERIFY, cert, strlen(cert));
+		(*EventCallback)(GetBinding(), EM_SSL_VERIFY, cert, strlen(cert));
 
 	return bSslPeerAccepted;
 }
@@ -1133,7 +1132,7 @@ AcceptorDescriptor::~AcceptorDescriptor()
 STATIC: AcceptorDescriptor::StopAcceptor
 ****************************************/
 
-void AcceptorDescriptor::StopAcceptor (const char *binding)
+void AcceptorDescriptor::StopAcceptor (const unsigned long binding)
 {
 	// TODO: This is something of a hack, or at least it's a static method of the wrong class.
 	AcceptorDescriptor *ad = dynamic_cast <AcceptorDescriptor*> (Bindable_t::GetObject (binding));
@@ -1199,7 +1198,7 @@ void AcceptorDescriptor::Read()
 			throw std::runtime_error ("no newly accepted connection");
 		cd->SetServerMode();
 		if (EventCallback) {
-			(*EventCallback) (GetBinding().c_str(), EM_CONNECTION_ACCEPTED, cd->GetBinding().c_str(), cd->GetBinding().size());
+			(*EventCallback) (GetBinding(), EM_CONNECTION_ACCEPTED, NULL, cd->GetBinding());
 		}
 		#ifdef HAVE_EPOLL
 		cd->GetEpollEvent()->events = EPOLLIN | (cd->SelectForWrite() ? EPOLLOUT : 0);
@@ -1556,7 +1555,7 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 STATIC: DatagramDescriptor::SendDatagram
 ****************************************/
 
-int DatagramDescriptor::SendDatagram (const char *binding, const char *data, int length, const char *address, int port)
+int DatagramDescriptor::SendDatagram (const unsigned long binding, const char *data, int length, const char *address, int port)
 {
 	DatagramDescriptor *dd = dynamic_cast <DatagramDescriptor*> (Bindable_t::GetObject (binding));
 	if (dd)

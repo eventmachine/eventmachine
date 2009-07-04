@@ -22,8 +22,8 @@ See the file COPYING for complete licensing information.
 
 
 namespace EM {
-	static map<string, Eventable*> Eventables;
-	static map<string, void(*)()> Timers;
+	static map<unsigned long, Eventable*> Eventables;
+	static map<unsigned long, void(*)()> Timers;
 }
 
 
@@ -48,9 +48,9 @@ EM::AddTimer
 void EM::AddTimer (int milliseconds, void (*func)())
 {
 	if (func) {
-		const char *sig = evma_install_oneshot_timer (milliseconds);
+		const unsigned long sig = evma_install_oneshot_timer (milliseconds);
 		#ifdef OS_SOLARIS8
-		Timers.insert (map<string, void(*)()>::value_type (sig, func));
+		Timers.insert (map<unsigned long, void(*)()>::value_type (sig, func));
 		#else
 		Timers.insert (make_pair (sig, func));
 		#endif
@@ -72,12 +72,12 @@ void EM::StopReactor()
 EM::Acceptor::Accept
 ********************/
 
-void EM::Acceptor::Accept (const char *signature)
+void EM::Acceptor::Accept (const unsigned long signature)
 {
 	Connection *c = MakeConnection();
 	c->Signature = signature;
 	#ifdef OS_SOLARIS8
-	Eventables.insert (std::map<std::string,EM::Eventable*>::value_type (c->Signature, c));
+	Eventables.insert (std::map<unsigned long,EM::Eventable*>::value_type (c->Signature, c));
 	#else
 	Eventables.insert (make_pair (c->Signature, c));
 	#endif
@@ -101,7 +101,7 @@ EM::Connection::SendData
 
 void EM::Connection::SendData (const char *data, int length)
 {
-	evma_send_data_to_connection (Signature.c_str(), data, length);
+	evma_send_data_to_connection (Signature, data, length);
 }
 
 
@@ -111,7 +111,7 @@ EM::Connection::Close
 
 void EM::Connection::Close (bool afterWriting)
 {
-	evma_close_connection (Signature.c_str(), afterWriting);
+	evma_close_connection (Signature, afterWriting);
 }
 
 
@@ -123,7 +123,7 @@ void EM::Connection::BindConnect (const char *bind_addr, int bind_port, const ch
 {
 	Signature = evma_connect_to_server (bind_addr, bind_port, host, port);
 	#ifdef OS_SOLARIS8
-	Eventables.insert( std::map<std::string,EM::Eventable*>::value_type (Signature, this));
+	Eventables.insert( std::map<unsigned long,EM::Eventable*>::value_type (Signature, this));
 	#else
 	Eventables.insert( make_pair (Signature, this));
 	#endif
@@ -158,17 +158,17 @@ void EM::Acceptor::Start (const char *host, int port)
 EM::Callback
 ************/
 
-void EM::Callback (const char *sig, int ev, const char *data, int length)
+void EM::Callback (const unsigned long sig, int ev, const char *data, const unsigned long length)
 {
 	EM::Eventable *e;
 	void (*f)();
 
 	switch (ev) {
 		case EM_TIMER_FIRED:
-			f = Timers [data];
+			f = Timers [length]; // actually a binding
 			if (f)
 				(*f)();
-			Timers.erase (sig);
+			Timers.erase (length);
 			break;
 
 		case EM_CONNECTION_READ:
@@ -183,7 +183,7 @@ void EM::Callback (const char *sig, int ev, const char *data, int length)
 
 		case EM_CONNECTION_ACCEPTED:
 			e = EM::Eventables [sig];
-			e->Accept (data);
+			e->Accept (length); // actually a binding
 			break;
 
 		case EM_CONNECTION_UNBOUND:

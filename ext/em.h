@@ -79,28 +79,28 @@ class EventMachine_t
 		static void SetMaxTimerCount (int);
 
 	public:
-		EventMachine_t (void(*event_callback)(const char*, int, const char*, int));
+		EventMachine_t (void(*event_callback)(const unsigned long, int, const char*, const unsigned long));
 		virtual ~EventMachine_t();
 
 		void Run();
 		void ScheduleHalt();
 		void SignalLoopBreaker();
-		const char *InstallOneshotTimer (int);
-		const char *ConnectToServer (const char *, int, const char *, int);
-		const char *ConnectToUnixServer (const char *);
+		const unsigned long InstallOneshotTimer (int);
+		const unsigned long ConnectToServer (const char *, int, const char *, int);
+		const unsigned long ConnectToUnixServer (const char *);
 
-		const char *CreateTcpServer (const char *, int);
-		const char *OpenDatagramSocket (const char *, int);
-		const char *CreateUnixDomainServer (const char*);
-		const char *_OpenFileForWriting (const char*);
-		const char *OpenKeyboard();
+		const unsigned long CreateTcpServer (const char *, int);
+		const unsigned long OpenDatagramSocket (const char *, int);
+		const unsigned long CreateUnixDomainServer (const char*);
+		const unsigned long _OpenFileForWriting (const char*);
+		const unsigned long OpenKeyboard();
 		//const char *Popen (const char*, const char*);
-		const char *Socketpair (char* const*);
+		const unsigned long Socketpair (char* const*);
 
 		void Add (EventableDescriptor*);
 		void Modify (EventableDescriptor*);
 
-		const char *AttachFD (int, bool, bool);
+		const unsigned long AttachFD (int, bool, bool);
 		int DetachFD (EventableDescriptor*);
 
 		void ArmKqueueWriter (EventableDescriptor*);
@@ -117,18 +117,18 @@ class EventMachine_t
 		float GetHeartbeatInterval();
 		int SetHeartbeatInterval(float);
 
-		const char *WatchFile (const char*);
+		const unsigned long WatchFile (const char*);
 		void UnwatchFile (int);
-		void UnwatchFile (const char*);
+		void UnwatchFile (const unsigned long);
 
 		#ifdef HAVE_KQUEUE
 		void _HandleKqueueFileEvent (struct kevent*);
 		void _RegisterKqueueFileEvent(int);
 		#endif
 
-		const char *WatchPid (int);
+		const unsigned long WatchPid (int);
 		void UnwatchPid (int);
-		void UnwatchPid (const char *);
+		void UnwatchPid (const unsigned long);
 
 		#ifdef HAVE_KQUEUE
 		void _HandleKqueuePidEvent (struct kevent*);
@@ -165,7 +165,7 @@ class EventMachine_t
 			MaxEvents = 4096
 		};
 		int HeartbeatInterval;
-		void (*EventCallback)(const char*, int, const char*, int);
+		void (*EventCallback)(const unsigned long, int, const char*, const unsigned long);
 
 		class Timer_t: public Bindable_t {
 		};
