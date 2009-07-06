@@ -682,6 +682,12 @@ module EventMachine
   # to have them behave differently with respect to post_init
   # if at all possible.
   #
+  def self.connect server, port=nil, handler=nil, *args, &blk
+    bind_connect nil, nil, server, port, handler, *args, &blk
+  end
+
+  # EventMachine::bind_connect is like EventMachine::connect, but allows for a local address/port
+  # to bind the connection to.
   def self.bind_connect bind_addr, bind_port, server, port=nil, handler=nil, *args
     begin
       port = Integer(port)
@@ -720,10 +726,6 @@ module EventMachine
     @conns[s] = c
     block_given? and yield c
     c
-  end
-
-  def self.connect server, port=nil, handler=nil, *args, &blk
-    bind_connect nil, nil, server, port, handler, *args, &blk
   end
 
   # EventMachine::attach registers a given file descriptor or IO object with the eventloop
