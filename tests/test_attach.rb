@@ -34,6 +34,7 @@ class TestAttach < Test::Unit::TestCase
 
   class EchoClient < EM::Connection
     def initialize
+      self.notify_readable = true
       $sock.write("abc\n")
     end
 
@@ -54,7 +55,7 @@ class TestAttach < Test::Unit::TestCase
     EM.run{
       EM.start_server Host, Port, EchoServer
       $sock = TCPSocket.new Host, Port
-      EM.attach $sock, EchoClient
+      EM.watch $sock, EchoClient
     }
 
     assert_equal $read, "abc\n"
@@ -74,11 +75,34 @@ class TestAttach < Test::Unit::TestCase
   def test_attach_pipe
     EM.run{
       $r, $w = IO.pipe
-      EM.attach $r, PipeWatch
+      EM.watch $r, PipeWatch do |c|
+        c.notify_readable = true
+      end
       $w.write("ghi\n")
     }
 
     assert_equal $read, "ghi\n"
+  end
+
+  def test_set_readable
+    EM.run{
+      $r, $w = IO.pipe
+      c = EM.watch $r, PipeWatch do |c|
+        c.notify_readable = false
+      end
+
+      EM.next_tick{
+        $before = c.notify_readable?
+        c.notify_readable = true
+        $after = c.notify_readable?
+      }
+
+      $w.write("jkl\n")
+    }
+
+    assert !$before
+    assert $after
+    assert_equal $read, "jkl\n"
   end
 
   module PipeReader

@@ -119,10 +119,10 @@ extern "C" const char *evma_connect_to_unix_server (const char *server)
 evma_attach_fd
 **************/
 
-extern "C" const char *evma_attach_fd (int file_descriptor, int notify_readable, int notify_writable)
+extern "C" const char *evma_attach_fd (int file_descriptor, int watch_mode)
 {
 	ensure_eventmachine("evma_attach_fd");
-	return EventMachine->AttachFD (file_descriptor, (notify_readable ? true : false), (notify_writable ? true : false));
+	return EventMachine->AttachFD (file_descriptor, watch_mode ? true : false);
 }
 
 /**************
@@ -131,7 +131,7 @@ evma_detach_fd
 
 extern "C" int evma_detach_fd (const char *binding)
 {
-	ensure_eventmachine("evma_dettach_fd");
+	ensure_eventmachine("evma_detach_fd");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed)
 		return EventMachine->DetachFD (ed);
@@ -142,6 +142,53 @@ extern "C" int evma_detach_fd (const char *binding)
 			throw std::runtime_error ("invalid binding to detach");
 		#endif
 }
+
+/***********************
+evma_is_notify_readable
+***********************/
+
+extern "C" int evma_is_notify_readable (const char *binding)
+{
+	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
+	if (cd)
+		return cd->IsNotifyReadable() ? 1 : 0;
+	return -1;
+}
+
+/************************
+evma_set_notify_readable
+************************/
+
+extern "C" void evma_set_notify_readable (const char *binding, int mode)
+{
+	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
+	if (cd)
+		cd->SetNotifyReadable (mode ? true : false);
+}
+
+/***********************
+evma_is_notify_writable
+***********************/
+
+extern "C" int evma_is_notify_writable (const char *binding)
+{
+	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
+	if (cd)
+		return cd->IsNotifyWritable() ? 1 : 0;
+	return -1;
+}
+
+/************************
+evma_set_notify_writable
+************************/
+
+extern "C" void evma_set_notify_writable (const char *binding, int mode)
+{
+	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
+	if (cd)
+		cd->SetNotifyWritable (mode ? true : false);
+}
+
 
 /**********************
 evma_create_tcp_server

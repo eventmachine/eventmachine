@@ -481,9 +481,9 @@ static VALUE t_connect_unix_server (VALUE self, VALUE serversocket)
 t_attach_fd
 ***********/
 
-static VALUE t_attach_fd (VALUE self, VALUE file_descriptor, VALUE read_mode, VALUE write_mode)
+static VALUE t_attach_fd (VALUE self, VALUE file_descriptor, VALUE watch_mode)
 {
-	const char *f = evma_attach_fd (NUM2INT(file_descriptor), (read_mode == Qtrue) ? 1 : 0, (write_mode == Qtrue) ? 1 : 0);
+	const char *f = evma_attach_fd (NUM2INT(file_descriptor), watch_mode == Qtrue);
 	if (!f || !*f)
 		rb_raise (rb_eRuntimeError, "no connection");
 	return rb_str_new2 (f);
@@ -493,9 +493,47 @@ static VALUE t_attach_fd (VALUE self, VALUE file_descriptor, VALUE read_mode, VA
 t_detach_fd
 ***********/
 
-static VALUE t_detach_fd (VALUE self,  VALUE signature)
+static VALUE t_detach_fd (VALUE self, VALUE signature)
 {
 	return INT2NUM(evma_detach_fd (StringValuePtr(signature)));
+}
+
+/********************
+t_is_notify_readable
+********************/
+
+static VALUE t_is_notify_readable (VALUE self, VALUE signature)
+{
+	return evma_is_notify_readable(StringValuePtr(signature)) ? Qtrue : Qfalse;
+}
+
+/*********************
+t_set_notify_readable
+*********************/
+
+static VALUE t_set_notify_readable (VALUE self, VALUE signature, VALUE mode)
+{
+	evma_set_notify_readable(StringValuePtr(signature), mode == Qtrue);
+	return Qnil;
+}
+
+/********************
+t_is_notify_readable
+********************/
+
+static VALUE t_is_notify_writable (VALUE self, VALUE signature)
+{
+	return evma_is_notify_writable(StringValuePtr(signature)) ? Qtrue : Qfalse;
+}
+
+/*********************
+t_set_notify_writable
+*********************/
+
+static VALUE t_set_notify_writable (VALUE self, VALUE signature, VALUE mode)
+{
+	evma_set_notify_writable(StringValuePtr(signature), mode == Qtrue);
+	return Qnil;
 }
 
 /*****************
@@ -975,8 +1013,12 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "bind_connect_server", (VALUE(*)(...))t_bind_connect_server, 4);
 	rb_define_module_function (EmModule, "connect_unix_server", (VALUE(*)(...))t_connect_unix_server, 1);
 
-	rb_define_module_function (EmModule, "attach_fd", (VALUE (*)(...))t_attach_fd, 3);
+	rb_define_module_function (EmModule, "attach_fd", (VALUE (*)(...))t_attach_fd, 2);
 	rb_define_module_function (EmModule, "detach_fd", (VALUE (*)(...))t_detach_fd, 1);
+	rb_define_module_function (EmModule, "set_notify_readable", (VALUE (*)(...))t_set_notify_readable, 2);
+	rb_define_module_function (EmModule, "set_notify_writable", (VALUE (*)(...))t_set_notify_writable, 2);
+	rb_define_module_function (EmModule, "is_notify_readable", (VALUE (*)(...))t_is_notify_readable, 1);
+	rb_define_module_function (EmModule, "is_notify_writable", (VALUE (*)(...))t_is_notify_writable, 1);
 
 	rb_define_module_function (EmModule, "start_proxy", (VALUE (*)(...))t_start_proxy, 2);
 	rb_define_module_function (EmModule, "stop_proxy", (VALUE (*)(...))t_stop_proxy, 1);

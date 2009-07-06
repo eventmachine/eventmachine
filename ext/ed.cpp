@@ -230,6 +230,7 @@ ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	bConnectPending (false),
 	bNotifyReadable (false),
 	bNotifyWritable (false),
+	bWatchOnly (false),
 	bReadAttemptedAfterClose (false),
 	bWriteAttemptedAfterClose (false),
 	OutboundDataSize (0),
@@ -347,12 +348,25 @@ void ConnectionDescriptor::SetConnectPending(bool f)
 }
 
 
+/**********************************
+ConnectionDescriptor::SetWatchOnly
+***********************************/
+
+void ConnectionDescriptor::SetWatchOnly(bool watching)
+{
+	bWatchOnly = watching;
+}
+
+
 /***************************************
 ConnectionDescriptor::SetNotifyReadable
 ****************************************/
 
 void ConnectionDescriptor::SetNotifyReadable(bool readable)
 {
+	if (!bWatchOnly)
+		throw std::runtime_error ("notify_readable must be on 'watch only' connections");
+
 	bNotifyReadable = readable;
 	if (bNotifyReadable) {
 		#ifdef HAVE_EPOLL
@@ -371,6 +385,9 @@ ConnectionDescriptor::SetNotifyWritable
 
 void ConnectionDescriptor::SetNotifyWritable(bool writable)
 {
+	if (!bWatchOnly)
+		throw std::runtime_error ("notify_writable must be on 'watch only' connections");
+
 	bNotifyWritable = writable;
 	if (bNotifyWritable) {
 		#ifdef HAVE_EPOLL
@@ -389,6 +406,9 @@ ConnectionDescriptor::SendOutboundData
 
 int ConnectionDescriptor::SendOutboundData (const char *data, int length)
 {
+	if (bWatchOnly)
+		throw std::runtime_error ("cannot send data on a 'watch only' connection");
+
 	#ifdef WITH_SSL
 	if (SslBox) {
 		if (length > 0) {
@@ -475,7 +495,12 @@ bool ConnectionDescriptor::SelectForRead()
    * is known to be in a connected state.
    */
 
-  return bConnectPending ? false : true;
+  if (bConnectPending)
+    return false;
+  else if (bWatchOnly)
+    return bNotifyReadable ? true : false;
+  else
+    return true;
 }
 
 
@@ -491,11 +516,12 @@ bool ConnectionDescriptor::SelectForWrite()
    * have outgoing data to send.
    */
 
-  if (bConnectPending || bNotifyWritable)
+  if (bConnectPending)
     return true;
-  else {
+  else if (bWatchOnly)
+    return bNotifyWritable ? true : false;
+  else
     return (GetOutboundDataSize() > 0);
-  }
 }
 
 
@@ -541,6 +567,8 @@ void ConnectionDescriptor::Read()
 			(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_NOTIFY_READABLE, NULL, 0);
 		return;
 	}
+
+	assert(!bWatchOnly);
 
 	LastIo = gCurrentLoopTime;
 
@@ -696,6 +724,8 @@ void ConnectionDescriptor::Write()
 				(*EventCallback)(GetBinding().c_str(), EM_CONNECTION_NOTIFY_WRITABLE, NULL, 0);
 			return;
 		}
+
+		assert(!bWatchOnly);
 
 		/* 5May09: Kqueue bugs on OSX cause one extra writable event to fire even though we're using
 		   EV_ONESHOT. We ignore this extra event once, but only the first time. If it happens again,

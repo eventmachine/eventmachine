@@ -46,8 +46,12 @@ extern "C" {
 	const char *evma_connect_to_server (const char *bind_addr, int bind_port, const char *server, int port);
 	const char *evma_connect_to_unix_server (const char *server);
 
-	const char *evma_attach_fd (int file_descriptor, int read_mode, int write_mode);
+	const char *evma_attach_fd (int file_descriptor, int watch_mode);
 	int evma_detach_fd (const char *binding);
+	int evma_is_notify_readable (const char *binding);
+	void evma_set_notify_readable (const char *binding, int mode);
+	int evma_is_notify_writable (const char *binding);
+	void evma_set_notify_writable (const char *binding, int mode);
 
 	void evma_stop_tcp_server (const char *signature);
 	const char *evma_create_tcp_server (const char *address, int port);

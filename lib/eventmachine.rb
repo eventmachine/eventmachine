@@ -728,26 +728,25 @@ module EventMachine
     c
   end
 
-  # EventMachine::attach registers a given file descriptor or IO object with the eventloop
+  # EventMachine::watch registers a given file descriptor or IO object with the eventloop. The
+  # file descriptor will not be modified (it will remain blocking or non-blocking).
   #
-  # If the handler provided has the functions notify_readable or notify_writable defined,
-  # EventMachine will not read or write from the socket, and instead fire the corresponding
-  # callback on the handler.
+  # The eventloop can be used to process readable and writable events on the file descriptor, using
+  # EventMachine::Connection#notify_readable= and EventMachine::Connection#notify_writable=
+  #
+  # EventMachine::Connection#notify_readable? and EventMachine::Connection#notify_writable? can be used
+  # to check what events are enabled on the connection.
   #
   # To detach the file descriptor, use EventMachine::Connection#detach
   #
   # === Usage Example
   #
   #  module SimpleHttpClient
-  #    def initialize sock
-  #      @sock = sock
-  #    end
-  #
   #    def notify_readable
-  #      header = @sock.readline
+  #      header = @io.readline
   #
   #      if header == "\r\n"
-  #        # detach returns the file descriptor number (fd == @sock.fileno)
+  #        # detach returns the file descriptor number (fd == @io.fileno)
   #        fd = detach
   #      end
   #    rescue EOFError
@@ -757,7 +756,7 @@ module EventMachine
   #    def unbind
   #      EM.next_tick do
   #        # socket is detached from the eventloop, but still open
-  #        data = @sock.read
+  #        data = @io.read
   #      end
   #    end
   #  end
@@ -765,12 +764,27 @@ module EventMachine
   #  EM.run{
   #    $sock = TCPSocket.new('site.com', 80)
   #    $sock.write("GET / HTTP/1.0\r\n\r\n")
-  #    EM.attach $sock, SimpleHttpClient, $sock
+  #    conn = EM.watch $sock, SimpleHttpClient
+  #    conn.notify_readable = true
   #  }
   #
   #--
   # Thanks to Riham Aldakkak (eSpace Technologies) for the initial patch
-  def  EventMachine::attach io, handler=nil, *args
+  def EventMachine::watch io, handler=nil, *args, &blk
+    attach_io io, true, handler, *args, &blk
+  end
+
+  # Attaches an IO object or file descriptor to the eventloop as a regular connection.
+  # The file descriptor will be set as non-blocking, and EventMachine will process
+  # receive_data and send_data events on it as it would for any other connection.
+  #
+  # To watch a fd instead, use EventMachine::watch, which will not alter the state of the socket
+  # and fire notify_readable and notify_writable events instead.
+  def EventMachine::attach io, handler=nil, *args, &blk
+    attach_io io, false, handler, *args, &blk
+  end
+
+  def EventMachine::attach_io io, watch_mode, handler=nil, *args # :nodoc:
     klass = if (handler and handler.is_a?(Class))
       raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
       handler
@@ -784,12 +798,17 @@ module EventMachine
       raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
     end
 
-    readmode  = klass.public_instance_methods.any?{|m| m.to_sym == :notify_readable }
-    writemode = klass.public_instance_methods.any?{|m| m.to_sym == :notify_writable }
+    if !watch_mode and klass.public_instance_methods.any?{|m| [:notify_readable, :notify_writable].include? m.to_sym }
+      raise ArgumentError, "notify_readable/writable with EM.attach is not supported. Use EM.watch(io){ |c| c.notify_readable = true }"
+    end
 
-    s = attach_fd io.respond_to?(:fileno) ? io.fileno : io, readmode, writemode
-
+    fd = io.respond_to?(:fileno) ? io.fileno : io
+    s = attach_fd fd, watch_mode
     c = klass.new s, *args
+
+    c.instance_variable_set(:@io, io)
+    c.instance_variable_set(:@fd, fd)
+
     @conns[s] = c
     block_given? and yield c
     c
