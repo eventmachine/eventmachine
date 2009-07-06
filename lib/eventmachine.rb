@@ -714,7 +714,7 @@ module EventMachine
 
     s = if port
           if bind_addr
-            bind_connect_server bind_addr, bind_port, server, port
+            bind_connect_server bind_addr, bind_port.to_i, server, port
           else
             connect_server server, port
           end
