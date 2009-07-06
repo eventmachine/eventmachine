@@ -100,7 +100,7 @@ class EventMachine_t
 		void Add (EventableDescriptor*);
 		void Modify (EventableDescriptor*);
 
-		const unsigned long AttachFD (int, bool, bool);
+		const unsigned long AttachFD (int, bool);
 		int DetachFD (EventableDescriptor*);
 
 		void ArmKqueueWriter (EventableDescriptor*);

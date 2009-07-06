@@ -1249,7 +1249,7 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 EventMachine_t::AttachFD
 ************************/
 
-const unsigned long EventMachine_t::AttachFD (int fd, bool notify_readable, bool notify_writable)
+const unsigned long EventMachine_t::AttachFD (int fd, bool watch_mode)
 {
 	#ifdef OS_UNIX
 	if (fcntl(fd, F_GETFL, 0) < 0)
@@ -1279,15 +1279,15 @@ const unsigned long EventMachine_t::AttachFD (int fd, bool notify_readable, bool
 		}
 	}
 
-	SetSocketNonblocking(fd);
+	if (!watch_mode)
+		SetSocketNonblocking(fd);
 
 	ConnectionDescriptor *cd = new ConnectionDescriptor (fd, this);
 	if (!cd)
 		throw std::runtime_error ("no connection allocated");
 
+	cd->SetWatchOnly(watch_mode);
 	cd->SetConnectPending (false);
-	cd->SetNotifyReadable (notify_readable);
-	cd->SetNotifyWritable (notify_writable);
 
 	Add (cd);
 

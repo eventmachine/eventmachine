@@ -157,6 +157,11 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		void SetNotifyReadable (bool);
 		void SetNotifyWritable (bool);
+		void SetWatchOnly (bool);
+
+		bool IsNotifyReadable(){ return bNotifyReadable; }
+		bool IsNotifyWritable(){ return bNotifyWritable; }
+		bool IsWatchOnly(){ return bWatchOnly; }
 
 		virtual void Read();
 		virtual void Write();
@@ -200,6 +205,7 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		bool bNotifyReadable;
 		bool bNotifyWritable;
+		bool bWatchOnly;
 
 		bool bReadAttemptedAfterClose;
 		bool bWriteAttemptedAfterClose;

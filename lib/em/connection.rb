@@ -34,12 +34,14 @@ module EventMachine
     #
     def self.new(sig, *args) #:nodoc:
       allocate.instance_eval do
+        # Store signature
+        @signature = sig
+        associate_callback_target sig
+
         # Call a superclass's #initialize if it has one
         initialize(*args)
 
-        # Store signature and run #post_init
-        @signature = sig
-        associate_callback_target sig
+        # post initialize callback
         post_init
 
         self
@@ -500,6 +502,28 @@ module EventMachine
     #
     def stream_file_data filename, args={}
       EventMachine::FileStreamer.new( self, filename, args )
+    end
+
+    # Enable notify_readable callbacks on this connection. Only possible if the connection was created
+    # using EM.attach and had notify_readable/notify_writable defined on the handler.
+    def notify_readable= mode
+      EventMachine::set_notify_readable @signature, mode
+    end
+
+    # Returns true if the connection is being watched for readability.
+    def notify_readable?
+      EventMachine::is_notify_readable @signature
+    end
+
+    # Enable notify_writable callbacks on this connection. Only possible if the connection was created
+    # using EM.attach and had notify_readable/notify_writable defined on the handler.
+    def notify_writable= mode
+      EventMachine::set_notify_writable @signature, mode
+    end
+
+    # Returns true if the connection is being watched for writability.
+    def notify_writable?
+      EventMachine::is_notify_writable @signature
     end
   end
 end
