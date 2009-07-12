@@ -761,9 +761,6 @@ t__epoll
 
 static VALUE t__epoll (VALUE self)
 {
-	if (t__epoll_p(self) == Qfalse)
-		rb_raise (EM_eUnsupported, "epoll is not supported on this platform");
-
 	evma_set_epoll (1);
 	return Qtrue;
 }
@@ -801,9 +798,6 @@ t__kqueue
 
 static VALUE t__kqueue (VALUE self)
 {
-	if (t__kqueue_p(self) == Qfalse)
-		rb_raise (EM_eUnsupported, "kqueue is not supported on this platform");
-
 	evma_set_kqueue (1);
 	return Qtrue;
 }
