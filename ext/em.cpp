@@ -85,11 +85,11 @@ EventMachine_t::EventMachine_t (void (*event_callback)(const char*, int, const c
 	LoopBreakerReader (-1),
 	LoopBreakerWriter (-1),
 	bEpoll (false),
+	epfd (-1),
 	bKqueue (false),
 	kqfd (-1),
-	epfd (-1),
-	inotify (NULL),
-	HeartbeatInterval(2)
+	HeartbeatInterval(2),
+	inotify (NULL)
 {
 	// Default time-slice is just smaller than one hundred mills.
 	Quantum.tv_sec = 0;

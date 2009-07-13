@@ -221,12 +221,12 @@ class ConnectionDescriptor: public EventableDescriptor
 		bool bSslVerifyPeer;
 		bool bSslPeerAccepted;
 		#endif
-		bool bIsServer;
 
 		#ifdef HAVE_KQUEUE
 		bool bGotExtraKqueueEvent;
 		#endif
 
+		bool bIsServer;
 		Int64 LastIo;
 		int InactivityTimeout;
 
