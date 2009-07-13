@@ -241,6 +241,10 @@ module EventMachine
         @reactor_thread = Thread.current
         run_machine
       ensure
+        until @tails.empty?
+          @tails.pop.call
+        end
+
         begin
           release_machine
         ensure
@@ -253,16 +257,13 @@ module EventMachine
             end
             @threadqueue = nil
             @resultqueue = nil
+            @threadpool = nil
           end
-          @threadpool = nil
+
           @next_tick_queue = nil
         end
         @reactor_running = false
         @reactor_thread = nil
-      end
-
-      until @tails.empty?
-        @tails.pop.call
       end
 
       raise @wrapped_exception if @wrapped_exception
