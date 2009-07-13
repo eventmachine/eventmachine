@@ -1473,6 +1473,10 @@ void DatagramDescriptor::Write()
 	assert (MyEventMachine);
 	MyEventMachine->Modify (this);
 	#endif
+	#ifdef HAVE_KQUEUE
+	if (SelectForWrite())
+		MyEventMachine->ArmKqueueWriter (this);
+	#endif
 }
 
 
@@ -1520,6 +1524,9 @@ int DatagramDescriptor::SendOutboundData (const char *data, int length)
 	EpollEvent.events = (EPOLLIN | EPOLLOUT);
 	assert (MyEventMachine);
 	MyEventMachine->Modify (this);
+	#endif
+	#ifdef HAVE_KQUEUE
+	MyEventMachine->ArmKqueueWriter (this);
 	#endif
 
 	return length;
@@ -1575,6 +1582,9 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 	EpollEvent.events = (EPOLLIN | EPOLLOUT);
 	assert (MyEventMachine);
 	MyEventMachine->Modify (this);
+	#endif
+	#ifdef HAVE_KQUEUE
+	MyEventMachine->ArmKqueueWriter (this);
 	#endif
 
 	return length;

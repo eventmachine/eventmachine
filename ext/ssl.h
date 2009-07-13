@@ -75,9 +75,9 @@ class SslBox_t
 	protected:
 		SslContext_t *Context;
 
-		bool bVerifyPeer;
 		bool bIsServer;
 		bool bHandshakeCompleted;
+		bool bVerifyPeer;
 		SSL *pSSL;
 		BIO *pbioRead;
 		BIO *pbioWrite;
