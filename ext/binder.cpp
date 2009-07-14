@@ -33,7 +33,8 @@ unsigned long Bindable_t::CreateBinding()
 {
 	// XXX use atomic_t to prevent thread-safety issues
 	static unsigned long num = 0;
-	return ++num;
+	while(BindingBag[++num]);
+	return num;
 }
 
 #if 0
