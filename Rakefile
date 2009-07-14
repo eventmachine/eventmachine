@@ -264,6 +264,36 @@ namespace :osx do
     Rake::Task['build'].invoke
     Rake::Task['gem'].invoke
   end
+
+  # XXX gcc will still prefer the shared libssl on the system, so we need to hack the extconf
+  # XXX to use the static library to make this actually work
+  task :static_gem => [:build_openssl, :gem]
+
+  task :build_openssl do
+    mkdir_p 'build'
+    chdir 'build' do
+      unless File.exists?('openssl-0.9.8j')
+        sh 'curl http://www.openssl.org/source/openssl-0.9.8j.tar.gz > openssl-0.9.8j.tar.gz'
+        sh 'tar zxvf openssl-0.9.8j.tar.gz'
+      end
+
+      mkdir_p 'local'
+      chdir 'openssl-0.9.8j' do
+        local_dir = File.expand_path(File.join(File.dirname(__FILE__),'build','local'))
+        sh "./config --prefix=#{local_dir}"
+        sh 'make'
+        sh 'make install'
+      end
+
+      chdir '../ext' do
+        sh 'git clean -fd .'
+      end
+
+      mv 'local/include/openssl', '../ext/'
+      mv 'local/lib/libssl.a', '../ext/'
+      mv 'local/lib/libcrypto.a', '../ext/'
+    end
+  end
 end
 
 require 'rake/clean'
