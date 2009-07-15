@@ -1323,6 +1323,8 @@ module EventMachine
   #    end
   #  end
   #
+  #  EM.kqueue = true if EM.kqueue? # file watching requires kqueue on OSX
+  #
   #  EM.run {
   #    EM.watch_file("/tmp/foo", Handler)
   #  }
