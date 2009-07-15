@@ -1327,7 +1327,11 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 		struct kevent k;
 		EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_DELETE, 0, 0, ed);
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
-		assert (t == 0);
+		if (t < 0 && (errno != ENOENT) && (errno != EBADF)) {
+			char buf [200];
+			snprintf (buf, sizeof(buf)-1, "unable to delete kqueue event: %s", strerror(errno));
+			throw std::runtime_error (buf);
+		}
 	}
 	#endif
 
@@ -1612,7 +1616,11 @@ void EventMachine_t::ArmKqueueWriter (EventableDescriptor *ed)
 		struct kevent k;
 		EV_SET (&k, ed->GetSocket(), EVFILT_WRITE, EV_ADD | EV_ONESHOT, 0, 0, ed);
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
-		assert (t == 0);
+		if (t < 0) {
+			char buf [200];
+			snprintf (buf, sizeof(buf)-1, "arm kqueue writer failed on %d: %s", ed->GetSocket(), strerror(errno));
+			throw std::runtime_error (buf);
+		}
 	}
 	#endif
 }
@@ -1630,7 +1638,11 @@ void EventMachine_t::ArmKqueueReader (EventableDescriptor *ed)
 		struct kevent k;
 		EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_ADD, 0, 0, ed);
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
-		assert (t == 0);
+		if (t < 0) {
+			char buf [200];
+			snprintf (buf, sizeof(buf)-1, "arm kqueue reader failed on %d: %s", ed->GetSocket(), strerror(errno));
+			throw std::runtime_error (buf);
+		}
 	}
 	#endif
 }
