@@ -552,11 +552,13 @@ module EventMachine
       port = nil
     end if port
 
-    klass = if (handler and handler.is_a?(Class))
-      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
+    klass = if handler and handler.is_a?(Class)
+      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection >= handler
       handler
+    elsif handler
+      Class.new(Connection){ include handler }
     else
-      Class.new( Connection ) {handler and include handler}
+      Connection
     end
 
     arity = klass.instance_method(:initialize).arity
@@ -700,11 +702,13 @@ module EventMachine
       port = nil
     end if port
 
-    klass = if (handler and handler.is_a?(Class))
-      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
+    klass = if handler and handler.is_a?(Class)
+      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection >= handler
       handler
+    elsif handler
+      Class.new(Connection){ include handler }
     else
-      Class.new( Connection ) {handler and include handler}
+      Connection
     end
 
     arity = klass.instance_method(:initialize).arity
@@ -786,11 +790,13 @@ module EventMachine
   end
 
   def EventMachine::attach_io io, watch_mode, handler=nil, *args # :nodoc:
-    klass = if (handler and handler.is_a?(Class))
-      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
+    klass = if handler and handler.is_a?(Class)
+      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection >= handler
       handler
+    elsif handler
+      Class.new(Connection){ include handler }
     else
-      Class.new( Connection ) {handler and include handler}
+      Connection
     end
 
     arity = klass.instance_method(:initialize).arity
@@ -925,11 +931,13 @@ module EventMachine
   # out that this originally did not take a class but only a module.
   #
   def self.open_datagram_socket address, port, handler=nil, *args
-    klass = if (handler and handler.is_a?(Class))
-      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
+    klass = if handler and handler.is_a?(Class)
+      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection >= handler
       handler
+    elsif handler
+      Class.new(Connection){ include handler }
     else
-      Class.new( Connection ) {handler and include handler}
+      Connection
     end
 
     arity = klass.instance_method(:initialize).arity
@@ -1207,11 +1215,13 @@ module EventMachine
   # Perhaps misnamed since the underlying function uses socketpair and is full-duplex.
   #
   def self.popen cmd, handler=nil, *args
-    klass = if (handler and handler.is_a?(Class))
-      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
+    klass = if handler and handler.is_a?(Class)
+      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection >= handler
       handler
+    elsif handler
+      Class.new(Connection){ include handler }
     else
-      Class.new( Connection ) {handler and include handler}
+      Connection
     end
 
     w = Shellwords::shellwords( cmd )
@@ -1243,11 +1253,13 @@ module EventMachine
   #
   #
   def self.open_keyboard handler=nil, *args
-    klass = if (handler and handler.is_a?(Class))
-      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
+    klass = if handler and handler.is_a?(Class)
+      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection >= handler
       handler
+    elsif handler
+      Class.new(Connection){ include handler }
     else
-      Class.new( Connection ) {handler and include handler}
+      Connection
     end
 
     arity = klass.instance_method(:initialize).arity
@@ -1324,11 +1336,13 @@ module EventMachine
   # Calling #path will always return the filename you originally used.
   #
   def self.watch_file(filename, handler=nil, *args)
-    klass = if (handler and handler.is_a?(Class))
-      raise ArgumentError, 'must provide module or subclass of EventMachine::FileWatch' unless FileWatch > handler
+    klass = if handler and handler.is_a?(Class)
+      raise ArgumentError, 'must provide module or subclass of EventMachine::FileWatch' unless FileWatch >= handler
       handler
+    elsif handler
+      Class.new(FileWatch){ include handler }
     else
-      Class.new( FileWatch ) {handler and include handler}
+      FileWatch
     end
 
     arity = klass.instance_method(:initialize).arity
@@ -1366,11 +1380,13 @@ module EventMachine
   def self.watch_process(pid, handler=nil, *args)
     pid = pid.to_i
 
-    klass = if (handler and handler.is_a?(Class))
-      raise ArgumentError, 'must provide module or subclass of EventMachine::ProcessWatch' unless ProcessWatch > handler
+    klass = if handler and handler.is_a?(Class)
+      raise ArgumentError, 'must provide module or subclass of EventMachine::ProcessWatch' unless ProcessWatch >= handler
       handler
+    elsif handler
+      Class.new(ProcessWatch){ include handler }
     else
-      Class.new( ProcessWatch ) {handler and include handler}
+      ProcessWatch
     end
 
     arity = klass.instance_method(:initialize).arity
@@ -1641,11 +1657,13 @@ module EventMachine
   # This is a provisional implementation of a stream-oriented file access object.
   # We also experiment with wrapping up some better exception reporting.
   def self._open_file_for_writing filename, handler=nil # :nodoc:
-    klass = if (handler and handler.is_a?(Class))
-      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection > handler
+    klass = if handler and handler.is_a?(Class)
+      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection >= handler
       handler
+    elsif handler
+      Class.new(Connection){ include handler }
     else
-      Class.new( Connection ) {handler and include handler}
+      Connection
     end
 
     s = _write_file filename
