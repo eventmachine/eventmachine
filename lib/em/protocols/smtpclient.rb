@@ -30,22 +30,38 @@ module EventMachine
 
     # Simple SMTP client
     #
-    #   email = EM::Protocols::SmtpClient.send(
-    #     :domain=>"example.com",
-    #     :host=>'localhost',
-    #     :port=>25, # optional, defaults 25
-    #     :starttls=>true, # use ssl
-    #     :from=>"sender@example.com",
-    #     :to=> ["to_1@example.com", "to_2@example.com"],
-    #     :header=> {"Subject" => "This is a subject line"},
-    #     :body=> "This is the body of the email"
-    #   )
-    #   email.callback{
-    #     puts 'Email sent!'
-    #   }
-    #   email.errback{ |e|
-    #     puts 'Email failed!'
-    #   }
+    #  email = EM::Protocols::SmtpClient.send(
+    #    :domain=>"example.com",
+    #    :host=>'localhost',
+    #    :port=>25, # optional, defaults 25
+    #    :starttls=>true, # use ssl
+    #    :from=>"sender@example.com",
+    #    :to=> ["to_1@example.com", "to_2@example.com"],
+    #    :header=> {"Subject" => "This is a subject line"},
+    #    :body=> "This is the body of the email"
+    #  )
+    #  email.callback{
+    #    puts 'Email sent!'
+    #  }
+    #  email.errback{ |e|
+    #    puts 'Email failed!'
+    #  }
+    #
+    # Sending generated emails (using mailfactory)
+    #
+    #  mail = MailFactory.new
+    #  mail.to = 'someone@site.co'
+    #  mail.from = 'me@site.com'
+    #  mail.subject = 'hi!'
+    #  mail.text = 'hello world'
+    #  mail.html = '<h1>hello world</h1>'
+    #
+    #  email = EM::P::SmtpClient.send(
+    #    :domain=>'site.com',
+    #    :from=>mail.from,
+    #    :to=>mail.to,
+    #    :content=>"#{mail.to_s}\r\n.\r\n"
+    #  )
     #
     class SmtpClient < Connection
       include EventMachine::Deferrable
@@ -95,6 +111,9 @@ module EventMachine
       #   correct line-breaks to text data. I think the :body parameter should remain as it is, and we
       #   should add a :content parameter that contains autoconversions and/or conversion parameters.
       #   Then we can check if either :body or :content is present and do the right thing.
+      # :content => Optional array or string
+      #   Alternative to providing header and body, an array or string of raw data which MUST be in
+      #   correct SMTP body format, including a trailing dot line
       # :verbose => Optional.
       #   If true, will cause a lot of information (including the server-side of the
       #   conversation) to be dumped to $>.
