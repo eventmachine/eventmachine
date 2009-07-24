@@ -56,9 +56,11 @@ class EventableDescriptor: public Bindable_t
 		bool ShouldDelete();
 		// Do we have any data to write? This is used by ShouldDelete.
 		virtual int GetOutboundDataSize() {return 0;}
+		virtual bool IsWatchOnly(){ return false; }
 
-		void ScheduleClose (bool after_writing);
+		virtual void ScheduleClose (bool after_writing);
 		bool IsCloseScheduled();
+		virtual void HandleError(){ ScheduleClose (false); }
 
 		void SetEventCallback (void (*cb)(const unsigned long, int, const char*, const unsigned long));
 
@@ -154,6 +156,8 @@ class ConnectionDescriptor: public EventableDescriptor
 		int SendOutboundData (const char*, int);
 
 		void SetConnectPending (bool f);
+		virtual void ScheduleClose (bool after_writing);
+		virtual void HandleError();
 
 		void SetNotifyReadable (bool);
 		void SetNotifyWritable (bool);
@@ -161,7 +165,7 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		bool IsNotifyReadable(){ return bNotifyReadable; }
 		bool IsNotifyWritable(){ return bNotifyWritable; }
-		bool IsWatchOnly(){ return bWatchOnly; }
+		virtual bool IsWatchOnly(){ return bWatchOnly; }
 
 		virtual void Read();
 		virtual void Write();
@@ -231,6 +235,8 @@ class ConnectionDescriptor: public EventableDescriptor
 		int InactivityTimeout;
 
 	private:
+		void _UpdateEvents();
+		void _UpdateEvents(bool, bool);
 		void _WriteOutboundData();
 		void _DispatchInboundData (const char *buffer, int size);
 		void _DispatchCiphertext();

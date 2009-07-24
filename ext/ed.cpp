@@ -88,6 +88,7 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	CreatedAt = gCurrentLoopTime;
 
 	#ifdef HAVE_EPOLL
+	EpollEvent.events = 0;
 	EpollEvent.data.ptr = this;
 	#endif
 }
@@ -319,6 +320,49 @@ int ConnectionDescriptor::ReportErrorStatus (const unsigned long binding)
 	return -1;
 }
 
+/***********************************
+ConnectionDescriptor::_UpdateEvents
+************************************/
+
+void ConnectionDescriptor::_UpdateEvents()
+{
+	_UpdateEvents(true, true);
+}
+
+void ConnectionDescriptor::_UpdateEvents(bool read, bool write)
+{
+	if (MySocket == INVALID_SOCKET)
+		return;
+
+	#ifdef HAVE_EPOLL
+	unsigned int old = EpollEvent.events;
+
+	if (read) {
+		if (SelectForRead())
+			EpollEvent.events |= EPOLLIN;
+		else
+			EpollEvent.events &= ~EPOLLIN;
+	}
+
+	if (write) {
+		if (SelectForWrite())
+			EpollEvent.events |= EPOLLOUT;
+		else
+			EpollEvent.events &= ~EPOLLOUT;
+	}
+
+	if (old != EpollEvent.events)
+		MyEventMachine->Modify (this);
+	#endif
+
+	#ifdef HAVE_KQUEUE
+	if (read && SelectForRead())
+		MyEventMachine->ArmKqueueReader (this);
+	if (write && SelectForWrite())
+		MyEventMachine->ArmKqueueWriter (this);
+	#endif
+}
+
 /***************************************
 ConnectionDescriptor::SetConnectPending
 ****************************************/
@@ -326,24 +370,7 @@ ConnectionDescriptor::SetConnectPending
 void ConnectionDescriptor::SetConnectPending(bool f)
 {
 	bConnectPending = f;
-
-	if (bConnectPending) { // not yet connected, select for writability
-		#ifdef HAVE_EPOLL
-		EpollEvent.events = EPOLLOUT;
-		#endif
-		#ifdef HAVE_KQUEUE
-		MyEventMachine->ArmKqueueWriter (this);
-		#endif
-	} else { // connected, wait for incoming data and write out any pending outgoing data
-		#ifdef HAVE_EPOLL
-		EpollEvent.events = EPOLLIN | (SelectForWrite() ? EPOLLOUT : 0);
-		#endif
-		#ifdef HAVE_KQUEUE
-		MyEventMachine->ArmKqueueReader (this);
-		if (SelectForWrite())
-			MyEventMachine->ArmKqueueWriter (this);
-		#endif
-	}
+	_UpdateEvents();
 }
 
 
@@ -354,6 +381,38 @@ ConnectionDescriptor::SetWatchOnly
 void ConnectionDescriptor::SetWatchOnly(bool watching)
 {
 	bWatchOnly = watching;
+	_UpdateEvents();
+}
+
+
+/*********************************
+ConnectionDescriptor::HandleError
+*********************************/
+
+void ConnectionDescriptor::HandleError()
+{
+	if (bWatchOnly) {
+		// HandleError() is called on WatchOnly descriptors by the epoll reactor
+		// when it gets a EPOLLERR | EPOLLHUP. Usually this would show up as a readable and
+		// writable event on other reactors, so we have to fire those events ourselves.
+		if (bNotifyReadable) Read();
+		if (bNotifyWritable) Write();
+	} else {
+		ScheduleClose (false);
+	}
+}
+
+
+/***********************************
+ConnectionDescriptor::ScheduleClose
+***********************************/
+
+void ConnectionDescriptor::ScheduleClose (bool after_writing)
+{
+	if (bWatchOnly)
+		throw std::runtime_error ("cannot close 'watch only' connections");
+
+	EventableDescriptor::ScheduleClose(after_writing);
 }
 
 
@@ -367,14 +426,7 @@ void ConnectionDescriptor::SetNotifyReadable(bool readable)
 		throw std::runtime_error ("notify_readable must be on 'watch only' connections");
 
 	bNotifyReadable = readable;
-	if (bNotifyReadable) {
-		#ifdef HAVE_EPOLL
-		EpollEvent.events |= EPOLLIN;
-		#endif
-		#ifdef HAVE_KQUEUE
-		MyEventMachine->ArmKqueueReader (this);
-		#endif
-	}
+	_UpdateEvents(true, false);
 }
 
 
@@ -388,14 +440,7 @@ void ConnectionDescriptor::SetNotifyWritable(bool writable)
 		throw std::runtime_error ("notify_writable must be on 'watch only' connections");
 
 	bNotifyWritable = writable;
-	if (bNotifyWritable) {
-		#ifdef HAVE_EPOLL
-		EpollEvent.events |= EPOLLOUT;
-		#endif
-		#ifdef HAVE_KQUEUE
-		MyEventMachine->ArmKqueueWriter (this);
-		#endif
-	}
+	_UpdateEvents(false, true);
 }
 
 
@@ -460,14 +505,7 @@ int ConnectionDescriptor::_SendRawOutboundData (const char *data, int length)
 	OutboundPages.push_back (OutboundPage (buffer, length));
 	OutboundDataSize += length;
 
-	#ifdef HAVE_EPOLL
-	EpollEvent.events = (EPOLLIN | EPOLLOUT);
-	assert (MyEventMachine);
-	MyEventMachine->Modify (this);
-	#endif
-	#ifdef HAVE_KQUEUE
-	MyEventMachine->ArmKqueueWriter (this);
-	#endif
+	_UpdateEvents(false, true);
 
 	return length;
 }
@@ -561,13 +599,11 @@ void ConnectionDescriptor::Read()
 		return;
 	}
 
-	if (bNotifyReadable) {
-		if (EventCallback)
+	if (bWatchOnly) {
+		if (bNotifyReadable && EventCallback)
 			(*EventCallback)(GetBinding(), EM_CONNECTION_NOTIFY_READABLE, NULL, 0);
 		return;
 	}
-
-	assert(!bWatchOnly);
 
 	LastIo = gCurrentLoopTime;
 
@@ -721,6 +757,8 @@ void ConnectionDescriptor::Write()
 		if (bNotifyWritable) {
 			if (EventCallback)
 				(*EventCallback)(GetBinding(), EM_CONNECTION_NOTIFY_WRITABLE, NULL, 0);
+
+			_UpdateEvents(false, true);
 			return;
 		}
 
@@ -867,16 +905,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 	}
 	#endif
 
-	#ifdef HAVE_EPOLL
-	EpollEvent.events = (EPOLLIN | (SelectForWrite() ? EPOLLOUT : 0));
-	assert (MyEventMachine);
-	MyEventMachine->Modify (this);
-	#endif
-	#ifdef HAVE_KQUEUE
-	if (SelectForWrite())
-		MyEventMachine->ArmKqueueWriter (this);
-	#endif
-
+	_UpdateEvents(false, true);
 
 	if (err) {
 		#ifdef OS_UNIX

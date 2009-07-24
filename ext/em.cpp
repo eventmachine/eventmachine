@@ -477,14 +477,18 @@ bool EventMachine_t::_RunEpollOnce()
 		for (int i=0; i < s; i++) {
 			EventableDescriptor *ed = (EventableDescriptor*) epoll_events[i].data.ptr;
 
+			if (ed->IsWatchOnly() && ed->GetSocket() == INVALID_SOCKET)
+				continue;
+
+			assert(ed->GetSocket() != INVALID_SOCKET);
+
 			if (epoll_events[i].events & (EPOLLERR | EPOLLHUP))
-				ed->ScheduleClose (false);
-			if (epoll_events[i].events & EPOLLIN)
-				ed->Read();
-			if (epoll_events[i].events & EPOLLOUT) {
-				ed->Write();
-				epoll_ctl (epfd, EPOLL_CTL_MOD, ed->GetSocket(), ed->GetEpollEvent());
-				// Ignoring return value
+				ed->HandleError();
+			else {
+				if (epoll_events[i].events & EPOLLIN)
+					ed->Read();
+				if (epoll_events[i].events & EPOLLOUT)
+					ed->Write();
 			}
 		}
 	}
@@ -520,7 +524,7 @@ bool EventMachine_t::_RunEpollOnce()
 					assert (epfd != -1);
 					int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
 					// ENOENT or EBADF are not errors because the socket may be already closed when we get here.
-					if (e && (errno != ENOENT) && (errno != EBADF)) {
+					if (e && (errno != ENOENT) && (errno != EBADF) && (errno != EPERM)) {
 						char buf [200];
 						snprintf (buf, sizeof(buf)-1, "unable to delete epoll event: %s", strerror(errno));
 						throw std::runtime_error (buf);
@@ -606,6 +610,9 @@ bool EventMachine_t::_RunKqueueOnce()
 				EventableDescriptor *ed = (EventableDescriptor*) (ke->udata);
 				assert (ed);
 
+				if (ed->IsWatchOnly() && ed->GetSocket() == INVALID_SOCKET)
+					continue;
+
 				if (ke->filter == EVFILT_READ)
 					ed->Read();
 				else if (ke->filter == EVFILT_WRITE)
@@ -680,6 +687,7 @@ void EventMachine_t::_ModifyEpollEvent (EventableDescriptor *ed)
 	if (bEpoll) {
 		assert (epfd != -1);
 		assert (ed);
+		assert (ed->GetSocket() != INVALID_SOCKET);
 		int e = epoll_ctl (epfd, EPOLL_CTL_MOD, ed->GetSocket(), ed->GetEpollEvent());
 		if (e) {
 			char buf [200];
@@ -796,6 +804,8 @@ bool EventMachine_t::_RunSelectOnce()
 		EventableDescriptor *ed = Descriptors[i];
 		assert (ed);
 		int sd = ed->GetSocket();
+		if (ed->IsWatchOnly() && sd == INVALID_SOCKET)
+			continue;
 		assert (sd != INVALID_SOCKET);
 
 		if (ed->SelectForRead())
@@ -831,6 +841,8 @@ bool EventMachine_t::_RunSelectOnce()
 				EventableDescriptor *ed = Descriptors[i];
 				assert (ed);
 				int sd = ed->GetSocket();
+				if (ed->IsWatchOnly() && sd == INVALID_SOCKET)
+					continue;
 				assert (sd != INVALID_SOCKET);
 
 				if (FD_ISSET (sd, &(SelectData.fdwrites)))
@@ -1306,10 +1318,11 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 	if (!ed)
 		throw std::runtime_error ("detaching bad descriptor");
 
+	int fd = ed->GetSocket();
+
 	#ifdef HAVE_EPOLL
 	if (bEpoll) {
 		if (ed->GetSocket() != INVALID_SOCKET) {
-			assert (bEpoll); // wouldn't be in this method otherwise.
 			assert (epfd != -1);
 			int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
 			// ENOENT or EBADF are not errors because the socket may be already closed when we get here.
@@ -1324,8 +1337,9 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 
 	#ifdef HAVE_KQUEUE
 	if (bKqueue) {
+		// remove any read/write events for this fd
 		struct kevent k;
-		EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_DELETE, 0, 0, ed);
+		EV_SET (&k, ed->GetSocket(), EVFILT_READ | EVFILT_WRITE, EV_DELETE, 0, 0, ed);
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
 		if (t < 0 && (errno != ENOENT) && (errno != EBADF)) {
 			char buf [200];
@@ -1335,26 +1349,12 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 	}
 	#endif
 
-	{ // remove descriptor from lists
-		int i, j;
-		int nSockets = Descriptors.size();
-		for (i=0, j=0; i < nSockets; i++) {
-			EventableDescriptor *ted = Descriptors[i];
-			assert (ted);
-			if (ted != ed)
-				Descriptors [j++] = ted;
-		}
-		while ((size_t)j < Descriptors.size())
-			Descriptors.pop_back();
+	// Prevent the descriptor from being modified, in case DetachFD was called from a timer or next_tick
+	ModifiedDescriptors.erase (ed);
 
-		ModifiedDescriptors.erase (ed);
-	}
-
-	int fd = ed->GetSocket();
-
-	// We depend on ~EventableDescriptor not calling close() if the socket is invalid
+	// Set MySocket = INVALID_SOCKET so ShouldDelete() is true (and the descriptor gets deleted and removed),
+	// and also to prevent anyone from calling close() on the detached fd
 	ed->SetSocketInvalid();
-	delete ed;
 
 	return fd;
 }
