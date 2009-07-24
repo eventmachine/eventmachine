@@ -525,5 +525,20 @@ module EventMachine
     def notify_writable?
       EventMachine::is_notify_writable @signature
     end
+
+    # Pause a connection so that #send_data and #receive_data events are not fired until #resume is called.
+    def pause
+      EventMachine::pause_connection @signature
+    end
+
+    # Resume a connection's #send_data and #receive_data events.
+    def resume
+      EventMachine::resume_connection @signature
+    end
+
+    # True if the connect was paused using #pause.
+    def paused?
+      EventMachine::connection_paused? @signature
+    end
   end
 end

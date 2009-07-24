@@ -189,6 +189,44 @@ extern "C" void evma_set_notify_writable (const unsigned long binding, int mode)
 		cd->SetNotifyWritable (mode ? true : false);
 }
 
+/**********
+evma_pause
+**********/
+
+extern "C" int evma_pause (const unsigned long binding)
+{
+	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
+	if (cd)
+		return cd->Pause() ? 1 : 0;
+
+	return 0;
+}
+
+/***********
+evma_resume
+***********/
+
+extern "C" int evma_resume (const unsigned long binding)
+{
+	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
+	if (cd)
+		return cd->Resume() ? 1 : 0;
+
+	return 0;
+}
+
+/**************
+evma_is_paused
+**************/
+
+extern "C" int evma_is_paused (const unsigned long binding)
+{
+	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
+	if (cd)
+		return cd->IsPaused() ? 1 : 0;
+
+	return 0;
+}
 
 /**********************
 evma_create_tcp_server

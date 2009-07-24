@@ -536,6 +536,33 @@ static VALUE t_set_notify_writable (VALUE self, VALUE signature, VALUE mode)
 	return Qnil;
 }
 
+/*******
+t_pause
+*******/
+
+static VALUE t_pause (VALUE self, VALUE signature)
+{
+	return evma_pause(NUM2ULONG (signature)) ? Qtrue : Qfalse;
+}
+
+/********
+t_resume
+********/
+
+static VALUE t_resume (VALUE self, VALUE signature)
+{
+	return evma_resume(NUM2ULONG (signature)) ? Qtrue : Qfalse;
+}
+
+/**********
+t_paused_p
+**********/
+
+static VALUE t_paused_p (VALUE self, VALUE signature)
+{
+	return evma_is_paused(NUM2ULONG (signature)) ? Qtrue : Qfalse;
+}
+
 /*****************
 t_open_udp_socket
 *****************/
@@ -1013,6 +1040,10 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "set_notify_writable", (VALUE (*)(...))t_set_notify_writable, 2);
 	rb_define_module_function (EmModule, "is_notify_readable", (VALUE (*)(...))t_is_notify_readable, 1);
 	rb_define_module_function (EmModule, "is_notify_writable", (VALUE (*)(...))t_is_notify_writable, 1);
+
+	rb_define_module_function (EmModule, "pause_connection", (VALUE (*)(...))t_pause, 1);
+	rb_define_module_function (EmModule, "resume_connection", (VALUE (*)(...))t_resume, 1);
+	rb_define_module_function (EmModule, "connection_paused?", (VALUE (*)(...))t_paused_p, 1);
 
 	rb_define_module_function (EmModule, "start_proxy", (VALUE (*)(...))t_start_proxy, 2);
 	rb_define_module_function (EmModule, "stop_proxy", (VALUE (*)(...))t_stop_proxy, 1);

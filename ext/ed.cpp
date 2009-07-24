@@ -227,6 +227,7 @@ ConnectionDescriptor::ConnectionDescriptor
 
 ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	EventableDescriptor (sd, em),
+	bPaused (false),
 	bConnectPending (false),
 	bNotifyReadable (false),
 	bNotifyWritable (false),
@@ -532,7 +533,9 @@ bool ConnectionDescriptor::SelectForRead()
    * is known to be in a connected state.
    */
 
-  if (bConnectPending)
+  if (bPaused)
+    return false;
+  else if (bConnectPending)
     return false;
   else if (bWatchOnly)
     return bNotifyReadable ? true : false;
@@ -553,7 +556,9 @@ bool ConnectionDescriptor::SelectForWrite()
    * have outgoing data to send.
    */
 
-  if (bConnectPending)
+  if (bPaused)
+    return false;
+  else if (bConnectPending)
     return true;
   else if (bWatchOnly)
     return bNotifyWritable ? true : false;
@@ -561,6 +566,33 @@ bool ConnectionDescriptor::SelectForWrite()
     return (GetOutboundDataSize() > 0);
 }
 
+/***************************
+ConnectionDescriptor::Pause
+***************************/
+
+bool ConnectionDescriptor::Pause()
+{
+	if (bWatchOnly)
+		throw std::runtime_error ("cannot pause/resume 'watch only' connections, set notify readable/writable instead");
+
+	bool old = bPaused;
+	bPaused = true;
+	return old == false;
+}
+
+/****************************
+ConnectionDescriptor::Resume
+****************************/
+
+bool ConnectionDescriptor::Resume()
+{
+	if (bWatchOnly)
+		throw std::runtime_error ("cannot pause/resume 'watch only' connections, set notify readable/writable instead");
+
+	bool old = bPaused;
+	bPaused = false;
+	return old == true;
+}
 
 /**************************
 ConnectionDescriptor::Read

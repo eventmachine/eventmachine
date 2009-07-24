@@ -163,6 +163,10 @@ class ConnectionDescriptor: public EventableDescriptor
 		void SetNotifyWritable (bool);
 		void SetWatchOnly (bool);
 
+		bool IsPaused(){ return bPaused; }
+		bool Pause();
+		bool Resume();
+
 		bool IsNotifyReadable(){ return bNotifyReadable; }
 		bool IsNotifyWritable(){ return bNotifyWritable; }
 		virtual bool IsWatchOnly(){ return bWatchOnly; }
@@ -205,6 +209,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		};
 
 	protected:
+		bool bPaused;
 		bool bConnectPending;
 
 		bool bNotifyReadable;
