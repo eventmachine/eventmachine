@@ -393,6 +393,10 @@ ConnectionDescriptor::HandleError
 void ConnectionDescriptor::HandleError()
 {
 	if (bWatchOnly) {
+		// An EPOLLHUP | EPOLLIN condition will call Read() before HandleError(), in which case the
+		// socket is already detached and invalid, so we don't need to do anything.
+		if (MySocket == INVALID_SOCKET) return;
+
 		// HandleError() is called on WatchOnly descriptors by the epoll reactor
 		// when it gets a EPOLLERR | EPOLLHUP. Usually this would show up as a readable and
 		// writable event on other reactors, so we have to fire those events ourselves.

@@ -482,14 +482,12 @@ bool EventMachine_t::_RunEpollOnce()
 
 			assert(ed->GetSocket() != INVALID_SOCKET);
 
+			if (epoll_events[i].events & EPOLLIN)
+				ed->Read();
+			if (epoll_events[i].events & EPOLLOUT)
+				ed->Write();
 			if (epoll_events[i].events & (EPOLLERR | EPOLLHUP))
 				ed->HandleError();
-			else {
-				if (epoll_events[i].events & EPOLLIN)
-					ed->Read();
-				if (epoll_events[i].events & EPOLLOUT)
-					ed->Write();
-			}
 		}
 	}
 	else if (s < 0) {
