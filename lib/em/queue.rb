@@ -41,7 +41,7 @@ module EventMachine
     # next reactor tick.
     def push(*items)
       EM.schedule do
-        @items.concat items
+        @items.push(*items)
         @popq.shift.call @items.shift until @items.empty? || @popq.empty?
       end
     end
