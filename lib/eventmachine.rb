@@ -620,11 +620,13 @@ module EventMachine
   #    def post_init
   #      send_data "GET / HTTP/1.1\r\nHost: _\r\n\r\n"
   #      @data = ""
+  #      @parsed = false
   #    end
   #  
   #    def receive_data data
   #      @data << data
-  #      if  @data =~ /[\n][\r]*[\n]/m
+  #      if !@parsed and @data =~ /[\n][\r]*[\n]/m
+  #        @parsed = true
   #        puts "RECEIVED HTTP HEADER:"
   #        $`.each {|line| puts ">>> #{line}" }
   #  
