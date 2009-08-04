@@ -50,7 +50,7 @@ public class EventableSocketChannel implements EventableChannel {
 	
 	// TODO, must refactor this to permit channels that aren't sockets.
 	SocketChannel channel;
-	String binding;
+	long binding;
 	Selector selector;
 	LinkedList<ByteBuffer> outboundQ;
 	boolean bCloseScheduled;
@@ -61,8 +61,7 @@ public class EventableSocketChannel implements EventableChannel {
 	
 	SSLContext sslContext;
 
-
-	public EventableSocketChannel (SocketChannel sc, String _binding, Selector sel) throws ClosedChannelException {
+	public EventableSocketChannel (SocketChannel sc, long _binding, Selector sel) throws ClosedChannelException {
 		channel = sc;
 		binding = _binding;
 		selector = sel;
@@ -73,7 +72,7 @@ public class EventableSocketChannel implements EventableChannel {
 		sc.register(selector, SelectionKey.OP_READ, this);
 	}
 	
-	public String getBinding() {
+	public long getBinding() {
 		return binding;
 	}
 	

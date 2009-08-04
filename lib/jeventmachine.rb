@@ -44,9 +44,9 @@ module EventMachine
   # This thunk class used to be called EM, but that caused conflicts with
   # the alias "EM" for module EventMachine. (FC, 20Jun08)
   class JEM < com.rubyeventmachine.EmReactor
-    def eventCallback a1, a2, a3
-      s = String.from_java_bytes(a3.array[a3.position...a3.limit])
-      EventMachine::event_callback a1, a2, s
+    def eventCallback a1, a2, a3, a4
+      s = String.from_java_bytes(a3.array[a3.position...a3.limit]) if a3
+      EventMachine::event_callback a1, a2, s || a4
     end
   end
   class Connection < com.rubyeventmachine.Connection

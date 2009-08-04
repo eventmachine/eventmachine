@@ -38,7 +38,7 @@ import java.net.*;
 public class Connection {
 	
 	public Application application;
-	public String signature;
+	public long signature;
 	
 	public void postInit() {}
 	public void connectionCompleted() {}

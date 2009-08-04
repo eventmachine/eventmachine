@@ -47,24 +47,22 @@ public class EmReactor {
 	public final int EM_LOOPBREAK_SIGNAL = 105;
 	
 	private Selector mySelector;
-	private TreeMap<Long, LinkedList<String>> Timers;
-	private TreeMap<String, EventableChannel> Connections;
-	private TreeMap<String, ServerSocketChannel> Acceptors;
+	private TreeMap<Long, LinkedList<Long>> Timers;
+	private TreeMap<Long, EventableChannel> Connections;
+	private TreeMap<Long, ServerSocketChannel> Acceptors;
 
 	private boolean bRunReactor;
 	private long BindingIndex;
-	private ByteBuffer EmptyByteBuffer;
 	private AtomicBoolean loopBreaker;
 	private ByteBuffer myReadBuffer;
 	private int timerQuantum;
 	
 	public EmReactor() {
-		Timers = new TreeMap<Long, LinkedList<String>>();
-		Connections = new TreeMap<String, EventableChannel>();
-		Acceptors = new TreeMap<String, ServerSocketChannel>();
+		Timers = new TreeMap<Long, LinkedList<Long>>();
+		Connections = new TreeMap<Long, EventableChannel>();
+		Acceptors = new TreeMap<Long, ServerSocketChannel>();
 		
-		BindingIndex = 100000;
-		EmptyByteBuffer = ByteBuffer.allocate(0);
+		BindingIndex = 0;
 		loopBreaker = new AtomicBoolean();
 		loopBreaker.set(false);
 		myReadBuffer = ByteBuffer.allocate(32*1024); // don't use a direct buffer. Ruby doesn't seem to like them.
@@ -90,10 +88,11 @@ public class EmReactor {
  	 * @param eventType
  	 * @param data
  	 */
-	public void eventCallback (String sig, int eventType, ByteBuffer data) {
-		System.out.println ("Default callback: "+sig+" "+eventType+" "+data);
-		//stringEventCallback (sig, eventType, new String (data.array(), data.position(), data.limit()));
-		
+	public void eventCallback (long sig, int eventType, ByteBuffer data, long data2) {
+		System.out.println ("Default callback: "+sig+" "+eventType+" "+data+" "+data2);
+	}
+	public void eventCallback (long sig, int eventType, ByteBuffer data) {
+		eventCallback (sig, eventType, data, 0);
 	}
 	
 	public void run() throws IOException {
@@ -121,10 +120,10 @@ public class EmReactor {
  						SocketChannel sn;
  						while ((sn = ss.accept()) != null) {
  							sn.configureBlocking(false);
- 							String b = createBinding();
+ 							long b = createBinding();
  							EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector);
  							Connections.put(b, ec);
- 							eventCallback ((String)k.attachment(), EM_CONNECTION_ACCEPTED, ByteBuffer.wrap(b.getBytes()));
+ 							eventCallback (((Long)k.attachment()).longValue(), EM_CONNECTION_ACCEPTED, null, b);
  						}
  					}
 
@@ -133,12 +132,12 @@ public class EmReactor {
  						myReadBuffer.clear();
  						ec.readInboundData (myReadBuffer);
  						myReadBuffer.flip();
- 						String b = ec.getBinding();
+ 						long b = ec.getBinding();
  						if (myReadBuffer.limit() > 0) {
  							eventCallback (b, EM_CONNECTION_READ, myReadBuffer);
  						}
  						else {
- 							eventCallback (b, EM_CONNECTION_UNBOUND, EmptyByteBuffer);
+	 							eventCallback (b, EM_CONNECTION_UNBOUND, null);
  							Connections.remove(b);
  							k.channel().close();							
  						}
@@ -161,8 +160,8 @@ public class EmReactor {
  						else {
  							// TODO. Figure out if a socket that selects readable can ever return 0 bytes
  							// without it being indicative of an error condition. If Java is like C, the answer is no.
- 							String b = ((EventableChannel)k.attachment()).getBinding();
- 							eventCallback (b, EM_CONNECTION_UNBOUND, EmptyByteBuffer);
+ 							long b = ((EventableChannel)k.attachment()).getBinding();
+ 							eventCallback (b, EM_CONNECTION_UNBOUND, null);
  							Connections.remove(b);
  							sn.close();
  						}
@@ -173,7 +172,7 @@ public class EmReactor {
  					if (k.isWritable()) {
  						EventableChannel ec = (EventableChannel)k.attachment();
  						if (!ec.writeOutboundData()) {
- 							eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, EmptyByteBuffer);
+ 							eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
  							Connections.remove (ec.getBinding());
  							k.channel().close();
  						}
@@ -182,12 +181,12 @@ public class EmReactor {
  					if (k.isConnectable()) {
  						EventableSocketChannel ec = (EventableSocketChannel)k.attachment();
  						if (ec.finishConnecting()) {
- 							eventCallback (ec.getBinding(), EM_CONNECTION_COMPLETED, EmptyByteBuffer);
+ 							eventCallback (ec.getBinding(), EM_CONNECTION_COMPLETED, null);
  						}
  						else {
  							Connections.remove (ec.getBinding());
  							k.channel().close();
- 							eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, EmptyByteBuffer);
+ 							eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
  						}
  					}
  				}
@@ -219,7 +218,7 @@ public class EmReactor {
 	
 	void runLoopbreaks() {
 		if (loopBreaker.getAndSet(false)) {
-			eventCallback ("", EM_LOOPBREAK_SIGNAL, EmptyByteBuffer);
+			eventCallback (0, EM_LOOPBREAK_SIGNAL, null);
 		}
 	}
 	
@@ -236,26 +235,25 @@ public class EmReactor {
 			if (k > now)
 				break;
 
-			LinkedList<String> callbacks = Timers.get(k);
+			LinkedList<Long> callbacks = Timers.get(k);
 			Timers.remove(k);
 
 			// Fire all timers at this timestamp
-			ListIterator<String> iter = callbacks.listIterator(0);
+			ListIterator<Long> iter = callbacks.listIterator(0);
 			while (iter.hasNext()) {
-				eventCallback ("", EM_TIMER_FIRED, ByteBuffer.wrap(iter.next().getBytes()));
+				eventCallback (0, EM_TIMER_FIRED, null, iter.next().longValue());
 			}
 		}
 	}
 
-	public String installOneshotTimer (int milliseconds) {
-		BindingIndex++;
-		String s = createBinding();
+	public long installOneshotTimer (int milliseconds) {
+		long s = createBinding();
 		long deadline = new Date().getTime() + milliseconds;
 
 		if (Timers.containsKey(deadline)) {
 			Timers.get(deadline).add(s);
 		} else {
-			LinkedList<String> callbacks = new LinkedList<String>();
+			LinkedList<Long> callbacks = new LinkedList<Long>();
 			callbacks.add(s);
 			Timers.put(deadline, callbacks);
 		}
@@ -263,12 +261,12 @@ public class EmReactor {
 		return s;
 	}
 
-	public String startTcpServer (SocketAddress sa) throws EmReactorException {
+	public long startTcpServer (SocketAddress sa) throws EmReactorException {
 		try {
 			ServerSocketChannel server = ServerSocketChannel.open();
 			server.configureBlocking(false);
 			server.socket().bind (sa);
-			String s = createBinding();
+			long s = createBinding();
 			Acceptors.put(s, server);
 			server.register(mySelector, SelectionKey.OP_ACCEPT, s);
 			return s;
@@ -278,20 +276,20 @@ public class EmReactor {
 		}
 	}
 	
-	public String startTcpServer (String address, int port) throws EmReactorException {
+	public long startTcpServer (String address, int port) throws EmReactorException {
 		return startTcpServer (new InetSocketAddress (address, port));
 		/*
 		ServerSocketChannel server = ServerSocketChannel.open();
 		server.configureBlocking(false);
 		server.socket().bind(new java.net.InetSocketAddress(address, port));
-		String s = createBinding();
+		long s = createBinding();
 		Acceptors.put(s, server);
 		server.register(mySelector, SelectionKey.OP_ACCEPT, s);
 		return s;
 		*/
 	}
 
-	public void stopTcpServer (String signature) throws IOException {
+	public void stopTcpServer (long signature) throws IOException {
 		ServerSocketChannel server = Acceptors.remove(signature);
 		if (server != null)
 			server.close();
@@ -300,7 +298,7 @@ public class EmReactor {
 	}
 	
 
-	public String openUdpSocket (String address, int port) throws IOException {
+	public long openUdpSocket (String address, int port) throws IOException {
 		return openUdpSocket (new InetSocketAddress (address, port));
 	}
 	/**
@@ -310,27 +308,27 @@ public class EmReactor {
 	 * @return
 	 * @throws IOException
 	 */
-	public String openUdpSocket (InetSocketAddress address) throws IOException {
+	public long openUdpSocket (InetSocketAddress address) throws IOException {
 		// TODO, don't throw an exception out of here.
 		DatagramChannel dg = DatagramChannel.open();
 		dg.configureBlocking(false);
 		dg.socket().bind(address);
-		String b = createBinding();
+		long b = createBinding();
 		EventableChannel ec = new EventableDatagramChannel (dg, b, mySelector);
 		dg.register(mySelector, SelectionKey.OP_READ, ec);
 		Connections.put(b, ec);
 		return b;
 	}
 	
-	public void sendData (String sig, ByteBuffer bb) throws IOException {
-		(Connections.get(sig)).scheduleOutboundData( bb );
+	public void sendData (long sig, ByteBuffer bb) throws IOException {
+		Connections.get(sig).scheduleOutboundData( bb );
 	}
-	public void sendData (String sig, byte[] data) throws IOException {
+	public void sendData (long sig, byte[] data) throws IOException {
 		sendData (sig, ByteBuffer.wrap(data));
 		//(Connections.get(sig)).scheduleOutboundData( ByteBuffer.wrap(data.getBytes()));
 	}
-	public void setCommInactivityTimeout (String sig, long mills) {
-		(Connections.get(sig)).setCommInactivityTimeout (mills);
+	public void setCommInactivityTimeout (long sig, long mills) {
+		Connections.get(sig).setCommInactivityTimeout (mills);
 	}
 	
 	/**
@@ -341,7 +339,7 @@ public class EmReactor {
 	 * @param recipAddress
 	 * @param recipPort
 	 */
-	public void sendDatagram (String sig, String data, int length, String recipAddress, int recipPort) {
+	public void sendDatagram (long sig, String data, int length, String recipAddress, int recipPort) {
 		sendDatagram (sig, ByteBuffer.wrap(data.getBytes()), recipAddress, recipPort);
 	}
 	
@@ -352,7 +350,7 @@ public class EmReactor {
 	 * @param recipAddress
 	 * @param recipPort
 	 */
-	public void sendDatagram (String sig, ByteBuffer bb, String recipAddress, int recipPort) {
+	public void sendDatagram (long sig, ByteBuffer bb, String recipAddress, int recipPort) {
 		(Connections.get(sig)).scheduleOutboundDatagram( bb, recipAddress, recipPort);
 	}
 
@@ -363,7 +361,7 @@ public class EmReactor {
 	 * @return
 	 * @throws ClosedChannelException
 	 */
-	public String connectTcpServer (String address, int port) throws ClosedChannelException {
+	public long connectTcpServer (String address, int port) throws ClosedChannelException {
 		return connectTcpServer(null, 0, address, port);
 	}
 
@@ -376,8 +374,8 @@ public class EmReactor {
 	 * @return
 	 * @throws ClosedChannelException
 	 */
-	public String connectTcpServer (String bindAddr, int bindPort, String address, int port) throws ClosedChannelException {
-		String b = createBinding();
+	public long connectTcpServer (String bindAddr, int bindPort, String address, int port) throws ClosedChannelException {
+		long b = createBinding();
 				
 		try {
 			SocketChannel sc = SocketChannel.open();
@@ -414,20 +412,21 @@ public class EmReactor {
 		return b;
 	}
 
-	public void closeConnection (String sig, boolean afterWriting) throws ClosedChannelException {
+	public void closeConnection (long sig, boolean afterWriting) throws ClosedChannelException {
 		Connections.get(sig).scheduleClose (afterWriting);
 	}
 	
-	String createBinding() {
-		return new String ("BND_" + (++BindingIndex));
+	long createBinding() {
+		return ++BindingIndex;
 	}
 	
 	public void signalLoopbreak() {
 		loopBreaker.set(true);
-		mySelector.wakeup();
+		if (mySelector != null)
+			mySelector.wakeup();
 	}
 	
-	public void startTls (String sig) throws NoSuchAlgorithmException, KeyManagementException {
+	public void startTls (long sig) throws NoSuchAlgorithmException, KeyManagementException {
 		Connections.get(sig).startTls();
 	}
 	
@@ -437,7 +436,7 @@ public class EmReactor {
 		timerQuantum = mills;
 	}
 
-	public Object[] getPeerName (String sig) {
+	public Object[] getPeerName (long sig) {
 		return Connections.get(sig).getPeerName();
 	}
 }

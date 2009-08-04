@@ -50,14 +50,14 @@ public class EventableDatagramChannel implements EventableChannel {
 	}
 	
 	DatagramChannel channel;
-	String binding;
+	long binding;
 	Selector selector;
 	boolean bCloseScheduled;
 	LinkedList<Packet> outboundQ;
 	SocketAddress returnAddress;
 	
 
-	public EventableDatagramChannel (DatagramChannel dc, String _binding, Selector sel) throws ClosedChannelException {
+	public EventableDatagramChannel (DatagramChannel dc, long _binding, Selector sel) throws ClosedChannelException {
 		channel = dc;
 		binding = _binding;
 		selector = sel;
@@ -97,7 +97,7 @@ public class EventableDatagramChannel implements EventableChannel {
 		throw new RuntimeException ("TLS is unimplemented on this Channel");
 	}
 	
-	public String getBinding() {
+	public long getBinding() {
 		return binding;
 	}
 	

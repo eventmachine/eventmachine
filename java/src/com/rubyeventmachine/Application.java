@@ -48,25 +48,23 @@ public class Application {
 	public class Reactor extends EmReactor {
 
 		private Application application;
-		private TreeMap<String, Timer> timers;
-		private TreeMap<String, Connection> connections;
-		private TreeMap<String, ConnectionFactory> acceptors;
+		private TreeMap<Long, Timer> timers;
+		private TreeMap<Long, Connection> connections;
+		private TreeMap<Long, ConnectionFactory> acceptors;
 		/**
 		 * 
 		 */
 		public Reactor (Application app) {
 			application = app;
-			timers = new TreeMap<String, Timer>();
-			connections = new TreeMap<String, Connection>();
-			acceptors = new TreeMap<String, ConnectionFactory>();
+			timers = new TreeMap<Long, Timer>();
+			connections = new TreeMap<Long, Connection>();
+			acceptors = new TreeMap<Long, ConnectionFactory>();
 		}
 
 
-		public void eventCallback (String sig, int eventType, ByteBuffer data) {
+		public void eventCallback (long sig, int eventType, ByteBuffer data, long data2) {
 			if (eventType == EM_TIMER_FIRED) {
-				String timersig = new String (data.array());
-				//System.out.println ("EVSIG "+sig + "..."+new String(data.array()));
-				Timer r = timers.remove(timersig);
+				Timer r = timers.remove(data2);
 				if (r != null)
 					r._fire();
 				else
@@ -93,7 +91,7 @@ public class Application {
 				ConnectionFactory f = acceptors.get(sig);
 				if (f != null) {
 					Connection c = f.connection();
-					c.signature = new String (data.array());
+					c.signature = data2;
 					c.application = application;
 					connections.put(c.signature, c);
 					c.postInit();
@@ -124,14 +122,14 @@ public class Application {
 	public void addTimer (double seconds, Timer t) {
 		t.application = this;
 		t.interval = seconds;
-		String s = reactor.installOneshotTimer ((int)(seconds * 1000));
+		long s = reactor.installOneshotTimer ((int)(seconds * 1000));
 		reactor.timers.put(s, t);
 		
 	}
 
 	public void bindConnect (String bindAddr, int bindPort, String host, int port, Connection c) {
 		try {
-			String s = reactor.connectTcpServer(bindAddr, bindPort, host, port);
+			long s = reactor.connectTcpServer(bindAddr, bindPort, host, port);
 			c.application = this;
 			c.signature = s;
 			reactor.connections.put(s, c);
@@ -144,7 +142,7 @@ public class Application {
 	}
 	
 	public void startServer (SocketAddress sa, ConnectionFactory f) throws EmReactorException {
-		String s = reactor.startTcpServer(sa);
+		long s = reactor.startTcpServer(sa);
 		reactor.acceptors.put(s, f);
 	}
 	
@@ -165,17 +163,17 @@ public class Application {
 		run();
 	}
 	
-	public void sendData (String sig, ByteBuffer bb) {
+	public void sendData (long sig, ByteBuffer bb) {
 		try {
 			reactor.sendData(sig, bb);
 		} catch (IOException e) {}
 	}
 	
-	public void sendDatagram (String sig, ByteBuffer bb, InetSocketAddress target) {
+	public void sendDatagram (long sig, ByteBuffer bb, InetSocketAddress target) {
 		reactor.sendDatagram(sig, bb, target.getHostName(), target.getPort());
 	}
 	
-	public void closeConnection (String sig, boolean afterWriting) {
+	public void closeConnection (long sig, boolean afterWriting) {
 		try {
 			reactor.closeConnection(sig, afterWriting);
 		} catch (ClosedChannelException e) {}
@@ -186,7 +184,7 @@ public class Application {
 	}
 	public void openDatagramSocket (InetSocketAddress addr, Connection c) {
 		try {
-			String s = reactor.openUdpSocket(addr);
+			long s = reactor.openUdpSocket(addr);
 			c.application = this;
 			c.signature = s;
 			reactor.connections.put(s, c);

@@ -41,7 +41,7 @@ public interface EventableChannel {
 	
 	public void startTls();
 	
-	public String getBinding();
+	public long getBinding();
 	
 	public void readInboundData (ByteBuffer dst);
 	
