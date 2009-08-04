@@ -30,6 +30,7 @@
 package com.rubyeventmachine;
 
 import java.nio.ByteBuffer;
+import java.io.IOException;
 
 public interface EventableChannel {
 	
@@ -43,7 +44,7 @@ public interface EventableChannel {
 	
 	public long getBinding();
 	
-	public void readInboundData (ByteBuffer dst);
+	public void readInboundData (ByteBuffer dst) throws IOException;
 	
 	/**
 	 * This is called by the reactor after it finishes running.
@@ -51,7 +52,7 @@ public interface EventableChannel {
 	 */
 	public void close();
 	
-	public boolean writeOutboundData();
+	public boolean writeOutboundData() throws IOException;
 
 	public void setCommInactivityTimeout (long seconds);
 
@@ -61,4 +62,5 @@ public interface EventableChannel {
 
 	public boolean isNotifyReadable();
 	public boolean isNotifyWritable();
+
 }

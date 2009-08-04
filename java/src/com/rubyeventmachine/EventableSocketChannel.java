@@ -90,6 +90,11 @@ public class EventableSocketChannel implements EventableChannel {
 	 * the reactor core.
 	 */
 	public void close() {
+		if (channelKey != null) {
+			channelKey.cancel();
+			channelKey = null;
+		}
+
 		if (bWatchOnly)
 			return;
 
@@ -100,7 +105,7 @@ public class EventableSocketChannel implements EventableChannel {
 	}
 	
 	public void scheduleOutboundData (ByteBuffer bb) {
-		if ((!bCloseScheduled) && (bb.remaining() > 0)) {
+		if (!bCloseScheduled && bb.remaining() > 0) {
 			if (sslEngine != null) {
 				try {
 					ByteBuffer b = ByteBuffer.allocate(32*1024); // TODO, preallocate this buffer.
@@ -126,13 +131,11 @@ public class EventableSocketChannel implements EventableChannel {
 	/**
 	 * Called by the reactor when we have selected readable.
 	 */
-	public void readInboundData (ByteBuffer bb) {
-		try {
-			channel.read(bb);
-		} catch (IOException e) {
-			throw new RuntimeException ("i/o error");
-		}
+	public void readInboundData (ByteBuffer bb) throws IOException {
+		if (channel.read(bb) == -1)
+			throw new IOException ("eof");
 	}
+
 	/**
 	 * Called by the reactor when we have selected writable.
 	 * Return false to indicate an error that should cause the connection to close.
@@ -146,16 +149,11 @@ public class EventableSocketChannel implements EventableChannel {
 	 * Ought to be a big performance enhancer.
 	 * @return
 	 */
-	public boolean writeOutboundData(){
+	public boolean writeOutboundData() throws IOException {
 		while (!outboundQ.isEmpty()) {
 			ByteBuffer b = outboundQ.getFirst();
-			try {
-				if (b.remaining() > 0)
-					channel.write(b);
-			}
-			catch (IOException e) {
-				return false;
-			}
+			if (b.remaining() > 0)
+				channel.write(b);
 
 			// Did we consume the whole outbound buffer? If yes,
 			// pop it off and keep looping. If no, the outbound network
@@ -186,12 +184,9 @@ public class EventableSocketChannel implements EventableChannel {
 	 * Return false to indicate an error that should cause the connection to close.
 	 * @throws ClosedChannelException
 	 */
-	public boolean finishConnecting() throws ClosedChannelException {
-		try {
-			channel.finishConnect();
-		} catch (IOException e) {
-			return false;
-		}
+	public boolean finishConnecting() throws IOException {
+		channel.finishConnect();
+
 		bConnectPending = false;
 		updateEvents();
 		return true;

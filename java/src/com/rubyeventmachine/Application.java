@@ -150,9 +150,7 @@ public class Application {
 		reactor.stop();
 	}
 	public void run() {
-		try {
-			reactor.run();
-		} catch (IOException e) {}
+		reactor.run();
 	}
 	public void run (final Runnable r) {
 		addTimer(0, new Timer() {

@@ -84,69 +84,101 @@ public class EmReactor {
 		eventCallback (sig, eventType, data, 0);
 	}
 
-	public void run() throws IOException {
-		mySelector = Selector.open();
-		bRunReactor = true;
+	public void run() {
+		try {
+			mySelector = Selector.open();
+			bRunReactor = true;
+		} catch (IOException e) {
+			throw new RuntimeException ("Could not open selector", e);
+		}
 
-		for (;;) {
-			if (!bRunReactor) break;
+		while (bRunReactor) {
 			runLoopbreaks();
-
 			if (!bRunReactor) break;
+
 			runTimers();
-
 			if (!bRunReactor) break;
-			mySelector.select(timerQuantum);
+
+			try {
+				mySelector.select(timerQuantum);
+			} catch (IOException e) {
+				continue;
+			}
 
 			Iterator<SelectionKey> it = mySelector.selectedKeys().iterator();
 			while (it.hasNext()) {
 				SelectionKey k = it.next();
 				it.remove();
 
-				try {
-					if (k.isAcceptable())
-						isAcceptable(k);
+				if (k.isAcceptable())
+					isAcceptable(k);
 
-					if (k.isReadable())
-						isReadable(k);
+				if (k.isReadable())
+					isReadable(k);
 
-					if (k.isWritable())
-						isWritable(k);
+				if (k.isWritable())
+					isWritable(k);
 
-					if (k.isConnectable())
-						isConnectable(k);
-				} catch (CancelledKeyException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+				if (k.isConnectable())
+					isConnectable(k);
 			}
 
 			ListIterator<Long> iter = UnboundConnections.listIterator(0);
 			while (iter.hasNext()) {
 				long b = iter.next();
-				eventCallback (b, EM_CONNECTION_UNBOUND, null);
-				Connections.remove(b);
 				iter.remove();
+
+				EventableChannel ec = Connections.remove(b);
+				if (ec != null) {
+					eventCallback (b, EM_CONNECTION_UNBOUND, null);
+					ec.close();
+				}
 			}
 		}
 
 		close();
 	}
 
-	void isAcceptable (SelectionKey k) throws IOException {
+	void isAcceptable (SelectionKey k) {
 		ServerSocketChannel ss = (ServerSocketChannel) k.channel();
 		SocketChannel sn;
-		while ((sn = ss.accept()) != null) {
-			sn.configureBlocking(false);
-			long b = createBinding();
-			EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector, SelectionKey.OP_READ);
-			Connections.put(b, ec);
-			eventCallback (((Long)k.attachment()).longValue(), EM_CONNECTION_ACCEPTED, null, b);
+		long b;
+
+		while (true) {
+			try {
+				sn = ss.accept();
+				if (sn == null)
+					break;
+			} catch (IOException e) {
+				e.printStackTrace();
+				k.cancel();
+
+				ServerSocketChannel server = Acceptors.remove(k.attachment());
+				if (server != null)
+					try{ server.close(); } catch (IOException ex) {};
+				break;
+			}
+
+			try {
+				sn.configureBlocking(false);
+			} catch (IOException e) {
+				e.printStackTrace();
+				continue;
+			}
+
+			try {
+				b = createBinding();
+				EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector, SelectionKey.OP_READ);
+				Connections.put(b, ec);
+
+				eventCallback (((Long)k.attachment()).longValue(), EM_CONNECTION_ACCEPTED, null, b);
+			} catch (ClosedChannelException e) {
+				continue;
+			}
 		}
 	}
 
-	void isReadable (SelectionKey k) throws IOException {
+	void isReadable (SelectionKey k) {
 		EventableChannel ec = (EventableChannel) k.attachment();
 		long b = ec.getBinding();
 
@@ -155,52 +187,63 @@ public class EmReactor {
 				eventCallback (b, EM_CONNECTION_NOTIFY_READABLE, null);
 		} else {
 			myReadBuffer.clear();
-			ec.readInboundData (myReadBuffer);
-			myReadBuffer.flip();
-			if (myReadBuffer.limit() > 0) {
-				eventCallback (b, EM_CONNECTION_READ, myReadBuffer);
-			}
-			else {
-				eventCallback (b, EM_CONNECTION_UNBOUND, null);
-				Connections.remove(b);
-				k.channel().close();
+
+			try {
+				ec.readInboundData (myReadBuffer);
+				myReadBuffer.flip();
+				if (myReadBuffer.limit() > 0)
+					eventCallback (b, EM_CONNECTION_READ, myReadBuffer);
+			} catch (IOException e) {
+				UnboundConnections.add (b);
 			}
 		}
 	}
 
-	void isWritable (SelectionKey k) throws IOException {
+	void isWritable (SelectionKey k) {
 		EventableChannel ec = (EventableChannel) k.attachment();
+		long b = ec.getBinding();
+
 		if (ec.isWatchOnly()) {
 			if (ec.isNotifyWritable())
-				eventCallback (ec.getBinding(), EM_CONNECTION_NOTIFY_WRITABLE, null);
-		}
-		else if (!ec.writeOutboundData()) {
-			eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
-			Connections.remove (ec.getBinding());
-			k.channel().close();
-		}
-	}
-
-	void isConnectable (SelectionKey k) throws IOException {
-		EventableSocketChannel ec = (EventableSocketChannel) k.attachment();
-		if (ec.finishConnecting()) {
-			eventCallback (ec.getBinding(), EM_CONNECTION_COMPLETED, null);
+				eventCallback (b, EM_CONNECTION_NOTIFY_WRITABLE, null);
 		}
 		else {
-			Connections.remove (ec.getBinding());
-			k.channel().close();
-			eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
+			try {
+				if (!ec.writeOutboundData())
+					UnboundConnections.add (b);
+			} catch (IOException e) {
+				UnboundConnections.add (b);
+			}
 		}
 	}
 
-	void close() throws IOException {
-		mySelector.close();
+	void isConnectable (SelectionKey k) {
+		EventableSocketChannel ec = (EventableSocketChannel) k.attachment();
+		long b = ec.getBinding();
+
+		try {
+			if (ec.finishConnecting())
+				eventCallback (b, EM_CONNECTION_COMPLETED, null);
+			else
+				UnboundConnections.add (b);
+		} catch (IOException e) {
+			UnboundConnections.add (b);
+		}
+	}
+
+	void close() {
+		try {
+			if (mySelector != null)
+				mySelector.close();
+		} catch (IOException e) {}
 		mySelector = null;
 
 		// run down open connections and sockets.
 		Iterator<ServerSocketChannel> i = Acceptors.values().iterator();
 		while (i.hasNext()) {
-			i.next().close();
+			try {
+				i.next().close();
+			} catch (IOException e) {}
 		}
 
 		Iterator<EventableChannel> i2 = Connections.values().iterator();
@@ -223,7 +266,6 @@ public class EmReactor {
 		long now = new Date().getTime();
 		while (!Timers.isEmpty()) {
 			long k = Timers.firstKey();
-			//System.out.println (k - now);
 			if (k > now)
 				break;
 
@@ -263,8 +305,7 @@ public class EmReactor {
 			server.register(mySelector, SelectionKey.OP_ACCEPT, s);
 			return s;
 		} catch (IOException e) {
-			// TODO, should parameterize this exception better.
-			throw new EmReactorException ("unable to open socket acceptor");
+			throw new EmReactorException ("unable to open socket acceptor: " + e.toString());
 		}
 	}
 
@@ -302,7 +343,6 @@ public class EmReactor {
 
 	public void sendData (long sig, byte[] data) throws IOException {
 		sendData (sig, ByteBuffer.wrap(data));
-		//(Connections.get(sig)).scheduleOutboundData( ByteBuffer.wrap(data.getBytes()));
 	}
 
 	public void setCommInactivityTimeout (long sig, long mills) {
@@ -354,13 +394,15 @@ public class EmReactor {
 		} catch (IOException e) {
 			// Can theoretically come here if a connect failure can be determined immediately.
 			// I don't know how to make that happen for testing purposes.
-			throw new RuntimeException ("immediate-connect unimplemented"); 
+			throw new RuntimeException ("immediate-connect unimplemented: " + e.toString());
 		}
 		return b;
 	}
 
 	public void closeConnection (long sig, boolean afterWriting) throws ClosedChannelException {
-		Connections.get(sig).scheduleClose (afterWriting);
+		EventableChannel ec = Connections.get(sig);
+		if (ec != null)
+			ec.scheduleClose (afterWriting);
 	}
 	
 	long createBinding() {
@@ -404,7 +446,6 @@ public class EmReactor {
 
 	public SocketChannel detachChannel (long sig) {
 		EventableSocketChannel ec = (EventableSocketChannel) Connections.get (sig);
-		Connections.remove (sig);
 		UnboundConnections.add (sig);
 
 		SocketChannel sc = ec.getChannel();
