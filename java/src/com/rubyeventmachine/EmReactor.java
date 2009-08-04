@@ -104,94 +104,17 @@ public class EmReactor {
 				it.remove();
 
 				try {
-					if (k.isAcceptable()) {
-						ServerSocketChannel ss = (ServerSocketChannel) k.channel();
-						SocketChannel sn;
-						while ((sn = ss.accept()) != null) {
-							sn.configureBlocking(false);
-							long b = createBinding();
-							EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector);
-							Connections.put(b, ec);
-							eventCallback (((Long)k.attachment()).longValue(), EM_CONNECTION_ACCEPTED, null, b);
-						}
-					}
+					if (k.isAcceptable())
+						isAcceptable(k);
 
-					if (k.isReadable()) {
-						EventableChannel ec = (EventableChannel)k.attachment();
-						long b = ec.getBinding();
+					if (k.isReadable())
+						isReadable(k);
 
-						if (ec.isWatchOnly()) {
-							if (ec.isNotifyReadable())
-								eventCallback (b, EM_CONNECTION_NOTIFY_READABLE, null);
-							else
-								k.cancel();
-						} else {
-							myReadBuffer.clear();
-							ec.readInboundData (myReadBuffer);
-							myReadBuffer.flip();
-							if (myReadBuffer.limit() > 0) {
-								eventCallback (b, EM_CONNECTION_READ, myReadBuffer);
-							}
-							else {
-								eventCallback (b, EM_CONNECTION_UNBOUND, null);
-								Connections.remove(b);
-								k.channel().close();
-							}
-						}
+					if (k.isWritable())
+						isWritable(k);
 
-						/*
-						System.out.println ("READABLE");
-						SocketChannel sn = (SocketChannel) k.channel();
-						//ByteBuffer bb = ByteBuffer.allocate(16 * 1024);
-						// Obviously not thread-safe, since we're using the same buffer for every connection.
-						// This should minimize the production of garbage, though.
-						// TODO, we need somehow to make a call to the EventableChannel, so we can pass the
-						// inbound data through an SSLEngine. Hope that won't break the strategy of using one
-						// global read-buffer.
-						myReadBuffer.clear();
-						int r = sn.read(myReadBuffer);
-						if (r > 0) {
-							myReadBuffer.flip();
-							//bb = ((EventableChannel)k.attachment()).dispatchInboundData (bb);
-							eventCallback (((EventableChannel)k.attachment()).getBinding(), EM_CONNECTION_READ, myReadBuffer);
-						}
-						else {
-							// TODO. Figure out if a socket that selects readable can ever return 0 bytes
-							// without it being indicative of an error condition. If Java is like C, the answer is no.
-							long b = ((EventableChannel)k.attachment()).getBinding();
-							eventCallback (b, EM_CONNECTION_UNBOUND, null);
-							Connections.remove(b);
-							sn.close();
-						}
-						*/
-					}
-
-					if (k.isWritable()) {
-						EventableChannel ec = (EventableChannel)k.attachment();
-						if (ec.isWatchOnly()) {
-							if (ec.isNotifyWritable())
-								eventCallback (ec.getBinding(), EM_CONNECTION_NOTIFY_WRITABLE, null);
-							else
-								k.cancel();
-						}
-						else if (!ec.writeOutboundData()) {
-							eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
-							Connections.remove (ec.getBinding());
-							k.channel().close();
-						}
-					}
-
-					if (k.isConnectable()) {
-						EventableSocketChannel ec = (EventableSocketChannel)k.attachment();
-						if (ec.finishConnecting()) {
-							eventCallback (ec.getBinding(), EM_CONNECTION_COMPLETED, null);
-						}
-						else {
-							Connections.remove (ec.getBinding());
-							k.channel().close();
-							eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
-						}
-					}
+					if (k.isConnectable())
+						isConnectable(k);
 				} catch (CancelledKeyException e) {
 					e.printStackTrace();
 				} catch (IOException e) {
@@ -209,7 +132,96 @@ public class EmReactor {
 
 		close();
 	}
-	
+
+	void isAcceptable (SelectionKey k) throws IOException {
+		ServerSocketChannel ss = (ServerSocketChannel) k.channel();
+		SocketChannel sn;
+		while ((sn = ss.accept()) != null) {
+			sn.configureBlocking(false);
+			long b = createBinding();
+			EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector);
+			Connections.put(b, ec);
+			eventCallback (((Long)k.attachment()).longValue(), EM_CONNECTION_ACCEPTED, null, b);
+		}
+	}
+
+	void isReadable (SelectionKey k) throws IOException {
+		EventableChannel ec = (EventableChannel)k.attachment();
+		long b = ec.getBinding();
+
+		if (ec.isWatchOnly()) {
+			if (ec.isNotifyReadable())
+				eventCallback (b, EM_CONNECTION_NOTIFY_READABLE, null);
+			else
+				k.cancel();
+		} else {
+			myReadBuffer.clear();
+			ec.readInboundData (myReadBuffer);
+			myReadBuffer.flip();
+			if (myReadBuffer.limit() > 0) {
+				eventCallback (b, EM_CONNECTION_READ, myReadBuffer);
+			}
+			else {
+				eventCallback (b, EM_CONNECTION_UNBOUND, null);
+				Connections.remove(b);
+				k.channel().close();
+			}
+		}
+
+		/*
+		System.out.println ("READABLE");
+		SocketChannel sn = (SocketChannel) k.channel();
+		//ByteBuffer bb = ByteBuffer.allocate(16 * 1024);
+		// Obviously not thread-safe, since we're using the same buffer for every connection.
+		// This should minimize the production of garbage, though.
+		// TODO, we need somehow to make a call to the EventableChannel, so we can pass the
+		// inbound data through an SSLEngine. Hope that won't break the strategy of using one
+		// global read-buffer.
+		myReadBuffer.clear();
+		int r = sn.read(myReadBuffer);
+		if (r > 0) {
+			myReadBuffer.flip();
+			//bb = ((EventableChannel)k.attachment()).dispatchInboundData (bb);
+			eventCallback (((EventableChannel)k.attachment()).getBinding(), EM_CONNECTION_READ, myReadBuffer);
+		}
+		else {
+			// TODO. Figure out if a socket that selects readable can ever return 0 bytes
+			// without it being indicative of an error condition. If Java is like C, the answer is no.
+			long b = ((EventableChannel)k.attachment()).getBinding();
+			eventCallback (b, EM_CONNECTION_UNBOUND, null);
+			Connections.remove(b);
+			sn.close();
+		}
+		*/
+	}
+
+	void isWritable (SelectionKey k) throws IOException {
+		EventableChannel ec = (EventableChannel)k.attachment();
+		if (ec.isWatchOnly()) {
+			if (ec.isNotifyWritable())
+				eventCallback (ec.getBinding(), EM_CONNECTION_NOTIFY_WRITABLE, null);
+			else
+				k.cancel();
+		}
+		else if (!ec.writeOutboundData()) {
+			eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
+			Connections.remove (ec.getBinding());
+			k.channel().close();
+		}
+	}
+
+	void isConnectable (SelectionKey k) throws IOException {
+		EventableSocketChannel ec = (EventableSocketChannel)k.attachment();
+		if (ec.finishConnecting()) {
+			eventCallback (ec.getBinding(), EM_CONNECTION_COMPLETED, null);
+		}
+		else {
+			Connections.remove (ec.getBinding());
+			k.channel().close();
+			eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
+		}
+	}
+
 	void close() throws IOException {
 		mySelector.close();
 		mySelector = null;
