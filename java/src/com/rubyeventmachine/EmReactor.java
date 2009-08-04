@@ -140,7 +140,7 @@ public class EmReactor {
 		while ((sn = ss.accept()) != null) {
 			sn.configureBlocking(false);
 			long b = createBinding();
-			EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector);
+			EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector, SelectionKey.OP_READ);
 			Connections.put(b, ec);
 			eventCallback (((Long)k.attachment()).longValue(), EM_CONNECTION_ACCEPTED, null, b);
 		}
@@ -330,7 +330,7 @@ public class EmReactor {
 			if (bindAddr != null)
 				sc.socket().bind(new InetSocketAddress (bindAddr, bindPort));
 
-			EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector);
+			EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector, 0);
 
 			if (sc.connect (new InetSocketAddress (address, port))) {
 				// Connection returned immediately. Can happen with localhost connections.
@@ -389,10 +389,14 @@ public class EmReactor {
 
 	public long attachChannel (SocketChannel sc, boolean watch_mode) throws ClosedChannelException {
 		long b = createBinding();
-		EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector);
+		EventableSocketChannel ec;
 
-		if (watch_mode)
+		if (watch_mode) {
+			ec = new EventableSocketChannel (sc, b, mySelector, 0);
 			ec.setWatchOnly();
+		} else {
+			ec = new EventableSocketChannel (sc, b, mySelector, SelectionKey.OP_READ);
+		}
 
 		Connections.put (b, ec);
 		return b;
