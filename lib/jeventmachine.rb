@@ -152,6 +152,11 @@ module EventMachine
   end
   def self.set_max_timer_count num
     # harmless no-op in Java. There's no built-in timer limit.
+    @max_timer_count = num
+  end
+  def self.get_max_timer_count
+    # harmless no-op in Java. There's no built-in timer limit.
+    @max_timer_count || 100_000
   end
   def self.library_type
     :java
