@@ -180,6 +180,13 @@ require 'shellwords'
 # Interesting thought.
 #
 module EventMachine
+  class <<self
+    # Exposed to allow joining on the thread, when run in a multithreaded
+    # environment. Performing other actions on the thread has undefined
+    # semantics.
+    attr_reader :reactor_thread
+  end
+
   # EventMachine::run initializes and runs an event loop.
   # This method only returns if user-callback code calls stop_event_loop.
   # Use the supplied block to define your clients and servers.
