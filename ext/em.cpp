@@ -1302,8 +1302,6 @@ const unsigned long EventMachine_t::AttachFD (int fd, bool watch_mode)
 	Add (cd);
 
 	const unsigned long out = cd->GetBinding();
-	if (!out)
-		closesocket (fd);
 	return out;
 }
 
