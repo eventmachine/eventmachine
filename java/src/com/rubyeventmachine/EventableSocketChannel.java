@@ -47,7 +47,6 @@ import javax.net.ssl.SSLEngineResult.*;
 import java.security.*;
 
 public class EventableSocketChannel implements EventableChannel {
-	
 	// TODO, must refactor this to permit channels that aren't sockets.
 	SocketChannel channel;
 	long binding;
@@ -57,8 +56,6 @@ public class EventableSocketChannel implements EventableChannel {
 	boolean bConnectPending;
 	
 	SSLEngine sslEngine;
-	
-	
 	SSLContext sslContext;
 
 	public EventableSocketChannel (SocketChannel sc, long _binding, Selector sel) throws ClosedChannelException {

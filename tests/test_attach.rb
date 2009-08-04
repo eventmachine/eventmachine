@@ -64,7 +64,6 @@ class TestAttach < Test::Unit::TestCase
     assert_equal $sock.readline, "def\n"
   end
 
-
   module PipeWatch
     def notify_readable
       $read = $r.readline

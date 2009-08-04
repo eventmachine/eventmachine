@@ -37,15 +37,18 @@ import java.util.concurrent.atomic.*;
 import java.security.*;
 
 public class EmReactor {
-
-	
 	public final int EM_TIMER_FIRED = 100;
 	public final int EM_CONNECTION_READ = 101;
 	public final int EM_CONNECTION_UNBOUND = 102;
 	public final int EM_CONNECTION_ACCEPTED = 103;
 	public final int EM_CONNECTION_COMPLETED = 104;
 	public final int EM_LOOPBREAK_SIGNAL = 105;
-	
+	public final int EM_CONNECTION_NOTIFY_READABLE = 106;
+	public final int EM_CONNECTION_NOTIFY_WRITABLE = 107;
+	public final int EM_SSL_HANDSHAKE_COMPLETED = 108;
+	public final int EM_SSL_VERIFY = 109;
+	public final int EM_PROXY_TARGET_UNBOUND = 110;
+
 	private Selector mySelector;
 	private TreeMap<Long, LinkedList<Long>> Timers;
 	private TreeMap<Long, EventableChannel> Connections;
@@ -68,19 +71,6 @@ public class EmReactor {
 		myReadBuffer = ByteBuffer.allocate(32*1024); // don't use a direct buffer. Ruby doesn't seem to like them.
 		timerQuantum = 98;
 	}
-	
-	/**
-	 * Intended to be overridden in languages (like Ruby) that can't handle ByteBuffer. This is a stub.
-	 * Obsolete now that I figured out how to make Ruby deal with ByteBuffers.
-	 * @param sig
-	 * @param eventType
-	 * @param data
-	 */
-	/*
- 	public void stringEventCallback (String sig, int eventType, String data) {
-		System.out.println ("Default event callback: " + sig + " " + eventType + " " + data);
-	}
-	*/
  	
  	/**
  	 * This is a no-op stub, intended to be overridden in user code.
@@ -104,8 +94,10 @@ public class EmReactor {
  			//System.out.println ("loop "+ (n++));
  			if (!bRunReactor) break;
  			runLoopbreaks();
+
  			if (!bRunReactor) break;
  			runTimers();
+
  			if (!bRunReactor) break;
  			mySelector.select(timerQuantum);
  			 	
@@ -194,11 +186,10 @@ public class EmReactor {
  					// No-op. We can come here if a read-handler closes a socket before we fall through
  					// to call isWritable.
  				}
- 				
-  			}
-   		}
- 		
- 		close();
+			}
+		}
+
+		close();
 	}
 	
 	void close() throws IOException {
