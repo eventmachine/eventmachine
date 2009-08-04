@@ -100,7 +100,19 @@ public class EmReactor {
 			if (!bRunReactor) break;
 
 			try {
-				mySelector.select(timerQuantum);
+				long timeout = 0;
+
+				if (!Timers.isEmpty()) {
+					long now = new Date().getTime();
+					long k = Timers.firstKey();
+
+					timeout = k-now;
+
+					if (timeout == 0) // disallow blocking on add_timer(0)
+						timeout = 1;
+				}
+
+				mySelector.select(timeout);
 			} catch (IOException e) {
 				continue;
 			}
