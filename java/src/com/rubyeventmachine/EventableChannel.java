@@ -56,4 +56,9 @@ public interface EventableChannel {
 	public void setCommInactivityTimeout (long seconds);
 
 	public Object[] getPeerName();
+
+	public boolean isWatchOnly();
+
+	public boolean isNotifyReadable();
+	public boolean isNotifyWritable();
 }

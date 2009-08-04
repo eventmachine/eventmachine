@@ -177,4 +177,8 @@ public class EventableDatagramChannel implements EventableChannel {
 			return null;
 		}
 	}
+
+	public boolean isWatchOnly() { return false; }
+	public boolean isNotifyReadable() { return false; }
+	public boolean isNotifyWritable() { return false; }
 }

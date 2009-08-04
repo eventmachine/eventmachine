@@ -54,6 +54,9 @@ public class EventableSocketChannel implements EventableChannel {
 	LinkedList<ByteBuffer> outboundQ;
 	boolean bCloseScheduled;
 	boolean bConnectPending;
+	boolean bWatchOnly;
+	boolean bNotifyReadable;
+	boolean bNotifyWritable;
 	
 	SSLEngine sslEngine;
 	SSLContext sslContext;
@@ -64,13 +67,20 @@ public class EventableSocketChannel implements EventableChannel {
 		selector = sel;
 		bCloseScheduled = false;
 		bConnectPending = false;
+		bWatchOnly = false;
+		bNotifyReadable = false;
+		bNotifyWritable = false;
 		outboundQ = new LinkedList<ByteBuffer>();
-		
-		sc.register(selector, SelectionKey.OP_READ, this);
+
+		updateEvents();
 	}
 	
 	public long getBinding() {
 		return binding;
+	}
+
+	public SocketChannel getChannel() {
+		return channel;
 	}
 	
 	/**
@@ -242,5 +252,50 @@ public class EventableSocketChannel implements EventableChannel {
 	public Object[] getPeerName () {
 		Socket sock = channel.socket();
 		return new Object[]{ sock.getPort(), sock.getInetAddress().getHostAddress() };
+	}
+
+	public void setWatchOnly() {
+		bWatchOnly = true;
+		updateEvents();
+	}
+	public boolean isWatchOnly() { return bWatchOnly; }
+
+	public void setNotifyReadable (boolean mode) {
+		bNotifyReadable = mode;
+		updateEvents();
+	}
+	public boolean isNotifyReadable() { return bNotifyReadable; }
+
+	public void setNotifyWritable (boolean mode) {
+		bNotifyWritable = mode;
+		updateEvents();
+	}
+	public boolean isNotifyWritable() { return bNotifyWritable; }
+
+	private void updateEvents() {
+		int events = 0;
+
+		if (bWatchOnly) {
+			if (bNotifyReadable)
+				events |= SelectionKey.OP_READ;
+
+			if (bNotifyWritable)
+				events |= SelectionKey.OP_WRITE;
+		} else {
+			events |= SelectionKey.OP_READ;
+
+			if (bConnectPending)
+				events |= SelectionKey.OP_CONNECT;
+
+			if (!outboundQ.isEmpty())
+				events |= SelectionKey.OP_WRITE;
+		}
+
+		try {
+			channel.register(selector, events, this);
+		} catch (ClosedChannelException e) {
+			// what should this do? scheduleClose/detach?
+			System.err.println("ERROR: ClosedChannelException");
+		}
 	}
 }

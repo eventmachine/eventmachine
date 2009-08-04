@@ -53,6 +53,7 @@ public class EmReactor {
 	private TreeMap<Long, LinkedList<Long>> Timers;
 	private TreeMap<Long, EventableChannel> Connections;
 	private TreeMap<Long, ServerSocketChannel> Acceptors;
+	private LinkedList<Long> UnboundConnections;
 
 	private boolean bRunReactor;
 	private long BindingIndex;
@@ -64,6 +65,7 @@ public class EmReactor {
 		Timers = new TreeMap<Long, LinkedList<Long>>();
 		Connections = new TreeMap<Long, EventableChannel>();
 		Acceptors = new TreeMap<Long, ServerSocketChannel>();
+		UnboundConnections = new LinkedList<Long>();
 		
 		BindingIndex = 0;
 		loopBreaker = new AtomicBoolean();
@@ -116,18 +118,27 @@ public class EmReactor {
 
 					if (k.isReadable()) {
 						EventableChannel ec = (EventableChannel)k.attachment();
-						myReadBuffer.clear();
-						ec.readInboundData (myReadBuffer);
-						myReadBuffer.flip();
 						long b = ec.getBinding();
-						if (myReadBuffer.limit() > 0) {
-							eventCallback (b, EM_CONNECTION_READ, myReadBuffer);
-						}
-						else {
+
+						if (ec.isWatchOnly()) {
+							if (ec.isNotifyReadable())
+								eventCallback (b, EM_CONNECTION_NOTIFY_READABLE, null);
+							else
+								k.cancel();
+						} else {
+							myReadBuffer.clear();
+							ec.readInboundData (myReadBuffer);
+							myReadBuffer.flip();
+							if (myReadBuffer.limit() > 0) {
+								eventCallback (b, EM_CONNECTION_READ, myReadBuffer);
+							}
+							else {
 								eventCallback (b, EM_CONNECTION_UNBOUND, null);
-							Connections.remove(b);
-							k.channel().close();
+								Connections.remove(b);
+								k.channel().close();
+							}
 						}
+
 						/*
 						System.out.println ("READABLE");
 						SocketChannel sn = (SocketChannel) k.channel();
@@ -157,7 +168,13 @@ public class EmReactor {
 
 					if (k.isWritable()) {
 						EventableChannel ec = (EventableChannel)k.attachment();
-						if (!ec.writeOutboundData()) {
+						if (ec.isWatchOnly()) {
+							if (ec.isNotifyWritable())
+								eventCallback (ec.getBinding(), EM_CONNECTION_NOTIFY_WRITABLE, null);
+							else
+								k.cancel();
+						}
+						else if (!ec.writeOutboundData()) {
 							eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
 							Connections.remove (ec.getBinding());
 							k.channel().close();
@@ -175,11 +192,18 @@ public class EmReactor {
 							eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
 						}
 					}
+				} catch (CancelledKeyException e) {
+					e.printStackTrace();
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
-				catch (CancelledKeyException e) {
-					// No-op. We can come here if a read-handler closes a socket before we fall through
-					// to call isWritable.
-				}
+			}
+
+			ListIterator<Long> iter = UnboundConnections.listIterator(0);
+			while (iter.hasNext()) {
+				long b = iter.next();
+				eventCallback (b, EM_CONNECTION_UNBOUND, null);
+				iter.remove();
 			}
 		}
 
@@ -423,5 +447,45 @@ public class EmReactor {
 
 	public Object[] getPeerName (long sig) {
 		return Connections.get(sig).getPeerName();
+	}
+
+	public long attachChannel (SocketChannel sc, boolean watch_mode) throws ClosedChannelException {
+		long b = createBinding();
+		EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector);
+
+		if (watch_mode)
+			ec.setWatchOnly();
+
+		Connections.put (b, ec);
+		return b;
+	}
+
+	public SocketChannel detachChannel (long sig) {
+		EventableSocketChannel ec = (EventableSocketChannel) Connections.get (sig);
+		Connections.remove (sig);
+		UnboundConnections.add (sig);
+
+		SocketChannel sc = ec.getChannel();
+		try {
+			sc.register(mySelector, 0, null);
+		} catch (ClosedChannelException e) {
+		}
+		return sc;
+	}
+
+	public void setNotifyReadable (long sig, boolean mode) {
+		((EventableSocketChannel) Connections.get(sig)).setNotifyReadable(mode);
+	}
+
+	public void setNotifyWritable (long sig, boolean mode) {
+		((EventableSocketChannel) Connections.get(sig)).setNotifyWritable(mode);
+	}
+
+	public boolean isNotifyReadable (long sig) {
+		return Connections.get(sig).isNotifyReadable();
+	}
+
+	public boolean isNotifyWritable (long sig) {
+		return Connections.get(sig).isNotifyWritable();
 	}
 }

@@ -31,6 +31,27 @@ require 'java'
 require 'em_reactor'
 require 'socket'
 
+import java.io.FileDescriptor
+import java.nio.channels.SocketChannel
+import java.lang.reflect.Field
+
+module JavaFields
+  def set_field(key, value)
+    field = getClass.getDeclaredField(key)
+    field.setAccessible(true)
+    field.set(self, value)
+  end
+
+  def get_field(key)
+    field = getClass.getDeclaredField(key)
+    field.setAccessible(true)
+    field.get(self)
+  end
+end
+
+FileDescriptor.send :include, JavaFields
+SocketChannel.send :include, JavaFields
+
 module EventMachine
   # TODO: These event numbers are defined in way too many places.
   # DRY them up.
@@ -40,6 +61,8 @@ module EventMachine
   ConnectionAccepted = 103
   ConnectionCompleted = 104
   LoopbreakSignalled = 105
+  ConnectionNotifyReadable = 106
+  ConnectionNotifyWritable = 107
 
   # This thunk class used to be called EM, but that caused conflicts with
   # the alias "EM" for module EventMachine. (FC, 20Jun08)
@@ -137,6 +160,63 @@ module EventMachine
     if peer = @em.getPeerName(sig)
       Socket.pack_sockaddr_in *peer
     end
+  end
+  def self.attach_fd fileno, watch_mode
+    # 3Aug09: We could pass in the actual SocketChannel, but then it would be modified (set as non-blocking), and
+    # we would need some logic to make sure detach_fd below didn't clobber it. For now, we just always make a new
+    # SocketChannel for the underlying file descriptor
+    # if fileno.java_kind_of? SocketChannel
+    #   ch = fileno
+    #   ch.configureBlocking(false)
+    #   fileno = nil
+    # elsif fileno.java_kind_of? java.nio.channels.Channel
+
+    if fileno.java_kind_of? java.nio.channels.Channel
+      field = fileno.getClass.getDeclaredField('fdVal')
+      field.setAccessible(true)
+      fileno = field.get(fileno)
+    else
+      raise ArgumentError, 'attach_fd requires Java Channel or POSIX fileno' unless fileno.is_a? Fixnum
+    end
+
+    if fileno == 0
+      raise "can't open STDIN as selectable in Java =("
+    elsif fileno.is_a? Fixnum
+      fd = FileDescriptor.new
+      fd.set_field 'fd', fileno
+
+      ch = SocketChannel.open
+      ch.configureBlocking(false)
+      ch.set_field 'fd', fd
+      ch.set_field 'fdVal', fileno
+      ch.set_field 'state', ch.get_field('ST_CONNECTED')
+    end
+
+    @em.attachChannel(ch,watch_mode)
+  end
+  def self.detach_fd sig
+    ch = @em.detachChannel(sig)
+    fileno = ch.get_field 'fdVal'
+
+    fd = ch.get_field 'fd'
+    fd.set_field 'fd', -1
+    ch.set_field 'fdVal', -1
+
+    fileno
+  end
+
+  def self.set_notify_readable sig, mode
+    @em.setNotifyReadable(sig, mode)
+  end
+  def self.set_notify_writable sig, mode
+    @em.setNotifyWritable(sig, mode)
+  end
+
+  def self.is_notify_readable sig
+    @em.isNotifyReadable(sig)
+  end
+  def self.is_notify_writable sig
+    @em.isNotifyWritable(sig)
   end
 
   class Connection

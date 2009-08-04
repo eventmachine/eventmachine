@@ -811,7 +811,12 @@ module EventMachine
       raise ArgumentError, "notify_readable/writable with EM.attach is not supported. Use EM.watch(io){ |c| c.notify_readable = true }"
     end
 
-    fd = io.respond_to?(:fileno) ? io.fileno : io
+    if io.respond_to?(:fileno)
+      fd = defined?(JRuby) ? JRuby.runtime.getDescriptorByFileno(io.fileno).getChannel : io.fileno
+    else
+      fd = io
+    end
+
     s = attach_fd fd, watch_mode
     c = klass.new s, *args
 

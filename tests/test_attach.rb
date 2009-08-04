@@ -59,7 +59,9 @@ class TestAttach < Test::Unit::TestCase
     }
 
     assert_equal $read, "abc\n"
-    assert_equal $fd, $sock.fileno
+    unless defined? JRuby # jruby filenos are not real
+      assert_equal $fd, $sock.fileno
+    end
     assert_equal false, $sock.closed?
     assert_equal $sock.readline, "def\n"
   end
