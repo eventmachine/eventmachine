@@ -88,6 +88,9 @@ public class EventableSocketChannel implements EventableChannel {
 	 * the reactor core.
 	 */
 	public void close() {
+		if (bWatchOnly)
+			return;
+
 		try {
 			channel.close();
 		} catch (IOException e) {
