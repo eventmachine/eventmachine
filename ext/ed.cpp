@@ -58,7 +58,8 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	bCallbackUnbind (true),
 	UnbindReasonCode (0),
 	ProxyTarget(NULL),
-	MyEventMachine (em)
+	MyEventMachine (em),
+	PendingConnectTimeout(20000000)
 {
 	/* There are three ways to close a socket, all of which should
 	 * automatically signal to the event machine that this object
@@ -218,6 +219,30 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 		(*EventCallback)(GetBinding(), EM_PROXY_TARGET_UNBOUND, NULL, 0);
 		StopProxy();
 	}
+}
+
+
+/*********************************************
+EventableDescriptor::GetPendingConnectTimeout
+*********************************************/
+
+float EventableDescriptor::GetPendingConnectTimeout()
+{
+	return ((float)PendingConnectTimeout / 1000000);
+}
+
+
+/*********************************************
+EventableDescriptor::SetPendingConnectTimeout
+*********************************************/
+
+int EventableDescriptor::SetPendingConnectTimeout (float value)
+{
+	if (value > 0) {
+		PendingConnectTimeout = (Int64)(value * 1000000);
+		return 1;
+	}
+	return 0;
 }
 
 

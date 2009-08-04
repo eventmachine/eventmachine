@@ -88,7 +88,7 @@ EventMachine_t::EventMachine_t (void (*event_callback)(const unsigned long, int,
 	epfd (-1),
 	bKqueue (false),
 	kqfd (-1),
-	HeartbeatInterval(2),
+	HeartbeatInterval(2000000),
 	inotify (NULL)
 {
 	// Default time-slice is just smaller than one hundred mills.

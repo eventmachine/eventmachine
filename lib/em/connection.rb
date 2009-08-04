@@ -453,7 +453,7 @@ module EventMachine
 
     # Alias for #set_comm_inactivity_timeout.
     def comm_inactivity_timeout= value
-      self.send :set_comm_inactivity_timeout, value
+      self.set_comm_inactivity_timeout value
     end
 
     # comm_inactivity_timeout= allows you to set the inactivity-timeout property for
@@ -464,6 +464,25 @@ module EventMachine
     # Zero is the default value.
     def set_comm_inactivity_timeout value
       EventMachine::set_comm_inactivity_timeout @signature, value.to_f
+    end
+
+    # pending_connect_timeout is the duration after which a TCP connection in the connecting 
+    # state will fail. It is important to distinguish this value from comm_inactivity_timeout,
+    # which looks at how long since data was passed on an already established connection.
+    # The value is a float in seconds.
+    def pending_connect_timeout
+      EventMachine::get_pending_connect_timeout @signature
+    end
+
+    # Alias for #set_pending_connect_timeout.
+    def pending_connect_timeout= value
+      self.set_pending_connect_timeout value
+    end
+
+    # set_pending_connect_timeout sets the duration after which a TCP connection in a
+    # connecting state will fail. Takes a float in seconds.
+    def set_pending_connect_timeout value
+      EventMachine::set_pending_connect_timeout @signature, value.to_f
     end
 
     # Reconnect to a given host/port with the current EventMachine::Connection instance

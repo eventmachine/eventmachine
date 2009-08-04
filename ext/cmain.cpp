@@ -556,6 +556,38 @@ extern "C" int evma_set_comm_inactivity_timeout (const unsigned long binding, fl
 }
 
 
+/********************************
+evma_get_pending_connect_timeout
+********************************/
+
+extern "C" float evma_get_pending_connect_timeout (const unsigned long binding)
+{
+	ensure_eventmachine("evma_get_pending_connect_timeout");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed) {
+		return ed->GetPendingConnectTimeout();
+	}
+	else
+		return 0.0;
+}
+
+
+/********************************
+evma_set_pending_connect_timeout
+********************************/
+
+extern "C" int evma_set_pending_connect_timeout (const unsigned long binding, float value)
+{
+	ensure_eventmachine("evma_set_pending_connect_timeout");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed) {
+		return ed->SetPendingConnectTimeout (value);
+	}
+	else
+		return 0;
+}
+
+
 /**********************
 evma_set_timer_quantum
 **********************/

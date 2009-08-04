@@ -394,6 +394,26 @@ static VALUE t_set_comm_inactivity_timeout (VALUE self, VALUE signature, VALUE t
 	return Qfalse;
 }
 
+/*****************************
+t_get_pending_connect_timeout
+*****************************/
+
+static VALUE t_get_pending_connect_timeout (VALUE self, VALUE signature)
+{
+	return rb_float_new(evma_get_pending_connect_timeout(NUM2ULONG (signature)));
+}
+
+/*****************************
+t_set_pending_connect_timeout
+*****************************/
+
+static VALUE t_set_pending_connect_timeout (VALUE self, VALUE signature, VALUE timeout)
+{
+	float ti = RFLOAT_VALUE(timeout);
+	if (evma_set_pending_connect_timeout (NUM2ULONG (signature), ti));
+		return Qtrue;
+	return Qfalse;
+}
 
 /***************
 t_send_datagram
@@ -1080,6 +1100,8 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "get_subprocess_status", (VALUE(*)(...))t_get_subprocess_status, 1);
 	rb_define_module_function (EmModule, "get_comm_inactivity_timeout", (VALUE(*)(...))t_get_comm_inactivity_timeout, 1);
 	rb_define_module_function (EmModule, "set_comm_inactivity_timeout", (VALUE(*)(...))t_set_comm_inactivity_timeout, 2);
+	rb_define_module_function (EmModule, "get_pending_connect_timeout", (VALUE(*)(...))t_get_pending_connect_timeout, 1);
+	rb_define_module_function (EmModule, "set_pending_connect_timeout", (VALUE(*)(...))t_set_pending_connect_timeout, 2);
 	rb_define_module_function (EmModule, "set_rlimit_nofile", (VALUE(*)(...))t_set_rlimit_nofile, 1);
 	rb_define_module_function (EmModule, "get_connection_count", (VALUE(*)(...))t_get_connection_count, 0);
 

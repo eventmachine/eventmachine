@@ -77,6 +77,8 @@ class EventableDescriptor: public Bindable_t
 
 		virtual float GetCommInactivityTimeout() {return 0.0;}
 		virtual int SetCommInactivityTimeout (float value) {return 0;}
+		float GetPendingConnectTimeout();
+		int SetPendingConnectTimeout (float value);
 
 		#ifdef HAVE_EPOLL
 		struct epoll_event *GetEpollEvent() { return &EpollEvent; }
@@ -91,17 +93,7 @@ class EventableDescriptor: public Bindable_t
 
 	protected:
 		int MySocket;
-		enum {
-			// 4 seconds is too short, most other libraries default to OS settings
-			// which in 2.6 kernel defaults to a 60 second connect timeout. 
-			// 
-			// Curl-Multi: http://curl.haxx.se/mail/lib-2001-01/0019.html
-			//
-			// updating to 50 seconds, so we catch it before the OS does
-
-			// can easily be made an instance variable
-			PendingConnectTimeout = 50000000 // now in usec
-		};
+		int PendingConnectTimeout;
 
 		void (*EventCallback)(const unsigned long, int, const char*, const unsigned long);
 		void _GenericInboundDispatch(const char*, int);
