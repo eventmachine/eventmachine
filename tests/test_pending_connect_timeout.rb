@@ -26,13 +26,13 @@ class TestPendingConnectTimeout < Test::Unit::TestCase
 
     assert_equal(2.5, $timeout)
   end
-  
+
   module TimeoutHandler
     def unbind
       EM.stop
     end
   end
-  
+
   def test_for_real
     $timeout = nil
     EM.run {
@@ -41,7 +41,7 @@ class TestPendingConnectTimeout < Test::Unit::TestCase
       c = EM.connect("1.2.3.4", 54321, TimeoutHandler)
       c.pending_connect_timeout = 5
     }
-    
+
     assert_in_delta(5, (Time.now - $start), 0.3)
   end
 
