@@ -58,9 +58,6 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
 
 
   def test_simple_lines
-    # THIS TEST CURRENTLY FAILS IN JRUBY.
-    assert( RUBY_PLATFORM !~ /java/ )
-
     lines_received = []
     EventMachine.run {
       EventMachine.start_server( TestHost, TestPort, SimpleLineTest ) do |conn|
@@ -85,9 +82,6 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
   end
 
   def test_overlength_lines
-    # THIS TEST CURRENTLY FAILS IN JRUBY.
-    assert( RUBY_PLATFORM !~ /java/ )
-
     lines_received = []
     EventMachine.run {
       EventMachine.start_server( TestHost, TestPort, SimpleLineTest ) do |conn|

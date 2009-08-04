@@ -266,8 +266,7 @@ class TestBasic < Test::Unit::TestCase
     x = false
     assert !x
     EM.run do
-      Thread.new { EM.schedule { x = true } }.join
-      EM.stop
+      Thread.new { EM.schedule { x = true; EM.stop } }.join
     end
     assert x
   end
