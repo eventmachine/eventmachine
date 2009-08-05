@@ -108,7 +108,7 @@ public class EmReactor {
 
 					timeout = k-now;
 
-					if (timeout == 0) // disallow blocking on add_timer(0)
+					if (timeout <= 0) // disallow blocking on add_timer(0)
 						timeout = 1;
 				}
 
