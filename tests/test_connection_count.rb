@@ -14,32 +14,22 @@ class TestConnectionCount < Test::Unit::TestCase
 
   module Client
     def connection_completed
-      EM.next_tick{
-        $client_connected = EM.connection_count
-        EM.stop
-      }
-    end
-  end
-
-  module Server
-    def post_init
-      $server_connected = EM.connection_count
+      $client_conns += 1
+      EM.stop if $client_conns == 3
     end
   end
 
   def test_with_some_connections
     EM.run {
-      $initial = EM.connection_count
-      EM.start_server("127.0.0.1", 9999, Server)
-      $server_started = EM.connection_count
-      EM.next_tick{
-        EM.connect("127.0.0.1", 9999, Client)
-      }
+      $client_conns = 0
+      $initial_conns = EM.connection_count
+      EM.start_server("127.0.0.1", 9999)
+      $server_conns = EM.connection_count
+      3.times { EM.connect("127.0.0.1", 9999, Client) }
     }
 
-    assert_equal(0, $initial)
-    assert_equal(1, $server_started)
-    assert_equal(2, $server_connected)
-    assert_equal(3, $client_connected)
+    assert_equal(0, $initial_conns)
+    assert_equal(1, $server_conns)
+    assert_equal(4, $client_conns + $server_conns)
   end
 end

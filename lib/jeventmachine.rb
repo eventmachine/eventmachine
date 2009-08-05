@@ -223,6 +223,9 @@ module EventMachine
   def self.is_notify_writable sig
     @em.isNotifyWritable(sig)
   end
+  def self.get_connection_count
+    @em.getConnectionCount
+  end
 
   class Connection
     def associate_callback_target sig

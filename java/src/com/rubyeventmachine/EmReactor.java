@@ -483,4 +483,8 @@ public class EmReactor {
 	public boolean isNotifyWritable (long sig) {
 		return Connections.get(sig).isNotifyWritable();
 	}
+
+	public int getConnectionCount() {
+	  return Connections.size() + Acceptors.size();
+	}
 }
