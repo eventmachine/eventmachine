@@ -838,8 +838,6 @@ module EventMachine
 
   # Connect to a given host/port and re-use the provided EventMachine::Connection instance
   #--
-  # EXPERIMENTAL. DO NOT RELY ON THIS METHOD TO BE HERE IN THIS FORM, OR AT ALL.
-  # (03Nov06)
   # Observe, the test for already-connected FAILS if we call a reconnect inside post_init,
   # because we haven't set up the connection in @conns by that point.
   # RESIST THE TEMPTATION to "fix" this problem by redefining the behavior of post_init.

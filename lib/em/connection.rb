@@ -486,9 +486,6 @@ module EventMachine
     end
 
     # Reconnect to a given host/port with the current EventMachine::Connection instance
-    #--
-    # EXPERIMENTAL. DO NOT RELY ON THIS METHOD TO REMAIN SUPPORTED.
-    # (03Nov06)
     def reconnect server, port
       EventMachine::reconnect server, port, self
     end
