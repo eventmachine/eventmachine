@@ -31,9 +31,9 @@ require 'java'
 require 'em_reactor'
 require 'socket'
 
-import java.io.FileDescriptor
-import java.nio.channels.SocketChannel
-import java.lang.reflect.Field
+java_import java.io.FileDescriptor
+java_import java.nio.channels.SocketChannel
+java_import java.lang.reflect.Field
 
 module JavaFields
   def set_field(key, value)
