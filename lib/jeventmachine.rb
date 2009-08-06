@@ -136,6 +136,18 @@ module EventMachine
     # Epoll is a no-op for Java.
     # The latest Java versions run epoll when possible in NIO.
   end
+  def self.epoll= val
+  end
+  def self.kqueue
+  end
+  def self.kqueue= val
+  end
+  def self.epoll?
+    false
+  end
+  def self.kqueue?
+    false
+  end
   def self.set_rlimit_nofile n_descriptors
     # Currently a no-op for Java.
   end
