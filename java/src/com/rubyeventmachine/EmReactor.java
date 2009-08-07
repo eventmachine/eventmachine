@@ -156,7 +156,7 @@ public class EmReactor {
 		SocketChannel sn;
 		long b;
 
-		while (true) {
+		for (int n = 0; n < 10; n++) {
 			try {
 				sn = ss.accept();
 				if (sn == null)
