@@ -308,8 +308,24 @@ public class EmReactor {
 		}
 
 		Iterator<EventableChannel> i2 = Connections.values().iterator();
-		while (i2.hasNext())
-			i2.next().close();
+		while (i2.hasNext()) {
+			EventableChannel ec = i2.next();
+			if (ec != null) {
+				eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
+				ec.close();
+
+				EventableSocketChannel sc = (EventableSocketChannel) ec;
+				if (sc != null && sc.isAttached())
+					DetachedConnections.add (sc);
+			}
+		}
+
+		ListIterator<EventableSocketChannel> i3 = DetachedConnections.listIterator(0);
+		while (i3.hasNext()) {
+			EventableSocketChannel ec = i3.next();
+			ec.cleanup();
+		}
+		DetachedConnections.clear();
 	}
 
 	void runLoopbreaks() {
