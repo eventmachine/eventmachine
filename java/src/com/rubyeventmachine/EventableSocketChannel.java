@@ -277,6 +277,17 @@ public class EventableSocketChannel implements EventableChannel {
 	public boolean isNotifyWritable() { return bNotifyWritable; }
 
 	private void updateEvents() {
+		if (channelKey == null)
+			return;
+
+		int events = currentEvents();
+
+		if (channelKey.interestOps() != events) {
+			channelKey.interestOps(events);
+		}
+	}
+
+	private int currentEvents() {
 		int events = 0;
 
 		if (bWatchOnly)
@@ -299,7 +310,6 @@ public class EventableSocketChannel implements EventableChannel {
 			}
 		}
 
-		if (channelKey.interestOps() != events)
-			channelKey.interestOps(events);
+		return events;
 	}
 }
