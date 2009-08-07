@@ -212,14 +212,9 @@ module EventMachine
     @em.attachChannel(ch,watch_mode)
   end
   def self.detach_fd sig
-    ch = @em.detachChannel(sig)
-    fileno = ch.get_field 'fdVal'
-
-    fd = ch.get_field 'fd'
-    fd.set_field 'fd', -1
-    ch.set_field 'fdVal', -1
-
-    fileno
+    if ch = @em.detachChannel(sig)
+      ch.get_field 'fdVal'
+    end
   end
 
   def self.set_notify_readable sig, mode

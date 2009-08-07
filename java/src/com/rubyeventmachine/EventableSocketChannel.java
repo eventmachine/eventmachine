@@ -43,6 +43,7 @@ import java.io.*;
 import java.net.Socket;
 import javax.net.ssl.*;
 import javax.net.ssl.SSLEngineResult.*;
+import java.lang.reflect.Field;
 
 import java.security.*;
 
@@ -102,13 +103,57 @@ public class EventableSocketChannel implements EventableChannel {
 			channelKey = null;
 		}
 
-		if (bWatchOnly)
+		if (bAttached) {
+			// attached channels are copies, so reset the file descriptor to prevent java from close()ing it
+			Field f;
+			FileDescriptor fd;
+
+			try {
+				/* do _NOT_ clobber fdVal here, it will break epoll/kqueue on jdk6!
+				 * channelKey.cancel() above does not occur until the next call to select
+				 * and if fdVal is gone, we will continue to get events for this fd.
+				 *
+				 * instead, remove fdVal in cleanup(), which is processed via DetachedConnections,
+				 * after UnboundConnections but before NewConnections.
+				 */
+
+				f = channel.getClass().getDeclaredField("fd");
+				f.setAccessible(true);
+				fd = (FileDescriptor) f.get(channel);
+
+				f = fd.getClass().getDeclaredField("fd");
+				f.setAccessible(true);
+				f.set(fd, -1);
+			} catch (java.lang.NoSuchFieldException e) {
+				e.printStackTrace();
+			} catch (java.lang.IllegalAccessException e) {
+				e.printStackTrace();
+			}
+
 			return;
+		}
 
 		try {
 			channel.close();
 		} catch (IOException e) {
 		}
+	}
+
+	public void cleanup() {
+		if (bAttached) {
+			Field f;
+			try {
+				f = channel.getClass().getDeclaredField("fdVal");
+				f.setAccessible(true);
+				f.set(channel, -1);
+			} catch (java.lang.NoSuchFieldException e) {
+				e.printStackTrace();
+			} catch (java.lang.IllegalAccessException e) {
+				e.printStackTrace();
+			}
+		}
+
+		channel = null;
 	}
 	
 	public void scheduleOutboundData (ByteBuffer bb) {

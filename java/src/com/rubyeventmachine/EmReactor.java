@@ -55,6 +55,7 @@ public class EmReactor {
 	private HashMap<Long, ServerSocketChannel> Acceptors;
 	private ArrayList<Long> NewConnections;
 	private ArrayList<Long> UnboundConnections;
+	private ArrayList<EventableSocketChannel> DetachedConnections;
 
 	private boolean bRunReactor;
 	private long BindingIndex;
@@ -68,6 +69,7 @@ public class EmReactor {
 		Acceptors = new HashMap<Long, ServerSocketChannel>();
 		NewConnections = new ArrayList<Long>();
 		UnboundConnections = new ArrayList<Long>();
+		DetachedConnections = new ArrayList<EventableSocketChannel>();
 
 		BindingIndex = 0;
 		loopBreaker = new AtomicBoolean();
@@ -112,6 +114,13 @@ public class EmReactor {
 	}
 
 	void addNewConnections() {
+		ListIterator<EventableSocketChannel> iter = DetachedConnections.listIterator(0);
+		while (iter.hasNext()) {
+			EventableSocketChannel ec = iter.next();
+			ec.cleanup();
+		}
+		DetachedConnections.clear();
+
 		ListIterator<Long> iter2 = NewConnections.listIterator(0);
 		while (iter2.hasNext()) {
 			long b = iter2.next();
@@ -485,15 +494,12 @@ public class EmReactor {
 
 	public long attachChannel (SocketChannel sc, boolean watch_mode) {
 		long b = createBinding();
-		EventableSocketChannel ec;
 
-		if (watch_mode) {
-			ec = new EventableSocketChannel (sc, b, mySelector, 0);
-			ec.setWatchOnly();
-		} else {
-			ec = new EventableSocketChannel (sc, b, mySelector, SelectionKey.OP_READ);
-		}
+		EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector);
+
 		ec.setAttached();
+		if (watch_mode)
+			ec.setWatchOnly();
 
 		Connections.put (b, ec);
 		NewConnections.add (b);
@@ -503,14 +509,12 @@ public class EmReactor {
 
 	public SocketChannel detachChannel (long sig) {
 		EventableSocketChannel ec = (EventableSocketChannel) Connections.get (sig);
-		UnboundConnections.add (sig);
-
-		SocketChannel sc = ec.getChannel();
-		try {
-			sc.register(mySelector, 0, null);
-		} catch (ClosedChannelException e) {
+		if (ec != null) {
+			UnboundConnections.add (sig);
+			return ec.getChannel();
+		} else {
+			return null;
 		}
-		return sc;
 	}
 
 	public void setNotifyReadable (long sig, boolean mode) {
