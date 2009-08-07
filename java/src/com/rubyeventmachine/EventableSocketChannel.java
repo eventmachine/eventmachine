@@ -282,13 +282,14 @@ public class EventableSocketChannel implements EventableChannel {
 		}
 		else
 		{
-			events |= SelectionKey.OP_READ;
-
 			if (bConnectPending)
 				events |= SelectionKey.OP_CONNECT;
+			else {
+				events |= SelectionKey.OP_READ;
 
-			if (!outboundQ.isEmpty())
-				events |= SelectionKey.OP_WRITE;
+				if (!outboundQ.isEmpty())
+					events |= SelectionKey.OP_WRITE;
+			}
 		}
 
 		if (channelKey.interestOps() != events)
