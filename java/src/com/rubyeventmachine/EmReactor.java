@@ -84,6 +84,7 @@ public class EmReactor {
 		eventCallback (sig, eventType, data, 0);
 	}
 
+
 	public void run() {
 		try {
 			mySelector = Selector.open();
@@ -99,56 +100,76 @@ public class EmReactor {
 			runTimers();
 			if (!bRunReactor) break;
 
-			try {
-				long timeout = 0;
-
-				if (!Timers.isEmpty()) {
-					long now = new Date().getTime();
-					long k = Timers.firstKey();
-
-					timeout = k-now;
-
-					if (timeout <= 0) // disallow blocking on add_timer(0)
-						timeout = 1;
-				}
-
-				mySelector.select(timeout);
-			} catch (IOException e) {
-				continue;
-			}
-
-			Iterator<SelectionKey> it = mySelector.selectedKeys().iterator();
-			while (it.hasNext()) {
-				SelectionKey k = it.next();
-				it.remove();
-
-				if (k.isAcceptable())
-					isAcceptable(k);
-
-				if (k.isReadable())
-					isReadable(k);
-
-				if (k.isWritable())
-					isWritable(k);
-
-				if (k.isConnectable())
-					isConnectable(k);
-			}
-
-			ListIterator<Long> iter = UnboundConnections.listIterator(0);
-			while (iter.hasNext()) {
-				long b = iter.next();
-				iter.remove();
-
-				EventableChannel ec = Connections.remove(b);
-				if (ec != null) {
-					eventCallback (b, EM_CONNECTION_UNBOUND, null);
-					ec.close();
-				}
-			}
+			removeUnboundConnections();
+			checkIO();
+			processIO();
 		}
 
 		close();
+	}
+
+	void removeUnboundConnections() {
+		ListIterator<Long> iter = UnboundConnections.listIterator(0);
+		while (iter.hasNext()) {
+			long b = iter.next();
+
+			EventableChannel ec = Connections.remove(b);
+			if (ec != null) {
+				eventCallback (b, EM_CONNECTION_UNBOUND, null);
+				ec.close();
+
+				EventableSocketChannel sc = (EventableSocketChannel) ec;
+				if (sc != null && sc.isAttached())
+					DetachedConnections.add (sc);
+			}
+		}
+		UnboundConnections.clear();
+	}
+
+	void checkIO() {
+		long timeout;
+
+		if (!Timers.isEmpty()) {
+			long now = new Date().getTime();
+			long k = Timers.firstKey();
+			long diff = k-now;
+
+			if (diff <= 0)
+				timeout = -1; // don't wait, just poll once
+			else
+				timeout = diff;
+		} else {
+			timeout = 0; // wait indefinitely
+		}
+
+		try {
+			if (timeout == -1)
+				mySelector.selectNow();
+			else
+				mySelector.select(timeout);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	void processIO() {
+		Iterator<SelectionKey> it = mySelector.selectedKeys().iterator();
+		while (it.hasNext()) {
+			SelectionKey k = it.next();
+			it.remove();
+
+			if (k.isConnectable())
+				isConnectable(k);
+
+			if (k.isWritable())
+				isWritable(k);
+
+			if (k.isReadable())
+				isReadable(k);
+
+			if (k.isAcceptable())
+				isAcceptable(k);
+		}
 	}
 
 	void isAcceptable (SelectionKey k) {
