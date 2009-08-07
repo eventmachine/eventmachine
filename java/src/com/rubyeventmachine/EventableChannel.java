@@ -38,7 +38,7 @@ public interface EventableChannel {
 	
 	public void scheduleOutboundDatagram (ByteBuffer bb, String recipAddress, int recipPort);
 	
-	public void scheduleClose (boolean afterWriting);
+	public boolean scheduleClose (boolean afterWriting);
 	
 	public void startTls();
 	

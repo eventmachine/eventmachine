@@ -411,10 +411,11 @@ public class EmReactor {
 		return b;
 	}
 
-	public void closeConnection (long sig, boolean afterWriting) throws ClosedChannelException {
+	public void closeConnection (long sig, boolean afterWriting) {
 		EventableChannel ec = Connections.get(sig);
 		if (ec != null)
-			ec.scheduleClose (afterWriting);
+			if (ec.scheduleClose (afterWriting))
+				UnboundConnections.add (sig);
 	}
 	
 	long createBinding() {

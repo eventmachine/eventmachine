@@ -139,7 +139,6 @@ public class EventableSocketChannel implements EventableChannel {
 	/**
 	 * Called by the reactor when we have selected writable.
 	 * Return false to indicate an error that should cause the connection to close.
-	 * We can get here with an empty outbound buffer if bCloseScheduled is true.
 	 * TODO, VERY IMPORTANT: we're here because we selected writable, but it's always
 	 * possible to become unwritable between the poll and when we get here. The way
 	 * this code is written, we're depending on a nonblocking write NOT TO CONSUME
@@ -164,10 +163,10 @@ public class EventableSocketChannel implements EventableChannel {
 				break;
 		}
 
-		if (outboundQ.isEmpty()) {
+		if (outboundQ.isEmpty() && !bCloseScheduled) {
 			updateEvents();
 		}
-		
+
 		// ALWAYS drain the outbound queue before triggering a connection close.
 		// If anyone wants to close immediately, they're responsible for clearing
 		// the outbound queue.
@@ -192,14 +191,20 @@ public class EventableSocketChannel implements EventableChannel {
 		return true;
 	}
 	
-	public void scheduleClose (boolean afterWriting) {
+	public boolean scheduleClose (boolean afterWriting) {
 		// TODO: What the hell happens here if bConnectPending is set?
 		if (!afterWriting)
 			outboundQ.clear();
 
-		updateEvents();
-		bCloseScheduled = true;
+		if (outboundQ.isEmpty())
+			return true;
+		else {
+			updateEvents();
+			bCloseScheduled = true;
+			return false;
+		}
 	}
+
 	public void startTls() {
 		if (sslEngine == null) {
 			try {
