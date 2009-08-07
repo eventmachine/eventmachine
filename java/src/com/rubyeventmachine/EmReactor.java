@@ -50,10 +50,10 @@ public class EmReactor {
 	public final int EM_PROXY_TARGET_UNBOUND = 110;
 
 	private Selector mySelector;
-	private TreeMap<Long, LinkedList<Long>> Timers;
-	private TreeMap<Long, EventableChannel> Connections;
-	private TreeMap<Long, ServerSocketChannel> Acceptors;
-	private LinkedList<Long> UnboundConnections;
+	private TreeMap<Long, ArrayList<Long>> Timers;
+	private HashMap<Long, EventableChannel> Connections;
+	private HashMap<Long, ServerSocketChannel> Acceptors;
+	private ArrayList<Long> UnboundConnections;
 
 	private boolean bRunReactor;
 	private long BindingIndex;
@@ -62,10 +62,10 @@ public class EmReactor {
 	private int timerQuantum;
 
 	public EmReactor() {
-		Timers = new TreeMap<Long, LinkedList<Long>>();
-		Connections = new TreeMap<Long, EventableChannel>();
-		Acceptors = new TreeMap<Long, ServerSocketChannel>();
-		UnboundConnections = new LinkedList<Long>();
+		Timers = new TreeMap<Long, ArrayList<Long>>();
+		Connections = new HashMap<Long, EventableChannel>();
+		Acceptors = new HashMap<Long, ServerSocketChannel>();
+		UnboundConnections = new ArrayList<Long>();
 
 		BindingIndex = 0;
 		loopBreaker = new AtomicBoolean();
@@ -281,7 +281,7 @@ public class EmReactor {
 			if (k > now)
 				break;
 
-			LinkedList<Long> callbacks = Timers.get(k);
+			ArrayList<Long> callbacks = Timers.get(k);
 			Timers.remove(k);
 
 			// Fire all timers at this timestamp
@@ -299,7 +299,7 @@ public class EmReactor {
 		if (Timers.containsKey(deadline)) {
 			Timers.get(deadline).add(s);
 		} else {
-			LinkedList<Long> callbacks = new LinkedList<Long>();
+			ArrayList<Long> callbacks = new ArrayList<Long>();
 			callbacks.add(s);
 			Timers.put(deadline, callbacks);
 		}
