@@ -101,7 +101,11 @@ public class EventableDatagramChannel implements EventableChannel {
 	public long getBinding() {
 		return binding;
 	}
-	
+
+	public void register() throws ClosedChannelException {
+		// TODO
+	}
+
 	/**
 	 * Terminate with extreme prejudice. Don't assume there will be another pass through
 	 * the reactor core.

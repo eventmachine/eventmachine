@@ -53,6 +53,7 @@ public class EmReactor {
 	private TreeMap<Long, ArrayList<Long>> Timers;
 	private HashMap<Long, EventableChannel> Connections;
 	private HashMap<Long, ServerSocketChannel> Acceptors;
+	private ArrayList<Long> NewConnections;
 	private ArrayList<Long> UnboundConnections;
 
 	private boolean bRunReactor;
@@ -65,6 +66,7 @@ public class EmReactor {
 		Timers = new TreeMap<Long, ArrayList<Long>>();
 		Connections = new HashMap<Long, EventableChannel>();
 		Acceptors = new HashMap<Long, ServerSocketChannel>();
+		NewConnections = new ArrayList<Long>();
 		UnboundConnections = new ArrayList<Long>();
 
 		BindingIndex = 0;
@@ -102,10 +104,28 @@ public class EmReactor {
 
 			removeUnboundConnections();
 			checkIO();
+			addNewConnections();
 			processIO();
 		}
 
 		close();
+	}
+
+	void addNewConnections() {
+		ListIterator<Long> iter2 = NewConnections.listIterator(0);
+		while (iter2.hasNext()) {
+			long b = iter2.next();
+
+			EventableChannel ec = Connections.get(b);
+			if (ec != null) {
+				try {
+					ec.register();
+				} catch (ClosedChannelException e) {
+					UnboundConnections.add (ec.getBinding());
+				}
+			}
+		}
+		NewConnections.clear();
 	}
 
 	void removeUnboundConnections() {
@@ -129,7 +149,9 @@ public class EmReactor {
 	void checkIO() {
 		long timeout;
 
-		if (!Timers.isEmpty()) {
+		if (NewConnections.size() > 0) {
+			timeout = -1;
+		} else if (!Timers.isEmpty()) {
 			long now = new Date().getTime();
 			long k = Timers.firstKey();
 			long diff = k-now;
@@ -199,15 +221,12 @@ public class EmReactor {
 				continue;
 			}
 
-			try {
-				b = createBinding();
-				EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector, SelectionKey.OP_READ);
-				Connections.put(b, ec);
+			b = createBinding();
+			EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector);
+			Connections.put (b, ec);
+			NewConnections.add (b);
 
-				eventCallback (((Long)k.attachment()).longValue(), EM_CONNECTION_ACCEPTED, null, b);
-			} catch (ClosedChannelException e) {
-				continue;
-			}
+			eventCallback (((Long)k.attachment()).longValue(), EM_CONNECTION_ACCEPTED, null, b);
 		}
 	}
 
@@ -390,11 +409,11 @@ public class EmReactor {
 		(Connections.get(sig)).scheduleOutboundDatagram( bb, recipAddress, recipPort);
 	}
 
-	public long connectTcpServer (String address, int port) throws ClosedChannelException {
+	public long connectTcpServer (String address, int port) {
 		return connectTcpServer(null, 0, address, port);
 	}
 
-	public long connectTcpServer (String bindAddr, int bindPort, String address, int port) throws ClosedChannelException {
+	public long connectTcpServer (String bindAddr, int bindPort, String address, int port) {
 		long b = createBinding();
 
 		try {
@@ -403,7 +422,7 @@ public class EmReactor {
 			if (bindAddr != null)
 				sc.socket().bind(new InetSocketAddress (bindAddr, bindPort));
 
-			EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector, 0);
+			EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector);
 
 			if (sc.connect (new InetSocketAddress (address, port))) {
 				// Connection returned immediately. Can happen with localhost connections.
@@ -421,8 +440,9 @@ public class EmReactor {
 				throw new RuntimeException ("immediate-connect unimplemented");
 			}
 			else {
-				Connections.put (b, ec);
 				ec.setConnectPending();
+				Connections.put (b, ec);
+				NewConnections.add (b);
 			}
 		} catch (IOException e) {
 			// Can theoretically come here if a connect failure can be determined immediately.
@@ -463,7 +483,7 @@ public class EmReactor {
 		return Connections.get(sig).getPeerName();
 	}
 
-	public long attachChannel (SocketChannel sc, boolean watch_mode) throws ClosedChannelException {
+	public long attachChannel (SocketChannel sc, boolean watch_mode) {
 		long b = createBinding();
 		EventableSocketChannel ec;
 
@@ -476,6 +496,8 @@ public class EmReactor {
 		ec.setAttached();
 
 		Connections.put (b, ec);
+		NewConnections.add (b);
+
 		return b;
 	}
 

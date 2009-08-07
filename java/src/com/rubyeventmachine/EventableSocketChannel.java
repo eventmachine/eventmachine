@@ -64,7 +64,7 @@ public class EventableSocketChannel implements EventableChannel {
 	SSLEngine sslEngine;
 	SSLContext sslContext;
 
-	public EventableSocketChannel (SocketChannel sc, long _binding, Selector sel, int ops) throws ClosedChannelException {
+	public EventableSocketChannel (SocketChannel sc, long _binding, Selector sel) {
 		channel = sc;
 		binding = _binding;
 		selector = sel;
@@ -75,8 +75,6 @@ public class EventableSocketChannel implements EventableChannel {
 		bNotifyReadable = false;
 		bNotifyWritable = false;
 		outboundQ = new LinkedList<ByteBuffer>();
-
-		channelKey = sc.register(selector, ops, this);
 	}
 	
 	public long getBinding() {
@@ -86,7 +84,14 @@ public class EventableSocketChannel implements EventableChannel {
 	public SocketChannel getChannel() {
 		return channel;
 	}
-	
+
+	public void register() throws ClosedChannelException {
+		if (channelKey == null) {
+			int events = currentEvents();
+			channelKey = channel.register(selector, events, this);
+		}
+	}
+
 	/**
 	 * Terminate with extreme prejudice. Don't assume there will be another pass through
 	 * the reactor core.
@@ -175,7 +180,7 @@ public class EventableSocketChannel implements EventableChannel {
 		return (bCloseScheduled && outboundQ.isEmpty()) ? false : true;
  	}
 	
-	public void setConnectPending() throws ClosedChannelException {
+	public void setConnectPending() {
 		bConnectPending = true;
 		updateEvents();
 	}
@@ -183,7 +188,6 @@ public class EventableSocketChannel implements EventableChannel {
 	/**
 	 * Called by the reactor when we have selected connectable.
 	 * Return false to indicate an error that should cause the connection to close.
-	 * @throws ClosedChannelException
 	 */
 	public boolean finishConnecting() throws IOException {
 		channel.finishConnect();

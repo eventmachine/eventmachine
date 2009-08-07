@@ -31,6 +31,7 @@ package com.rubyeventmachine;
 
 import java.nio.ByteBuffer;
 import java.io.IOException;
+import java.nio.channels.ClosedChannelException;
 
 public interface EventableChannel {
 	
@@ -46,6 +47,8 @@ public interface EventableChannel {
 	
 	public void readInboundData (ByteBuffer dst) throws IOException;
 	
+	public void register() throws ClosedChannelException;
+
 	/**
 	 * This is called by the reactor after it finishes running.
 	 * The idea is to free network resources.
