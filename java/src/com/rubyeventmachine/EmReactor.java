@@ -473,6 +473,7 @@ public class EmReactor {
 		} else {
 			ec = new EventableSocketChannel (sc, b, mySelector, SelectionKey.OP_READ);
 		}
+		ec.setAttached();
 
 		Connections.put (b, ec);
 		return b;

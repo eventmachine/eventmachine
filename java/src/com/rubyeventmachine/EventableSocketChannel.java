@@ -57,6 +57,7 @@ public class EventableSocketChannel implements EventableChannel {
 	boolean bCloseScheduled;
 	boolean bConnectPending;
 	boolean bWatchOnly;
+	boolean bAttached;
 	boolean bNotifyReadable;
 	boolean bNotifyWritable;
 	
@@ -70,6 +71,7 @@ public class EventableSocketChannel implements EventableChannel {
 		bCloseScheduled = false;
 		bConnectPending = false;
 		bWatchOnly = false;
+		bAttached = false;
 		bNotifyReadable = false;
 		bNotifyWritable = false;
 		outboundQ = new LinkedList<ByteBuffer>();
@@ -256,6 +258,11 @@ public class EventableSocketChannel implements EventableChannel {
 		updateEvents();
 	}
 	public boolean isWatchOnly() { return bWatchOnly; }
+
+	public void setAttached() {
+		bAttached = true;
+	}
+	public boolean isAttached() { return bAttached; }
 
 	public void setNotifyReadable (boolean mode) {
 		bNotifyReadable = mode;
