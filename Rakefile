@@ -231,28 +231,30 @@ namespace :java do
   # This step is required before executing the jgem task.
   desc "Build java extension"
   task :build => [:jar] do |t|
-    chdir('java') do
-      mv 'em_reactor.jar', '../../lib/em_reactor.jar'
-    end
+    mv 'java/em_reactor.jar', 'lib/'
   end
 
   desc "compile .java to .class"
   task :compile do
     chdir('java') do
-      mkdir_p "target"
-      sh 'javac src/com/rubyeventmachine/*.java -d target'
+      mkdir_p "build"
+      sh 'javac src/com/rubyeventmachine/*.java'
     end
   end
 
   desc "compile .classes to .jar"
   task :jar => [:compile] do
-    chdir('java') do
-      sh "jar -cf em_reactor.jar target/com/rubyeventmachine/*.class"
+    chdir('java/src') do
+      sh "jar -cf ../em_reactor.jar com/rubyeventmachine/*.class"
     end
   end
 
   desc "build a java binary gem"
   task :gem => :build do
+    Spec.platform = 'java'
+    Spec.files += %w[ lib/em_reactor.jar ]
+    Spec.extensions = nil
+
     Rake::Task['gem'].invoke
   end
 end
