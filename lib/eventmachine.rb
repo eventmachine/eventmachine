@@ -1114,7 +1114,7 @@ module EventMachine
   end
 
   def self.spawn_threadpool # :nodoc:
-    until @threadpool.size == @threadpool_size
+    until @threadpool.size == @threadpool_size.to_i
       thread = Thread.new do
         while true
           op, cback = *@threadqueue.pop
