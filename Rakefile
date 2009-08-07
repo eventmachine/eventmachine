@@ -238,13 +238,13 @@ namespace :java do
   task :compile do
     chdir('java') do
       mkdir_p "build"
-      sh 'javac src/com/rubyeventmachine/*.java'
+      sh 'javac src/com/rubyeventmachine/*.java -d build'
     end
   end
 
   desc "compile .classes to .jar"
   task :jar => [:compile] do
-    chdir('java/src') do
+    chdir('java/build') do
       sh "jar -cf ../em_reactor.jar com/rubyeventmachine/*.class"
     end
   end
