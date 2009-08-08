@@ -199,11 +199,14 @@ module EventMachine
     if fileno == 0
       raise "can't open STDIN as selectable in Java =("
     elsif fileno.is_a? Fixnum
+      # 8Aug09: The following code is specific to the sun jvm's SocketChannelImpl. Is there a cross-platform
+      # way of implementing this? If so, also remember to update EventableSocketChannel#close and #cleanup
       fd = FileDescriptor.new
       fd.set_field 'fd', fileno
 
       ch = SocketChannel.open
       ch.configureBlocking(false)
+      ch.kill
       ch.set_field 'fd', fd
       ch.set_field 'fdVal', fileno
       ch.set_field 'state', ch.get_field('ST_CONNECTED')
