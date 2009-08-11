@@ -31,9 +31,9 @@ require 'java'
 require 'em_reactor'
 require 'socket'
 
-import java.io.FileDescriptor
-import java.nio.channels.SocketChannel
-import java.lang.reflect.Field
+java_import java.io.FileDescriptor
+java_import java.nio.channels.SocketChannel
+java_import java.lang.reflect.Field
 
 module JavaFields
   def set_field(key, value)
@@ -136,6 +136,18 @@ module EventMachine
     # Epoll is a no-op for Java.
     # The latest Java versions run epoll when possible in NIO.
   end
+  def self.epoll= val
+  end
+  def self.kqueue
+  end
+  def self.kqueue= val
+  end
+  def self.epoll?
+    false
+  end
+  def self.kqueue?
+    false
+  end
   def self.set_rlimit_nofile n_descriptors
     # Currently a no-op for Java.
   end
@@ -152,6 +164,11 @@ module EventMachine
   end
   def self.set_max_timer_count num
     # harmless no-op in Java. There's no built-in timer limit.
+    @max_timer_count = num
+  end
+  def self.get_max_timer_count
+    # harmless no-op in Java. There's no built-in timer limit.
+    @max_timer_count || 100_000
   end
   def self.library_type
     :java
@@ -182,11 +199,14 @@ module EventMachine
     if fileno == 0
       raise "can't open STDIN as selectable in Java =("
     elsif fileno.is_a? Fixnum
+      # 8Aug09: The following code is specific to the sun jvm's SocketChannelImpl. Is there a cross-platform
+      # way of implementing this? If so, also remember to update EventableSocketChannel#close and #cleanup
       fd = FileDescriptor.new
       fd.set_field 'fd', fileno
 
       ch = SocketChannel.open
       ch.configureBlocking(false)
+      ch.kill
       ch.set_field 'fd', fd
       ch.set_field 'fdVal', fileno
       ch.set_field 'state', ch.get_field('ST_CONNECTED')
@@ -195,14 +215,9 @@ module EventMachine
     @em.attachChannel(ch,watch_mode)
   end
   def self.detach_fd sig
-    ch = @em.detachChannel(sig)
-    fileno = ch.get_field 'fdVal'
-
-    fd = ch.get_field 'fd'
-    fd.set_field 'fd', -1
-    ch.set_field 'fdVal', -1
-
-    fileno
+    if ch = @em.detachChannel(sig)
+      ch.get_field 'fdVal'
+    end
   end
 
   def self.set_notify_readable sig, mode
@@ -217,6 +232,9 @@ module EventMachine
   end
   def self.is_notify_writable sig
     @em.isNotifyWritable(sig)
+  end
+  def self.get_connection_count
+    @em.getConnectionCount
   end
 
   class Connection

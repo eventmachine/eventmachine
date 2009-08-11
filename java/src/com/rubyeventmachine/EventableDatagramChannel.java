@@ -89,8 +89,9 @@ public class EventableDatagramChannel implements EventableChannel {
 		}
 	}
 	
-	public void scheduleClose (boolean afterWriting) {
+	public boolean scheduleClose (boolean afterWriting) {
 		System.out.println ("NOT SCHEDULING CLOSE ON DATAGRAM");
+		return false;
 	}
 	
 	public void startTls() {
@@ -100,7 +101,11 @@ public class EventableDatagramChannel implements EventableChannel {
 	public long getBinding() {
 		return binding;
 	}
-	
+
+	public void register() throws ClosedChannelException {
+		// TODO
+	}
+
 	/**
 	 * Terminate with extreme prejudice. Don't assume there will be another pass through
 	 * the reactor core.

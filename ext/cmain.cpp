@@ -143,6 +143,24 @@ extern "C" int evma_detach_fd (const unsigned long binding)
 		#endif
 }
 
+/************************
+evma_get_file_descriptor
+************************/
+
+extern "C" int evma_get_file_descriptor (const unsigned long binding)
+{
+	ensure_eventmachine("evma_get_file_descriptor");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return ed->GetSocket();
+	else
+		#ifdef BUILD_FOR_RUBY
+			rb_raise(rb_eRuntimeError, "invalid binding to get_fd");
+		#else
+			throw std::runtime_error ("invalid binding to get_fd");
+		#endif
+}
+
 /***********************
 evma_is_notify_readable
 ***********************/

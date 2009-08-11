@@ -128,13 +128,11 @@ public class Application {
 	}
 
 	public void bindConnect (String bindAddr, int bindPort, String host, int port, Connection c) {
-		try {
-			long s = reactor.connectTcpServer(bindAddr, bindPort, host, port);
-			c.application = this;
-			c.signature = s;
-			reactor.connections.put(s, c);
-			c.postInit();
-		} catch (ClosedChannelException e) {}
+		long s = reactor.connectTcpServer(bindAddr, bindPort, host, port);
+		c.application = this;
+		c.signature = s;
+		reactor.connections.put(s, c);
+		c.postInit();
 	}
 
 	public void connect (String host, int port, Connection c) {
@@ -150,9 +148,7 @@ public class Application {
 		reactor.stop();
 	}
 	public void run() {
-		try {
-			reactor.run();
-		} catch (IOException e) {}
+		reactor.run();
 	}
 	public void run (final Runnable r) {
 		addTimer(0, new Timer() {
@@ -174,9 +170,7 @@ public class Application {
 	}
 	
 	public void closeConnection (long sig, boolean afterWriting) {
-		try {
-			reactor.closeConnection(sig, afterWriting);
-		} catch (ClosedChannelException e) {}
+		reactor.closeConnection(sig, afterWriting);
 	}
 	
 	public void openDatagramSocket (Connection c) {

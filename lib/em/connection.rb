@@ -175,6 +175,10 @@ module EventMachine
       EventMachine::detach_fd @signature
     end
 
+    def get_sock_opt level, option
+      EventMachine::get_sock_opt @signature, level, option
+    end
+
     # EventMachine::Connection#close_connection_after_writing is a variant of close_connection.
     # All of the descriptive comments given for close_connection also apply to
     # close_connection_after_writing, <i>with one exception:</i> If the connection has
@@ -486,9 +490,6 @@ module EventMachine
     end
 
     # Reconnect to a given host/port with the current EventMachine::Connection instance
-    #--
-    # EXPERIMENTAL. DO NOT RELY ON THIS METHOD TO REMAIN SUPPORTED.
-    # (03Nov06)
     def reconnect server, port
       EventMachine::reconnect server, port, self
     end

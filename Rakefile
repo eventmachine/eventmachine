@@ -20,7 +20,7 @@
 # # both contain the proper references to OPENSSL. Use the static version
 # # of the libraries, not the dynamic, otherwise we expose the user to a
 # # runtime dependency.
-# 
+#
 # # To build a binary gem for win32, first build rubyeventmachine.so
 # # using VC6 outside of the build tree (the normal way: ruby extconf.rb,
 # # and then nmake). Then copy rubyeventmachine.so into the lib directory,
@@ -94,7 +94,7 @@ Spec = Gem::Specification.new do |s|
 
   s.require_path      = 'lib'
 
-  # TODO / XXX - should we enable this? rubygems fails the install if anything 
+  # TODO / XXX - should we enable this? rubygems fails the install if anything
   # is broken. What we could do is CI submission, though, and always terminate
   # with a positive code...
   # s.test_file         = "tests/testem.rb"
@@ -195,10 +195,10 @@ end
 namespace :ext do
   ext_sources = FileList['ext/*.{h,cpp,rb,c}']
   ffr_sources = FileList['ext/fastfilereader/*.{h,cpp,rb}']
-  
+
   desc "Build C++ extension"
   task :build => [:make]
-  
+
   desc "make extensions"
   task :make => ext_sources + ['ext/Makefile'] do
     chdir 'ext' do
@@ -210,7 +210,7 @@ namespace :ext do
       sh MAKE
     end
   end
-  
+
   desc 'Compile the makefile'
   file 'ext/Makefile' => ext_sources do
     chdir 'ext' do
@@ -231,27 +231,30 @@ namespace :java do
   # This step is required before executing the jgem task.
   desc "Build java extension"
   task :build => [:jar] do |t|
-    chdir('java/src') do
-      mv 'em_reactor.jar', '../../lib/em_reactor.jar'
-    end
+    mv 'java/em_reactor.jar', 'lib/'
   end
-  
+
   desc "compile .java to .class"
   task :compile do
-    chdir('java/src') do
-      sh 'javac com/rubyeventmachine/*.java'
+    chdir('java') do
+      mkdir_p "build"
+      sh 'javac src/com/rubyeventmachine/*.java -d build'
     end
   end
-  
+
   desc "compile .classes to .jar"
   task :jar => [:compile] do
-    chdir('java/src') do
-      sh "jar -cf em_reactor.jar com/rubyeventmachine/*.class"
+    chdir('java/build') do
+      sh "jar -cf ../em_reactor.jar com/rubyeventmachine/*.class"
     end
   end
 
   desc "build a java binary gem"
   task :gem => :build do
+    Spec.platform = 'java'
+    Spec.files += %w[ lib/em_reactor.jar ]
+    Spec.extensions = nil
+
     Rake::Task['gem'].invoke
   end
 end

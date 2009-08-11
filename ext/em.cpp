@@ -609,7 +609,7 @@ bool EventMachine_t::_RunKqueueOnce()
 				assert (ed);
 
 				if (ed->IsWatchOnly() && ed->GetSocket() == INVALID_SOCKET)
-					continue;
+					break;
 
 				if (ke->filter == EVFILT_READ)
 					ed->Read();
