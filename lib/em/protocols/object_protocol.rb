@@ -11,13 +11,19 @@ module EventMachine
     #  end
     #
     module ObjectProtocol
+      # By default returns Marshal, override to return JSON or YAML, or any
+      # other serializer/deserializer responding to #dump and #load.
+      def serializer
+        Marshal
+      end
+
       def receive_data data # :nodoc:
         (@buf ||= '') << data
 
         while @buf.size >= 4
           if @buf.size >= 4+(size=@buf.unpack('N').first)
             @buf.slice!(0,4)
-            receive_object Marshal.load(@buf.slice!(0,size))
+            receive_object serializer.load(@buf.slice!(0,size))
           else
             break
           end
@@ -31,7 +37,7 @@ module EventMachine
 
       # Sends a ruby object over the network
       def send_object obj
-        data = Marshal.dump(obj)
+        data = serializer.dump(obj)
         send_data [data.respond_to?(:bytesize) ? data.bytesize : data.size, data].pack('Na*')
       end
     end
