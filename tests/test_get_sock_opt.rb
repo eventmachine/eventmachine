@@ -19,7 +19,7 @@ class TestGetSockOpt < Test::Unit::TestCase
     test = self
     EM.run do
       EM.connect 'google.com', 80, Module.new {
-        define_method :post_init do
+        define_method :connection_completed do
           val = get_sock_opt Socket::SOL_SOCKET, Socket::SO_REUSEADDR
           test.assert_equal "\01\0\0\0", val
           EM.stop
