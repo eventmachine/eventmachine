@@ -524,15 +524,15 @@ t_get_sock_opt
 
 static VALUE t_get_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optname)
 {
-  int fd = evma_get_file_descriptor (NUM2ULONG (signature));
-  int level = NUM2INT(lev), option = NUM2INT(optname);
-  socklen_t len;
-  char *buf = ALLOCA_N(char, len);
+	int fd = evma_get_file_descriptor (NUM2ULONG (signature));
+	int level = NUM2INT(lev), option = NUM2INT(optname);
+	socklen_t len;
+	char buf[128];
 
-  if (getsockopt(fd, level, option, buf, &len) < 0)
-    rb_sys_fail("get_sock_opt");
+	if (getsockopt(fd, level, option, buf, &len) < 0)
+		rb_sys_fail("getsockopt");
 
-  return rb_str_new(buf, len);
+	return rb_str_new(buf, len);
 }
 
 /********************

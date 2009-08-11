@@ -20,8 +20,8 @@ class TestGetSockOpt < Test::Unit::TestCase
     EM.run do
       EM.connect 'google.com', 80, Module.new {
         define_method :connection_completed do
-          val = get_sock_opt Socket::SOL_SOCKET, Socket::SO_REUSEADDR
-          test.assert_equal "\01\0\0\0", val
+          val = get_sock_opt Socket::SOL_SOCKET, Socket::SO_ERROR
+          test.assert_equal "\0\0\0\0", val
           EM.stop
         end
       }
