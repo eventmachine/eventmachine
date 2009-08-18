@@ -37,7 +37,7 @@ unsigned gLastTickCount;
 /* The numer of max outstanding timers was once a const enum defined in em.h.
  * Now we define it here so that users can change its value if necessary.
  */
-static int MaxOutstandingTimers = 1000;
+static int MaxOutstandingTimers = 10000;
 
 
 /* Internal helper to convert strings to internet addresses. IPv6-aware.
