@@ -125,7 +125,7 @@ class TestTimers < Test::Unit::TestCase
   #
   def test_timer_change_max_outstanding
     ten_thousand_timers = proc {
-      10000.times {
+      10001.times {
         EM.add_timer(5) {}
       }
     }
