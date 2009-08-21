@@ -90,6 +90,7 @@ require 'em/file_watch'
 require 'em/process_watch'
 
 require 'shellwords'
+require 'thread'
 
 # == Introduction
 # EventMachine provides a fast, lightweight framework for implementing
@@ -237,6 +238,7 @@ module EventMachine
       @conns = {}
       @acceptors = {}
       @timers = {}
+      @next_tick_mutex = Mutex.new
       @wrapped_exception = nil
       begin
         @reactor_running = true
@@ -1151,9 +1153,11 @@ module EventMachine
   # extremely expensive even if they're just sleeping.
   #
   def self.next_tick pr=nil, &block
-    raise "no argument or block given" unless ((pr && pr.respond_to?(:call)) or block)
-    (@next_tick_queue ||= []) << ( pr || block )
-    signal_loopbreak if reactor_running?
+    raise ArgumentError, "no proc or block given" unless ((pr && pr.respond_to?(:call)) or block)
+    @next_tick_mutex.synchronize do
+      (@next_tick_queue ||= []) << ( pr || block )
+      signal_loopbreak if reactor_running?
+    end
 =begin
     (@next_tick_procs ||= []) << (pr || block)
     if @next_tick_procs.length == 1
