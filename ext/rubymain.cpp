@@ -526,7 +526,7 @@ static VALUE t_get_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optna
 {
 	int fd = evma_get_file_descriptor (NUM2ULONG (signature));
 	int level = NUM2INT(lev), option = NUM2INT(optname);
-	socklen_t len;
+	socklen_t len = 128;
 	char buf[128];
 
 	if (getsockopt(fd, level, option, buf, &len) < 0)
