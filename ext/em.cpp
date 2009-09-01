@@ -89,7 +89,8 @@ EventMachine_t::EventMachine_t (void (*event_callback)(const unsigned long, int,
 	epfd (-1),
 	bKqueue (false),
 	kqfd (-1),
-	inotify (NULL)
+	inotify (NULL),
+	haltScheduled(false)
 {
 	// Default time-slice is just smaller than one hundred mills.
 	Quantum.tv_sec = 0;
@@ -195,7 +196,8 @@ void EventMachine_t::ScheduleHalt()
    * We need a FAQ. And one of the questions is: how do I stop EM when Ctrl-C happens?
    * The answer is to call evma_stop_machine, which calls here, from a SIGINT handler.
    */
-	gTerminateSignalReceived = true;
+	haltScheduled = true;
+	//gTerminateSignalReceived = true;
 }
 
 
@@ -414,6 +416,8 @@ void EventMachine_t::Run()
 		Add (ld);
 	}
 	#endif
+	
+	haltScheduled = false;
 
 	while (true) {
 		_UpdateTime();
@@ -429,7 +433,7 @@ void EventMachine_t::Run()
 
 		if (!_RunOnce())
 			break;
-		if (gTerminateSignalReceived)
+		if (gTerminateSignalReceived || haltScheduled)
 			break;
 	}
 
@@ -909,9 +913,8 @@ void EventMachine_t::_ReadLoopBreaker()
 	char buffer [1024];
 	read (LoopBreakerReader, buffer, sizeof(buffer));
 	if (EventCallback)
-		(*EventCallback)(NULL, EM_LOOPBREAK_SIGNAL, "", 0);
+		(*EventCallback)(GetBinding(), EM_LOOPBREAK_SIGNAL, "", 0);
 }
-
 
 /**************************
 EventMachine_t::_RunTimers
@@ -933,7 +936,7 @@ bool EventMachine_t::_RunTimers()
 		if (i->first > gCurrentLoopTime)
 			break;
 		if (EventCallback)
-			(*EventCallback) (NULL, EM_TIMER_FIRED, NULL, i->second.GetBinding());
+			(*EventCallback) (GetBinding(), EM_TIMER_FIRED, NULL, i->second.GetBinding());
 		Timers.erase (i);
 	}
 	return true;

@@ -141,6 +141,9 @@ class EventMachine_t
 		bool UsingKqueue() { return bKqueue; }
 		bool UsingEpoll() { return bEpoll; }
 
+		virtual unsigned long GetBinding() { return Binding; }
+		virtual void SetBinding(unsigned long val) { Binding = val; }
+
 	private:
 		bool _RunOnce();
 		bool _RunTimers();
@@ -201,6 +204,8 @@ class EventMachine_t
 		#endif
 
 		InotifyDescriptor *inotify; // pollable descriptor for our inotify instance
+		unsigned long Binding;
+		bool haltScheduled;
 };
 
 
