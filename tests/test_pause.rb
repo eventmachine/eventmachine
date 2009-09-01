@@ -29,7 +29,7 @@ class TestPause < Test::Unit::TestCase
           server = self
         end
 
-        define_method :receive_data do
+        define_method :receive_data do |data|
           s_rx += 1
 
           EM.add_periodic_timer(0.01) { send_data 'hi' }
@@ -42,7 +42,7 @@ class TestPause < Test::Unit::TestCase
       }
 
       c = EM.connect TestHost, TestPort, Module.new {
-        define_method :receive_data do
+        define_method :receive_data do |data|
           c_rx += 1
         end
       }
