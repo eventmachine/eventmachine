@@ -933,7 +933,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 
 	#ifdef HAVE_WRITEV
 	if (!err) {
-		uint sent = bytes_written;
+		unsigned int sent = bytes_written;
 		deque<OutboundPage>::iterator op = OutboundPages.begin();
 
 		for (int i = 0; i < iovcnt; i++) {

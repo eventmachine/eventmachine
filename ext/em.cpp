@@ -37,7 +37,7 @@ unsigned gLastTickCount;
 /* The numer of max outstanding timers was once a const enum defined in em.h.
  * Now we define it here so that users can change its value if necessary.
  */
-static uint MaxOutstandingTimers = 10000;
+static unsigned int MaxOutstandingTimers = 10000;
 
 
 /* Internal helper to convert strings to internet addresses. IPv6-aware.
@@ -265,7 +265,7 @@ int EventMachine_t::SetRlimitNofile (int nofiles)
 	getrlimit (RLIMIT_NOFILE, &rlim);
 	if (nofiles >= 0) {
 		rlim.rlim_cur = nofiles;
-		if ((uint)nofiles > rlim.rlim_max)
+		if ((unsigned int)nofiles > rlim.rlim_max)
 			rlim.rlim_max = nofiles;
 		setrlimit (RLIMIT_NOFILE, &rlim);
 		// ignore the error return, for now at least.
@@ -652,7 +652,7 @@ bool EventMachine_t::_RunKqueueOnce()
 		if (gCurrentLoopTime >= NextHeartbeatTime) {
 			NextHeartbeatTime = gCurrentLoopTime + HeartbeatInterval;
 
-			for (uint i=0; i < Descriptors.size(); i++) {
+			for (unsigned int i=0; i < Descriptors.size(); i++) {
 				EventableDescriptor *ed = Descriptors[i];
 				assert (ed);
 				ed->Heartbeat();
