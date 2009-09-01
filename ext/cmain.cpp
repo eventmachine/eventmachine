@@ -748,12 +748,12 @@ extern "C" int evma_send_file_data_to_connection (const unsigned long binding, c
 		return e;
 	}
 
-	int filesize = st.st_size;
+	off_t filesize = st.st_size;
 	if (filesize <= 0) {
 		close (Fd);
 		return 0;
 	}
-	else if (filesize > (int) sizeof(data)) {
+	else if (filesize > (off_t) sizeof(data)) {
 		close (Fd);
 		return -1;
 	}
