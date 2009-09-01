@@ -192,14 +192,16 @@ public class EmReactor {
 			if (k.isConnectable())
 				isConnectable(k);
 
-			if (k.isWritable())
-				isWritable(k);
-
-			if (k.isReadable())
-				isReadable(k);
-
-			if (k.isAcceptable())
+			else if (k.isAcceptable())
 				isAcceptable(k);
+
+			else {
+				if (k.isWritable())
+					isWritable(k);
+
+				if (k.isReadable())
+					isReadable(k);
+			}
 		}
 	}
 
