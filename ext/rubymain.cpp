@@ -75,7 +75,7 @@ static void event_callback (struct em_event* e)
 		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
 		VALUE q = rb_hash_aref (t, ULONG2NUM (a1));
 		if (q == Qnil)
-			rb_raise (EM_eConnectionNotBound, "received %d bytes of data for unknown signature: %lu", a4, a1);
+			rb_raise (EM_eConnectionNotBound, "received %lu bytes of data for unknown signature: %lu", a4, a1);
 		rb_funcall (q, Intern_receive_data, 1, rb_str_new (a3, a4));
 	}
 	else if (a2 == EM_CONNECTION_NOTIFY_READABLE) {
@@ -737,7 +737,7 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 		char buf[100];
 		memset (buf, 0, sizeof(buf));
 		snprintf (buf, sizeof(buf)-1, "no popen: %s", (err?err:"???"));
-		rb_raise (rb_eRuntimeError, buf);
+		rb_raise (rb_eRuntimeError, "%s", buf);
 	}
 	return ULONG2NUM (f);
 }
@@ -918,7 +918,7 @@ static VALUE t_send_file_data (VALUE self, VALUE signature, VALUE filename)
 		memset (buf, 0, sizeof(buf));
 		snprintf (buf, sizeof(buf)-1, ": %s %s", StringValuePtr(filename),(err?err:"???"));
 
-		rb_raise (rb_eIOError, buf);
+		rb_raise (rb_eIOError, "%s", buf);
 	}
 
 	return INT2NUM (0);

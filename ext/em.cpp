@@ -37,7 +37,7 @@ unsigned gLastTickCount;
 /* The numer of max outstanding timers was once a const enum defined in em.h.
  * Now we define it here so that users can change its value if necessary.
  */
-static int MaxOutstandingTimers = 10000;
+static uint MaxOutstandingTimers = 10000;
 
 
 /* Internal helper to convert strings to internet addresses. IPv6-aware.
@@ -80,6 +80,7 @@ EventMachine_t::EventMachine_t
 ******************************/
 
 EventMachine_t::EventMachine_t (void (*event_callback)(const unsigned long, int, const char*, const unsigned long)):
+	HeartbeatInterval(2000000),
 	EventCallback (event_callback),
 	NextHeartbeatTime (0),
 	LoopBreakerReader (-1),
@@ -88,7 +89,6 @@ EventMachine_t::EventMachine_t (void (*event_callback)(const unsigned long, int,
 	epfd (-1),
 	bKqueue (false),
 	kqfd (-1),
-	HeartbeatInterval(2000000),
 	inotify (NULL)
 {
 	// Default time-slice is just smaller than one hundred mills.
@@ -265,7 +265,7 @@ int EventMachine_t::SetRlimitNofile (int nofiles)
 	getrlimit (RLIMIT_NOFILE, &rlim);
 	if (nofiles >= 0) {
 		rlim.rlim_cur = nofiles;
-		if (nofiles > rlim.rlim_max)
+		if ((uint)nofiles > rlim.rlim_max)
 			rlim.rlim_max = nofiles;
 		setrlimit (RLIMIT_NOFILE, &rlim);
 		// ignore the error return, for now at least.
@@ -652,7 +652,7 @@ bool EventMachine_t::_RunKqueueOnce()
 		if (gCurrentLoopTime >= NextHeartbeatTime) {
 			NextHeartbeatTime = gCurrentLoopTime + HeartbeatInterval;
 
-			for (int i=0; i < Descriptors.size(); i++) {
+			for (uint i=0; i < Descriptors.size(); i++) {
 				EventableDescriptor *ed = Descriptors[i];
 				assert (ed);
 				ed->Heartbeat();
@@ -2033,7 +2033,7 @@ void EventMachine_t::UnwatchPid (int pid)
 	struct kevent k;
 
 	EV_SET(&k, pid, EVFILT_PROC, EV_DELETE, 0, 0, 0);
-	int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
+	/*int t =*/ kevent (kqfd, &k, 1, NULL, 0, NULL);
 	// t==-1 if the process already exited; ignore this for now
 	#endif
 

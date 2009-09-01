@@ -31,7 +31,7 @@ extern "C" void ensure_eventmachine (const char *caller = "unknown caller")
 		char err_string[err_size];
 		snprintf (err_string, err_size, "eventmachine not initialized: %s", caller);
 		#ifdef BUILD_FOR_RUBY
-			rb_raise(rb_eRuntimeError, err_string);
+			rb_raise(rb_eRuntimeError, "%s", err_string);
 		#else
 			throw std::runtime_error (err_string);
 		#endif
@@ -727,7 +727,7 @@ extern "C" int evma_send_file_data_to_connection (const unsigned long binding, c
 	 * Modified 25Jul07. This now returns -1 on file-too-large; 0 for success, and a positive
 	 * errno in case of other errors.
 	 *
-	/* Contributed by Kirk Haines.
+	 * Contributed by Kirk Haines.
 	 */
 
 	char data[32*1024];
@@ -753,7 +753,7 @@ extern "C" int evma_send_file_data_to_connection (const unsigned long binding, c
 		close (Fd);
 		return 0;
 	}
-	else if (filesize > sizeof(data)) {
+	else if (filesize > (int) sizeof(data)) {
 		close (Fd);
 		return -1;
 	}

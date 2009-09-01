@@ -933,7 +933,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 
 	#ifdef HAVE_WRITEV
 	if (!err) {
-		int sent = bytes_written;
+		uint sent = bytes_written;
 		deque<OutboundPage>::iterator op = OutboundPages.begin();
 
 		for (int i = 0; i < iovcnt; i++) {
@@ -1405,7 +1405,7 @@ DatagramDescriptor::DatagramDescriptor (int sd, EventMachine_t *parent_em):
 	 */
 
 	int oval = 1;
-	int sob = setsockopt (GetSocket(), SOL_SOCKET, SO_BROADCAST, (char*)&oval, sizeof(oval));
+	setsockopt (GetSocket(), SOL_SOCKET, SO_BROADCAST, (char*)&oval, sizeof(oval));
 
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = EPOLLIN;

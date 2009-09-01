@@ -93,7 +93,6 @@ class EventableDescriptor: public Bindable_t
 
 	protected:
 		int MySocket;
-		int PendingConnectTimeout;
 
 		void (*EventCallback)(const unsigned long, int, const char*, const unsigned long);
 		void _GenericInboundDispatch(const char*, int);
@@ -108,6 +107,7 @@ class EventableDescriptor: public Bindable_t
 		#endif
 
 		EventMachine_t *MyEventMachine;
+		int PendingConnectTimeout;
 };
 
 
