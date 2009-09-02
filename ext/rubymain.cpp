@@ -29,6 +29,7 @@ static VALUE Intern_reactor;
 static VALUE Intern_receive_data;
 static VALUE Intern_initialize;
 static VALUE Intern_unbind;
+static VALUE Intern_post_init;
 
 static void evma_callback_loopbreak(VALUE reactor)
 {
@@ -80,6 +81,7 @@ static void evma_callback_accept(VALUE acceptor, ConnectionDescriptor *cd)
       callargs[i] = rb_ary_shift(argv);
     }
     rb_funcall2(conn, Intern_initialize, argc, callargs);
+    rb_funcall(conn, Intern_post_init, 0);
   }
 }
 
@@ -215,6 +217,7 @@ static VALUE evma_connect_tcp(int argc, VALUE *argv, VALUE reactor)
       rb_funcall2(cdobj, Intern_initialize, callargc, callargv);
     }
 
+    rb_funcall(cdobj, Intern_post_init, 0);
     cd->SetBinding(cdobj);
     return cdobj;
   }
@@ -270,6 +273,7 @@ extern "C" void Init_rubyeventmachine()
   Intern_receive_data = rb_intern("receive_data");
   Intern_initialize = rb_intern("initialize");
   Intern_unbind = rb_intern("unbind");
+  Intern_post_init = rb_intern("post_init");
 
   rb_define_alloc_func(EmReactor, evma_reactor_alloc);
 
