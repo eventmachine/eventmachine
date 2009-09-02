@@ -20,7 +20,7 @@ describe "eventmachine basics" do
   it "Reactor#add_timer should work" do
     @fired = false
     @reactor.run {
-      @reactor.add_timer(1) {
+      @reactor.add_timer(0.25) {
         @fired = true
         @reactor.stop
       }

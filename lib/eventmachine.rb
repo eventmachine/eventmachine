@@ -24,17 +24,13 @@ module EventMachine
         @acceptors = {}
         @timers = {}
         @wrapped_exception = nil
-        begin
-          @reactor_running = true
-          (b = blk || block) and add_timer(0, b)
-          if @next_tick_queue && !@next_tick_queue.empty?
-            add_timer(0) { signal_loopbreak }
-          end
-          @reactor_thread = Thread.current
-          run_machine
-        ensure
-          machine_stopped
+        @reactor_running = true
+        (b = blk || block) and add_timer(0, b)
+        if @next_tick_queue && !@next_tick_queue.empty?
+          add_timer(0) { signal_loopbreak }
         end
+        @reactor_thread = Thread.current
+        run_machine
 
         raise @wrapped_exception if @wrapped_exception
       end

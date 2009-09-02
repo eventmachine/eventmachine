@@ -24,6 +24,7 @@ static VALUE Intern_connection_completed;
 static VALUE Intern_reactor;
 static VALUE Intern_receive_data;
 static VALUE Intern_initialize;
+static VALUE Intern_unbind;
 
 static void evma_callback_loopbreak(VALUE reactor)
 {
@@ -53,6 +54,11 @@ static void evma_callback_receive(VALUE conn, const char *data, const unsigned l
   rb_funcall(conn, Intern_receive_data, 1, rb_str_new(data, len));
 }
 
+static void evma_callback_unbind(VALUE conn)
+{
+  rb_funcall(conn, Intern_unbind, 0);
+}
+
 static void event_callback (const unsigned long a1, int a2, const char *a3, const unsigned long a4)
 {
   if (a2 == EM_LOOPBREAK_SIGNAL) {
@@ -66,6 +72,9 @@ static void event_callback (const unsigned long a1, int a2, const char *a3, cons
   }
   else if (a2 == EM_CONNECTION_READ) {
     evma_callback_receive((VALUE) a1, a3, a4);
+  }
+  else if (a2 == EM_CONNECTION_UNBOUND) {
+    evma_callback_unbind((VALUE) a1);
   }
 }
 
@@ -163,6 +172,15 @@ static VALUE evma_tcp_send_data(VALUE connection, VALUE data)
   return INT2NUM(cd->SendOutboundData(RSTRING_PTR(data), RSTRING_LEN(data)));
 }
 
+static VALUE evma_close_connection(int argc, VALUE *argv, VALUE conn)
+{
+  VALUE after_writing = Qfalse;
+  rb_scan_args(argc, argv, "01", &after_writing);
+  EventableDescriptor *ed = (EventableDescriptor*) DATA_PTR(conn);
+  ed->ScheduleClose((after_writing == Qtrue) ? true : false);
+  return Qnil;
+}
+
 extern "C" void Init_rubyeventmachine()
 {
   EmModule = rb_define_module ("EventMachine");
@@ -176,6 +194,7 @@ extern "C" void Init_rubyeventmachine()
   Intern_connection_completed = rb_intern("connection_completed");
   Intern_receive_data = rb_intern("receive_data");
   Intern_initialize = rb_intern("initialize");
+  Intern_unbind = rb_intern("unbind");
 
   rb_define_alloc_func(EmReactor, evma_reactor_alloc);
 
@@ -186,4 +205,5 @@ extern "C" void Init_rubyeventmachine()
   rb_define_method(EmReactor, "connect", (VALUE(*)(...))evma_connect_tcp, -1);
 
   rb_define_method(EmConnection, "send_data", (VALUE(*)(...))evma_tcp_send_data, 1);
+  rb_define_method(EmConnection, "close_connection", (VALUE(*)(...))evma_close_connection, -1);
 }
