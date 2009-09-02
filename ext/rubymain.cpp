@@ -84,10 +84,24 @@ void evma_free(VALUE self)
   delete em;
 }
 
+void evma_mark(EventMachine_t *reactor)
+{
+  unsigned int i;
+  vector<EventableDescriptor*> desc = reactor->GetDescriptors();
+  vector<EventableDescriptor*> desc2 = reactor->GetNewDescriptors();
+
+  for (i=0; i < desc.size(); i++) {
+    rb_gc_mark(desc[i]->GetBinding());
+  }
+  for (i=0; i < desc2.size(); i++) {
+    rb_gc_mark(desc2[i]->GetBinding());
+  }
+}
+
 static VALUE evma_reactor_alloc(VALUE klass)
 {
   EventMachine_t *em = new EventMachine_t(event_callback);
-  VALUE emobj = Data_Wrap_Struct(klass, NULL, evma_free, em);
+  VALUE emobj = Data_Wrap_Struct(klass, evma_mark, evma_free, em);
   em->SetBinding(emobj);
   return emobj;
 }

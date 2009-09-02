@@ -162,6 +162,8 @@ class EventMachine_t
 		void _ReadLoopBreaker();
 		void _ReadInotifyEvents();
 
+		vector<EventableDescriptor*> GetDescriptors() { return Descriptors; }
+		vector<EventableDescriptor*> GetNewDescriptors() { return NewDescriptors; }
 	private:
 		enum {
 			MaxEpollDescriptors = 64*1024,
