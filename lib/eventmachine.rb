@@ -31,7 +31,7 @@ module EventMachine
         end
         @reactor_thread = Thread.current
         run_machine
-
+        #release_machine
         raise @wrapped_exception if @wrapped_exception
       end
     end

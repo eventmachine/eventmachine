@@ -1,83 +1,142 @@
 describe "tcp connection" do
 
-  it "connection_completed should work and so should initialize args" do
-    module Handler
-      def initialize(reactor)
-        @foo = reactor
-      end
-      def connection_completed
-        $completed = true
-        @foo.stop
-      end
-    end
-    @reactor = EM::Reactor.new
-    @reactor.run {
-      @c = @reactor.connect("google.com", 80, Handler, @reactor)
-    }
-    $completed.should.equal true
+  before do
+    $test = {}
   end
 
-  it "receive_data and unbind should work" do
+  module Stub
+    def connection_completed; end
+    def post_init; end
+    def receive_data(data); end
+    def unbind; end
+  end
+  
+  EM::Connection.send :include, Stub
+
+  it "connection_completed works" do
+    module Handler
+      def connection_completed
+        $test[:connection_completed] = true
+        @reactor.stop
+      end
+    end
+
+    reactor = EM::Reactor.new
+    reactor.run {
+      reactor.connect("google.com", 80, Handler)
+    }
+    $test[:connection_completed].should == true
+  end
+
+  it "Connection can take extra arguments in initialize that were passed to Reactor#connect" do
+    module Handler
+      def initialize(arg1, arg2)
+        $test[:arg1] = arg1
+        $test[:arg2] = arg2
+        @reactor.stop
+      end
+    end
+
+    reactor = EM::Reactor.new
+    reactor.run {
+      reactor.connect("google.com", 80, Handler, "TEST ARG", "OTHER TEST ARG 2")
+    }
+    $test[:arg1].should == "TEST ARG"
+    $test[:arg2].should == "OTHER TEST ARG 2"
+  end
+
+  it "receive_data works" do
     module Handler
       def connection_completed
         send_data "GET / HTTP/1.1\r\n\r\n"
       end
       def receive_data(data)
-        $data_received = true
-        close_connection
-      end
-      def unbind
-        $unbound = true
+        $test[:data] = data
         @reactor.stop
       end
     end
 
-    @reactor = EM::Reactor.new
-    @reactor.run {
-      @c = @reactor.connect("google.com", 80, Handler)
+    reactor = EM::Reactor.new
+    reactor.run {
+      reactor.connect("google.com", 80, Handler)
     }
-
-    $data_received.should.equal true
-    $unbound.should.equal true
+    $test[:data].should.be.kind_of(String)
+    $test[:data].should.not.be.empty
   end
-  
-  it "acceptor works, with args" do
-    
-    module Server
-      def initialize(foo, bar)
-        $ARG1 = foo
-        $ARG2 = bar
+
+  it "unbind is called after close_connection" do
+    module Handler
+      def connection_completed
+        send_data "GET / HTTP/1.1\r\n\r\n"
       end
       def receive_data(data)
-        $serverdata = data
-        send_data "moretesting"
+        close_connection
+      end
+      def unbind
+        $test[:unbound] = true
+        @reactor.stop
       end
     end
-    
+
+    reactor = EM::Reactor.new
+    reactor.run {
+      reactor.connect("google.com", 80, Handler)
+    }
+    $test[:unbound].should == true
+  end
+
+  it "tcp server works" do
+    module Server
+      def receive_data(data)
+        $test[:server_data] = data
+        send_data "moretestingdata321"
+      end
+    end
+
     module Client
       def connection_completed
-        send_data "testing"
+        send_data "testingdata123"
       end
       def receive_data(data)
-        $clientdata = data
+        $test[:client_data] = data
         close_connection
       end
       def unbind
         @reactor.stop
       end
-      
     end
-    
-    @reactor = EM::Reactor.new
-    @reactor.run {
-      @reactor.start_server("127.0.0.1", 9999, Server, "YAKI", "SCHLOBA")
-      @reactor.connect("127.0.0.1", 9999, Client)
+
+    reactor = EM::Reactor.new
+    reactor.run {
+      reactor.start_server("127.0.0.1", 9999, Server)
+      reactor.connect("127.0.0.1", 9999, Client)
     }
-    
-    $serverdata.should.equal "testing"
-    $clientdata.should.equal "moretesting"
-    $ARG1.should.equal "YAKI"
-    $ARG2.should.equal "SCHLOBA"
+    $test[:server_data].should == "testingdata123"
+    $test[:client_data].should == "moretestingdata321"
+    reactor.release_machine
+  end
+
+  it "server can accept extra args from Reactor#start_server for initialize" do
+    module Server
+      def initialize(arg1, arg2, arg3, arg4)
+        $test[:arg1] = arg1
+        $test[:arg2] = arg2
+        $test[:arg3] = arg3
+        $test[:arg4] = arg4
+        @reactor.stop
+      end
+    end
+    module Client
+    end
+    reactor = EM::Reactor.new
+    reactor.run {
+      reactor.start_server("127.0.0.1", 9999, Server, "foo", "bar", "baz", "eggology")
+      reactor.connect("127.0.0.1", 9999, Client)
+    }
+    $test[:arg1].should == "foo"
+    $test[:arg2].should == "bar"
+    $test[:arg3].should == "baz"
+    $test[:arg4].should == "eggology"
   end
 
 end

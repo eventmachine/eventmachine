@@ -88,6 +88,7 @@ class EventableDescriptor: public Bindable_t
 		virtual void StopProxy();
 
 		virtual EventMachine_t* GetReactor() { return MyEventMachine; }
+		virtual void DisableUnbind() { bCallbackUnbind = false; }
 	private:
 		bool bCloseNow;
 		bool bCloseAfterWriting;

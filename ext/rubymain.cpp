@@ -107,15 +107,40 @@ static void event_callback (const unsigned long a1, int a2, const char *a3, cons
   }
 }
 
-void evma_free(VALUE reactor)
+static VALUE evma_release_machine(VALUE reactor)
 {
-  EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
-  delete em;
+  EventMachine_t *em;
+  if ((em = (EventMachine_t*) DATA_PTR(reactor)) != NULL) {
+    DATA_PTR(reactor) = NULL;
+    delete em;
+  }
+  return Qnil;
+}
+
+void evma_free(EventMachine_t *reactor)
+{
+  if (reactor == NULL)
+    return;
+
+  // Unbind callbacks can't call back on the reactor object during destruction.
+  size_t i;
+  vector<EventableDescriptor*> desc = reactor->GetDescriptors();
+  vector<EventableDescriptor*> desc2 = reactor->GetNewDescriptors();
+
+  for (i=0; i < desc.size(); i++) {
+    desc[i]->DisableUnbind();
+  }
+  for (i=0; i < desc2.size(); i++) {
+    desc2[i]->DisableUnbind();
+  }
+  evma_release_machine(reactor->GetBinding());
 }
 
 void evma_mark(EventMachine_t *reactor)
 {
-  unsigned int i;
+  if (reactor == NULL)
+    return;
+  size_t i;
   vector<EventableDescriptor*> desc = reactor->GetDescriptors();
   vector<EventableDescriptor*> desc2 = reactor->GetNewDescriptors();
 
@@ -162,9 +187,11 @@ static VALUE evma_run_machine(VALUE reactor)
 
 static VALUE evma_stop_machine(VALUE reactor)
 {
-  EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
-  em->ScheduleHalt();
-  rb_funcall(reactor, rb_intern("machine_stopped"), 0);
+  EventMachine_t *em;
+  if ((em = (EventMachine_t*) DATA_PTR(reactor)) != NULL) {
+    em->ScheduleHalt();
+    rb_funcall(reactor, rb_intern("machine_stopped"), 0);
+  }
   return Qnil;
 }
 
@@ -197,7 +224,7 @@ static VALUE evma_connect_tcp(int argc, VALUE *argv, VALUE reactor)
   VALUE port;
   VALUE handler;
   VALUE extra;
-  rb_scan_args(argc, argv, "3*", &server, &port, &handler, &extra);
+  rb_scan_args(argc, argv, "21*", &server, &port, &handler, &extra);
   EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
   ConnectionDescriptor *cd = em->ConnectToServer(NULL, 0, StringValuePtr(server), FIX2INT(port));
   
@@ -236,7 +263,7 @@ static VALUE evma_start_tcp_server(int argc, VALUE *argv, VALUE reactor)
   VALUE port;
   VALUE handler;
   VALUE extra;
-  rb_scan_args(argc, argv, "3*", &server, &port, &handler, &extra);
+  rb_scan_args(argc, argv, "21*", &server, &port, &handler, &extra);
   EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
   AcceptorDescriptor *ad = em->CreateTcpServer(RSTRING_PTR(server), FIX2INT(port));
   if (!ad)
@@ -280,6 +307,7 @@ extern "C" void Init_rubyeventmachine()
   rb_define_method(EmReactor, "signal_loopbreak", (VALUE(*)(...))evma_signal_loopbreak, 0);
   rb_define_method(EmReactor, "run_machine", (VALUE(*)(...))evma_run_machine, 0);
   rb_define_method(EmReactor, "stop", (VALUE(*)(...))evma_stop_machine, 0);
+  rb_define_method(EmReactor, "release_machine", (VALUE(*)(...))evma_release_machine, 0);
   rb_define_method(EmReactor, "add_oneshot_timer", (VALUE(*)(...))evma_add_timer, 1);
   rb_define_method(EmReactor, "connect", (VALUE(*)(...))evma_connect_tcp, -1);
   rb_define_method(EmReactor, "start_server", (VALUE(*)(...))evma_start_tcp_server, -1);
