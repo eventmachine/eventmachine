@@ -317,6 +317,15 @@ class AcceptorDescriptor: public EventableDescriptor
 		virtual bool GetSockname (struct sockaddr*);
 
 		static void StopAcceptor (const unsigned long binding);
+		unsigned long GetHandler() { return Handler; }
+		void SetHandler(unsigned long val) { Handler = val; }
+		unsigned long GetHandlerArgv() { return HandlerArgv; }
+		void SetHandlerArgv(unsigned long val) { HandlerArgv = val; }
+		
+		
+	protected:
+		unsigned long HandlerArgv;
+		unsigned long Handler;
 };
 
 /********************

@@ -67,6 +67,7 @@ extern Int64 gCurrentLoopTime;
 class EventableDescriptor;
 class InotifyDescriptor;
 class ConnectionDescriptor;
+class AcceptorDescriptor;
 
 /********************
 class EventMachine_t
@@ -89,7 +90,7 @@ class EventMachine_t
 		ConnectionDescriptor* ConnectToServer (const char *, int, const char *, int);
 		const unsigned long ConnectToUnixServer (const char *);
 
-		const unsigned long CreateTcpServer (const char *, int);
+		AcceptorDescriptor* CreateTcpServer (const char *, int);
 		const unsigned long OpenDatagramSocket (const char *, int);
 		const unsigned long CreateUnixDomainServer (const char*);
 		const unsigned long _OpenFileForWriting (const char*);

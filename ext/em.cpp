@@ -1429,7 +1429,7 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 EventMachine_t::CreateTcpServer
 *******************************/
 
-const unsigned long EventMachine_t::CreateTcpServer (const char *server, int port)
+AcceptorDescriptor* EventMachine_t::CreateTcpServer (const char *server, int port)
 {
 	/* Create a TCP-acceptor (server) socket and add it to the event machine.
 	 * Return the binding of the new acceptor to the caller.
@@ -1443,7 +1443,7 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	if (!bind_here)
 		return NULL;
 
-	unsigned long output_binding = NULL;
+	AcceptorDescriptor *adout = NULL;
 
 	//struct sockaddr_in sin;
 
@@ -1515,10 +1515,10 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 		if (!ad)
 			throw std::runtime_error ("unable to allocate acceptor");
 		Add (ad);
-		output_binding = ad->GetBinding();
+		adout = ad;
 	}
 
-	return output_binding;
+	return adout;
 
 	fail:
 	if (sd_accept != INVALID_SOCKET)

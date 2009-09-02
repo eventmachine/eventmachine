@@ -1,6 +1,6 @@
 describe "tcp connection" do
 
-  it "connection_completed should work" do
+  it "connection_completed should work and so should initialize args" do
     module Handler
       def initialize(reactor)
         @foo = reactor
@@ -39,6 +39,45 @@ describe "tcp connection" do
 
     $data_received.should.equal true
     $unbound.should.equal true
+  end
+  
+  it "acceptor works, with args" do
+    
+    module Server
+      def initialize(foo, bar)
+        $ARG1 = foo
+        $ARG2 = bar
+      end
+      def receive_data(data)
+        $serverdata = data
+        send_data "moretesting"
+      end
+    end
+    
+    module Client
+      def connection_completed
+        send_data "testing"
+      end
+      def receive_data(data)
+        $clientdata = data
+        close_connection
+      end
+      def unbind
+        @reactor.stop
+      end
+      
+    end
+    
+    @reactor = EM::Reactor.new
+    @reactor.run {
+      @reactor.start_server("127.0.0.1", 9999, Server, "YAKI", "SCHLOBA")
+      @reactor.connect("127.0.0.1", 9999, Client)
+    }
+    
+    $serverdata.should.equal "testing"
+    $clientdata.should.equal "moretesting"
+    $ARG1.should.equal "YAKI"
+    $ARG2.should.equal "SCHLOBA"
   end
 
 end

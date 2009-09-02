@@ -1229,7 +1229,9 @@ AcceptorDescriptor::AcceptorDescriptor
 **************************************/
 
 AcceptorDescriptor::AcceptorDescriptor (int sd, EventMachine_t *parent_em):
-	EventableDescriptor (sd, parent_em)
+	EventableDescriptor (sd, parent_em),
+	HandlerArgv(NULL),
+	Handler(NULL)
 {
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = EPOLLIN;
@@ -1318,7 +1320,7 @@ void AcceptorDescriptor::Read()
 			throw std::runtime_error ("no newly accepted connection");
 		cd->SetServerMode();
 		if (EventCallback) {
-			(*EventCallback) (GetBinding(), EM_CONNECTION_ACCEPTED, NULL, cd->GetBinding());
+			(*EventCallback) (GetBinding(), EM_CONNECTION_ACCEPTED, (const char*)cd, NULL);
 		}
 		#ifdef HAVE_EPOLL
 		cd->GetEpollEvent()->events = EPOLLIN | (cd->SelectForWrite() ? EPOLLOUT : 0);
