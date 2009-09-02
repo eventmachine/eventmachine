@@ -33,7 +33,7 @@ class Bindable_t
 		virtual ~Bindable_t();
 
 		const unsigned long GetBinding() {return Binding;}
-
+		void SetBinding(const unsigned long val) { Binding = val; }
 	private:
 		unsigned long Binding;
 };

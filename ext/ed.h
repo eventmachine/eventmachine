@@ -87,6 +87,7 @@ class EventableDescriptor: public Bindable_t
 		virtual void StartProxy(const unsigned long);
 		virtual void StopProxy();
 
+		virtual EventMachine_t* GetReactor() { return MyEventMachine; }
 	private:
 		bool bCloseNow;
 		bool bCloseAfterWriting;

@@ -986,7 +986,7 @@ const unsigned long EventMachine_t::InstallOneshotTimer (int milliseconds)
 EventMachine_t::ConnectToServer
 *******************************/
 
-const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int bind_port, const char *server, int port)
+ConnectionDescriptor* EventMachine_t::ConnectToServer (const char *bind_addr, int bind_port, const char *server, int port)
 {
 	/* We want to spend no more than a few seconds waiting for a connection
 	 * to a remote host. So we use a nonblocking connect.
@@ -1077,7 +1077,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		}
 	}
 
-	unsigned long out = NULL;
+	ConnectionDescriptor *out = NULL;
 
 	#ifdef OS_UNIX
 	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
@@ -1106,7 +1106,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 			throw std::runtime_error ("no connection allocated");
 		cd->SetConnectPending (true);
 		Add (cd);
-		out = cd->GetBinding();
+		out = cd;
 	}
 	else if (errno == EINPROGRESS) {
 		// Errno will generally always be EINPROGRESS, but on Linux
@@ -1124,7 +1124,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 				throw std::runtime_error ("no connection allocated");
 			cd->SetConnectPending (true);
 			Add (cd);
-			out = cd->GetBinding();
+			out = cd;
 		}
 		else {
 			/* This could be connection refused or some such thing.
@@ -1144,7 +1144,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 				throw std::runtime_error ("no connection allocated");
 			cd->ScheduleClose (false);
 			Add (cd);
-			out = cd->GetBinding();
+			out = cd;
 		}
 	}
 	else {
@@ -1172,7 +1172,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 			throw std::runtime_error ("no connection allocated");
 		cd->SetConnectPending (true);
 		Add (cd);
-		out = cd->GetBinding();
+		out = cd;
 	}
 	else {
 		// The error from connect was something other then WSAEWOULDBLOCK.
