@@ -78,9 +78,9 @@ static void event_callback (const unsigned long a1, int a2, const char *a3, cons
   }
 }
 
-void evma_free(VALUE self)
+void evma_free(VALUE reactor)
 {
-  EventMachine_t *em = (EventMachine_t*) DATA_PTR(self);
+  EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
   delete em;
 }
 
@@ -106,31 +106,31 @@ static VALUE evma_reactor_alloc(VALUE klass)
   return emobj;
 }
 
-static VALUE evma_signal_loopbreak(VALUE self)
+static VALUE evma_signal_loopbreak(VALUE reactor)
 {
-  EventMachine_t *em = (EventMachine_t*) DATA_PTR(self);
+  EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
   em->SignalLoopBreaker();
   return Qnil;
 }
 
-static VALUE evma_run_machine(VALUE self)
+static VALUE evma_run_machine(VALUE reactor)
 {
-  EventMachine_t *em = (EventMachine_t*) DATA_PTR(self);
+  EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
   em->Run();
   return Qnil;
 }
 
-static VALUE evma_stop_machine(VALUE self)
+static VALUE evma_stop_machine(VALUE reactor)
 {
-  EventMachine_t *em = (EventMachine_t*) DATA_PTR(self);
+  EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
   em->ScheduleHalt();
-  rb_funcall(self, rb_intern("machine_stopped"), 0);
+  rb_funcall(reactor, rb_intern("machine_stopped"), 0);
   return Qnil;
 }
 
-static VALUE evma_add_timer(VALUE self, VALUE interval)
+static VALUE evma_add_timer(VALUE reactor, VALUE interval)
 {
-  EventMachine_t *em = (EventMachine_t*) DATA_PTR(self);
+  EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
   return ULONG2NUM(em->InstallOneshotTimer(FIX2INT(interval)));
 }
 
