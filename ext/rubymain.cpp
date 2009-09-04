@@ -30,6 +30,11 @@ static VALUE Intern_receive_data;
 static VALUE Intern_initialize;
 static VALUE Intern_unbind;
 static VALUE Intern_post_init;
+static VALUE Intern_notify_readable;
+static VALUE Intern_notify_writable;
+static VALUE Intern_ssl_handshake_completed;
+static VALUE Intern_proxy_target_unbound;
+static VALUE Intern_ssl_verify_peer;
 
 static void evma_callback_loopbreak(VALUE reactor)
 {
@@ -85,6 +90,35 @@ static void evma_callback_accept(VALUE acceptor, ConnectionDescriptor *cd)
   }
 }
 
+static void evma_callback_notify_readable(VALUE conn)
+{
+  rb_funcall(conn, Intern_notify_readable, 0);
+}
+
+static void evma_callback_notify_writable(VALUE conn)
+{
+  rb_funcall(conn, Intern_notify_writable, 0);
+}
+
+static void evma_callback_ssl_handshake_completed(VALUE conn)
+{
+  rb_funcall(conn, Intern_ssl_handshake_completed, 0);
+}
+
+static void evma_callback_proxy_target_unbound(VALUE conn)
+{
+  rb_funcall(conn, Intern_proxy_target_unbound, 0);
+}
+
+static void evma_callback_ssl_verify_peer(VALUE conn, const char *str, const unsigned long len)
+{
+  VALUE r = rb_funcall(conn, Intern_ssl_verify_peer, 1, rb_str_new(str, len));
+  if (RTEST(r)) {
+    ConnectionDescriptor *cd = (ConnectionDescriptor*) DATA_PTR(conn);
+    cd->AcceptSslPeer();
+  }
+}
+
 static void event_callback (const unsigned long a1, int a2, const char *a3, const unsigned long a4)
 {
   if (a2 == EM_LOOPBREAK_SIGNAL) {
@@ -104,6 +138,21 @@ static void event_callback (const unsigned long a1, int a2, const char *a3, cons
   }
   else if (a2 == EM_CONNECTION_ACCEPTED) {
     evma_callback_accept((VALUE) a1, (ConnectionDescriptor*) a3);
+  }
+  else if (a2 == EM_CONNECTION_NOTIFY_READABLE) {
+    evma_callback_notify_readable((VALUE) a1);
+  }
+  else if (a2 == EM_CONNECTION_NOTIFY_WRITABLE) {
+    evma_callback_notify_writable((VALUE) a1);
+  }
+  else if (a2 == EM_SSL_HANDSHAKE_COMPLETED) {
+    evma_callback_ssl_handshake_completed((VALUE) a1);
+  }
+  else if (a2 == EM_PROXY_TARGET_UNBOUND) {
+    evma_callback_proxy_target_unbound((VALUE) a1);
+  }
+  else if (a2 == EM_SSL_VERIFY) {
+    evma_callback_ssl_verify_peer((VALUE) a1, a3, a4);
   }
 }
 
@@ -301,6 +350,11 @@ extern "C" void Init_rubyeventmachine()
   Intern_initialize = rb_intern("initialize");
   Intern_unbind = rb_intern("unbind");
   Intern_post_init = rb_intern("post_init");
+  Intern_notify_readable = rb_intern("notify_readable");
+  Intern_notify_writable = rb_intern("notify_writable");
+  Intern_ssl_handshake_completed = rb_intern("ssl_handshake_completed");
+  Intern_proxy_target_unbound = rb_intern("proxy_target_unbound");
+  Intern_ssl_verify_peer = rb_intern("ssl_verify_peer");
 
   rb_define_alloc_func(EmReactor, evma_reactor_alloc);
 
