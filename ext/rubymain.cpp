@@ -334,6 +334,20 @@ static VALUE evma_close_connection(int argc, VALUE *argv, VALUE conn)
   return Qnil;
 }
 
+static VALUE evma_proxy_incoming_to(VALUE conn, VALUE target)
+{
+  EventableDescriptor *ed = (EventableDescriptor*) DATA_PTR(conn);
+  ed->StartProxy(target);
+  return Qnil;
+}
+
+static VALUE evma_stop_proxy(VALUE conn)
+{
+  EventableDescriptor *ed = (EventableDescriptor*) DATA_PTR(conn);
+  ed->StopProxy();
+  return Qnil;
+}
+
 extern "C" void Init_rubyeventmachine()
 {
   EmModule = rb_define_module ("EventMachine");
@@ -368,4 +382,6 @@ extern "C" void Init_rubyeventmachine()
 
   rb_define_method(EmConnection, "send_data", (VALUE(*)(...))evma_tcp_send_data, 1);
   rb_define_method(EmConnection, "close_connection", (VALUE(*)(...))evma_close_connection, -1);
+  rb_define_method(EmConnection, "proxy_incoming_to", (VALUE(*)(...))evma_proxy_incoming_to, 1);
+  rb_define_method(EmConnection, "stop_proxy", (VALUE(*)(...))evma_stop_proxy, 0);
 }
