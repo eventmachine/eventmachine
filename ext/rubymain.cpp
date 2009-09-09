@@ -324,6 +324,19 @@ static VALUE evma_get_peername(VALUE connection)
   return rb_ary_reverse(ret);
 }
 
+static VALUE evma_get_sockname(VALUE connection)
+{
+  EventableDescriptor *ed = (EventableDescriptor*) DATA_PTR(connection);
+  struct sockaddr s;
+  bool success = ed->GetSockname(&s);
+  if (!success)
+    rb_sys_fail("get_socketname failed");
+  // TODO: This should be done manually so we don't have to require Socket.
+  VALUE ret = rb_funcall(rb_cSocket, Intern_unpack_sockaddr_in, 1, rb_str_new ((const char*)&s, sizeof(s)));
+  // Return [host, port] rather than [port, host]
+  return rb_ary_reverse(ret);
+}
+
 static VALUE evma_start_tcp_server(int argc, VALUE *argv, VALUE reactor)
 {
   VALUE server;
@@ -408,4 +421,5 @@ extern "C" void Init_rubyeventmachine()
   rb_define_method(EmConnection, "proxy_incoming_to", (VALUE(*)(...))evma_proxy_incoming_to, 1);
   rb_define_method(EmConnection, "stop_proxy", (VALUE(*)(...))evma_stop_proxy, 0);
   rb_define_method(EmConnection, "get_peername", (VALUE(*)(...))evma_get_peername, 0);
+  rb_define_method(EmConnection, "get_sockname", (VALUE(*)(...))evma_get_sockname, 0);
 }
