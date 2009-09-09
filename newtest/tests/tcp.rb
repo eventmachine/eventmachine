@@ -10,11 +10,11 @@ describe "tcp connection" do
     def receive_data(data); end
     def unbind; end
   end
-  
+
   EM::Connection.send :include, Stub
 
   it "connection_completed works" do
-    module Handler
+    handler = Module.new do
       def connection_completed
         $test[:connection_completed] = true
         @reactor.stop
@@ -23,13 +23,14 @@ describe "tcp connection" do
 
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.connect("google.com", 80, Handler)
+      reactor.connect("google.com", 80, handler)
     }
     $test[:connection_completed].should == true
+    reactor.release_machine
   end
 
   it "Connection can take extra arguments in initialize that were passed to Reactor#connect" do
-    module Handler
+    handler = Module.new do
       def initialize(arg1, arg2)
         $test[:arg1] = arg1
         $test[:arg2] = arg2
@@ -39,14 +40,15 @@ describe "tcp connection" do
 
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.connect("google.com", 80, Handler, "TEST ARG", "OTHER TEST ARG 2")
+      reactor.connect("google.com", 80, handler, "TEST ARG", "OTHER TEST ARG 2")
     }
     $test[:arg1].should == "TEST ARG"
     $test[:arg2].should == "OTHER TEST ARG 2"
+    reactor.release_machine
   end
 
   it "receive_data works" do
-    module Handler
+    handler = Module.new do
       def connection_completed
         send_data "GET / HTTP/1.1\r\n\r\n"
       end
@@ -58,14 +60,15 @@ describe "tcp connection" do
 
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.connect("google.com", 80, Handler)
+      reactor.connect("google.com", 80, handler)
     }
     $test[:data].should.be.kind_of(String)
     $test[:data].should.not.be.empty
+    reactor.release_machine
   end
 
   it "unbind is called after close_connection" do
-    module Handler
+    handler = Module.new do
       def connection_completed
         send_data "GET / HTTP/1.1\r\n\r\n"
       end
@@ -80,20 +83,21 @@ describe "tcp connection" do
 
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.connect("google.com", 80, Handler)
+      reactor.connect("google.com", 80, handler)
     }
     $test[:unbound].should == true
+    reactor.release_machine
   end
 
   it "tcp server works" do
-    module Server
+    server = Module.new do
       def receive_data(data)
         $test[:server_data] = data
         send_data "moretestingdata321"
       end
     end
 
-    module Client
+    client = Module.new do
       def connection_completed
         send_data "testingdata123"
       end
@@ -108,8 +112,8 @@ describe "tcp connection" do
 
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.start_server("127.0.0.1", 9999, Server)
-      reactor.connect("127.0.0.1", 9999, Client)
+      reactor.start_server("127.0.0.1", 9999, server)
+      reactor.connect("127.0.0.1", 9999, client)
     }
     $test[:server_data].should == "testingdata123"
     $test[:client_data].should == "moretestingdata321"
@@ -117,7 +121,7 @@ describe "tcp connection" do
   end
 
   it "server can accept extra args from Reactor#start_server for initialize" do
-    module Server
+    server = Module.new do
       def initialize(arg1, arg2, arg3, arg4)
         $test[:arg1] = arg1
         $test[:arg2] = arg2
@@ -126,12 +130,10 @@ describe "tcp connection" do
         @reactor.stop
       end
     end
-    module Client
-    end
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.start_server("127.0.0.1", 9999, Server, "foo", "bar", "baz", "eggology")
-      reactor.connect("127.0.0.1", 9999, Client)
+      reactor.start_server("127.0.0.1", 9999, server, "foo", "bar", "baz", "eggology")
+      reactor.connect("127.0.0.1", 9999)
     }
     $test[:arg1].should == "foo"
     $test[:arg2].should == "bar"
@@ -141,12 +143,12 @@ describe "tcp connection" do
   end
 
   it "get_peername should work" do
-    module Server
+    server = Module.new do
       def post_init
         $test[:server] = get_peername
       end
     end
-    module Client
+    client = Module.new do
       def connection_completed
         @reactor.next_tick {
           $test[:client] = get_peername
@@ -156,8 +158,8 @@ describe "tcp connection" do
     end
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.start_server("127.0.0.1", 12345, Server)
-      reactor.connect("127.0.0.1", 12345, Client)
+      reactor.start_server("127.0.0.1", 12345, server)
+      reactor.connect("127.0.0.1", 12345, client)
     }
     $test[:server][0].should == "127.0.0.1"
     $test[:server][1].kind_of?(Integer).should == true
@@ -166,12 +168,12 @@ describe "tcp connection" do
   end
   
   it "get_sockname should work" do
-    module Server
+    server = Module.new do
       def post_init
         $test[:server] = get_sockname
       end
     end
-    module Client
+    client = Module.new do
       def connection_completed
         @reactor.next_tick {
           $test[:client] = get_peername
@@ -181,8 +183,8 @@ describe "tcp connection" do
     end
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.start_server("127.0.0.1", 12345, Server)
-      reactor.connect("127.0.0.1", 12345, Client)
+      reactor.start_server("127.0.0.1", 12345, server)
+      reactor.connect("127.0.0.1", 12345, client)
     }
     $test[:server].should == ["127.0.0.1", 12345]
     $test[:client][0].should == "127.0.0.1"
