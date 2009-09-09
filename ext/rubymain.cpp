@@ -160,13 +160,27 @@ static void event_callback (const unsigned long a1, int a2, const char *a3, cons
   }
 }
 
+EventMachine_t* ensure_machine(VALUE reactor, const char *msg)
+{
+  EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
+  if (em == NULL)
+    rb_raise(rb_eRuntimeError, "%s called on a released reactor", msg);
+  return em;
+}
+
+EventableDescriptor* ensure_connection(VALUE conn, const char *msg)
+{
+  EventableDescriptor *ed = (EventableDescriptor*) DATA_PTR(conn);
+  if (ed == NULL)
+    rb_raise(rb_eRuntimeError, "%s called on an unbound connection", msg);
+  return ed;
+}
+
 static VALUE evma_release_machine(VALUE reactor)
 {
-  EventMachine_t *em;
-  if ((em = (EventMachine_t*) DATA_PTR(reactor)) != NULL) {
-    DATA_PTR(reactor) = NULL;
-    delete em;
-  }
+  EventMachine_t *em = ensure_machine(reactor, "Reactor#release_machine");
+  DATA_PTR(reactor) = NULL;
+  delete em;
   return Qnil;
 }
 
@@ -175,7 +189,7 @@ void evma_free(EventMachine_t *reactor)
   if (reactor == NULL)
     return;
 
-  // Unbind callbacks can't call back on the reactor object during destruction.
+  // Unbind callbacks can't call back on the reactor object during destruction or Ruby will explode.
   size_t i;
   vector<EventableDescriptor*> desc = reactor->GetDescriptors();
   vector<EventableDescriptor*> desc2 = reactor->GetNewDescriptors();
@@ -207,12 +221,12 @@ void evma_mark(EventMachine_t *reactor)
 
 void evma_acceptor_mark(AcceptorDescriptor *ad)
 {
-  VALUE argv = ad->GetHandlerArgv();
   VALUE handler = ad->GetHandler();
-  
-  if (handler)
+  VALUE argv = ad->GetHandlerArgv();
+
+  if ((void*)handler != NULL)
     rb_gc_mark(handler);
-  if (argv)
+  if ((void*)argv != NULL)
     rb_gc_mark(argv);
 }
 
@@ -226,31 +240,29 @@ static VALUE evma_reactor_alloc(VALUE klass)
 
 static VALUE evma_signal_loopbreak(VALUE reactor)
 {
-  EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
+  EventMachine_t *em = ensure_machine(reactor, "Reactor#signal_loopbreak");
   em->SignalLoopBreaker();
   return Qnil;
 }
 
 static VALUE evma_run_machine(VALUE reactor)
 {
-  EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
+  EventMachine_t *em = ensure_machine(reactor, "Reactor#run");
   em->Run();
   return Qnil;
 }
 
 static VALUE evma_stop_machine(VALUE reactor)
 {
-  EventMachine_t *em;
-  if ((em = (EventMachine_t*) DATA_PTR(reactor)) != NULL) {
-    em->ScheduleHalt();
-    rb_funcall(reactor, rb_intern("machine_stopped"), 0);
-  }
+  EventMachine_t *em = ensure_machine(reactor, "Reactor#stop");
+  em->ScheduleHalt();
+  rb_funcall(reactor, rb_intern("machine_stopped"), 0);
   return Qnil;
 }
 
 static VALUE evma_add_timer(VALUE reactor, VALUE interval)
 {
-  EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
+  EventMachine_t *em = ensure_machine(reactor, "Reactor#add_timer");
   return ULONG2NUM(em->InstallOneshotTimer(FIX2INT(interval)));
 }
 
@@ -273,14 +285,14 @@ static VALUE evma_build_handler(VALUE handler)
 
 static VALUE evma_connect_tcp(int argc, VALUE *argv, VALUE reactor)
 {
+  EventMachine_t *em = ensure_machine(reactor, "Reactor#connect");
   VALUE server;
   VALUE port;
   VALUE handler;
   VALUE extra;
   rb_scan_args(argc, argv, "21*", &server, &port, &handler, &extra);
-  EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
   ConnectionDescriptor *cd = em->ConnectToServer(NULL, 0, StringValuePtr(server), FIX2INT(port));
-  
+
   // This stuff should be moved into another function for generic handler instantiation
   if (cd) {
     VALUE real_handler = evma_build_handler(handler);
@@ -304,15 +316,15 @@ static VALUE evma_connect_tcp(int argc, VALUE *argv, VALUE reactor)
   return Qnil;
 }
 
-static VALUE evma_tcp_send_data(VALUE connection, VALUE data)
+static VALUE evma_tcp_send_data(VALUE conn, VALUE data)
 {
-  ConnectionDescriptor *cd = (ConnectionDescriptor*) DATA_PTR(connection);
+  ConnectionDescriptor *cd = (ConnectionDescriptor*) ensure_connection(conn, "Connection#send_data");
   return INT2NUM(cd->SendOutboundData(RSTRING_PTR(data), RSTRING_LEN(data)));
 }
 
-static VALUE evma_get_peername(VALUE connection)
+static VALUE evma_get_peername(VALUE conn)
 {
-  EventableDescriptor *ed = (EventableDescriptor*) DATA_PTR(connection);
+  EventableDescriptor *ed = ensure_connection(conn, "Connection#get_peername");
   struct sockaddr s;
   bool success = ed->GetPeername(&s);
   // ConnectionDescriptor uses the getpeername() call. If it fails, want to to propogate the reason to the user.
@@ -324,9 +336,9 @@ static VALUE evma_get_peername(VALUE connection)
   return rb_ary_reverse(ret);
 }
 
-static VALUE evma_get_sockname(VALUE connection)
+static VALUE evma_get_sockname(VALUE conn)
 {
-  EventableDescriptor *ed = (EventableDescriptor*) DATA_PTR(connection);
+  EventableDescriptor *ed = ensure_connection(conn, "Connection#get_sockname");
   struct sockaddr s;
   bool success = ed->GetSockname(&s);
   if (!success)
@@ -339,15 +351,15 @@ static VALUE evma_get_sockname(VALUE connection)
 
 static VALUE evma_start_tcp_server(int argc, VALUE *argv, VALUE reactor)
 {
+  EventMachine_t *em = ensure_machine(reactor, "Reactor#start_server");
   VALUE server;
   VALUE port;
   VALUE handler;
   VALUE extra;
   rb_scan_args(argc, argv, "21*", &server, &port, &handler, &extra);
-  EventMachine_t *em = (EventMachine_t*) DATA_PTR(reactor);
   AcceptorDescriptor *ad = em->CreateTcpServer(RSTRING_PTR(server), FIX2INT(port));
   if (!ad)
-    return Qnil;
+    rb_sys_fail("start_server failed");
   ad->SetHandler(evma_build_handler(handler));
   ad->SetHandlerArgv(extra);
   VALUE adobj = Data_Wrap_Struct(EmConnection, evma_acceptor_mark, NULL, ad);
@@ -358,23 +370,23 @@ static VALUE evma_start_tcp_server(int argc, VALUE *argv, VALUE reactor)
 
 static VALUE evma_close_connection(int argc, VALUE *argv, VALUE conn)
 {
+  EventableDescriptor *ed = ensure_connection(conn, "Connection#close_connection");
   VALUE after_writing = Qfalse;
   rb_scan_args(argc, argv, "01", &after_writing);
-  EventableDescriptor *ed = (EventableDescriptor*) DATA_PTR(conn);
   ed->ScheduleClose((after_writing == Qtrue) ? true : false);
   return Qnil;
 }
 
 static VALUE evma_proxy_incoming_to(VALUE conn, VALUE target)
 {
-  EventableDescriptor *ed = (EventableDescriptor*) DATA_PTR(conn);
+  EventableDescriptor *ed = ensure_connection(conn, "Connection#proxy_incoming_to");
   ed->StartProxy(target);
   return Qnil;
 }
 
 static VALUE evma_stop_proxy(VALUE conn)
 {
-  EventableDescriptor *ed = (EventableDescriptor*) DATA_PTR(conn);
+  EventableDescriptor *ed = ensure_connection(conn, "Connection#stop_proxy");
   ed->StopProxy();
   return Qnil;
 }
