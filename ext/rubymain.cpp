@@ -176,7 +176,7 @@ EventableDescriptor* ensure_connection(VALUE conn, const char *msg)
   return ed;
 }
 
-static VALUE evma_release_machine(VALUE reactor)
+static VALUE reactor_release(VALUE reactor)
 {
   EventMachine_t *em = ensure_machine(reactor, "Reactor#release_machine");
   DATA_PTR(reactor) = NULL;
@@ -184,7 +184,7 @@ static VALUE evma_release_machine(VALUE reactor)
   return Qnil;
 }
 
-void evma_free(EventMachine_t *reactor)
+void reactor_free(EventMachine_t *reactor)
 {
   if (reactor == NULL)
     return;
@@ -200,10 +200,10 @@ void evma_free(EventMachine_t *reactor)
   for (i=0; i < desc2.size(); i++) {
     desc2[i]->DisableUnbind();
   }
-  evma_release_machine(reactor->GetBinding());
+  reactor_release(reactor->GetBinding());
 }
 
-void evma_mark(EventMachine_t *reactor)
+void reactor_mark(EventMachine_t *reactor)
 {
   if (reactor == NULL)
     return;
@@ -230,29 +230,29 @@ void evma_acceptor_mark(AcceptorDescriptor *ad)
     rb_gc_mark(argv);
 }
 
-static VALUE evma_reactor_alloc(VALUE klass)
+static VALUE reactor_alloc(VALUE klass)
 {
   EventMachine_t *em = new EventMachine_t(event_callback);
-  VALUE emobj = Data_Wrap_Struct(klass, evma_mark, evma_free, em);
+  VALUE emobj = Data_Wrap_Struct(klass, reactor_mark, reactor_free, em);
   em->SetBinding(emobj);
   return emobj;
 }
 
-static VALUE evma_signal_loopbreak(VALUE reactor)
+static VALUE reactor_signal_loopbreak(VALUE reactor)
 {
   EventMachine_t *em = ensure_machine(reactor, "Reactor#signal_loopbreak");
   em->SignalLoopBreaker();
   return Qnil;
 }
 
-static VALUE evma_run_machine(VALUE reactor)
+static VALUE reactor_run(VALUE reactor)
 {
   EventMachine_t *em = ensure_machine(reactor, "Reactor#run");
   em->Run();
   return Qnil;
 }
 
-static VALUE evma_stop_machine(VALUE reactor)
+static VALUE reactor_stop(VALUE reactor)
 {
   EventMachine_t *em = ensure_machine(reactor, "Reactor#stop");
   em->ScheduleHalt();
@@ -260,13 +260,13 @@ static VALUE evma_stop_machine(VALUE reactor)
   return Qnil;
 }
 
-static VALUE evma_add_timer(VALUE reactor, VALUE interval)
+static VALUE reactor_add_timer(VALUE reactor, VALUE interval)
 {
   EventMachine_t *em = ensure_machine(reactor, "Reactor#add_timer");
   return ULONG2NUM(em->InstallOneshotTimer(FIX2INT(interval)));
 }
 
-static VALUE evma_build_handler(VALUE handler)
+static VALUE build_handler(VALUE handler)
 {
   if (RTEST(handler)) {
     if (rb_obj_is_kind_of(handler, rb_cClass) == Qtrue) {
@@ -283,7 +283,7 @@ static VALUE evma_build_handler(VALUE handler)
   return EmConnection;
 }
 
-static VALUE evma_connect_tcp(int argc, VALUE *argv, VALUE reactor)
+static VALUE reactor_connect_tcp(int argc, VALUE *argv, VALUE reactor)
 {
   EventMachine_t *em = ensure_machine(reactor, "Reactor#connect");
   VALUE server;
@@ -295,7 +295,7 @@ static VALUE evma_connect_tcp(int argc, VALUE *argv, VALUE reactor)
 
   // This stuff should be moved into another function for generic handler instantiation
   if (cd) {
-    VALUE real_handler = evma_build_handler(handler);
+    VALUE real_handler = build_handler(handler);
     VALUE cdobj = Data_Wrap_Struct(real_handler, NULL, NULL, cd);
     rb_ivar_set(cdobj, Intern_reactor, cd->GetReactor()->GetBinding());
 
@@ -316,13 +316,13 @@ static VALUE evma_connect_tcp(int argc, VALUE *argv, VALUE reactor)
   return Qnil;
 }
 
-static VALUE evma_tcp_send_data(VALUE conn, VALUE data)
+static VALUE conn_tcp_send_data(VALUE conn, VALUE data)
 {
   ConnectionDescriptor *cd = (ConnectionDescriptor*) ensure_connection(conn, "Connection#send_data");
   return INT2NUM(cd->SendOutboundData(RSTRING_PTR(data), RSTRING_LEN(data)));
 }
 
-static VALUE evma_get_peername(VALUE conn)
+static VALUE conn_get_peername(VALUE conn)
 {
   EventableDescriptor *ed = ensure_connection(conn, "Connection#get_peername");
   struct sockaddr s;
@@ -336,7 +336,7 @@ static VALUE evma_get_peername(VALUE conn)
   return rb_ary_reverse(ret);
 }
 
-static VALUE evma_get_sockname(VALUE conn)
+static VALUE conn_get_sockname(VALUE conn)
 {
   EventableDescriptor *ed = ensure_connection(conn, "Connection#get_sockname");
   struct sockaddr s;
@@ -349,7 +349,7 @@ static VALUE evma_get_sockname(VALUE conn)
   return rb_ary_reverse(ret);
 }
 
-static VALUE evma_start_tcp_server(int argc, VALUE *argv, VALUE reactor)
+static VALUE reactor_start_tcp_server(int argc, VALUE *argv, VALUE reactor)
 {
   EventMachine_t *em = ensure_machine(reactor, "Reactor#start_server");
   VALUE server;
@@ -360,7 +360,7 @@ static VALUE evma_start_tcp_server(int argc, VALUE *argv, VALUE reactor)
   AcceptorDescriptor *ad = em->CreateTcpServer(RSTRING_PTR(server), FIX2INT(port));
   if (!ad)
     rb_sys_fail("start_server failed");
-  ad->SetHandler(evma_build_handler(handler));
+  ad->SetHandler(build_handler(handler));
   ad->SetHandlerArgv(extra);
   VALUE adobj = Data_Wrap_Struct(EmConnection, evma_acceptor_mark, NULL, ad);
   rb_ivar_set(adobj, Intern_reactor, ad->GetReactor()->GetBinding());
@@ -368,7 +368,7 @@ static VALUE evma_start_tcp_server(int argc, VALUE *argv, VALUE reactor)
   return adobj;
 }
 
-static VALUE evma_close_connection(int argc, VALUE *argv, VALUE conn)
+static VALUE conn_close_connection(int argc, VALUE *argv, VALUE conn)
 {
   EventableDescriptor *ed = ensure_connection(conn, "Connection#close_connection");
   VALUE after_writing = Qfalse;
@@ -377,14 +377,14 @@ static VALUE evma_close_connection(int argc, VALUE *argv, VALUE conn)
   return Qnil;
 }
 
-static VALUE evma_proxy_incoming_to(VALUE conn, VALUE target)
+static VALUE conn_proxy_incoming_to(VALUE conn, VALUE target)
 {
   EventableDescriptor *ed = ensure_connection(conn, "Connection#proxy_incoming_to");
   ed->StartProxy(target);
   return Qnil;
 }
 
-static VALUE evma_stop_proxy(VALUE conn)
+static VALUE conn_stop_proxy(VALUE conn)
 {
   EventableDescriptor *ed = ensure_connection(conn, "Connection#stop_proxy");
   ed->StopProxy();
@@ -418,20 +418,20 @@ extern "C" void Init_rubyeventmachine()
   Intern_new = rb_intern("new");
   Intern_unpack_sockaddr_in = rb_intern("unpack_sockaddr_in");
 
-  rb_define_alloc_func(EmReactor, evma_reactor_alloc);
+  rb_define_alloc_func(EmReactor, reactor_alloc);
 
-  rb_define_method(EmReactor, "signal_loopbreak", (VALUE(*)(...))evma_signal_loopbreak, 0);
-  rb_define_method(EmReactor, "run_machine", (VALUE(*)(...))evma_run_machine, 0);
-  rb_define_method(EmReactor, "stop", (VALUE(*)(...))evma_stop_machine, 0);
-  rb_define_method(EmReactor, "release_machine", (VALUE(*)(...))evma_release_machine, 0);
-  rb_define_method(EmReactor, "add_oneshot_timer", (VALUE(*)(...))evma_add_timer, 1);
-  rb_define_method(EmReactor, "connect", (VALUE(*)(...))evma_connect_tcp, -1);
-  rb_define_method(EmReactor, "start_server", (VALUE(*)(...))evma_start_tcp_server, -1);
+  rb_define_method(EmReactor, "signal_loopbreak", (VALUE(*)(...))reactor_signal_loopbreak, 0);
+  rb_define_method(EmReactor, "run_machine", (VALUE(*)(...))reactor_run, 0);
+  rb_define_method(EmReactor, "stop", (VALUE(*)(...))reactor_stop, 0);
+  rb_define_method(EmReactor, "release", (VALUE(*)(...))reactor_release, 0);
+  rb_define_method(EmReactor, "add_oneshot_timer", (VALUE(*)(...))reactor_add_timer, 1);
+  rb_define_method(EmReactor, "connect", (VALUE(*)(...))reactor_connect_tcp, -1);
+  rb_define_method(EmReactor, "start_server", (VALUE(*)(...))reactor_start_tcp_server, -1);
 
-  rb_define_method(EmConnection, "send_data", (VALUE(*)(...))evma_tcp_send_data, 1);
-  rb_define_method(EmConnection, "close_connection", (VALUE(*)(...))evma_close_connection, -1);
-  rb_define_method(EmConnection, "proxy_incoming_to", (VALUE(*)(...))evma_proxy_incoming_to, 1);
-  rb_define_method(EmConnection, "stop_proxy", (VALUE(*)(...))evma_stop_proxy, 0);
-  rb_define_method(EmConnection, "get_peername", (VALUE(*)(...))evma_get_peername, 0);
-  rb_define_method(EmConnection, "get_sockname", (VALUE(*)(...))evma_get_sockname, 0);
+  rb_define_method(EmConnection, "send_data", (VALUE(*)(...))conn_tcp_send_data, 1);
+  rb_define_method(EmConnection, "close_connection", (VALUE(*)(...))conn_close_connection, -1);
+  rb_define_method(EmConnection, "proxy_incoming_to", (VALUE(*)(...))conn_proxy_incoming_to, 1);
+  rb_define_method(EmConnection, "stop_proxy", (VALUE(*)(...))conn_stop_proxy, 0);
+  rb_define_method(EmConnection, "get_peername", (VALUE(*)(...))conn_get_peername, 0);
+  rb_define_method(EmConnection, "get_sockname", (VALUE(*)(...))conn_get_sockname, 0);
 }
