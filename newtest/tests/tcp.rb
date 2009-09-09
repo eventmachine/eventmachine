@@ -137,6 +137,32 @@ describe "tcp connection" do
     $test[:arg2].should == "bar"
     $test[:arg3].should == "baz"
     $test[:arg4].should == "eggology"
+    reactor.release_machine
+  end
+
+  it "get_peername should work" do
+    module Server
+      def post_init
+        $test[:server] = get_peername
+      end
+    end
+    module Client
+      def connection_completed
+        @reactor.next_tick {
+          $test[:client] = get_peername
+          @reactor.stop
+        }
+      end
+    end
+    reactor = EM::Reactor.new
+    reactor.run {
+      reactor.start_server("127.0.0.1", 12345, Server)
+      reactor.connect("127.0.0.1", 12345, Client)
+    }
+    $test[:server][0].should == "127.0.0.1"
+    $test[:server][1].kind_of?(Integer).should == true
+    $test[:client].should == ["127.0.0.1", 12345]
+    reactor.release_machine
   end
 
 end

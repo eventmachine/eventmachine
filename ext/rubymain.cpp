@@ -21,6 +21,8 @@ static VALUE EmConnection;
 static VALUE EmReactor;
 static VALUE EmAcceptor;
 
+static VALUE rb_cSocket;
+
 static VALUE Intern_run_deferred_callbacks;
 static VALUE Intern_at_timers;
 static VALUE Intern_call;
@@ -35,6 +37,8 @@ static VALUE Intern_notify_writable;
 static VALUE Intern_ssl_handshake_completed;
 static VALUE Intern_proxy_target_unbound;
 static VALUE Intern_ssl_verify_peer;
+static VALUE Intern_new;
+static VALUE Intern_unpack_sockaddr_in;
 
 static void evma_callback_loopbreak(VALUE reactor)
 {
@@ -86,8 +90,8 @@ static void evma_callback_accept(VALUE acceptor, ConnectionDescriptor *cd)
       callargs[i] = rb_ary_shift(argv);
     }
     rb_funcall2(conn, Intern_initialize, argc, callargs);
-    rb_funcall(conn, Intern_post_init, 0);
   }
+  rb_funcall(conn, Intern_post_init, 0);
 }
 
 static void evma_callback_notify_readable(VALUE conn)
@@ -259,7 +263,7 @@ static VALUE evma_build_handler(VALUE handler)
       return handler;
     }
     else {
-      VALUE anon_klass = rb_funcall(rb_cClass, rb_intern("new"), 1, EmConnection);
+      VALUE anon_klass = rb_funcall(rb_cClass, Intern_new, 1, EmConnection);
       rb_include_module(anon_klass, handler);
       return anon_klass;
     }
@@ -306,6 +310,20 @@ static VALUE evma_tcp_send_data(VALUE connection, VALUE data)
   return INT2NUM(cd->SendOutboundData(RSTRING_PTR(data), RSTRING_LEN(data)));
 }
 
+static VALUE evma_get_peername(VALUE connection)
+{
+  EventableDescriptor *ed = (EventableDescriptor*) DATA_PTR(connection);
+  struct sockaddr s;
+  bool success = ed->GetPeername(&s);
+  // ConnectionDescriptor uses the getpeername() call. If it fails, want to to propogate the reason to the user.
+  if (!success)
+    rb_sys_fail("get_peername failed");
+  // TODO: This should be done manually so we don't have to require Socket.
+  VALUE ret = rb_funcall(rb_cSocket, Intern_unpack_sockaddr_in, 1, rb_str_new ((const char*)&s, sizeof(s)));
+  // Return [host, port] rather than [port, host]
+  return rb_ary_reverse(ret);
+}
+
 static VALUE evma_start_tcp_server(int argc, VALUE *argv, VALUE reactor)
 {
   VALUE server;
@@ -350,6 +368,9 @@ static VALUE evma_stop_proxy(VALUE conn)
 
 extern "C" void Init_rubyeventmachine()
 {
+  rb_require("socket");
+  rb_cSocket = rb_const_get(rb_cObject, rb_intern("Socket"));
+
   EmModule = rb_define_module ("EventMachine");
   EmConnection = rb_define_class_under (EmModule, "Connection", rb_cObject);
   EmReactor = rb_define_class_under (EmModule, "Reactor", rb_cObject);
@@ -369,6 +390,8 @@ extern "C" void Init_rubyeventmachine()
   Intern_ssl_handshake_completed = rb_intern("ssl_handshake_completed");
   Intern_proxy_target_unbound = rb_intern("proxy_target_unbound");
   Intern_ssl_verify_peer = rb_intern("ssl_verify_peer");
+  Intern_new = rb_intern("new");
+  Intern_unpack_sockaddr_in = rb_intern("unpack_sockaddr_in");
 
   rb_define_alloc_func(EmReactor, evma_reactor_alloc);
 
@@ -384,4 +407,5 @@ extern "C" void Init_rubyeventmachine()
   rb_define_method(EmConnection, "close_connection", (VALUE(*)(...))evma_close_connection, -1);
   rb_define_method(EmConnection, "proxy_incoming_to", (VALUE(*)(...))evma_proxy_incoming_to, 1);
   rb_define_method(EmConnection, "stop_proxy", (VALUE(*)(...))evma_stop_proxy, 0);
+  rb_define_method(EmConnection, "get_peername", (VALUE(*)(...))evma_get_peername, 0);
 }
