@@ -84,11 +84,13 @@ class EventableDescriptor: public Bindable_t
 		struct epoll_event *GetEpollEvent() { return &EpollEvent; }
 		#endif
 
-		virtual void StartProxy(const unsigned long);
+		virtual void StartProxy(EventableDescriptor*);
 		virtual void StopProxy();
 
 		virtual EventMachine_t* GetReactor() { return MyEventMachine; }
 		virtual void DisableUnbind() { bCallbackUnbind = false; }
+		virtual int SendOutboundData (const char*, int) { return -1; }
+		void SetProxiedFrom(EventableDescriptor* ed) { ProxiedFrom = ed; }
 	private:
 		bool bCloseNow;
 		bool bCloseAfterWriting;
@@ -102,7 +104,8 @@ class EventableDescriptor: public Bindable_t
 		Int64 CreatedAt;
 		bool bCallbackUnbind;
 		int UnbindReasonCode;
-		unsigned long ProxyTarget;
+		EventableDescriptor *ProxyTarget;
+		EventableDescriptor *ProxiedFrom;
 
 		#ifdef HAVE_EPOLL
 		struct epoll_event EpollEvent;
@@ -143,7 +146,6 @@ class ConnectionDescriptor: public EventableDescriptor
 		ConnectionDescriptor (int, EventMachine_t*);
 		virtual ~ConnectionDescriptor();
 
-		static int SendDataToConnection (const unsigned long, const char*, int);
 		static void CloseConnection (const unsigned long, bool);
 		static int ReportErrorStatus (const unsigned long);
 

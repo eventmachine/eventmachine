@@ -58,6 +58,7 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	bCallbackUnbind (true),
 	UnbindReasonCode (0),
 	ProxyTarget(NULL),
+	ProxiedFrom(NULL),
 	MyEventMachine (em),
 	PendingConnectTimeout(20000000)
 {
@@ -103,7 +104,14 @@ EventableDescriptor::~EventableDescriptor()
 {
 	if (EventCallback && bCallbackUnbind)
 		(*EventCallback)(GetBinding(), EM_CONNECTION_UNBOUND, NULL, UnbindReasonCode);
-	StopProxy();
+	if (ProxiedFrom) {
+		(*EventCallback)(ProxiedFrom->GetBinding(), EM_PROXY_TARGET_UNBOUND, NULL, 0);
+		ProxiedFrom->StopProxy();
+	}
+	if (ProxyTarget) {
+		ProxyTarget->SetProxiedFrom(NULL);
+		StopProxy();
+	}
 	Close();
 }
 
@@ -181,11 +189,11 @@ bool EventableDescriptor::IsCloseScheduled()
 EventableDescriptor::StartProxy
 *******************************/
 
-void EventableDescriptor::StartProxy(unsigned long to)
+void EventableDescriptor::StartProxy(EventableDescriptor *to)
 {
-	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (to));
-	if (ed) {
+	if (to) {
 		StopProxy();
+		to->SetProxiedFrom(this);
 		ProxyTarget = to;
 		return;
 	}
@@ -200,6 +208,7 @@ EventableDescriptor::StopProxy
 void EventableDescriptor::StopProxy()
 {
 	if (ProxyTarget) {
+		ProxyTarget->SetProxiedFrom(NULL);
 		ProxyTarget = NULL;
 	}
 }
@@ -213,12 +222,10 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 {
 	assert(EventCallback);
 
-	if (!ProxyTarget)
+	if (ProxyTarget)
+		ProxyTarget->SendOutboundData(buf, size);
+	else
 		(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf, size);
-	else if (ConnectionDescriptor::SendDataToConnection(ProxyTarget, buf, size) == -1) {
-		(*EventCallback)(GetBinding(), EM_PROXY_TARGET_UNBOUND, NULL, 0);
-		StopProxy();
-	}
 }
 
 
@@ -293,31 +300,6 @@ ConnectionDescriptor::~ConnectionDescriptor()
 		delete SslBox;
 	#endif
 }
-
-
-/**************************************************
-STATIC: ConnectionDescriptor::SendDataToConnection
-**************************************************/
-
-int ConnectionDescriptor::SendDataToConnection (const unsigned long binding, const char *data, int data_length)
-{
-	// TODO: This is something of a hack, or at least it's a static method of the wrong class.
-	// TODO: Poor polymorphism here. We should be calling one virtual method
-	// instead of hacking out the runtime information of the target object.
-	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
-	if (cd)
-		return cd->SendOutboundData (data, data_length);
-	DatagramDescriptor *ds = dynamic_cast <DatagramDescriptor*> (Bindable_t::GetObject (binding));
-	if (ds)
-		return ds->SendOutboundData (data, data_length);
-	#ifdef OS_UNIX
-	PipeDescriptor *ps = dynamic_cast <PipeDescriptor*> (Bindable_t::GetObject (binding));
-	if (ps)
-		return ps->SendOutboundData (data, data_length);
-	#endif
-	return -1;
-}
-
 
 /*********************************************
 STATIC: ConnectionDescriptor::CloseConnection

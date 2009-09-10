@@ -71,6 +71,7 @@ static void evma_callback_receive(VALUE conn, const char *data, const unsigned l
 static void evma_callback_unbind(VALUE conn)
 {
   rb_funcall(conn, Intern_unbind, 0);
+  DATA_PTR(conn) = NULL;
 }
 
 static void evma_callback_accept(VALUE acceptor, ConnectionDescriptor *cd)
@@ -195,21 +196,11 @@ static VALUE build_handler(VALUE handler)
 
 static VALUE reactor_release(VALUE reactor)
 {
-  EventMachine_t *em = ensure_machine(reactor, "Reactor#release_machine");
-  DATA_PTR(reactor) = NULL;
-  delete em;
-  return Qnil;
-}
-
-void reactor_free(EventMachine_t *reactor)
-{
-  if (reactor == NULL)
-    return;
-
+  EventMachine_t *em = ensure_machine(reactor, "Reactor#release");
   // Unbind callbacks can't call back on the reactor object during destruction or Ruby will explode.
   size_t i;
-  vector<EventableDescriptor*> desc = reactor->GetDescriptors();
-  vector<EventableDescriptor*> desc2 = reactor->GetNewDescriptors();
+  vector<EventableDescriptor*> desc = em->GetDescriptors();
+  vector<EventableDescriptor*> desc2 = em->GetNewDescriptors();
 
   for (i=0; i < desc.size(); i++) {
     desc[i]->DisableUnbind();
@@ -217,7 +208,15 @@ void reactor_free(EventMachine_t *reactor)
   for (i=0; i < desc2.size(); i++) {
     desc2[i]->DisableUnbind();
   }
-  reactor_release(reactor->GetBinding());
+  DATA_PTR(reactor) = NULL;
+  delete em;
+  return Qnil;
+}
+
+void reactor_free(EventMachine_t *reactor)
+{
+  if (reactor)
+    reactor_release(reactor->GetBinding());
 }
 
 void reactor_mark(EventMachine_t *reactor)
@@ -347,7 +346,10 @@ static VALUE conn_close_connection(int argc, VALUE *argv, VALUE conn)
 static VALUE conn_proxy_incoming_to(VALUE conn, VALUE target)
 {
   EventableDescriptor *ed = ensure_connection(conn, "Connection#proxy_incoming_to");
-  ed->StartProxy(target);
+  EventableDescriptor *targetptr = (EventableDescriptor*) DATA_PTR(target);
+  if (targetptr == NULL)
+    rb_raise(rb_eRuntimeError, "Connection#proxy_incoming_to called with an unbound target connection");
+  ed->StartProxy(targetptr);
   return Qnil;
 }
 
@@ -358,10 +360,10 @@ static VALUE conn_stop_proxy(VALUE conn)
   return Qnil;
 }
 
-static VALUE conn_tcp_send_data(VALUE conn, VALUE data)
+static VALUE conn_send_data(VALUE conn, VALUE data)
 {
-  ConnectionDescriptor *cd = (ConnectionDescriptor*) ensure_connection(conn, "Connection#send_data");
-  return INT2NUM(cd->SendOutboundData(RSTRING_PTR(data), RSTRING_LEN(data)));
+  EventableDescriptor *ed = (EventableDescriptor*) ensure_connection(conn, "Connection#send_data");
+  return INT2NUM(ed->SendOutboundData(RSTRING_PTR(data), RSTRING_LEN(data)));
 }
 
 static VALUE conn_get_peername(VALUE conn)
@@ -428,7 +430,7 @@ extern "C" void Init_rubyeventmachine()
   rb_define_method(EmReactor, "connect", (VALUE(*)(...))reactor_connect_tcp, -1);
   rb_define_method(EmReactor, "start_server", (VALUE(*)(...))reactor_start_tcp_server, -1);
 
-  rb_define_method(EmConnection, "send_data", (VALUE(*)(...))conn_tcp_send_data, 1);
+  rb_define_method(EmConnection, "send_data", (VALUE(*)(...))conn_send_data, 1);
   rb_define_method(EmConnection, "close_connection", (VALUE(*)(...))conn_close_connection, -1);
   rb_define_method(EmConnection, "proxy_incoming_to", (VALUE(*)(...))conn_proxy_incoming_to, 1);
   rb_define_method(EmConnection, "stop_proxy", (VALUE(*)(...))conn_stop_proxy, 0);
