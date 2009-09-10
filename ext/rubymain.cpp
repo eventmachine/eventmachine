@@ -18,8 +18,11 @@
 
 static VALUE EmModule;
 static VALUE EmConnection;
+static VALUE EmIPConnection;
+static VALUE EmTCPConnection;
+static VALUE EmUDPConnection;
 static VALUE EmReactor;
-static VALUE EmAcceptor;
+static VALUE EmTCPServer;
 
 static VALUE rb_cSocket;
 
@@ -177,21 +180,21 @@ EventableDescriptor* ensure_connection(VALUE conn, const char *msg)
   return ed;
 }
 
-static VALUE build_handler(VALUE handler)
+static VALUE build_handler(VALUE handler, VALUE baseklass)
 {
   if (RTEST(handler)) {
     if (rb_obj_is_kind_of(handler, rb_cClass) == Qtrue) {
-      if (!rb_class_inherited_p(handler, EmConnection))
-        rb_raise(rb_eArgError, "must provide module or subclass of EventMachine::Connection");
+      if (!rb_class_inherited_p(handler, baseklass))
+        rb_raise(rb_eArgError, "must provide module or subclass of EventMachine::%s", rb_class2name(baseklass));
       return handler;
     }
     else {
-      VALUE anon_klass = rb_funcall(rb_cClass, Intern_new, 1, EmConnection);
+      VALUE anon_klass = rb_funcall(rb_cClass, Intern_new, 1, baseklass);
       rb_include_module(anon_klass, handler);
       return anon_klass;
     }
   }
-  return EmConnection;
+  return baseklass;
 }
 
 static VALUE reactor_release(VALUE reactor)
@@ -294,7 +297,7 @@ static VALUE reactor_connect_tcp(int argc, VALUE *argv, VALUE reactor)
 
   // This stuff should be moved into another function for generic handler instantiation
   if (cd) {
-    VALUE real_handler = build_handler(handler);
+    VALUE real_handler = build_handler(handler, EmTCPConnection);
     VALUE cdobj = Data_Wrap_Struct(real_handler, NULL, NULL, cd);
     rb_ivar_set(cdobj, Intern_reactor, cd->GetReactor()->GetBinding());
 
@@ -326,9 +329,9 @@ static VALUE reactor_start_tcp_server(int argc, VALUE *argv, VALUE reactor)
   AcceptorDescriptor *ad = em->CreateTcpServer(RSTRING_PTR(server), FIX2INT(port));
   if (!ad)
     rb_sys_fail("start_server failed");
-  ad->SetHandler(build_handler(handler));
+  ad->SetHandler(build_handler(handler, EmTCPConnection));
   ad->SetHandlerArgv(extra);
-  VALUE adobj = Data_Wrap_Struct(EmConnection, evma_acceptor_mark, NULL, ad);
+  VALUE adobj = Data_Wrap_Struct(EmTCPServer, evma_acceptor_mark, NULL, ad);
   rb_ivar_set(adobj, Intern_reactor, ad->GetReactor()->GetBinding());
   ad->SetBinding(adobj);
   return adobj;
@@ -395,14 +398,6 @@ static VALUE conn_get_sockname(VALUE conn)
 
 extern "C" void Init_rubyeventmachine()
 {
-  rb_require("socket");
-  rb_cSocket = rb_const_get(rb_cObject, rb_intern("Socket"));
-
-  EmModule = rb_define_module ("EventMachine");
-  EmConnection = rb_define_class_under (EmModule, "Connection", rb_cObject);
-  EmReactor = rb_define_class_under (EmModule, "Reactor", rb_cObject);
-  EmAcceptor = rb_define_class_under (EmModule, "Acceptor", rb_cObject);
-
   Intern_run_deferred_callbacks = rb_intern("run_deferred_callbacks");
   Intern_at_timers = rb_intern("@timers");
   Intern_reactor = rb_intern("@reactor");
@@ -420,6 +415,17 @@ extern "C" void Init_rubyeventmachine()
   Intern_new = rb_intern("new");
   Intern_unpack_sockaddr_in = rb_intern("unpack_sockaddr_in");
 
+  rb_require("socket");
+  rb_cSocket = rb_const_get(rb_cObject, rb_intern("Socket"));
+
+  EmModule = rb_define_module ("EventMachine");
+  EmReactor = rb_define_class_under (EmModule, "Reactor", rb_cObject);
+  EmTCPServer = rb_define_class_under (EmModule, "TCPServer", rb_cObject);
+	EmConnection = rb_define_class_under (EmModule, "Connection", rb_cObject);
+  EmIPConnection = rb_define_class_under (EmModule, "IPConnection", EmConnection);
+	EmTCPConnection = rb_define_class_under (EmModule, "TCPConnection", EmIPConnection);
+	EmUDPConnection = rb_define_class_under (EmModule, "UDPConnection", EmIPConnection);
+
   rb_define_alloc_func(EmReactor, reactor_alloc);
 
   rb_define_method(EmReactor, "signal_loopbreak", (VALUE(*)(...))reactor_signal_loopbreak, 0);
@@ -434,6 +440,7 @@ extern "C" void Init_rubyeventmachine()
   rb_define_method(EmConnection, "close_connection", (VALUE(*)(...))conn_close_connection, -1);
   rb_define_method(EmConnection, "proxy_incoming_to", (VALUE(*)(...))conn_proxy_incoming_to, 1);
   rb_define_method(EmConnection, "stop_proxy", (VALUE(*)(...))conn_stop_proxy, 0);
-  rb_define_method(EmConnection, "get_peername", (VALUE(*)(...))conn_get_peername, 0);
-  rb_define_method(EmConnection, "get_sockname", (VALUE(*)(...))conn_get_sockname, 0);
+
+  rb_define_method(EmIPConnection, "get_peername", (VALUE(*)(...))conn_get_peername, 0);
+  rb_define_method(EmIPConnection, "get_sockname", (VALUE(*)(...))conn_get_sockname, 0);
 }

@@ -23,7 +23,8 @@ describe "tcp connection" do
 
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.connect("google.com", 80, handler)
+      c = reactor.connect("google.com", 80, handler)
+      c.class.ancestors.should.include?(EM::TCPConnection)
     }
     $test[:connection_completed].should == true
     reactor.release
@@ -40,7 +41,8 @@ describe "tcp connection" do
 
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.connect("google.com", 80, handler, "TEST ARG", "OTHER TEST ARG 2")
+      c = reactor.connect("google.com", 80, handler, "TEST ARG", "OTHER TEST ARG 2")
+      c.class.ancestors.should.include?(EM::TCPConnection)
     }
     $test[:arg1].should == "TEST ARG"
     $test[:arg2].should == "OTHER TEST ARG 2"
@@ -60,7 +62,8 @@ describe "tcp connection" do
 
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.connect("google.com", 80, handler)
+      c = reactor.connect("google.com", 80, handler)
+      c.class.ancestors.include?(EM::TCPConnection)
     }
     $test[:data].should.be.kind_of(String)
     $test[:data].should.not.be.empty
@@ -83,7 +86,8 @@ describe "tcp connection" do
 
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.connect("google.com", 80, handler)
+      c = reactor.connect("google.com", 80, handler)
+      c.class.ancestors.should.include?(EM::TCPConnection)
     }
     $test[:unbound].should == true
     reactor.release
@@ -112,8 +116,10 @@ describe "tcp connection" do
 
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.start_server("127.0.0.1", 9999, server)
-      reactor.connect("127.0.0.1", 9999, client)
+      s = reactor.start_server("127.0.0.1", 9999, server)
+      c = reactor.connect("127.0.0.1", 9999, client)
+      s.class.should == EM::TCPServer
+      c.class.ancestors.should.include?(EM::TCPConnection)
     }
     $test[:server_data].should == "testingdata123"
     $test[:client_data].should == "moretestingdata321"
@@ -132,8 +138,10 @@ describe "tcp connection" do
     end
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.start_server("127.0.0.1", 9999, server, "foo", "bar", "baz", "eggology")
-      reactor.connect("127.0.0.1", 9999)
+      s = reactor.start_server("127.0.0.1", 9999, server, "foo", "bar", "baz", "eggology")
+      c = reactor.connect("127.0.0.1", 9999)
+      s.class.should == EM::TCPServer
+      c.class.ancestors.should.include?(EM::TCPConnection)
     }
     $test[:arg1].should == "foo"
     $test[:arg2].should == "bar"
@@ -158,8 +166,10 @@ describe "tcp connection" do
     end
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.start_server("127.0.0.1", 12345, server)
-      reactor.connect("127.0.0.1", 12345, client)
+      s = reactor.start_server("127.0.0.1", 12345, server)
+      c = reactor.connect("127.0.0.1", 12345, client)
+      s.class.should == EM::TCPServer
+      c.class.ancestors.should.include?(EM::TCPConnection)
     }
     $test[:server][0].should == "127.0.0.1"
     $test[:server][1].kind_of?(Integer).should == true
@@ -183,8 +193,10 @@ describe "tcp connection" do
     end
     reactor = EM::Reactor.new
     reactor.run {
-      reactor.start_server("127.0.0.1", 12345, server)
-      reactor.connect("127.0.0.1", 12345, client)
+      s = reactor.start_server("127.0.0.1", 12345, server)
+      c = reactor.connect("127.0.0.1", 12345, client)
+      s.class.should == EM::TCPServer
+      c.class.ancestors.should.include?(EM::TCPConnection)
     }
     $test[:server].should == ["127.0.0.1", 12345]
     $test[:client][0].should == "127.0.0.1"
