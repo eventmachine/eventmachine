@@ -374,7 +374,6 @@ evma_stop_tcp_server
 extern "C" void evma_stop_tcp_server (const unsigned long binding)
 {
 	ensure_eventmachine("evma_stop_tcp_server");
-	AcceptorDescriptor::StopAcceptor (binding);
 }
 
 

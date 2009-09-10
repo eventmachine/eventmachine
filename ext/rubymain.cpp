@@ -246,7 +246,7 @@ static VALUE reactor_alloc(VALUE klass)
   return emobj;
 }
 
-void evma_acceptor_mark(AcceptorDescriptor *ad)
+void acceptor_mark(AcceptorDescriptor *ad)
 {
   VALUE handler = ad->GetHandler();
   VALUE argv = ad->GetHandlerArgv();
@@ -333,7 +333,7 @@ static VALUE reactor_start_tcp_server(int argc, VALUE *argv, VALUE reactor)
     rb_sys_fail("start_server failed");
   ad->SetHandler(build_handler(handler, EmTCPConnection));
   ad->SetHandlerArgv(extra);
-  VALUE adobj = Data_Wrap_Struct(EmTCPServer, evma_acceptor_mark, NULL, ad);
+  VALUE adobj = Data_Wrap_Struct(EmTCPServer, acceptor_mark, NULL, ad);
   rb_ivar_set(adobj, Intern_reactor, ad->GetReactor()->GetBinding());
   ad->SetBinding(adobj);
   return adobj;
@@ -436,6 +436,9 @@ extern "C" void Init_rubyeventmachine()
   rb_define_method(EmReactor, "add_oneshot_timer", (VALUE(*)(...))reactor_add_timer, 1);
   rb_define_method(EmReactor, "connect", (VALUE(*)(...))reactor_connect_tcp, -1);
   rb_define_method(EmReactor, "start_server", (VALUE(*)(...))reactor_start_tcp_server, -1);
+
+  rb_define_method(EmTCPServer, "get_sockname", (VALUE(*)(...))conn_get_sockname, 0);
+  rb_define_method(EmTCPServer, "stop", (VALUE(*)(...))conn_close_connection, -1);
 
   rb_define_method(EmConnection, "send_data", (VALUE(*)(...))conn_send_data, 1);
   rb_define_method(EmConnection, "close_connection", (VALUE(*)(...))conn_close_connection, -1);

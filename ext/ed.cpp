@@ -1232,20 +1232,6 @@ AcceptorDescriptor::~AcceptorDescriptor()
 {
 }
 
-/****************************************
-STATIC: AcceptorDescriptor::StopAcceptor
-****************************************/
-
-void AcceptorDescriptor::StopAcceptor (const unsigned long binding)
-{
-	// TODO: This is something of a hack, or at least it's a static method of the wrong class.
-	AcceptorDescriptor *ad = dynamic_cast <AcceptorDescriptor*> (Bindable_t::GetObject (binding));
-	if (ad)
-		ad->ScheduleClose (false);
-	else
-		throw std::runtime_error ("failed to close nonexistent acceptor");
-}
-
 
 /************************
 AcceptorDescriptor::Read

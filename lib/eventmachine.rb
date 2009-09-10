@@ -95,6 +95,7 @@ module EventMachine
     end
     
   end
+  class TCPServer; def unbind; end; end
 end
 
 EM = EventMachine

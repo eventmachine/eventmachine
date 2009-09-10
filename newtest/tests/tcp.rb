@@ -175,8 +175,8 @@ describe "tcp connection" do
     $test[:client].should == ["127.0.0.1", 12345]
     reactor.release
   end
-  
-  it "get_sockname should work" do
+
+  it "get_sockname should work on TCPConnection and TCPServer" do
     server = Module.new do
       def initialize
         $test[:server] = get_sockname
@@ -193,13 +193,16 @@ describe "tcp connection" do
     reactor = EM::Reactor.new
     reactor.run {
       s = reactor.start_server("127.0.0.1", 12345, server)
+      $test[:acceptor] = s.get_sockname
       c = reactor.connect("127.0.0.1", 12345, client)
       s.class.should == EM::TCPServer
       c.class.ancestors.should.include?(EM::TCPConnection)
     }
+    $test[:acceptor].should == ["127.0.0.1", 12345]
     $test[:server].should == ["127.0.0.1", 12345]
     $test[:client][0].should == "127.0.0.1"
     $test[:client][1].kind_of?(Integer).should == true
+    reactor.release
   end
 
 end
