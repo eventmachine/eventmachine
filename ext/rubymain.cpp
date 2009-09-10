@@ -176,6 +176,23 @@ EventableDescriptor* ensure_connection(VALUE conn, const char *msg)
   return ed;
 }
 
+static VALUE build_handler(VALUE handler)
+{
+  if (RTEST(handler)) {
+    if (rb_obj_is_kind_of(handler, rb_cClass) == Qtrue) {
+      if (!rb_class_inherited_p(handler, EmConnection))
+        rb_raise(rb_eArgError, "must provide module or subclass of EventMachine::Connection");
+      return handler;
+    }
+    else {
+      VALUE anon_klass = rb_funcall(rb_cClass, Intern_new, 1, EmConnection);
+      rb_include_module(anon_klass, handler);
+      return anon_klass;
+    }
+  }
+  return EmConnection;
+}
+
 static VALUE reactor_release(VALUE reactor)
 {
   EventMachine_t *em = ensure_machine(reactor, "Reactor#release_machine");
@@ -219,6 +236,14 @@ void reactor_mark(EventMachine_t *reactor)
   }
 }
 
+static VALUE reactor_alloc(VALUE klass)
+{
+  EventMachine_t *em = new EventMachine_t(event_callback);
+  VALUE emobj = Data_Wrap_Struct(klass, reactor_mark, reactor_free, em);
+  em->SetBinding(emobj);
+  return emobj;
+}
+
 void evma_acceptor_mark(AcceptorDescriptor *ad)
 {
   VALUE handler = ad->GetHandler();
@@ -228,14 +253,6 @@ void evma_acceptor_mark(AcceptorDescriptor *ad)
     rb_gc_mark(handler);
   if ((void*)argv != NULL)
     rb_gc_mark(argv);
-}
-
-static VALUE reactor_alloc(VALUE klass)
-{
-  EventMachine_t *em = new EventMachine_t(event_callback);
-  VALUE emobj = Data_Wrap_Struct(klass, reactor_mark, reactor_free, em);
-  em->SetBinding(emobj);
-  return emobj;
 }
 
 static VALUE reactor_signal_loopbreak(VALUE reactor)
@@ -264,23 +281,6 @@ static VALUE reactor_add_timer(VALUE reactor, VALUE interval)
 {
   EventMachine_t *em = ensure_machine(reactor, "Reactor#add_timer");
   return ULONG2NUM(em->InstallOneshotTimer(FIX2INT(interval)));
-}
-
-static VALUE build_handler(VALUE handler)
-{
-  if (RTEST(handler)) {
-    if (rb_obj_is_kind_of(handler, rb_cClass) == Qtrue) {
-      if (!rb_class_inherited_p(handler, EmConnection))
-        rb_raise(rb_eArgError, "must provide module or subclass of EventMachine::Connection");
-      return handler;
-    }
-    else {
-      VALUE anon_klass = rb_funcall(rb_cClass, Intern_new, 1, EmConnection);
-      rb_include_module(anon_klass, handler);
-      return anon_klass;
-    }
-  }
-  return EmConnection;
 }
 
 static VALUE reactor_connect_tcp(int argc, VALUE *argv, VALUE reactor)
@@ -314,39 +314,6 @@ static VALUE reactor_connect_tcp(int argc, VALUE *argv, VALUE reactor)
     return cdobj;
   }
   return Qnil;
-}
-
-static VALUE conn_tcp_send_data(VALUE conn, VALUE data)
-{
-  ConnectionDescriptor *cd = (ConnectionDescriptor*) ensure_connection(conn, "Connection#send_data");
-  return INT2NUM(cd->SendOutboundData(RSTRING_PTR(data), RSTRING_LEN(data)));
-}
-
-static VALUE conn_get_peername(VALUE conn)
-{
-  EventableDescriptor *ed = ensure_connection(conn, "Connection#get_peername");
-  struct sockaddr s;
-  bool success = ed->GetPeername(&s);
-  // ConnectionDescriptor uses the getpeername() call. If it fails, want to to propogate the reason to the user.
-  if (!success)
-    rb_sys_fail("get_peername failed");
-  // TODO: This should be done manually so we don't have to require Socket.
-  VALUE ret = rb_funcall(rb_cSocket, Intern_unpack_sockaddr_in, 1, rb_str_new ((const char*)&s, sizeof(s)));
-  // Return [host, port] rather than [port, host]
-  return rb_ary_reverse(ret);
-}
-
-static VALUE conn_get_sockname(VALUE conn)
-{
-  EventableDescriptor *ed = ensure_connection(conn, "Connection#get_sockname");
-  struct sockaddr s;
-  bool success = ed->GetSockname(&s);
-  if (!success)
-    rb_sys_fail("get_socketname failed");
-  // TODO: This should be done manually so we don't have to require Socket.
-  VALUE ret = rb_funcall(rb_cSocket, Intern_unpack_sockaddr_in, 1, rb_str_new ((const char*)&s, sizeof(s)));
-  // Return [host, port] rather than [port, host]
-  return rb_ary_reverse(ret);
 }
 
 static VALUE reactor_start_tcp_server(int argc, VALUE *argv, VALUE reactor)
@@ -389,6 +356,39 @@ static VALUE conn_stop_proxy(VALUE conn)
   EventableDescriptor *ed = ensure_connection(conn, "Connection#stop_proxy");
   ed->StopProxy();
   return Qnil;
+}
+
+static VALUE conn_tcp_send_data(VALUE conn, VALUE data)
+{
+  ConnectionDescriptor *cd = (ConnectionDescriptor*) ensure_connection(conn, "Connection#send_data");
+  return INT2NUM(cd->SendOutboundData(RSTRING_PTR(data), RSTRING_LEN(data)));
+}
+
+static VALUE conn_get_peername(VALUE conn)
+{
+  EventableDescriptor *ed = ensure_connection(conn, "Connection#get_peername");
+  struct sockaddr s;
+  bool success = ed->GetPeername(&s);
+  // ConnectionDescriptor uses the getpeername() call. If it fails, want to to propogate the reason to the user.
+  if (!success)
+    rb_sys_fail("get_peername failed");
+  // TODO: This should be done manually so we don't have to require Socket.
+  VALUE ret = rb_funcall(rb_cSocket, Intern_unpack_sockaddr_in, 1, rb_str_new ((const char*)&s, sizeof(s)));
+  // Return [host, port] rather than [port, host]
+  return rb_ary_reverse(ret);
+}
+
+static VALUE conn_get_sockname(VALUE conn)
+{
+  EventableDescriptor *ed = ensure_connection(conn, "Connection#get_sockname");
+  struct sockaddr s;
+  bool success = ed->GetSockname(&s);
+  if (!success)
+    rb_sys_fail("get_socketname failed");
+  // TODO: This should be done manually so we don't have to require Socket.
+  VALUE ret = rb_funcall(rb_cSocket, Intern_unpack_sockaddr_in, 1, rb_str_new ((const char*)&s, sizeof(s)));
+  // Return [host, port] rather than [port, host]
+  return rb_ary_reverse(ret);
 }
 
 extern "C" void Init_rubyeventmachine()
