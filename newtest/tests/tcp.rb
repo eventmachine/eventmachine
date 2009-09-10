@@ -6,7 +6,6 @@ describe "tcp connection" do
 
   module Stub
     def connection_completed; end
-    def post_init; end
     def receive_data(data); end
     def unbind; end
   end
@@ -93,7 +92,7 @@ describe "tcp connection" do
     reactor.release
   end
 
-  it "tcp server works" do
+  it "Reactor#start_server" do
     server = Module.new do
       def receive_data(data)
         $test[:server_data] = data
@@ -126,7 +125,7 @@ describe "tcp connection" do
     reactor.release
   end
 
-  it "server can accept extra args from Reactor#start_server for initialize" do
+  it "server handler can accept extra args from Reactor#start_server for initialize" do
     server = Module.new do
       def initialize(arg1, arg2, arg3, arg4)
         $test[:arg1] = arg1
@@ -152,7 +151,7 @@ describe "tcp connection" do
 
   it "get_peername should work" do
     server = Module.new do
-      def post_init
+      def initialize
         $test[:server] = get_peername
       end
     end
@@ -179,7 +178,7 @@ describe "tcp connection" do
   
   it "get_sockname should work" do
     server = Module.new do
-      def post_init
+      def initialize
         $test[:server] = get_sockname
       end
     end

@@ -34,7 +34,6 @@ static VALUE Intern_reactor;
 static VALUE Intern_receive_data;
 static VALUE Intern_initialize;
 static VALUE Intern_unbind;
-static VALUE Intern_post_init;
 static VALUE Intern_notify_readable;
 static VALUE Intern_notify_writable;
 static VALUE Intern_ssl_handshake_completed;
@@ -89,13 +88,14 @@ static void evma_callback_accept(VALUE acceptor, ConnectionDescriptor *cd)
 
   if (argc > 0) {
     VALUE callargs[argc];
-    int i;
-    for (i=0; i < argc; i++) {
+    for (int i=0; i < argc; i++) {
       callargs[i] = rb_ary_shift(argv);
     }
     rb_funcall2(conn, Intern_initialize, argc, callargs);
   }
-  rb_funcall(conn, Intern_post_init, 0);
+	else {
+		rb_funcall(conn, Intern_initialize, 0);
+	}
 }
 
 static void evma_callback_notify_readable(VALUE conn)
@@ -310,8 +310,10 @@ static VALUE reactor_connect_tcp(int argc, VALUE *argv, VALUE reactor)
       }
       rb_funcall2(cdobj, Intern_initialize, callargc, callargv);
     }
+		else {
+			rb_funcall(cdobj, Intern_initialize, 0);
+		}
 
-    rb_funcall(cdobj, Intern_post_init, 0);
     cd->SetBinding(cdobj);
     return cdobj;
   }
@@ -406,7 +408,6 @@ extern "C" void Init_rubyeventmachine()
   Intern_receive_data = rb_intern("receive_data");
   Intern_initialize = rb_intern("initialize");
   Intern_unbind = rb_intern("unbind");
-  Intern_post_init = rb_intern("post_init");
   Intern_notify_readable = rb_intern("notify_readable");
   Intern_notify_writable = rb_intern("notify_writable");
   Intern_ssl_handshake_completed = rb_intern("ssl_handshake_completed");

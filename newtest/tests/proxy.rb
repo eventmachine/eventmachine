@@ -6,7 +6,6 @@ describe "Proxy" do
 
   module Stub
     def connection_completed; end
-    def post_init; end
     def receive_data(data); end
     def unbind; end
   end
@@ -16,9 +15,6 @@ describe "Proxy" do
   module ProxyConnection
     def initialize(client, request)
       @client, @request = client, request
-    end
-
-    def post_init
       proxy_incoming_to(@client)
     end
 
