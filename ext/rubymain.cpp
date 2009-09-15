@@ -243,6 +243,7 @@ static VALUE reactor_alloc(VALUE klass)
   EventMachine_t *em = new EventMachine_t(event_callback);
   VALUE emobj = Data_Wrap_Struct(klass, reactor_mark, reactor_free, em);
   em->SetBinding(emobj);
+  em->_UseEpoll();
   return emobj;
 }
 
@@ -367,7 +368,7 @@ static VALUE conn_stop_proxy(VALUE conn)
 
 static VALUE conn_send_data(VALUE conn, VALUE data)
 {
-  EventableDescriptor *ed = (EventableDescriptor*) ensure_connection(conn, "Connection#send_data");
+  EventableDescriptor *ed = ensure_connection(conn, "Connection#send_data");
   return INT2NUM(ed->SendOutboundData(RSTRING_PTR(data), RSTRING_LEN(data)));
 }
 

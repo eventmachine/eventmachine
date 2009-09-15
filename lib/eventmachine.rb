@@ -2,6 +2,11 @@ require 'thread'
 require 'rubyeventmachine'
 
 module EventMachine
+  class Connection
+    def close_connection_after_writing
+      close_connection(true)
+    end
+  end
   class Reactor
     def initialize
       @timers = {}
