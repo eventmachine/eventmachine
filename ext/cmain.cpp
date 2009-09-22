@@ -19,6 +19,13 @@ See the file COPYING for complete licensing information.
 
 #include "project.h"
 
+/* 21Sep09: ruby 1.9 defines macros for common i/o functions that point to rb_w32_* implementations.
+   We need to undef the stat to fix a build failure in evma_send_file_data_to_connection.
+   See http://groups.google.com/group/eventmachine/browse_thread/thread/fc60d9bb738ffc71
+*/
+#ifdef BUILD_FOR_RUBY
+#undef stat
+#endif
 
 static EventMachine_t *EventMachine;
 static int bUseEpoll = 0;
