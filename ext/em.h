@@ -217,6 +217,7 @@ struct SelectData_t
 	int maxsocket;
 	fd_set fdreads;
 	fd_set fdwrites;
+	fd_set fderrors;
 	timeval tv;
 	int nSockets;
 };

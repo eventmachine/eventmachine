@@ -707,6 +707,7 @@ SelectData_t::SelectData_t()
 	maxsocket = 0;
 	FD_ZERO (&fdreads);
 	FD_ZERO (&fdwrites);
+	FD_ZERO (&fderrors);
 }
 
 
@@ -719,7 +720,7 @@ _SelectDataSelect
 static VALUE _SelectDataSelect (void *v)
 {
 	SelectData_t *sd = (SelectData_t*)v;
-	sd->nSockets = select (sd->maxsocket+1, &(sd->fdreads), &(sd->fdwrites), NULL, &(sd->tv));
+	sd->nSockets = select (sd->maxsocket+1, &(sd->fdreads), &(sd->fdwrites), &(sd->fderrors), &(sd->tv));
 	return Qnil;
 }
 #endif
@@ -736,7 +737,7 @@ int SelectData_t::_Select()
 	#endif
 
 	#ifndef HAVE_TBR
-	return EmSelect (maxsocket+1, &fdreads, &fdwrites, NULL, &tv);
+	return EmSelect (maxsocket+1, &fdreads, &fdwrites, &fderrors, &tv);
 	#endif
 }
 #endif
@@ -811,6 +812,13 @@ bool EventMachine_t::_RunSelectOnce()
 		if (ed->SelectForWrite())
 			FD_SET (sd, &(SelectData.fdwrites));
 
+		#ifdef OS_WIN32
+		/* 21Sep09: on windows, a non-blocking connect() that fails does not come up as writable.
+		   Instead, it is added to the error set. See http://www.mail-archive.com/openssl-users@openssl.org/msg58500.html
+		*/
+		FD_SET (sd, &(SelectData.fderrors));
+		#endif
+
 		if (SelectData.maxsocket < sd)
 			SelectData.maxsocket = sd;
 	}
@@ -847,6 +855,8 @@ bool EventMachine_t::_RunSelectOnce()
 					ed->Write();
 				if (FD_ISSET (sd, &(SelectData.fdreads)))
 					ed->Read();
+				if (FD_ISSET (sd, &(SelectData.fderrors)))
+					ed->HandleError();
 			}
 
 			if (FD_ISSET (LoopBreakerReader, &(SelectData.fdreads)))
