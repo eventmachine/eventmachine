@@ -88,8 +88,12 @@ typedef int SOCKET;
 #include <rpc.h>
 #include <fcntl.h>
 #include <assert.h>
+
 typedef int socklen_t;
 typedef int pid_t;
+
+// 21Sep09: windows limits select() to 64 sockets by default, we increase it to 1024 here
+#define FD_SETSIZE 1024
 #endif
 
 
