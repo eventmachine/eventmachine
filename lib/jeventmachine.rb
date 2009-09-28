@@ -63,6 +63,12 @@ module EventMachine
   LoopbreakSignalled = 105
   ConnectionNotifyReadable = 106
   ConnectionNotifyWritable = 107
+  SslHandshakeCompleted = 108
+
+  # Exceptions that are defined in rubymain.cpp
+  class ConnectionNotBound < RuntimeError; end
+  class UnknownTimerFired < RuntimeError; end
+  class Unsupported < RuntimeError; end
 
   # This thunk class used to be called EM, but that caused conflicts with
   # the alias "EM" for module EventMachine. (FC, 20Jun08)
