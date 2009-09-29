@@ -309,22 +309,35 @@ public class EmReactor {
 			} catch (IOException e) {}
 		}
 
+		// 29Sep09: We create an ArrayList of the existing connections, then iterate over
+		// that to call unbind on them. This is because an unbind can trigger a reconnect,
+		// which will add to the Connections HashMap, causing a ConcurrentModificationException.
+		// XXX: The correct behavior here would be to latch the various reactor methods to return
+		// immediately if the reactor is shutting down.
+		ArrayList<EventableChannel> conns = new ArrayList<EventableChannel>();
 		Iterator<EventableChannel> i2 = Connections.values().iterator();
 		while (i2.hasNext()) {
 			EventableChannel ec = i2.next();
 			if (ec != null) {
-				eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
-				ec.close();
-
-				EventableSocketChannel sc = (EventableSocketChannel) ec;
-				if (sc != null && sc.isAttached())
-					DetachedConnections.add (sc);
+				conns.add (ec);
 			}
 		}
+		Connections.clear();
 
-		ListIterator<EventableSocketChannel> i3 = DetachedConnections.listIterator(0);
+		ListIterator<EventableChannel> i3 = conns.listIterator(0);
 		while (i3.hasNext()) {
-			EventableSocketChannel ec = i3.next();
+			EventableChannel ec = i3.next();
+			eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
+			ec.close();
+
+			EventableSocketChannel sc = (EventableSocketChannel) ec;
+			if (sc != null && sc.isAttached())
+				DetachedConnections.add (sc);
+		}
+
+		ListIterator<EventableSocketChannel> i4 = DetachedConnections.listIterator(0);
+		while (i4.hasNext()) {
+			EventableSocketChannel ec = i4.next();
 			ec.cleanup();
 		}
 		DetachedConnections.clear();
