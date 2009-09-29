@@ -53,7 +53,7 @@ public class EmReactor {
 	private TreeMap<Long, ArrayList<Long>> Timers;
 	private HashMap<Long, EventableChannel> Connections;
 	private HashMap<Long, ServerSocketChannel> Acceptors;
-	private ArrayList<EventableChannel> NewConnections;
+	private ArrayList<Long> NewConnections;
 	private ArrayList<Long> UnboundConnections;
 	private ArrayList<EventableSocketChannel> DetachedConnections;
 
@@ -67,7 +67,7 @@ public class EmReactor {
 		Timers = new TreeMap<Long, ArrayList<Long>>();
 		Connections = new HashMap<Long, EventableChannel>();
 		Acceptors = new HashMap<Long, ServerSocketChannel>();
-		NewConnections = new ArrayList<EventableChannel>();
+		NewConnections = new ArrayList<Long>();
 		UnboundConnections = new ArrayList<Long>();
 		DetachedConnections = new ArrayList<EventableSocketChannel>();
 
@@ -121,13 +121,14 @@ public class EmReactor {
 		}
 		DetachedConnections.clear();
 
-		ListIterator<EventableChannel> iter2 = NewConnections.listIterator(0);
+		ListIterator<Long> iter2 = NewConnections.listIterator(0);
 		while (iter2.hasNext()) {
-			EventableChannel ec = iter2.next();
+			long b = iter2.next();
+
+			EventableChannel ec = Connections.get(b);
 			if (ec != null) {
 				try {
 					ec.register();
-					Connections.put (ec.getBinding(), ec);
 				} catch (ClosedChannelException e) {
 					UnboundConnections.add (ec.getBinding());
 				}
@@ -233,7 +234,8 @@ public class EmReactor {
 
 			b = createBinding();
 			EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector);
-			NewConnections.add (ec);
+			Connections.put (b, ec);
+			NewConnections.add (b);
 
 			eventCallback (((Long)k.attachment()).longValue(), EM_CONNECTION_ACCEPTED, null, b);
 		}
@@ -466,7 +468,8 @@ public class EmReactor {
 			}
 			else {
 				ec.setConnectPending();
-				NewConnections.add (ec);
+				Connections.put (b, ec);
+				NewConnections.add (b);
 			}
 		} catch (IOException e) {
 			// Can theoretically come here if a connect failure can be determined immediately.
@@ -516,7 +519,8 @@ public class EmReactor {
 		if (watch_mode)
 			ec.setWatchOnly();
 
-		NewConnections.add (ec);
+		Connections.put (b, ec);
+		NewConnections.add (b);
 
 		return b;
 	}
