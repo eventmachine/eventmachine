@@ -88,6 +88,7 @@ require 'em/queue'
 require 'em/channel'
 require 'em/file_watch'
 require 'em/process_watch'
+require 'em/server'
 
 require 'shellwords'
 require 'thread'
