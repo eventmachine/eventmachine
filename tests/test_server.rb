@@ -29,6 +29,14 @@ class TestEventmachineServer < Test::Unit::TestCase
   def job(&blk)
     EM.next_tick(&blk)
   end
+  
+  def in_ticks(n = 3, &b)
+    if n == 0
+      yield
+    else
+      job { in_ticks(n - 1, &b) }
+    end
+  end
 
   # The block passed to go here will be added as a next_tick in order to
   # preserve execution order for any predefined jobs in the next_tick queue.
@@ -84,7 +92,9 @@ class TestEventmachineServer < Test::Unit::TestCase
 
   def test_stop
     server = EM::Server.new(localhost, port, EM::Connection).listen.stop
-    go { EM.connect(localhost, port, UnbindStopper) }
+    # We have to belay this a few ticks to allow the machine to asynchronously
+    # complete the closing of the listen socket
+    go { in_ticks(5) { EM.connect(localhost, port, UnbindStopper) } }
   end
 
   class Aggregator
