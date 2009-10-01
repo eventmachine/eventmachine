@@ -84,7 +84,7 @@ class TestEventmachineServer < Test::Unit::TestCase
 
   def test_stop
     server = EM::Server.new(localhost, port, EM::Connection).listen.stop
-    job { EM.connect(localhost, port, UnbindStopper) }
+    go { EM.connect(localhost, port, UnbindStopper) }
   end
 
   class Aggregator
