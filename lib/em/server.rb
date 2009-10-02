@@ -1,73 +1,40 @@
 module EventMachine
-  class DelegateConnection < Connection
-    def initialize(delegate)
-      @delegate = delegate
-      @delegate.init(self)
-    end
-
-    def address_tuple
-      @port, @ip = Socket.unpack_sockaddr_in(get_peername)
-    end
-
-    def ip
-      @ip || address_tuple && @ip
-    end
-
-    def port
-      @port || address_tuple && @port
-    end
-
-    def ip_port
-      @ip_port ||= "#{@ip}:#{@port}".freeze
-    end
-
-    def post_init
-      # TODO pass in connection details
-      @delegate.post_init(self)
-    end
-
-    def receive_data(data)
-      @delegate.receive_data(self, data)
-    end
-
-    def ssl_handshake_completed
-      @delegate.ssl_handshake_completed(self)
-    end
-
-    def ssl_verify_peer(cert)
-      @delegate.ssl_verify_peer(self, cert)
-    end
-
-    def unbind
-      @delegate.unbind(self)
-    end
-
-    def proxy_target_unbound
-      @delegate.proxy_target_unbound(self)
-    end
-
-    def connection_completed
-      @delegate.connection_completed(self)
-    end
-  end
-
+  # An object oriented approach at EventMachine servers. This server class
+  # provides a convenient handle to EventMachine server bindings. The delegate
+  # parameter defines the connection module, or class that will be used to
+  # process connections. Optionally, users may pass a block which will be used
+  # as if it were passed to Module.new and passed in. The delegate paramenter
+  # will also accept an already constructed object to which it will delegate
+  # the callbacks for all connections to that object using
+  # EventMachine::DelegateConnection.
   class Server
+
+    # The host and port parameters define the listen side of a server binding.
+    # The delegate parameter defines the object, module, or class that will be
+    # utilised. Users may also pass a block instead of a delegate object which
+    # will define a module for the connections.
+    # TODO  support delegate args.
     def initialize(host, port, delegate = nil, &blk)
       @host, @port = host, port
-
       set_delegate(delegate || blk)
     end
 
+    # Schedule the start of the server listener. If the reactor is not yet
+    # running, then this method will simply schedule listening for the reactor
+    # start.
     def listen
       EM.schedule { @signature = EM.start_server(@host, @port, *@delegate) }
       self
     end
 
+    # Schedule the asynchronous shutdown of the server binding.
     def stop
       EM.schedule { EM.stop_server(@signature) if @signature }
       self
     end
 
+    # Start the reactor. If the reactor is not already running, calling this
+    # method will block until EM.stop is called.
     def run
       EM.run
     end
@@ -87,6 +54,5 @@ module EventMachine
         [DelegateConnection, delegate]
       end
     end
-
   end
 end

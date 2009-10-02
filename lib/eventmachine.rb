@@ -89,6 +89,8 @@ require 'em/channel'
 require 'em/file_watch'
 require 'em/process_watch'
 require 'em/server'
+require 'em/test'
+require 'em/delegate_connection'
 
 require 'shellwords'
 require 'thread'

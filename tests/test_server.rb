@@ -3,53 +3,12 @@ require "test/unit"
 require "eventmachine"
 
 class TestEventmachineServer < Test::Unit::TestCase
-  module UnbindStopper
-    def unbind
-      EM.next_tick { EM.stop }
-    end
-  end
-
-  module ImmediateCloser
-    def connection_completed
-      close_connection
-    end
-  end
-
-  module ClosingStopper
-    include ImmediateCloser
-    include UnbindStopper
-  end
+  include EM::Test
 
   attr_reader :localhost, :port
 
   def setup
     @localhost, @port = '127.0.0.1', 10000 + rand(1000)
-  end
-
-  def job(&blk)
-    EM.next_tick(&blk)
-  end
-  
-  def in_ticks(n = 3, &b)
-    if n == 0
-      yield
-    else
-      job { in_ticks(n - 1, &b) }
-    end
-  end
-
-  # The block passed to go here will be added as a next_tick in order to
-  # preserve execution order for any predefined jobs in the next_tick queue.
-  def go(timeout = 1, &blk)
-    job(&blk) if blk
-    success = true
-    EM.run do
-      EM.add_timer(timeout) do
-        EM.stop
-        success = false
-      end
-    end
-    assert success, "Timedout after #{timeout} seconds"
   end
 
   def test_initialize
