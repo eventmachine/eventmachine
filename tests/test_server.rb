@@ -75,7 +75,6 @@ class TestEventmachineServer < Test::Unit::TestCase
       job { EM.connect localhost, port, ImmediateCloser }
     end
     go { EM.connect localhost, port, ClosingStopper }
-    # TODO independently test the rest of the methods are delegated correctly
     assert_equal 3, aggregator.table[:init].size
     assert_equal 3, aggregator.table[:unbind].size
   end

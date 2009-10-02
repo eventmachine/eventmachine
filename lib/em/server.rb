@@ -13,7 +13,6 @@ module EventMachine
     # The delegate parameter defines the object, module, or class that will be
     # utilised. Users may also pass a block instead of a delegate object which
     # will define a module for the connections.
-    # TODO  support delegate args.
     def initialize(host, port, delegate = nil, *delegate_args, &blk)
       @host, @port = host, port
       set_delegate(delegate || blk)
