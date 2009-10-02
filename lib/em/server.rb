@@ -14,16 +14,18 @@ module EventMachine
     # utilised. Users may also pass a block instead of a delegate object which
     # will define a module for the connections.
     # TODO  support delegate args.
-    def initialize(host, port, delegate = nil, &blk)
+    def initialize(host, port, delegate = nil, *delegate_args, &blk)
       @host, @port = host, port
       set_delegate(delegate || blk)
+      @delegate_args = delegate_args
     end
 
     # Schedule the start of the server listener. If the reactor is not yet
     # running, then this method will simply schedule listening for the reactor
     # start.
     def listen
-      EM.schedule { @signature = EM.start_server(@host, @port, *@delegate) }
+      args = @delegate + @delegate_args
+      EM.schedule { @signature = EM.start_server(@host, @port, *args) }
       self
     end
 

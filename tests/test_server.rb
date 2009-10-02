@@ -79,4 +79,17 @@ class TestEventmachineServer < Test::Unit::TestCase
     assert_equal 3, aggregator.table[:init].size
     assert_equal 3, aggregator.table[:unbind].size
   end
+  
+  module ArgCaller
+    def initialize(*args)
+      args.each { |a| a.call }
+    end
+  end
+  
+  def test_delegate_arguments
+    arg1_ran, arg2_ran = false, false
+    arg1, arg2 = lambda { arg1_ran = true }, lambda { arg2_ran = true }
+    server = EM::Server.new(localhost, port, SimpleDelegate, arg1, arg2)
+    go { EM.connect localhost, port, ClosingStopper }
+  end
 end
