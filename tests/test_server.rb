@@ -88,7 +88,7 @@ class TestEventmachineServer < Test::Unit::TestCase
   def test_delegate_arguments
     arg1_ran, arg2_ran = false, false
     arg1, arg2 = lambda { arg1_ran = true }, lambda { arg2_ran = true }
-    server = EM::Server.new(localhost, port, SimpleDelegate, arg1, arg2)
+    server = EM::Server.new(localhost, port, EM::DelegateConnection, arg1, arg2)
     go { EM.connect localhost, port, ClosingStopper }
   end
 end
