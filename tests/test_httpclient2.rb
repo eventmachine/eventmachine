@@ -80,7 +80,7 @@ class TestHttpClient2 < Test::Unit::TestCase
   def test_get
     content = nil
     EM.run {
-      http = EM::P::HttpClient2.connect "www.bayshorenetworks.com", 80
+      http = EM::P::HttpClient2.connect "google.com", 80
       d = http.get "/"
       d.callback {
         content = d.content
@@ -96,7 +96,7 @@ class TestHttpClient2 < Test::Unit::TestCase
   def _test_get_multiple
     content = nil
     EM.run {
-      http = EM::P::HttpClient2.connect "www.bayshorenetworks.com", 80
+      http = EM::P::HttpClient2.connect "google.com", 80
       d = http.get "/"
       d.callback {
         e = http.get "/"
@@ -112,7 +112,7 @@ class TestHttpClient2 < Test::Unit::TestCase
   def test_get_pipeline
     headers, headers2 = nil, nil
     EM.run {
-      http = EM::P::HttpClient2.connect "www.microsoft.com", 80
+      http = EM::P::HttpClient2.connect "google.com", 80
       d = http.get("/")
       d.callback {
         headers = d.headers

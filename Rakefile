@@ -29,7 +29,6 @@
 
 require 'rubygems'  unless defined?(Gem)
 require 'rake'      unless defined?(Rake)
-require 'rake/gempackagetask'
 
 Package = false # Build zips and tarballs?
 Dir.glob('tasks/*.rake').each { |r| Rake.application.add_import r }
@@ -44,17 +43,8 @@ else
   'make'
 end
 
-# If running under rubygems...
-__DIR__ ||= File.expand_path(File.dirname(__FILE__))
-if Gem.path.map{|path| Dir.chdir(path){ Dir.pwd } rescue path }.any? {|path| %r(^#{Regexp.escape path}) =~ __DIR__}
-  task :default => :gem_build
-else
-  desc "Build gemspec, then build eventmachine, then run tests."
-  task :default => [:build, :test]
-end
-
-desc ":default build when running under rubygems."
-task :gem_build => :build
+desc "Build gemspec, then build eventmachine, then run tests."
+task :default => [:build, :test]
 
 desc "Build extension (or EVENTMACHINE_LIBRARY) and place in lib"
 build_task = 'ext:build'
@@ -67,6 +57,12 @@ task :build => build_task do |t|
 end
 
 task :dummy_build
+
+require 'rake/testtask'
+Rake::TestTask.new(:test) do |t|
+  t.pattern = 'tests/**/test_*.rb'
+  t.warning = true
+end
 
 # Basic clean definition, this is enhanced by imports aswell.
 task :clean do
@@ -211,18 +207,15 @@ namespace :ext do
   desc "Build C++ extension"
   task :build => [:make]
 
-  desc "make extensions"
   task :make => ext_libname
   task :make => ffr_libname
 
-  desc 'Compile the makefile'
   file 'ext/Makefile' => ext_extconf do
     chdir 'ext' do
       ruby 'extconf.rb'
     end
   end
 
-  desc 'Compile fastfilereader makefile'
   file 'ext/fastfilereader/Makefile' => ffr_extconf do
     chdir 'ext/fastfilereader' do
       ruby 'extconf.rb'
@@ -238,7 +231,6 @@ namespace :java do
     mv 'java/em_reactor.jar', 'lib/'
   end
 
-  desc "compile .java to .class"
   task :compile do
     chdir('java') do
       mkdir_p "build"
@@ -246,7 +238,6 @@ namespace :java do
     end
   end
 
-  desc "compile .classes to .jar"
   task :jar => [:compile] do
     chdir('java/build') do
       sh "jar -cf ../em_reactor.jar com/rubyeventmachine/*.class"
@@ -275,8 +266,81 @@ namespace :osx do
   end
 end
 
-task :gemspec => :clobber do
-  open("eventmachine.gemspec", 'w') { |f| f.write Spec.to_ruby }
+require 'rake/clean'
+
+rdoc_task_type = begin
+  require 'rdoc/task'
+  RDoc::Task
+rescue LoadError
+  require 'rake/rdoctask'
+  Rake::RDocTask
+end
+df = begin; require 'rdoc/generator/darkfish'; true; rescue LoadError; end
+rdtask = rdoc_task_type.new do |rd|
+  rd.title = Spec.name
+  rd.rdoc_dir = 'rdoc'
+  rd.main = "README"
+  rd.rdoc_files.include("lib/**/*.rb", *Spec.extra_rdoc_files)
+  rd.rdoc_files.exclude(*%w(lib/em/version lib/emva lib/evma/ lib/pr_eventmachine lib/jeventmachine))
+  rd.template = 'darkfish' if df
+end
+Rake::Task[:clean].enhance [:clobber_rdoc]
+
+desc 'Generate and open documentation'
+task :docs => :rdoc do
+  case RUBY_PLATFORM
+  when /darwin/       ; sh 'open rdoc/index.html'
+  when /mswin|mingw/  ; sh 'start rdoc\index.html'
+  else 
+    sh 'firefox rdoc/index.html'
+  end
+end
+
+def windows?; RUBY_PLATFORM =~ /mswin|mingw/; end
+def sudo(cmd)
+  if windows? || (require 'etc'; Etc.getpwuid.uid == 0)
+    sh cmd
+  else
+    sh "sudo #{cmd}"
+  end
+end
+def gem_cmd(action, name, *args)
+  rb = Gem.ruby rescue nil
+  rb ||= (require 'rbconfig'; File.join(Config::CONFIG['bindir'], Config::CONFIG['ruby_install_name']))
+  sudo "#{rb} -r rubygems -e 'require %{rubygems/gem_runner}; Gem::GemRunner.new.run(%w{#{action} #{name} #{args.join(' ')}})'"
+end
+
+@gem_package_task_type = begin
+  require 'rubygems/package_task'
+  Gem::PackageTask
+rescue LoadError
+  require 'rake/gempackagetask'
+  Rake::GemPackageTask
+end
+def gem_task
+  @gem_task ||= @gem_package_task_type.new(Spec) do |pkg|
+    pkg.need_tar, pkg.need_tar_gz, pkg.need_zip = true, true, true if Package
+    pkg.gem_spec = Spec
+  end
+end
+gem_task.define
+Rake::Task[:clean].enhance [:clobber_package]
+
+namespace :gem do
+  desc 'Install gem (and sudo if required)'
+  task :install => :package do 
+    gem_cmd(:install, "pkg/#{Spec.name}-#{Spec.version}.gem")
+  end
+
+  desc 'Uninstall gem (and sudo if required)'
+  task :uninstall do
+    gem_cmd(:uninstall, "#{Spec.name}", "-v=#{Spec.version}")
+  end
+  
+  desc "Generate new gemspec"
+  task :spec => :clobber do
+    open("eventmachine.gemspec", 'w') { |f| f.write Spec.to_ruby }
+  end
 end
 
 task :clobber => :clean
