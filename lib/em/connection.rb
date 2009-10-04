@@ -53,9 +53,9 @@ module EventMachine
     def initialize(*args) #:nodoc:
     end
 
-    def associate_callback_target(sig) #:nodoc:
-      # no-op for the time being, to match similar no-op in rubymain.cpp
-    end
+    # def associate_callback_target(sig) #:nodoc:
+    #   # no-op for the time being, to match similar no-op in rubymain.cpp
+    # end
 
     # EventMachine::Connection#post_init is called by the event loop
     # immediately after the network connection has been established,

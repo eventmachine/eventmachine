@@ -48,7 +48,7 @@ module EventMachine
       when Module
         [Class.new(EM::Connection) { include delegate }]
       when Proc
-        [Module.new &delegate]
+        [Module.new(&delegate)]
         # when nil # TODO
         #   LoggerConnection
       else

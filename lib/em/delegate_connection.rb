@@ -33,6 +33,7 @@ module EventMachine
     def initialize(delegate)
       @delegate = delegate
       @delegate.init(self)
+      @ip, @port = nil, nil
     end
 
     # Retreive the connections ip and port from the reactor.

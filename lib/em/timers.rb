@@ -31,6 +31,7 @@ module EventMachine
     def initialize interval, callback=nil, &block
       @interval = interval
       @code = callback || block
+      @cancelled = false
       schedule
     end
 

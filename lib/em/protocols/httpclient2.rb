@@ -40,6 +40,12 @@ module EventMachine
     #  }
     class HttpClient2 < Connection
       include LineText2
+      
+      def initialize
+        @authorization = nil
+        @closed = nil
+        @requests = nil
+      end
 
       class Request # :nodoc:
         include Deferrable
@@ -57,6 +63,8 @@ module EventMachine
           @header_lines = []
           @headers = {}
           @blanks = 0
+          @chunk_trailer = nil
+          @chunking = nil
         end
 
         def send_request

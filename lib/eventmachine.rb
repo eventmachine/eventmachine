@@ -191,6 +191,10 @@ module EventMachine
     attr_reader :reactor_thread
   end
   @next_tick_mutex = Mutex.new
+  @reactor_running = false
+  @next_tick_queue = nil
+  @threadpool = nil
+  
 
   # EventMachine::run initializes and runs an event loop.
   # This method only returns if user-callback code calls stop_event_loop.

@@ -132,6 +132,7 @@ module EventMachine
       # when in sized text mode. User overrides of #receive_binary_data need to
       # be aware that they may get a short buffer.
       def unbind
+        @lt2_mode ||= nil
         if @lt2_mode == :text and @lt2_textpos > 0
           receive_binary_data @lt2_textbuffer.join
         end

@@ -22,11 +22,10 @@ def run_tests t, libr = :cascade, test_files="test_*.rb"
   runner.run(suite)
 end
 
-desc "Run tests for #{Spec.name}."
-task :test do |t|
-  # run_tests t
-  # Rake +/ friends leave threads, etc, less stable test runs.
-  ruby "-Ilib -Iext -Iext/fastfilereader -Ijava tests/testem.rb #{'-v' if ENV['VERBOSE']}"
+require 'rake/testtask'
+Rake::TestTask.new(:test) do |t|
+  t.pattern = 'tests/**/test_*.rb'
+  t.warning = true
 end
 
 namespace :test do

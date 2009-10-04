@@ -42,6 +42,7 @@ module EventMachine
     #
     def callback &block
       return unless block
+      @deferred_status ||= :unknown
       if @deferred_status == :succeeded
         block.call(*@deferred_args)
       elsif @deferred_status != :failed
@@ -59,6 +60,7 @@ module EventMachine
     #
     def errback &block
       return unless block
+      @deferred_status ||= :unknown
       if @deferred_status == :failed
         block.call(*@deferred_args)
       elsif @deferred_status != :succeeded
@@ -121,6 +123,8 @@ module EventMachine
     #
     def set_deferred_status status, *args
       cancel_timeout
+      @errbacks ||= nil
+      @callbacks ||= nil
       @deferred_status = status
       @deferred_args = args
       case @deferred_status
@@ -155,6 +159,7 @@ module EventMachine
     # Cancels an outstanding timeout if any. Undoes the action of #timeout.
     #
     def cancel_timeout
+      @deferred_timeout ||= nil
       if @deferred_timeout
         @deferred_timeout.cancel
         @deferred_timeout = nil

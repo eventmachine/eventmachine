@@ -66,6 +66,13 @@ module EventMachine
     class SmtpClient < Connection
       include EventMachine::Deferrable
       include EventMachine::Protocols::LineText2
+      
+      def initialize
+        @succeeded = nil
+        @responder = nil
+        @code = nil
+        @msg = nil
+      end
 
       # :host => required String
       #   a string containing the IP address or host name of the SMTP server to connect to.

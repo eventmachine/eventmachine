@@ -9,18 +9,29 @@ module EventMachine
     class <<self
       alias set_tls_parms_old set_tls_parms
       alias start_tls_old start_tls
-      def set_tls_parms *args; end
-      def start_tls *args; end
+      begin
+        old, $VERBOSE = $VERBOSE, nil
+        def set_tls_parms *args; end
+        def start_tls *args; end
+      ensure
+        $VERBOSE = old
+      end
     end
   end
-  
+
   def self._clear_mocks
     class <<self
-      alias set_tls_parms set_tls_parms_old
-      alias start_tls start_tls_old
+      begin
+        old, $VERBOSE = $VERBOSE, nil
+        alias set_tls_parms set_tls_parms_old
+        alias start_tls start_tls_old
+      ensure
+        $VERBOSE = old
+      end
     end
   end
 end
+
   
 
 class TestSslArgs < Test::Unit::TestCase
