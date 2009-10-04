@@ -195,31 +195,35 @@ end
 namespace :ext do
   ext_sources = FileList['ext/*.{h,cpp,rb,c}']
   ffr_sources = FileList['ext/fastfilereader/*.{h,cpp,rb}']
+  file ext_extconf = 'ext/extconf.rb'
+  file ffr_extconf = 'ext/fastfilereader/extconf.rb'
+  ext_libname = "lib/rubyeventmachine.#{Config::CONFIG['DLEXT']}"
+  ffr_libname = "lib/fastfilereaderext.#{Config::CONFIG['DLEXT']}"
+
+  file ext_libname => ext_sources + ['ext/Makefile'] do
+    chdir('ext') { sh MAKE }
+  end
+  
+  file ffr_libname => ffr_sources + ['ext/fastfilereader/Makefile'] do
+    chdir('ext/fastfilereader') { sh MAKE }
+  end
 
   desc "Build C++ extension"
   task :build => [:make]
 
   desc "make extensions"
-  task :make => ext_sources + ['ext/Makefile'] do
-    chdir 'ext' do
-      sh MAKE
-    end
-  end
-  task :make => ffr_sources + ['ext/fastfilereader/Makefile'] do
-    chdir 'ext/fastfilereader' do
-      sh MAKE
-    end
-  end
+  task :make => ext_libname
+  task :make => ffr_libname
 
   desc 'Compile the makefile'
-  file 'ext/Makefile' => ext_sources do
+  file 'ext/Makefile' => ext_extconf do
     chdir 'ext' do
       ruby 'extconf.rb'
     end
   end
 
   desc 'Compile fastfilereader makefile'
-  file 'ext/fastfilereader/Makefile' => ffr_sources do
+  file 'ext/fastfilereader/Makefile' => ffr_extconf do
     chdir 'ext/fastfilereader' do
       ruby 'extconf.rb'
     end
