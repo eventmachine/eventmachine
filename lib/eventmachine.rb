@@ -1044,26 +1044,13 @@ module EventMachine
       cback.call result if cback
     end
 
-    @next_tick_queue ||= []
-    if (l = @next_tick_queue.length) > 0
-      l.times {|i| @next_tick_queue[i].call}
-      @next_tick_queue.slice!( 0...l )
-    end
-
-=begin
-    (@next_tick_queue ||= []).length.times {
-      cback=@next_tick_queue.pop and cback.call
-    }
-=end
-=begin
-    if (@next_tick_queue ||= []) and @next_tick_queue.length > 0
-      ary = @next_tick_queue.dup
-      @next_tick_queue.clear
-      until ary.empty?
-        cback=ary.pop and cback.call
+    @next_tick_mutex.synchronize do
+      @next_tick_queue ||= []
+      if (l = @next_tick_queue.length) > 0
+        l.times {|i| @next_tick_queue[i].call}
+        @next_tick_queue.slice!( 0...l )
       end
     end
-=end
   end
 
 
@@ -1165,15 +1152,6 @@ module EventMachine
       (@next_tick_queue ||= []) << ( pr || block )
       signal_loopbreak if reactor_running?
     end
-=begin
-    (@next_tick_procs ||= []) << (pr || block)
-    if @next_tick_procs.length == 1
-      add_timer(0) {
-        @next_tick_procs.each {|t| t.call}
-        @next_tick_procs.clear
-      }
-    end
-=end
   end
 
   # A wrapper over the setuid system call. Particularly useful when opening a network
