@@ -247,6 +247,7 @@ module EventMachine
       @acceptors = {}
       @timers = {}
       @wrapped_exception = nil
+      @next_tick_queue ||= []
       begin
         @reactor_running = true
         initialize_event_machine
@@ -1044,13 +1045,11 @@ module EventMachine
       cback.call result if cback
     end
 
-    @next_tick_mutex.synchronize do
-      @next_tick_queue ||= []
-      if (l = @next_tick_queue.length) > 0
-        l.times {|i| @next_tick_queue[i].call}
-        @next_tick_queue.slice!( 0...l )
-      end
+    jobs = @next_tick_mutex.synchronize do
+      jobs, @next_tick_queue = @next_tick_queue, []
+      jobs
     end
+    jobs.each { |j| j.call }
   end
 
 
@@ -1150,8 +1149,8 @@ module EventMachine
     raise ArgumentError, "no proc or block given" unless ((pr && pr.respond_to?(:call)) or block)
     @next_tick_mutex.synchronize do
       (@next_tick_queue ||= []) << ( pr || block )
-      signal_loopbreak if reactor_running?
     end
+    signal_loopbreak if reactor_running?
   end
 
   # A wrapper over the setuid system call. Particularly useful when opening a network
