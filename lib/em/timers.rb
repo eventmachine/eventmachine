@@ -44,7 +44,7 @@ module EventMachine
     attr_accessor :interval
 
     def schedule # :nodoc:
-      EventMachine::add_timer @interval, proc {self.fire}
+      EventMachine::add_timer @interval, method(:fire)
     end
     def fire # :nodoc:
       unless @cancelled
