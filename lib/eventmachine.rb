@@ -566,20 +566,7 @@ module EventMachine
       port = nil
     end if port
 
-    klass = if handler and handler.is_a?(Class)
-      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection >= handler
-      handler
-    elsif handler
-      Class.new(Connection){ include handler }
-    else
-      Connection
-    end
-
-    arity = klass.instance_method(:initialize).arity
-    expected = arity >= 0 ? arity : -(arity + 1)
-    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
-      raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})" 
-    end
+    klass = klass_from_handler(Connection, handler, *args)
 
     s = if port
           start_tcp_server server, port
@@ -718,20 +705,7 @@ module EventMachine
       port = nil
     end if port
 
-    klass = if handler and handler.is_a?(Class)
-      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection >= handler
-      handler
-    elsif handler
-      Class.new(Connection){ include handler }
-    else
-      Connection
-    end
-
-    arity = klass.instance_method(:initialize).arity
-    expected = arity >= 0 ? arity : -(arity + 1)
-    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
-      raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
-    end
+    klass = klass_from_handler(Connection, handler, *args)
 
     s = if port
           if bind_addr
@@ -806,20 +780,7 @@ module EventMachine
   end
 
   def EventMachine::attach_io io, watch_mode, handler=nil, *args # :nodoc:
-    klass = if handler and handler.is_a?(Class)
-      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection >= handler
-      handler
-    elsif handler
-      Class.new(Connection){ include handler }
-    else
-      Connection
-    end
-
-    arity = klass.instance_method(:initialize).arity
-    expected = arity >= 0 ? arity : -(arity + 1)
-    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
-      raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
-    end
+    klass = klass_from_handler(Connection, handler, *args)
 
     if !watch_mode and klass.public_instance_methods.any?{|m| [:notify_readable, :notify_writable].include? m.to_sym }
       raise ArgumentError, "notify_readable/writable with EM.attach is not supported. Use EM.watch(io){ |c| c.notify_readable = true }"
@@ -950,21 +911,7 @@ module EventMachine
   # out that this originally did not take a class but only a module.
   #
   def self.open_datagram_socket address, port, handler=nil, *args
-    klass = if handler and handler.is_a?(Class)
-      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection >= handler
-      handler
-    elsif handler
-      Class.new(Connection){ include handler }
-    else
-      Connection
-    end
-
-    arity = klass.instance_method(:initialize).arity
-    expected = arity >= 0 ? arity : -(arity + 1)
-    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
-      raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
-    end
-
+    klass = klass_from_handler(Connection, handler, *args)
     s = open_udp_socket address, port.to_i
     c = klass.new s, *args
     @conns[s] = c
@@ -1212,15 +1159,7 @@ module EventMachine
   # Perhaps misnamed since the underlying function uses socketpair and is full-duplex.
   #
   def self.popen cmd, handler=nil, *args
-    klass = if handler and handler.is_a?(Class)
-      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection >= handler
-      handler
-    elsif handler
-      Class.new(Connection){ include handler }
-    else
-      Connection
-    end
-
+    klass = klass_from_handler(Connection, handler, *args)
     w = Shellwords::shellwords( cmd )
     w.unshift( w.first ) if w.first
     s = invoke_popen( w )
@@ -1250,20 +1189,7 @@ module EventMachine
   #
   #
   def self.open_keyboard handler=nil, *args
-    klass = if handler and handler.is_a?(Class)
-      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection >= handler
-      handler
-    elsif handler
-      Class.new(Connection){ include handler }
-    else
-      Connection
-    end
-
-    arity = klass.instance_method(:initialize).arity
-    expected = arity >= 0 ? arity : -(arity + 1)
-    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
-      raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
-    end
+    klass = klass_from_handler(Connection, handler, *args)
 
     s = read_keyboard
     c = klass.new s, *args
@@ -1335,20 +1261,7 @@ module EventMachine
   # Calling #path will always return the filename you originally used.
   #
   def self.watch_file(filename, handler=nil, *args)
-    klass = if handler and handler.is_a?(Class)
-      raise ArgumentError, 'must provide module or subclass of EventMachine::FileWatch' unless FileWatch >= handler
-      handler
-    elsif handler
-      Class.new(FileWatch){ include handler }
-    else
-      FileWatch
-    end
-
-    arity = klass.instance_method(:initialize).arity
-    expected = arity >= 0 ? arity : -(arity + 1)
-    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
-      raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
-    end
+    klass = klass_from_handler(FileWatch, handler, *args)
 
     s = EM::watch_filename(filename)
     c = klass.new s, *args
@@ -1379,20 +1292,7 @@ module EventMachine
   def self.watch_process(pid, handler=nil, *args)
     pid = pid.to_i
 
-    klass = if handler and handler.is_a?(Class)
-      raise ArgumentError, 'must provide module or subclass of EventMachine::ProcessWatch' unless ProcessWatch >= handler
-      handler
-    elsif handler
-      Class.new(ProcessWatch){ include handler }
-    else
-      ProcessWatch
-    end
-
-    arity = klass.instance_method(:initialize).arity
-    expected = arity >= 0 ? arity : -(arity + 1)
-    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
-      raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
-    end
+    klass = klass_from_handler(ProcessWatch, handler, *args)
 
     s = EM::watch_pid(pid)
     c = klass.new s, *args
@@ -1657,20 +1557,33 @@ module EventMachine
   # This is a provisional implementation of a stream-oriented file access object.
   # We also experiment with wrapping up some better exception reporting.
   def self._open_file_for_writing filename, handler=nil # :nodoc:
-    klass = if handler and handler.is_a?(Class)
-      raise ArgumentError, 'must provide module or subclass of EventMachine::Connection' unless Connection >= handler
-      handler
-    elsif handler
-      Class.new(Connection){ include handler }
-    else
-      Connection
-    end
+    klass = klass_from_handler(Connection, handler)
 
     s = _write_file filename
     c = klass.new s
     @conns[s] = c
     block_given? and yield c
     c
+  end
+
+  private
+  def self.klass_from_handler(klass = Connection, handler = nil, *args)
+    klass = if handler and handler.is_a?(Class)
+      raise ArgumentError, "must provide module or subclass of #{klass.name}" unless klass >= handler
+      handler
+    elsif handler
+      Class.new(klass){ include handler }
+    else
+      klass
+    end
+
+    arity = klass.instance_method(:initialize).arity
+    expected = arity >= 0 ? arity : -(arity + 1)
+    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
+      raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
+    end
+
+    klass
   end
 end # module EventMachine
 
