@@ -76,6 +76,7 @@ module EventMachine
     def eventCallback a1, a2, a3, a4
       s = String.from_java_bytes(a3.array[a3.position...a3.limit]) if a3
       EventMachine::event_callback a1, a2, s || a4
+      nil
     end
   end
   # class Connection < com.rubyeventmachine.Connection
