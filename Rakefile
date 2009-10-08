@@ -310,20 +310,17 @@ def gem_cmd(action, name, *args)
   sudo "#{rb} -r rubygems -e 'require %{rubygems/gem_runner}; Gem::GemRunner.new.run(%w{#{action} #{name} #{args.join(' ')}})'"
 end
 
-@gem_package_task_type = begin
+begin
   require 'rubygems/package_task'
   Gem::PackageTask
 rescue LoadError
   require 'rake/gempackagetask'
   Rake::GemPackageTask
+end.new(Spec) do |pkg|
+  pkg.need_tar, pkg.need_tar_gz, pkg.need_zip = true, true, true if Package
+  pkg.gem_spec = Spec
 end
-def gem_task
-  @gem_task ||= @gem_package_task_type.new(Spec) do |pkg|
-    pkg.need_tar, pkg.need_tar_gz, pkg.need_zip = true, true, true if Package
-    pkg.gem_spec = Spec
-  end
-end
-gem_task.define
+
 Rake::Task[:clean].enhance [:clobber_package]
 
 namespace :gem do
