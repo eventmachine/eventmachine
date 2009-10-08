@@ -39,7 +39,11 @@ module JavaFields
   def set_field(key, value)
     field = getClass.getDeclaredField(key)
     field.setAccessible(true)
-    field.set(self, value)
+    if field.getType.toString == 'int'
+      field.setInt(self, value)
+    else
+      field.set(self, value)
+    end
   end
 
   def get_field(key)
