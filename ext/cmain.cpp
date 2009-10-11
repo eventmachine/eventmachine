@@ -783,12 +783,12 @@ extern "C" int evma_send_file_data_to_connection (const unsigned long binding, c
 evma_start_proxy
 *****************/
 
-extern "C" void evma_start_proxy (const unsigned long from, const unsigned long to)
+extern "C" void evma_start_proxy (const unsigned long from, const unsigned long to, const unsigned long bufsize)
 {
 	ensure_eventmachine("evma_start_proxy");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (from));
 	if (ed)
-		ed->StartProxy(to);
+		ed->StartProxy(to, bufsize);
 }
 
 

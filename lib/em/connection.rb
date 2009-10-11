@@ -138,8 +138,8 @@ module EventMachine
     # a low-level proxy relay for all data inbound for this connection, to the connection given
     # as the argument. This is essentially just a helper method for enable_proxy.
     # See EventMachine::enable_proxy documentation for details.
-    def proxy_incoming_to(conn)
-      EventMachine::enable_proxy(self, conn)
+    def proxy_incoming_to(conn,bufsize=0)
+      EventMachine::enable_proxy(self, conn, bufsize)
     end
 
     # Helper method for EventMachine::disable_proxy(self)

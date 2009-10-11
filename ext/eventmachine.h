@@ -105,7 +105,7 @@ extern "C" {
 	const unsigned long evma_watch_pid (int);
 	void evma_unwatch_pid (const unsigned long);
 
-	void evma_start_proxy(const unsigned long, const unsigned long);
+	void evma_start_proxy(const unsigned long, const unsigned long, const unsigned long);
 	void evma_stop_proxy(const unsigned long);
 
 	int evma_set_rlimit_nofile (int n_files);

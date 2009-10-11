@@ -1472,8 +1472,8 @@ module EventMachine
   #  EM.run {
   #    EM.start_server("127.0.0.1", 8080, ProxyServer)
   #  }
-  def self.enable_proxy(from, to)
-    EM::start_proxy(from.signature, to.signature)
+  def self.enable_proxy(from, to, bufsize=0)
+    EM::start_proxy(from.signature, to.signature, bufsize)
   end
 
   # disable_proxy takes just one argument, a Connection that has proxying enabled via enable_proxy.

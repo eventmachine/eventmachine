@@ -974,9 +974,9 @@ static VALUE t_get_loop_time (VALUE self)
 t_start_proxy
 **************/
 
-static VALUE t_start_proxy (VALUE self, VALUE from, VALUE to)
+static VALUE t_start_proxy (VALUE self, VALUE from, VALUE to, VALUE bufsize)
 {
-	evma_start_proxy(NUM2ULONG (from), NUM2ULONG (to));
+	evma_start_proxy(NUM2ULONG (from), NUM2ULONG (to), NUM2ULONG(bufsize));
 	return Qnil;
 }
 
@@ -1083,7 +1083,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "resume_connection", (VALUE (*)(...))t_resume, 1);
 	rb_define_module_function (EmModule, "connection_paused?", (VALUE (*)(...))t_paused_p, 1);
 
-	rb_define_module_function (EmModule, "start_proxy", (VALUE (*)(...))t_start_proxy, 2);
+	rb_define_module_function (EmModule, "start_proxy", (VALUE (*)(...))t_start_proxy, 3);
 	rb_define_module_function (EmModule, "stop_proxy", (VALUE (*)(...))t_stop_proxy, 1);
 
 	rb_define_module_function (EmModule, "watch_filename", (VALUE (*)(...))t_watch_filename, 1);

@@ -58,6 +58,8 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	bCallbackUnbind (true),
 	UnbindReasonCode (0),
 	ProxyTarget(NULL),
+	ProxiedFrom(NULL),
+	MaxOutboundBufSize(0),
 	MyEventMachine (em),
 	PendingConnectTimeout(20000000)
 {
@@ -103,6 +105,10 @@ EventableDescriptor::~EventableDescriptor()
 {
 	if (EventCallback && bCallbackUnbind)
 		(*EventCallback)(GetBinding(), EM_CONNECTION_UNBOUND, NULL, UnbindReasonCode);
+	if (ProxiedFrom) {
+		(*EventCallback)(ProxiedFrom->GetBinding(), EM_PROXY_TARGET_UNBOUND, NULL, 0);
+		ProxiedFrom->StopProxy();
+	}
 	StopProxy();
 	Close();
 }
@@ -181,12 +187,13 @@ bool EventableDescriptor::IsCloseScheduled()
 EventableDescriptor::StartProxy
 *******************************/
 
-void EventableDescriptor::StartProxy(unsigned long to)
+void EventableDescriptor::StartProxy(const unsigned long to, const unsigned long bufsize)
 {
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (to));
 	if (ed) {
 		StopProxy();
-		ProxyTarget = to;
+		ProxyTarget = ed;
+		ed->SetProxiedFrom(this, bufsize);
 		return;
 	}
 	throw std::runtime_error ("Tried to proxy to an invalid descriptor");
@@ -200,8 +207,20 @@ EventableDescriptor::StopProxy
 void EventableDescriptor::StopProxy()
 {
 	if (ProxyTarget) {
+		ProxyTarget->SetProxiedFrom(NULL, 0);
 		ProxyTarget = NULL;
 	}
+}
+
+
+/***********************************
+EventableDescriptor::SetProxiedFrom
+***********************************/
+
+void EventableDescriptor::SetProxiedFrom(EventableDescriptor *from, const unsigned long bufsize)
+{
+	ProxiedFrom = from;
+	MaxOutboundBufSize = bufsize;
 }
 
 
@@ -213,12 +232,10 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 {
 	assert(EventCallback);
 
-	if (!ProxyTarget)
+	if (ProxyTarget)
+		ProxyTarget->SendOutboundData(buf, size);
+	else
 		(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf, size);
-	else if (ConnectionDescriptor::SendDataToConnection(ProxyTarget, buf, size) == -1) {
-		(*EventCallback)(GetBinding(), EM_PROXY_TARGET_UNBOUND, NULL, 0);
-		StopProxy();
-	}
 }
 
 
@@ -482,6 +499,9 @@ int ConnectionDescriptor::SendOutboundData (const char *data, int length)
 {
 	if (bWatchOnly)
 		throw std::runtime_error ("cannot send data on a 'watch only' connection");
+
+	if (ProxiedFrom && MaxOutboundBufSize && GetOutboundDataSize() + length > MaxOutboundBufSize)
+		ProxiedFrom->Pause();
 
 	#ifdef WITH_SSL
 	if (SslBox) {
@@ -930,6 +950,9 @@ void ConnectionDescriptor::_WriteOutboundData()
 
 	assert (bytes_written >= 0);
 	OutboundDataSize -= bytes_written;
+
+	if (ProxiedFrom && MaxOutboundBufSize && GetOutboundDataSize() < MaxOutboundBufSize && ProxiedFrom->IsPaused())
+		ProxiedFrom->Resume();
 
 	#ifdef HAVE_WRITEV
 	if (!err) {
