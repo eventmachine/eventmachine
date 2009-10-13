@@ -626,6 +626,7 @@ bool ConnectionDescriptor::Pause()
 
 	bool old = bPaused;
 	bPaused = true;
+	_UpdateEvents();
 	return old == false;
 }
 
@@ -640,6 +641,7 @@ bool ConnectionDescriptor::Resume()
 
 	bool old = bPaused;
 	bPaused = false;
+	_UpdateEvents();
 	return old == true;
 }
 
