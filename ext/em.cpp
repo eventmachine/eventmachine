@@ -1021,17 +1021,17 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	 */
 
 	if (!server || !*server || !port)
-		return NULL;
+		throw std::runtime_error ("invalid server or port");
 
 	int family, bind_size;
 	struct sockaddr bind_as, *bind_as_ptr = name2address (server, port, &family, &bind_size);
 	if (!bind_as_ptr)
-		return NULL;
+		throw std::runtime_error ("unable to resolve server address");
 	bind_as = *bind_as_ptr; // copy because name2address points to a static
 
 	int sd = socket (family, SOCK_STREAM, 0);
 	if (sd == INVALID_SOCKET)
-		return NULL;
+		throw std::runtime_error ("unable to create new socket");
 
 	/*
 	sockaddr_in pin;
@@ -1065,7 +1065,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	// Set the new socket nonblocking.
 	if (!SetSocketNonblocking (sd)) {
 		closesocket (sd);
-		return NULL;
+		throw std::runtime_error ("unable to set socket as non-blocking");
 	}
 	// Disable slow-start (Nagle algorithm).
 	int one = 1;
@@ -1078,7 +1078,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		struct sockaddr *bind_to = name2address (bind_addr, bind_port, &bind_to_family, &bind_to_size);
 		if (!bind_to) {
 			closesocket (sd);
-			throw std::runtime_error ("bad bind address");
+			throw std::runtime_error ("invalid bind address");
 		}
 		if (bind (sd, bind_to, bind_to_size) < 0) {
 			closesocket (sd);
