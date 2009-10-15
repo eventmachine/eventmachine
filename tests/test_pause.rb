@@ -60,7 +60,7 @@ class TestPause < Test::Unit::TestCase
 
         EM.add_timer(1) do
           test.assert server.paused?
-          test.assert_equal 2, s_rx
+          test.assert s_rx >= 2
           test.assert c_rx >= 1
           EM.stop_event_loop
         end
