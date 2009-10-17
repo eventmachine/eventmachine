@@ -27,12 +27,28 @@
  */
 
 
-package com.rubyeventmachine;
+package com.rubyeventmachine.application;
 
-public class PeriodicTimer extends Timer {
-
+public class Timer {
+	/**
+	 * User code is expected to call a method on a controlling Application,
+	 * which will fill in this field so subsequent user code can access it.
+	 */
+	public Application application;
+	public double interval;
+	
+	/**
+	 * The reactor calls here, and it may be overridden in subclasses.
+	 * User code should never call this method.
+	 */
 	public void _fire() {
 		fire();
-		application.addTimer(interval, this);
 	}
+
+	/**
+	 * User code is expected to override this method.
+	 */
+	public void fire() {
+	}
+
 }

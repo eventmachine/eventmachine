@@ -35,11 +35,13 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import java.net.*;
 import java.io.*;
 import java.nio.*;
 import java.nio.channels.*;
 
 import com.rubyeventmachine.*;
+import com.rubyeventmachine.application.*;
 
 public class ConnectTest {
 
@@ -110,12 +112,12 @@ public class ConnectTest {
 		Application a = new Application();
 		a.addTimer(0, new Timer() {
 			public void fire() {
-				application.startServer(new InetSocketAddress("localhost", 20000), new Server());
+				application.startServer(new InetSocketAddress("localhost", 20000), new DefaultConnectionFactory());
 			}
 		});
 		a.addTimer(500, new Timer() {
 			public void fire() {
-				application.bindConnect("localhost", 33333, "localhost", 20000);
+				application.bindConnect("localhost", 33333, "localhost", 20000, new Connection());
 			}
 		});
 

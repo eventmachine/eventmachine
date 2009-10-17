@@ -27,28 +27,11 @@
  */
 
 
-package com.rubyeventmachine;
 
-public class Timer {
-	/**
-	 * User code is expected to call a method on a controlling Application,
-	 * which will fill in this field so subsequent user code can access it.
-	 */
-	public Application application;
-	public double interval;
-	
-	/**
-	 * The reactor calls here, and it may be overridden in subclasses.
-	 * User code should never call this method.
-	 */
-	public void _fire() {
-		fire();
-	}
+package com.rubyeventmachine.application;
 
-	/**
-	 * User code is expected to override this method.
-	 */
-	public void fire() {
-	}
+//import com.rubyeventmachine.*;
 
+public interface ConnectionFactory {
+	public Connection connection();
 }

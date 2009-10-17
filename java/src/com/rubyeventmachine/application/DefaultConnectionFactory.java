@@ -28,9 +28,9 @@
 
 
 
-package com.rubyeventmachine;
+package com.rubyeventmachine.application;
 
-import com.rubyeventmachine.ConnectionFactory;
+import com.rubyeventmachine.application.ConnectionFactory;
 
 public class DefaultConnectionFactory implements ConnectionFactory {
 

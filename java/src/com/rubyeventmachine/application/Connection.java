@@ -28,7 +28,7 @@
 
 
 
-package com.rubyeventmachine;
+package com.rubyeventmachine.application;
 
 //import java.io.*;
 import java.nio.*;

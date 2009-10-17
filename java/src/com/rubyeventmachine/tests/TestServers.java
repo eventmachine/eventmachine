@@ -31,6 +31,7 @@ package com.rubyeventmachine.tests;
 
 
 import com.rubyeventmachine.*;
+import com.rubyeventmachine.application.*;
 import java.net.*;
 import org.junit.After;
 import org.junit.AfterClass;

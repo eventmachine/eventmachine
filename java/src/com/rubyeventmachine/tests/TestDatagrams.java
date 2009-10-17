@@ -1,6 +1,6 @@
 package com.rubyeventmachine.tests;
 
-import com.rubyeventmachine.*;
+import com.rubyeventmachine.application.*;
 import java.net.*;
 import java.nio.*;
 

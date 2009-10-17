@@ -42,6 +42,7 @@ import java.io.*;
 import java.nio.*;
 
 import com.rubyeventmachine.*;
+import com.rubyeventmachine.application.*;
 
 public class ApplicationTest {
 

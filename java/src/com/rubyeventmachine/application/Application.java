@@ -29,7 +29,7 @@
 /**
  * 
  */
-package com.rubyeventmachine;
+package com.rubyeventmachine.application;
 
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
@@ -37,6 +37,8 @@ import java.util.*;
 import java.io.*;
 import java.net.*;
 import java.net.SocketAddress;
+
+import com.rubyeventmachine.*;
 
 /**
  * @author francis

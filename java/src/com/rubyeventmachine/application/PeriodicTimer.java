@@ -27,11 +27,12 @@
  */
 
 
+package com.rubyeventmachine.application;
 
-package com.rubyeventmachine;
+public class PeriodicTimer extends Timer {
 
-//import com.rubyeventmachine.*;
-
-public interface ConnectionFactory {
-	public Connection connection();
+	public void _fire() {
+		fire();
+		application.addTimer(interval, this);
+	}
 }
