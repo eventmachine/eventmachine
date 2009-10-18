@@ -31,5 +31,6 @@ module EventMachine
     autoload :Memcache, 'em/protocols/memcache'
     autoload :Postgres3, 'em/protocols/postgres3'
     autoload :ObjectProtocol, 'em/protocols/object_protocol'
+    autoload :Socks4, 'em/protocols/socks4'
   end
 end
