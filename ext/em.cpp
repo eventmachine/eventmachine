@@ -982,7 +982,7 @@ const unsigned long EventMachine_t::InstallOneshotTimer (int milliseconds)
 	#endif
 
 	Timer_t t;
-	#ifdef OS_SOLARIS8
+	#ifndef HAVE_MAKE_PAIR
 	multimap<Int64,Timer_t>::iterator i = Timers.insert (multimap<Int64,Timer_t>::value_type (fire_at, t));
 	#else
 	multimap<Int64,Timer_t>::iterator i = Timers.insert (make_pair (fire_at, t));

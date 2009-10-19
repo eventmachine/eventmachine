@@ -41,9 +41,8 @@ when /mswin32/, /mingw32/, /bccwin32/
   end
 
 when /solaris/
-  check_libs(%w[nsl socket], true)
-
   add_define 'OS_SOLARIS8'
+  check_libs(%w[nsl socket], true)
 
   # Patch by Tim Pease, fixes SUNWspro compile problems.
   if CONFIG['CC'] == 'cc'

@@ -50,9 +50,8 @@ when /mswin32/, /mingw32/, /bccwin32/
   end
 
 when /solaris/
-  check_libs(%w[nsl socket], true)
-
   add_define 'OS_SOLARIS8'
+  check_libs(%w[nsl socket], true)
 
   # Patch by Tim Pease, fixes SUNWspro compile problems.
   if CONFIG['CC'] == 'cc'
@@ -136,5 +135,14 @@ if pkg_config('openssl') || manual_ssl_config
 else
   add_define "WITHOUT_SSL"
 end
+
+# solaris c++ compiler doesn't have make_pair()
+TRY_LINK.sub!('$(CC)', '$(CXX)')
+add_define 'HAVE_MAKE_PAIR' if try_link(<<SRC, '-lstdc++')
+  #include <utility>
+  using namespace std;
+  int main(){ pair<int,int> tuple = make_pair(1,2); }
+SRC
+TRY_LINK.sub!('$(CXX)', '$(CC)')
 
 create_makefile "rubyeventmachine"
