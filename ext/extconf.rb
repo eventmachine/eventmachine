@@ -18,6 +18,8 @@ add_define "HAVE_TBR" if have_func('rb_thread_blocking_region')# and have_macro(
 add_define "HAVE_INOTIFY" if inotify = have_func('inotify_init', 'sys/inotify.h')
 add_define "HAVE_OLD_INOTIFY" if !inotify && have_macro('__NR_inotify_init', 'sys/syscall.h')
 add_define 'HAVE_WRITEV' if have_func('writev', 'sys/uio.h')
+have_func('rb_thread_check_ints')
+have_func('rb_time_new')
 
 # Minor platform details between *nix and Windows:
 
