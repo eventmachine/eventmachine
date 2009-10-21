@@ -23,7 +23,7 @@ See the file COPYING for complete licensing information.
    We need to undef the stat to fix a build failure in evma_send_file_data_to_connection.
    See http://groups.google.com/group/eventmachine/browse_thread/thread/fc60d9bb738ffc71
 */
-#ifdef BUILD_FOR_RUBY
+#if defined(BUILD_FOR_RUBY) && defined(OS_WIN32)
 #undef stat
 #endif
 
