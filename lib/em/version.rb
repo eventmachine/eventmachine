@@ -1,3 +1,3 @@
 module EventMachine
-  VERSION = "0.12.10"
+  VERSION = "0.12.11"
 end
