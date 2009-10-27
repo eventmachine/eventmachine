@@ -769,7 +769,7 @@ static VALUE t_watch_filename (VALUE self, VALUE fname)
 	try {
 		return ULONG2NUM(evma_watch_filename(StringValuePtr(fname)));
 	} catch (std::runtime_error e) {
-		rb_sys_fail(e.what());
+		rb_raise (EM_eUnsupported, e.what());
 	}
 }
 
@@ -794,7 +794,7 @@ static VALUE t_watch_pid (VALUE self, VALUE pid)
 	try {
 		return ULONG2NUM(evma_watch_pid(NUM2INT(pid)));
 	} catch (std::runtime_error e) {
-		rb_sys_fail(e.what());
+		rb_raise (EM_eUnsupported, e.what());
 	}
 }
 

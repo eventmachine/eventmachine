@@ -2005,7 +2005,7 @@ const unsigned long EventMachine_t::WatchPid (int pid)
 {
 	#ifdef HAVE_KQUEUE
 	if (!bKqueue)
-		throw std::runtime_error("must enable kqueue");
+		throw std::runtime_error("must enable kqueue (EM.kqueue=true) for pid watching support");
 
 	struct kevent event;
 	int kqres;
@@ -2104,7 +2104,7 @@ const unsigned long EventMachine_t::WatchFile (const char *fpath)
 
 	#ifdef HAVE_KQUEUE
 	if (!bKqueue)
-		throw std::runtime_error("must enable kqueue");
+		throw std::runtime_error("must enable kqueue (EM.kqueue=true) for file watching support");
 
 	// With kqueue we have to open the file first and use the resulting fd to register for events
 	wd = open(fpath, O_RDONLY);
