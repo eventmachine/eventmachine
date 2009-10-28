@@ -301,32 +301,6 @@ ConnectionDescriptor::~ConnectionDescriptor()
 	#endif
 }
 
-/*********************************************
-STATIC: ConnectionDescriptor::CloseConnection
-*********************************************/
-
-void ConnectionDescriptor::CloseConnection (const unsigned long binding, bool after_writing)
-{
-	// TODO: This is something of a hack, or at least it's a static method of the wrong class.
-	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
-	if (ed)
-		ed->ScheduleClose (after_writing);
-}
-
-/***********************************************
-STATIC: ConnectionDescriptor::ReportErrorStatus
-***********************************************/
-
-int ConnectionDescriptor::ReportErrorStatus (const unsigned long binding)
-{
-	// TODO: This is something of a hack, or at least it's a static method of the wrong class.
-	// TODO: Poor polymorphism here. We should be calling one virtual method
-	// instead of hacking out the runtime information of the target object.
-	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
-	if (cd)
-		return cd->_ReportErrorStatus();
-	return -1;
-}
 
 /***********************************
 ConnectionDescriptor::_UpdateEvents
@@ -994,7 +968,7 @@ void ConnectionDescriptor::StartTls()
 	if (SslBox)
 		throw std::runtime_error ("SSL/TLS already running on connection");
 
-	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, GetBinding());
+	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, this);
 	_DispatchCiphertext();
 	#endif
 
@@ -1657,11 +1631,8 @@ STATIC: DatagramDescriptor::SendDatagram
 
 int DatagramDescriptor::SendDatagram (const unsigned long binding, const char *data, int length, const char *address, int port)
 {
-	DatagramDescriptor *dd = dynamic_cast <DatagramDescriptor*> (Bindable_t::GetObject (binding));
-	if (dd)
-		return dd->SendOutboundDatagram (data, length, address, port);
-	else
-		return -1;
+	// this is blank because we got rid of GetObject. This shouldn't have been static anyway. wtf?
+	return -1;
 }
 
 

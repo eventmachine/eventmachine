@@ -24,11 +24,6 @@ See the file COPYING for complete licensing information.
 class Bindable_t
 {
 	public:
-		static unsigned long CreateBinding();
-		static Bindable_t *GetObject (const unsigned long);
-		static map<unsigned long, Bindable_t*> BindingBag;
-
-	public:
 		Bindable_t();
 		virtual ~Bindable_t();
 

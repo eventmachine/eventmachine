@@ -57,7 +57,7 @@ class SslBox_t
 class SslBox_t
 {
 	public:
-		SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const unsigned long binding);
+		SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, ConnectionDescriptor*);
 		virtual ~SslBox_t();
 
 		int PutPlaintext (const char*, int);

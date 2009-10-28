@@ -146,9 +146,6 @@ class ConnectionDescriptor: public EventableDescriptor
 		ConnectionDescriptor (int, EventMachine_t*);
 		virtual ~ConnectionDescriptor();
 
-		static void CloseConnection (const unsigned long, bool);
-		static int ReportErrorStatus (const unsigned long);
-
 		int SendOutboundData (const char*, int);
 
 		void SetConnectPending (bool f);

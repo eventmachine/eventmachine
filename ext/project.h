@@ -132,7 +132,6 @@ static inline int inotify_rm_watch (int fd, __u32 wd) { return syscall (__NR_ino
 
 #include "binder.h"
 #include "em.h"
-#include "epoll.h"
 #include "sigs.h"
 #include "ed.h"
 #include "files.h"
