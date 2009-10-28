@@ -11,4 +11,5 @@ Makefile
 *.log
 *.def
 *.pdb
+*.dSYM
 java/src/.project
