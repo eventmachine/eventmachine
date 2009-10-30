@@ -902,11 +902,19 @@ void ConnectionDescriptor::_WriteOutboundData()
 	// Max of 16 outbound pages at a time
 	if (iovcnt > 16) iovcnt = 16;
 
+	#ifdef CC_SUNWspro
+	struct iovec iov[16];
+	#else
 	struct iovec iov[ iovcnt ];
+	#endif
 
 	for(int i = 0; i < iovcnt; i++){
 		OutboundPage *op = &(OutboundPages[i]);
+		#ifdef CC_SUNWspro
+		iov[i].iov_base = (char *)(op->Buffer + op->Offset);
+		#else
 		iov[i].iov_base = (void *)(op->Buffer + op->Offset);
+		#endif
 		iov[i].iov_len	= op->Length - op->Offset;
 
 		nbytes += iov[i].iov_len;

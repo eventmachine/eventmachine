@@ -44,11 +44,13 @@ when /solaris/
   add_define 'OS_SOLARIS8'
   check_libs(%w[nsl socket], true)
 
-  # Patch by Tim Pease, fixes SUNWspro compile problems.
-  if CONFIG['CC'] == 'cc'
+  if CONFIG['CC'] == 'cc' and `cc -flags 2>&1` =~ /Sun/ # detect SUNWspro compiler
     # SUN CHAIN
-    $CFLAGS = CONFIG['CFLAGS'] = "-KPIC -G"
+    add_define 'CC_SUNWspro'
+    $preload = ["\nCXX = CC"] # hack a CXX= line into the makefile
+    $CFLAGS = CONFIG['CFLAGS'] = "-KPIC"
     CONFIG['CCDLFLAGS'] = "-KPIC"
+    CONFIG['LDSHARED'] = "$(CXX) -G -KPIC -lCstd"
   else
     # GNU CHAIN
     # on Unix we need a g++ link, not gcc.

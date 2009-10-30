@@ -88,7 +88,7 @@ void Mapper_t::Close()
 	// Can be called multiple times.
 	// Calls to GetChunk are invalid after a call to Close.
 	if (MapPoint) {
-		#ifdef OS_SOLARIS8
+		#ifdef CC_SUNWspro
 		munmap ((char*)MapPoint, FileSize);
 		#else
 		munmap ((void*)MapPoint, FileSize);
