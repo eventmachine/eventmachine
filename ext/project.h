@@ -134,6 +134,14 @@ static inline int inotify_rm_watch (int fd, __u32 wd) { return syscall (__NR_ino
 #include <sys/uio.h>
 #endif
 
+#if __cplusplus
+extern "C" {
+#endif
+  typedef void (*EMCallback)(const unsigned long, int, const char*, const unsigned long);
+#if __cplusplus
+}
+#endif
+
 #include "binder.h"
 #include "em.h"
 #include "epoll.h"
@@ -144,8 +152,5 @@ static inline int inotify_rm_watch (int fd, __u32 wd) { return syscall (__NR_ino
 #include "ssl.h"
 #include "eventmachine.h"
 #include "eventmachine_cpp.h"
-
-
-
 
 #endif // __Project__H_

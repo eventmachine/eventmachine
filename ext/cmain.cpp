@@ -49,7 +49,7 @@ extern "C" void ensure_eventmachine (const char *caller = "unknown caller")
 evma_initialize_library
 ***********************/
 
-extern "C" void evma_initialize_library (void(*cb)(const unsigned long, int, const char*, const unsigned long))
+extern "C" void evma_initialize_library (EMCallback cb)
 {
 	// Probably a bad idea to mess with the signal mask of a process
 	// we're just being linked into.

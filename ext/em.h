@@ -57,7 +57,6 @@ See the file COPYING for complete licensing information.
   #define EmSelect select
 #endif
 
-
 #ifdef OS_UNIX
 typedef long long Int64;
 #endif
@@ -82,7 +81,7 @@ class EventMachine_t
 		static void SetMaxTimerCount (int);
 
 	public:
-		EventMachine_t (void(*event_callback)(const unsigned long, int, const char*, const unsigned long));
+		EventMachine_t (EMCallback);
 		virtual ~EventMachine_t();
 
 		void Run();
@@ -168,7 +167,7 @@ class EventMachine_t
 			MaxEvents = 4096
 		};
 		int HeartbeatInterval;
-		void (*EventCallback)(const unsigned long, int, const char*, const unsigned long);
+		EMCallback EventCallback;
 
 		class Timer_t: public Bindable_t {
 		};
@@ -224,8 +223,6 @@ struct SelectData_t
 	timeval tv;
 	int nSockets;
 };
-
-
 
 #endif // __EventMachine__H_
 

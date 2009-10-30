@@ -118,7 +118,7 @@ EventableDescriptor::~EventableDescriptor()
 EventableDescriptor::SetEventCallback
 *************************************/
 
-void EventableDescriptor::SetEventCallback (void(*cb)(const unsigned long, int, const char*, const unsigned long))
+void EventableDescriptor::SetEventCallback (EMCallback cb)
 {
 	EventCallback = cb;
 }

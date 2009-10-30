@@ -170,7 +170,7 @@ t_initialize_event_machine
 
 static VALUE t_initialize_event_machine (VALUE self)
 {
-	evma_initialize_library (event_callback_wrapper);
+	evma_initialize_library ((EMCallback)event_callback_wrapper);
 	return Qnil;
 }
 

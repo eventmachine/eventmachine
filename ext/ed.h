@@ -62,7 +62,7 @@ class EventableDescriptor: public Bindable_t
 		bool IsCloseScheduled();
 		virtual void HandleError(){ ScheduleClose (false); }
 
-		void SetEventCallback (void (*cb)(const unsigned long, int, const char*, const unsigned long));
+		void SetEventCallback (EMCallback);
 
 		virtual bool GetPeername (struct sockaddr*) {return false;}
 		virtual bool GetSockname (struct sockaddr*) {return false;}
@@ -99,7 +99,7 @@ class EventableDescriptor: public Bindable_t
 	protected:
 		int MySocket;
 
-		void (*EventCallback)(const unsigned long, int, const char*, const unsigned long);
+		EMCallback EventCallback;
 		void _GenericInboundDispatch(const char*, int);
 
 		Int64 CreatedAt;

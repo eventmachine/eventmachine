@@ -20,7 +20,6 @@ See the file COPYING for complete licensing information.
 // THIS ENTIRE FILE WILL EVENTUALLY BE FOR UNIX BUILDS ONLY.
 //#ifdef OS_UNIX
 
-
 #include "project.h"
 
 // Keep a global variable floating around
@@ -79,7 +78,7 @@ void EventMachine_t::SetMaxTimerCount (int count)
 EventMachine_t::EventMachine_t
 ******************************/
 
-EventMachine_t::EventMachine_t (void (*event_callback)(const unsigned long, int, const char*, const unsigned long)):
+EventMachine_t::EventMachine_t (EMCallback event_callback):
 	HeartbeatInterval(2000000),
 	EventCallback (event_callback),
 	NextHeartbeatTime (0),
