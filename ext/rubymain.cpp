@@ -75,57 +75,57 @@ static void event_callback (struct em_event* e)
 	const unsigned long data_num = e->data_num;
 
 	if (event == EM_CONNECTION_READ) {
-		VALUE q = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
-		if (q == Qnil)
+		VALUE conn = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
+		if (conn == Qnil)
 			rb_raise (EM_eConnectionNotBound, "received %lu bytes of data for unknown signature: %lu", data_num, signature);
-		rb_funcall (q, Intern_receive_data, 1, rb_str_new (data_str, data_num));
+		rb_funcall (conn, Intern_receive_data, 1, rb_str_new (data_str, data_num));
 	}
 	else if (event == EM_CONNECTION_NOTIFY_READABLE) {
-		VALUE q = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
-		if (q == Qnil)
+		VALUE conn = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
+		if (conn == Qnil)
 			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
-		rb_funcall (q, Intern_notify_readable, 0);
+		rb_funcall (conn, Intern_notify_readable, 0);
 	}
 	else if (event == EM_CONNECTION_NOTIFY_WRITABLE) {
-		VALUE q = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
-		if (q == Qnil)
+		VALUE conn = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
+		if (conn == Qnil)
 			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
-		rb_funcall (q, Intern_notify_writable, 0);
+		rb_funcall (conn, Intern_notify_writable, 0);
 	}
 	else if (event == EM_LOOPBREAK_SIGNAL) {
 		rb_funcall (EmModule, Intern_run_deferred_callbacks, 0);
 	}
 	else if (event == EM_TIMER_FIRED) {
-		VALUE q = rb_funcall (EmTimersHash, Intern_delete, 1, ULONG2NUM (data_num));
-		if (q == Qnil) {
+		VALUE timer = rb_funcall (EmTimersHash, Intern_delete, 1, ULONG2NUM (data_num));
+		if (timer == Qnil) {
 			rb_raise (EM_eUnknownTimerFired, "no such timer: %lu", data_num);
-		} else if (q == Qfalse) {
+		} else if (timer == Qfalse) {
 			/* Timer Canceled */
 		} else {
-			rb_funcall (q, Intern_call, 0);
+			rb_funcall (timer, Intern_call, 0);
 		}
 	}
 	#ifdef WITH_SSL
 	else if (event == EM_SSL_HANDSHAKE_COMPLETED) {
-		VALUE q = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
-		if (q == Qnil)
+		VALUE conn = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
+		if (conn == Qnil)
 			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
-		rb_funcall (q, Intern_ssl_handshake_completed, 0);
+		rb_funcall (conn, Intern_ssl_handshake_completed, 0);
 	}
 	else if (event == EM_SSL_VERIFY) {
-		VALUE q = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
-		if (q == Qnil)
+		VALUE conn = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
+		if (conn == Qnil)
 			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
-		VALUE r = rb_funcall (q, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
-		if (RTEST(r))
+		VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
+		if (RTEST(should_accept))
 			evma_accept_ssl_peer (signature);
 	}
 	#endif
 	else if (event == EM_PROXY_TARGET_UNBOUND) {
-		VALUE q = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
-		if (q == Qnil)
+		VALUE conn = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
+		if (conn == Qnil)
 			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
-		rb_funcall (q, Intern_proxy_target_unbound, 0);
+		rb_funcall (conn, Intern_proxy_target_unbound, 0);
 	}
 	else
 		rb_funcall (EmModule, Intern_event_callback, 3, ULONG2NUM(signature), INT2FIX(event), data_str ? rb_str_new(data_str,data_num) : ULONG2NUM(data_num));
