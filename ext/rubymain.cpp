@@ -55,10 +55,10 @@ static VALUE Intern_proxy_target_unbound;
 static VALUE rb_cProcStatus;
 
 struct em_event {
-	unsigned long a1;
-	int a2;
-	const char *a3;
-	unsigned long a4;
+	unsigned long signature;
+	int event;
+	const char *data_str;
+	unsigned long data_num;
 };
 
 /****************
@@ -67,40 +67,40 @@ t_event_callback
 
 static void event_callback (struct em_event* e)
 {
-	const unsigned long a1 = e->a1;
-	int a2 = e->a2;
-	const char *a3 = e->a3;
-	const unsigned long a4 = e->a4;
+	const unsigned long signature = e->signature;
+	int event = e->event;
+	const char *data_str = e->data_str;
+	const unsigned long data_num = e->data_num;
 
-	if (a2 == EM_CONNECTION_READ) {
+	if (event == EM_CONNECTION_READ) {
 		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
-		VALUE q = rb_hash_aref (t, ULONG2NUM (a1));
+		VALUE q = rb_hash_aref (t, ULONG2NUM (signature));
 		if (q == Qnil)
-			rb_raise (EM_eConnectionNotBound, "received %lu bytes of data for unknown signature: %lu", a4, a1);
-		rb_funcall (q, Intern_receive_data, 1, rb_str_new (a3, a4));
+			rb_raise (EM_eConnectionNotBound, "received %lu bytes of data for unknown signature: %lu", data_num, signature);
+		rb_funcall (q, Intern_receive_data, 1, rb_str_new (data_str, data_num));
 	}
-	else if (a2 == EM_CONNECTION_NOTIFY_READABLE) {
+	else if (event == EM_CONNECTION_NOTIFY_READABLE) {
 		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
-		VALUE q = rb_hash_aref (t, ULONG2NUM (a1));
+		VALUE q = rb_hash_aref (t, ULONG2NUM (signature));
 		if (q == Qnil)
-			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", a1);
+			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
 		rb_funcall (q, Intern_notify_readable, 0);
 	}
-	else if (a2 == EM_CONNECTION_NOTIFY_WRITABLE) {
+	else if (event == EM_CONNECTION_NOTIFY_WRITABLE) {
 		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
-		VALUE q = rb_hash_aref (t, ULONG2NUM (a1));
+		VALUE q = rb_hash_aref (t, ULONG2NUM (signature));
 		if (q == Qnil)
-			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", a1);
+			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
 		rb_funcall (q, Intern_notify_writable, 0);
 	}
-	else if (a2 == EM_LOOPBREAK_SIGNAL) {
+	else if (event == EM_LOOPBREAK_SIGNAL) {
 		rb_funcall (EmModule, Intern_run_deferred_callbacks, 0);
 	}
-	else if (a2 == EM_TIMER_FIRED) {
+	else if (event == EM_TIMER_FIRED) {
 		VALUE t = rb_ivar_get (EmModule, Intern_at_timers);
-		VALUE q = rb_funcall (t, Intern_delete, 1, ULONG2NUM (a4));
+		VALUE q = rb_funcall (t, Intern_delete, 1, ULONG2NUM (data_num));
 		if (q == Qnil) {
-			rb_raise (EM_eUnknownTimerFired, "no such timer: %lu", a4);
+			rb_raise (EM_eUnknownTimerFired, "no such timer: %lu", data_num);
 		} else if (q == Qfalse) {
 			/* Timer Canceled */
 		} else {
@@ -108,32 +108,32 @@ static void event_callback (struct em_event* e)
 		}
 	}
 	#ifdef WITH_SSL
-	else if (a2 == EM_SSL_HANDSHAKE_COMPLETED) {
+	else if (event == EM_SSL_HANDSHAKE_COMPLETED) {
 		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
-		VALUE q = rb_hash_aref (t, ULONG2NUM (a1));
+		VALUE q = rb_hash_aref (t, ULONG2NUM (signature));
 		if (q == Qnil)
-			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", a1);
+			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
 		rb_funcall (q, Intern_ssl_handshake_completed, 0);
 	}
-	else if (a2 == EM_SSL_VERIFY) {
+	else if (event == EM_SSL_VERIFY) {
 		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
-		VALUE q = rb_hash_aref (t, ULONG2NUM (a1));
+		VALUE q = rb_hash_aref (t, ULONG2NUM (signature));
 		if (q == Qnil)
-			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", a1);
-		VALUE r = rb_funcall (q, Intern_ssl_verify_peer, 1, rb_str_new(a3, a4));
+			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
+		VALUE r = rb_funcall (q, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
 		if (RTEST(r))
-			evma_accept_ssl_peer (a1);
+			evma_accept_ssl_peer (signature);
 	}
 	#endif
-	else if (a2 == EM_PROXY_TARGET_UNBOUND) {
+	else if (event == EM_PROXY_TARGET_UNBOUND) {
 		VALUE t = rb_ivar_get (EmModule, Intern_at_conns);
-		VALUE q = rb_hash_aref (t, ULONG2NUM (a1));
+		VALUE q = rb_hash_aref (t, ULONG2NUM (signature));
 		if (q == Qnil)
-			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", a1);
+			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
 		rb_funcall (q, Intern_proxy_target_unbound, 0);
 	}
 	else
-		rb_funcall (EmModule, Intern_event_callback, 3, ULONG2NUM(a1), INT2FIX(a2), a3 ? rb_str_new(a3,a4) : ULONG2NUM(a4));
+		rb_funcall (EmModule, Intern_event_callback, 3, ULONG2NUM(signature), INT2FIX(event), data_str ? rb_str_new(data_str,data_num) : ULONG2NUM(data_num));
 }
 
 /*******************
@@ -150,13 +150,13 @@ static void event_error_handler(VALUE unused, VALUE err)
 event_callback_wrapper
 **********************/
 
-static void event_callback_wrapper (const unsigned long a1, int a2, const char *a3, const unsigned long a4)
+static void event_callback_wrapper (const unsigned long signature, int event, const char *data_str, const unsigned long data_num)
 {
 	struct em_event e;
-	e.a1 = a1;
-	e.a2 = a2;
-	e.a3 = a3;
-	e.a4 = a4;
+	e.signature = signature;
+	e.event = event;
+	e.data_str = data_str;
+	e.data_num = data_num;
 
 	if (!rb_ivar_defined(EmModule, Intern_at_error_handler))
 		event_callback(&e);
