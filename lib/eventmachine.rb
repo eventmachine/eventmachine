@@ -1431,12 +1431,12 @@ module EventMachine
       @conns[data] = c
       blk and blk.call(c)
       c # (needed?)
-    elsif opcode == ConnectionCompleted
-      c = @conns[conn_binding] or raise ConnectionNotBound, "received ConnectionCompleted for unknown signature: #{conn_binding}"
-      c.connection_completed
     ##
     # The remaining code is a fallback for the pure ruby and java reactors.
     # In the C++ reactor, these events are handled in the C event_callback() in rubymain.cpp
+    elsif opcode == ConnectionCompleted
+      c = @conns[conn_binding] or raise ConnectionNotBound, "received ConnectionCompleted for unknown signature: #{conn_binding}"
+      c.connection_completed
     elsif opcode == TimerFired
       t = @timers.delete( data )
       return if t == false # timer cancelled

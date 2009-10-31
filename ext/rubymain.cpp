@@ -53,6 +53,7 @@ static VALUE Intern_ssl_verify_peer;
 static VALUE Intern_notify_readable;
 static VALUE Intern_notify_writable;
 static VALUE Intern_proxy_target_unbound;
+static VALUE Intern_connection_completed;
 
 static VALUE rb_cProcStatus;
 
@@ -104,6 +105,12 @@ static void event_callback (struct em_event* e)
 		} else {
 			rb_funcall (timer, Intern_call, 0);
 		}
+	}
+	else if (event == EM_CONNECTION_COMPLETED) {
+		VALUE conn = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
+		if (conn == Qnil)
+			rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
+		rb_funcall (conn, Intern_connection_completed, 0);
 	}
 	#ifdef WITH_SSL
 	else if (event == EM_SSL_HANDSHAKE_COMPLETED) {
@@ -1053,6 +1060,7 @@ extern "C" void Init_rubyeventmachine()
 	Intern_notify_readable = rb_intern ("notify_readable");
 	Intern_notify_writable = rb_intern ("notify_writable");
 	Intern_proxy_target_unbound = rb_intern ("proxy_target_unbound");
+	Intern_connection_completed = rb_intern ("connection_completed");
 
 	// INCOMPLETE, we need to define class Connections inside module EventMachine
 	// run_machine and run_machine_without_threads are now identical.
