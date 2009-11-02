@@ -72,6 +72,9 @@ task :clean do
   chdir 'ext/fastfilereader' do
     sh "#{MAKE} clean" if test ?e, 'Makefile'
   end
+  chdir 'tests/emtestext' do
+    sh "#{MAKE} clean" if test ?e, 'Makefile'
+  end
   Dir.glob('**/Makefile').each { |file| rm file }
   Dir.glob('**/*.{o,so,bundle,class,jar,dll,log}').each { |file| rm file }
   Dir.glob('ext/**/conftest.dSYM').each{ |file| rm_rf file }
@@ -191,10 +194,13 @@ end
 namespace :ext do
   ext_sources = FileList['ext/*.{h,cpp,rb,c}']
   ffr_sources = FileList['ext/fastfilereader/*.{h,cpp,rb}']
+  emtestext_sources = FileList['tests/emtestext/*.{h,cpp,rb,c}']
   file ext_extconf = 'ext/extconf.rb'
   file ffr_extconf = 'ext/fastfilereader/extconf.rb'
+  file emtestext_extconf = 'tests/emtestext/extconf.rb'
   ext_libname = "lib/rubyeventmachine.#{Config::CONFIG['DLEXT']}"
   ffr_libname = "lib/fastfilereaderext.#{Config::CONFIG['DLEXT']}"
+  emtestext_libname = "tests/emtestext/emtestext.#{Config::CONFIG['DLEXT']}"
 
   file ext_libname => ext_sources + ['ext/Makefile'] do
     chdir('ext') { sh MAKE }
@@ -204,11 +210,16 @@ namespace :ext do
     chdir('ext/fastfilereader') { sh MAKE }
   end
 
+  file emtestext_libname => emtestext_sources + ['tests/emtestext/Makefile'] do
+    chdir('tests/emtestext') { sh MAKE }
+  end
+
   desc "Build C++ extension"
   task :build => [:make]
 
   task :make => ext_libname
   task :make => ffr_libname
+  task :make => emtestext_libname
 
   file 'ext/Makefile' => ext_extconf do
     chdir 'ext' do
@@ -218,6 +229,12 @@ namespace :ext do
 
   file 'ext/fastfilereader/Makefile' => ffr_extconf do
     chdir 'ext/fastfilereader' do
+      ruby 'extconf.rb'
+    end
+  end
+
+  file 'tests/emtestext/Makefile' => emtestext_extconf do
+    chdir 'tests/emtestext' do
       ruby 'extconf.rb'
     end
   end

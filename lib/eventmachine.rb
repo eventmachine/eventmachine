@@ -719,6 +719,7 @@ module EventMachine
 
     c = klass.new s, *args
     @conns[s] = c
+    c.post_init
     block_given? and yield c
     c
   end
@@ -799,6 +800,7 @@ module EventMachine
     c.instance_variable_set(:@fd, fd)
 
     @conns[s] = c
+    c.post_init
     block_given? and yield c
     c
   end
@@ -915,6 +917,7 @@ module EventMachine
     s = open_udp_socket address, port.to_i
     c = klass.new s, *args
     @conns[s] = c
+    c.post_init
     block_given? and yield c
     c
   end
@@ -1165,6 +1168,7 @@ module EventMachine
     s = invoke_popen( w )
     c = klass.new s, *args
     @conns[s] = c
+    c.post_init
     yield(c) if block_given?
     c
   end
@@ -1194,6 +1198,7 @@ module EventMachine
     s = read_keyboard
     c = klass.new s, *args
     @conns[s] = c
+    c.post_init
     block_given? and yield c
     c
   end
@@ -1268,6 +1273,7 @@ module EventMachine
     # we have to set the path like this because of how Connection.new works
     c.instance_variable_set("@path", filename)
     @conns[s] = c
+    c.post_init
     block_given? and yield c
     c
   end
@@ -1299,6 +1305,7 @@ module EventMachine
     # we have to set the path like this because of how Connection.new works
     c.instance_variable_set("@pid", pid)
     @conns[s] = c
+    c.post_init
     block_given? and yield c
     c
   end
@@ -1429,6 +1436,7 @@ module EventMachine
       raise NoHandlerForAcceptedConnection unless accep
       c = accep.new data, *args
       @conns[data] = c
+      c.post_init
       blk and blk.call(c)
       c # (needed?)
     ##
@@ -1562,6 +1570,7 @@ module EventMachine
     s = _write_file filename
     c = klass.new s
     @conns[s] = c
+    c.post_init
     block_given? and yield c
     c
   end

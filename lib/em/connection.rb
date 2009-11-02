@@ -27,7 +27,7 @@ module EventMachine
   # only by user code.
   #
   class Connection
-    attr_accessor :signature # :nodoc:
+    attr_accessor :signature, :hooks # :nodoc:
 
     # Override .new so subclasses don't have to call super and can ignore
     # connection-specific arguments
@@ -40,9 +40,6 @@ module EventMachine
 
         # Call a superclass's #initialize if it has one
         initialize(*args)
-
-        # post initialize callback
-        post_init
 
         self
       end

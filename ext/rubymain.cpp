@@ -33,6 +33,7 @@ static VALUE EmModule;
 static VALUE EmConnection;
 static VALUE EmConnsHash;
 static VALUE EmTimersHash;
+static VALUE EmHooks;
 
 static VALUE EM_eConnectionError;
 static VALUE EM_eUnknownTimerFired;
@@ -54,6 +55,7 @@ static VALUE Intern_notify_readable;
 static VALUE Intern_notify_writable;
 static VALUE Intern_proxy_target_unbound;
 static VALUE Intern_connection_completed;
+static VALUE Intern_hooks_ivar;
 
 static VALUE rb_cProcStatus;
 
@@ -64,6 +66,39 @@ struct em_event {
 	unsigned long data_num;
 };
 
+typedef struct em_data {
+	char *data;
+	unsigned long len;
+} em_data;
+
+typedef struct em_hooks {
+	VALUE recv_arg;
+	VALUE send_arg;
+	int recv_hook_enabled;
+	void (*em_recv_data)(em_data unit, VALUE arg);
+	em_data (*em_send_data)(int argc, VALUE *argv, VALUE arg);
+} em_hooks;
+
+static void em_hooks_mark(void *ptr)
+{
+	em_hooks *hooks = (em_hooks*) ptr;
+	if (hooks->send_arg)
+		rb_gc_mark(hooks->send_arg);
+	if (hooks->recv_arg)
+		rb_gc_mark(hooks->recv_arg);
+}
+
+static void em_hooks_free(void *ptr)
+{
+	free(ptr);
+}
+
+static VALUE em_hooks_alloc(VALUE klass)
+{
+	em_hooks *new_em_hooks = (em_hooks*)calloc(1, sizeof(em_hooks));
+	return Data_Wrap_Struct(klass, em_hooks_mark, em_hooks_free, (void*)new_em_hooks);
+}
+
 static inline VALUE ensure_conn(const unsigned long signature)
 {
 	VALUE conn = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
@@ -72,6 +107,50 @@ static inline VALUE ensure_conn(const unsigned long signature)
 	return conn;
 }
 
+static inline em_hooks* hooks_from_obj(VALUE obj)
+{
+	if (rb_ivar_defined(obj, Intern_hooks_ivar)) {
+		VALUE hooksobj = rb_ivar_get(obj, Intern_hooks_ivar);
+		return (em_hooks*)DATA_PTR(hooksobj);
+	}
+	return NULL;
+}
+
+static inline em_hooks* hooks_from_signature(VALUE signature)
+{
+	VALUE conn = ensure_conn(NUM2ULONG(signature));
+	return hooks_from_obj(conn);
+}
+
+static VALUE em_hooks_toggle_recv(VALUE self, VALUE what)
+{
+	em_hooks *hooks = (em_hooks*)DATA_PTR(self);
+	if (hooks) {
+		if (what == Qtrue)
+			hooks->recv_hook_enabled = 1;
+		else if (what == Qfalse)
+			hooks->recv_hook_enabled = 0;
+	}
+	return what;
+}
+
+static VALUE t_send_special(int argc, VALUE *argv, VALUE self)
+{
+	em_hooks *hooks = hooks_from_obj(self);
+	if (hooks && hooks->em_send_data) {
+		em_data unit = (*hooks->em_send_data)(argc, argv, hooks->send_arg);
+		// TODO
+		// create a new path so we can queue a new outbound page by handing off this pointer
+		// instead of having it memcpy'd in the C++ functions
+		int sent_len = evma_send_data_to_connection (NUM2ULONG (rb_ivar_get(self, rb_intern("@signature"))), unit.data, unit.len);
+		// the user has to understand that their pointer will be freed, otherwise we don't really
+		// have a sensible way to manage it's lifecycle. once we create the new queueing path,
+		// the pointer will just be freed after the page is written to the socket and this can go.
+		free(unit.data);
+		return INT2NUM (sent_len);
+	}
+	rb_raise(rb_eRuntimeError, "No hook object/function pointer has been assigned for send_special");
+}
 
 /****************
 t_event_callback
@@ -90,7 +169,15 @@ static inline void event_callback (struct em_event* e)
 			VALUE conn = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
 			if (conn == Qnil)
 				rb_raise (EM_eConnectionNotBound, "received %lu bytes of data for unknown signature: %lu", data_num, signature);
-			rb_funcall (conn, Intern_receive_data, 1, rb_str_new (data_str, data_num));
+			em_hooks *hooks = hooks_from_obj(conn);
+			if (hooks && hooks->recv_hook_enabled && hooks->em_recv_data) {
+				em_data unit;
+				unit.data = (char*)data_str;
+				unit.len = data_num;
+				(*hooks->em_recv_data)(unit, hooks->recv_arg);
+			}
+			else
+				rb_funcall (conn, Intern_receive_data, 1, rb_str_new (data_str, data_num));
 			return;
 		}
 		case EM_CONNECTION_ACCEPTED:
@@ -1082,12 +1169,16 @@ extern "C" void Init_rubyeventmachine()
 	Intern_notify_writable = rb_intern ("notify_writable");
 	Intern_proxy_target_unbound = rb_intern ("proxy_target_unbound");
 	Intern_connection_completed = rb_intern ("connection_completed");
+	Intern_hooks_ivar = rb_intern ("@hooks");
 
 	// INCOMPLETE, we need to define class Connections inside module EventMachine
 	// run_machine and run_machine_without_threads are now identical.
 	// Must deprecate the without_threads variant.
 	EmModule = rb_define_module ("EventMachine");
 	EmConnection = rb_define_class_under (EmModule, "Connection", rb_cObject);
+	EmHooks = rb_define_class_under(EmModule, "Hooks", rb_cObject);
+	rb_define_alloc_func(EmHooks, em_hooks_alloc);
+	rb_define_method (EmHooks, "recv_hook_enabled=", (VALUE(*)(...))em_hooks_toggle_recv, 1);
 
 	rb_define_class_under (EmModule, "NoHandlerForAcceptedConnection", rb_eRuntimeError);
 	EM_eConnectionError = rb_define_class_under (EmModule, "ConnectionError", rb_eRuntimeError);
@@ -1177,6 +1268,7 @@ extern "C" void Init_rubyeventmachine()
 
 	rb_define_method (EmConnection, "get_outbound_data_size", (VALUE(*)(...))conn_get_outbound_data_size, 0);
 	rb_define_method (EmConnection, "associate_callback_target", (VALUE(*)(...))conn_associate_callback_target, 1);
+	rb_define_method (EmConnection, "send_special", (VALUE(*)(...))t_send_special, -1);
 
 	rb_define_const (EmModule, "TimerFired", INT2NUM(100));
 	rb_define_const (EmModule, "ConnectionData", INT2NUM(101));
