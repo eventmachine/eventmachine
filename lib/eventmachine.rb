@@ -189,7 +189,7 @@ module EventMachine
   end
   @next_tick_mutex = Mutex.new
   @reactor_running = false
-  @next_tick_queue = nil
+  @next_tick_queue = []
   @threadpool = nil
   
 
@@ -274,7 +274,7 @@ module EventMachine
             @threadpool = nil
           end
 
-          @next_tick_queue = nil
+          @next_tick_queue = []
         end
         @reactor_running = false
         @reactor_thread = nil
@@ -989,11 +989,10 @@ module EventMachine
       cback.call result if cback
     end
 
-    jobs = @next_tick_mutex.synchronize do
+    @next_tick_mutex.synchronize do
       jobs, @next_tick_queue = @next_tick_queue, []
       jobs
-    end
-    jobs.each { |j| j.call }
+    end.each { |j| j.call }
   end
 
 
@@ -1092,7 +1091,7 @@ module EventMachine
   def self.next_tick pr=nil, &block
     raise ArgumentError, "no proc or block given" unless ((pr && pr.respond_to?(:call)) or block)
     @next_tick_mutex.synchronize do
-      (@next_tick_queue ||= []) << ( pr || block )
+      @next_tick_queue << ( pr || block )
     end
     signal_loopbreak if reactor_running?
   end
