@@ -154,6 +154,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		static int ReportErrorStatus (const unsigned long);
 
 		int SendOutboundData (const char*, int);
+		int SendWithoutCopying(const char*, int);
 
 		void SetConnectPending (bool f);
 		virtual void ScheduleClose (bool after_writing);

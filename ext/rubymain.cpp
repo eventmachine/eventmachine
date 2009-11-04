@@ -136,15 +136,10 @@ static VALUE t_send_special(int argc, VALUE *argv, VALUE self)
 {
 	em_hook *hook = hook_from_obj(self, EM_SEND);
 	if (hook && hook->enabled && hook->send_func) {
+		// The buffer that the user assigns here must be something
+		// we can free, because we aren't going to copy it again.
 		em_data unit = (*hook->send_func)(argc, argv, hook->arg);
-		// TODO
-		// create a new path so we can queue a new outbound page by handing off this pointer
-		// instead of having it memcpy'd in the C++ functions
-		int sent_len = evma_send_data_to_connection (NUM2ULONG (rb_ivar_get(self, rb_intern("@signature"))), unit.data, unit.len);
-		// the user has to understand that their pointer will be freed, otherwise we don't really
-		// have a sensible way to manage it's lifecycle. once we create the new queueing path,
-		// the pointer will just be freed after the page is written to the socket and this can go.
-		free(unit.data);
+		int sent_len = evma_send_without_copying (NUM2ULONG (rb_ivar_get(self, rb_intern("@signature"))), unit.data, unit.len);
 		return INT2NUM (sent_len);
 	}
 	rb_raise(rb_eRuntimeError, "No hook object/function pointer has been assigned for send_special");

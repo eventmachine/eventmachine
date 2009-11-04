@@ -353,6 +353,18 @@ extern "C" int evma_send_datagram (const unsigned long binding, const char *data
 	return DatagramDescriptor::SendDatagram (binding, data, data_length, address, port);
 }
 
+/*************************
+evma_send_without_copying
+*************************/
+
+extern "C" int evma_send_without_copying (const unsigned long binding, const char *data, int data_length)
+{
+	ensure_eventmachine("evma_send_without_copying");
+	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
+	if (cd)
+		return cd->SendWithoutCopying(data, data_length);
+	return -1;
+}
 
 /*********************
 evma_close_connection

@@ -521,6 +521,21 @@ int ConnectionDescriptor::SendOutboundData (const char *data, int length)
 }
 
 
+int ConnectionDescriptor::SendWithoutCopying(const char *data, int length)
+{
+	if (IsCloseScheduled())
+		return 0;
+
+	if (!data && (length > 0))
+		throw std::runtime_error ("bad outbound data");
+
+	OutboundPages.push_back (OutboundPage (data, length));
+	OutboundDataSize += length;
+
+	_UpdateEvents(false, true);
+
+	return length;
+}
 
 /******************************************
 ConnectionDescriptor::_SendRawOutboundData

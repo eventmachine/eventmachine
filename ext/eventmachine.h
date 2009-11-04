@@ -78,6 +78,7 @@ extern "C" {
 	int evma_get_connection_count();
 	int evma_send_data_to_connection (const unsigned long binding, const char *data, int data_length);
 	int evma_send_datagram (const unsigned long binding, const char *data, int data_length, const char *address, int port);
+	int evma_send_without_copying (const unsigned long binding, const char *data, int data_length);
 	float evma_get_comm_inactivity_timeout (const unsigned long binding);
 	int evma_set_comm_inactivity_timeout (const unsigned long binding, float value);
 	float evma_get_pending_connect_timeout (const unsigned long binding);
