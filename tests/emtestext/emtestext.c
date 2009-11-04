@@ -5,13 +5,14 @@ typedef struct em_data {
 	unsigned long len;
 } em_data;
 
-typedef struct em_hooks {
-	VALUE recv_arg;
-	VALUE send_arg;
-	int recv_hook_enabled;
-	void (*em_recv_data)(em_data unit, VALUE arg);
-	em_data (*em_send_data)(int argc, VALUE *argv, VALUE arg);
-} em_hooks;
+typedef struct em_hook {
+	VALUE arg;
+	int enabled;
+	union {
+		void (*recv_func)(em_data unit, VALUE arg);
+		em_data (*send_func)(int argc, VALUE *argv, VALUE arg);
+	};
+} em_hook;
 
 static VALUE EmTestextModule;
 
@@ -33,22 +34,33 @@ em_data hooked_send_function(int argc, VALUE *argv, VALUE arg)
 	return unit;
 }
 
-static VALUE get_em_hooks(VALUE self, VALUE recv_arg, VALUE send_arg)
+static VALUE em_send_hook(VALUE self, VALUE arg)
 {
 	VALUE Em = rb_const_get(rb_cObject, rb_intern("EventMachine"));
 	VALUE EmHooks = rb_const_get(Em, rb_intern("Hooks"));
 	VALUE hooksobj = rb_funcall(EmHooks, rb_intern("new"), 0);
-	em_hooks *hooks = (em_hooks*) DATA_PTR(hooksobj);
-	hooks->em_recv_data = hooked_recv_function;
-	hooks->em_send_data = hooked_send_function;
-	hooks->recv_hook_enabled = 1;
-	hooks->send_arg = send_arg;
-	hooks->recv_arg = recv_arg;
+	em_hook *hook = (em_hook*) DATA_PTR(hooksobj);
+	hook->send_func = hooked_send_function;
+	hook->enabled = 1;
+	hook->arg = arg;
+	return hooksobj;
+}
+
+static VALUE em_recv_hook(VALUE self, VALUE arg)
+{
+	VALUE Em = rb_const_get(rb_cObject, rb_intern("EventMachine"));
+	VALUE EmHooks = rb_const_get(Em, rb_intern("Hooks"));
+	VALUE hooksobj = rb_funcall(EmHooks, rb_intern("new"), 0);
+	em_hook *hook = (em_hook*) DATA_PTR(hooksobj);
+	hook->recv_func = hooked_recv_function;
+	hook->enabled = 1;
+	hook->arg = arg;
 	return hooksobj;
 }
 
 void Init_emtestext()
 {
 	EmTestextModule = rb_define_module("EmTestext");
-	rb_define_module_function(EmTestextModule, "get_em_hooks", get_em_hooks, 2);
+	rb_define_module_function(EmTestextModule, "em_send_hook", em_send_hook, 1);
+	rb_define_module_function(EmTestextModule, "em_recv_hook", em_recv_hook, 1);	
 }

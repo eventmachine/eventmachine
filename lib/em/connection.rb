@@ -27,7 +27,7 @@ module EventMachine
   # only by user code.
   #
   class Connection
-    attr_accessor :signature, :hooks # :nodoc:
+    attr_accessor :signature, :send_hook, :recv_hook # :nodoc:
 
     # Override .new so subclasses don't have to call super and can ignore
     # connection-specific arguments
