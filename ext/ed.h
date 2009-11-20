@@ -92,6 +92,8 @@ class EventableDescriptor: public Bindable_t
 		virtual bool Pause(){ return false; }
 		virtual bool Resume(){ return false; }
 
+		virtual int ReportErrorStatus(){ return 0; }
+
 	private:
 		bool bCloseNow;
 		bool bCloseAfterWriting;
@@ -149,10 +151,6 @@ class ConnectionDescriptor: public EventableDescriptor
 		ConnectionDescriptor (int, EventMachine_t*);
 		virtual ~ConnectionDescriptor();
 
-		static int SendDataToConnection (const unsigned long, const char*, int);
-		static void CloseConnection (const unsigned long, bool);
-		static int ReportErrorStatus (const unsigned long);
-
 		int SendOutboundData (const char*, int);
 
 		void SetConnectPending (bool f);
@@ -198,6 +196,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		virtual float GetCommInactivityTimeout();
 		virtual int SetCommInactivityTimeout (float value);
 
+		virtual int ReportErrorStatus();
 
 	protected:
 		struct OutboundPage {
@@ -246,7 +245,6 @@ class ConnectionDescriptor: public EventableDescriptor
 		void _DispatchInboundData (const char *buffer, int size);
 		void _DispatchCiphertext();
 		int _SendRawOutboundData (const char*, int);
-		int _ReportErrorStatus();
 		void _CheckHandshakeStatus();
 
 };

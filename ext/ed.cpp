@@ -312,57 +312,6 @@ ConnectionDescriptor::~ConnectionDescriptor()
 }
 
 
-/**************************************************
-STATIC: ConnectionDescriptor::SendDataToConnection
-**************************************************/
-
-int ConnectionDescriptor::SendDataToConnection (const unsigned long binding, const char *data, int data_length)
-{
-	// TODO: This is something of a hack, or at least it's a static method of the wrong class.
-	// TODO: Poor polymorphism here. We should be calling one virtual method
-	// instead of hacking out the runtime information of the target object.
-	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
-	if (cd)
-		return cd->SendOutboundData (data, data_length);
-	DatagramDescriptor *ds = dynamic_cast <DatagramDescriptor*> (Bindable_t::GetObject (binding));
-	if (ds)
-		return ds->SendOutboundData (data, data_length);
-	#ifdef OS_UNIX
-	PipeDescriptor *ps = dynamic_cast <PipeDescriptor*> (Bindable_t::GetObject (binding));
-	if (ps)
-		return ps->SendOutboundData (data, data_length);
-	#endif
-	return -1;
-}
-
-
-/*********************************************
-STATIC: ConnectionDescriptor::CloseConnection
-*********************************************/
-
-void ConnectionDescriptor::CloseConnection (const unsigned long binding, bool after_writing)
-{
-	// TODO: This is something of a hack, or at least it's a static method of the wrong class.
-	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
-	if (ed)
-		ed->ScheduleClose (after_writing);
-}
-
-/***********************************************
-STATIC: ConnectionDescriptor::ReportErrorStatus
-***********************************************/
-
-int ConnectionDescriptor::ReportErrorStatus (const unsigned long binding)
-{
-	// TODO: This is something of a hack, or at least it's a static method of the wrong class.
-	// TODO: Poor polymorphism here. We should be calling one virtual method
-	// instead of hacking out the runtime information of the target object.
-	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
-	if (cd)
-		return cd->_ReportErrorStatus();
-	return -1;
-}
-
 /***********************************
 ConnectionDescriptor::_UpdateEvents
 ************************************/
@@ -1013,11 +962,11 @@ void ConnectionDescriptor::_WriteOutboundData()
 }
 
 
-/****************************************
-ConnectionDescriptor::_ReportErrorStatus
-****************************************/
+/***************************************
+ConnectionDescriptor::ReportErrorStatus
+***************************************/
 
-int ConnectionDescriptor::_ReportErrorStatus()
+int ConnectionDescriptor::ReportErrorStatus()
 {
 	int error;
 	socklen_t len;

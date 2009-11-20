@@ -31,7 +31,6 @@ STATIC Bindable_t::CreateBinding
 
 unsigned long Bindable_t::CreateBinding()
 {
-	// XXX use atomic_t to prevent thread-safety issues
 	static unsigned long num = 0;
 	while(BindingBag[++num]);
 	return num;

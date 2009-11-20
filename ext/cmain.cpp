@@ -340,7 +340,10 @@ evma_send_data_to_connection
 extern "C" int evma_send_data_to_connection (const unsigned long binding, const char *data, int data_length)
 {
 	ensure_eventmachine("evma_send_data_to_connection");
-	return ConnectionDescriptor::SendDataToConnection (binding, data, data_length);
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return ed->SendOutboundData(data, data_length);
+	return -1;
 }
 
 /******************
@@ -361,7 +364,9 @@ evma_close_connection
 extern "C" void evma_close_connection (const unsigned long binding, int after_writing)
 {
 	ensure_eventmachine("evma_close_connection");
-	ConnectionDescriptor::CloseConnection (binding, (after_writing ? true : false));
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		ed->ScheduleClose (after_writing ? true : false);
 }
 
 /***********************************
@@ -371,7 +376,10 @@ evma_report_connection_error_status
 extern "C" int evma_report_connection_error_status (const unsigned long binding)
 {
 	ensure_eventmachine("evma_report_connection_error_status");
-	return ConnectionDescriptor::ReportErrorStatus (binding);
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return ed->ReportErrorStatus();
+	return -1;
 }
 
 /********************
