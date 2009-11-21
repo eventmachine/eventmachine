@@ -75,10 +75,10 @@ class EventableDescriptor: public Bindable_t
 		virtual X509 *GetPeerCert() {return NULL;}
 		#endif
 
-		virtual float GetCommInactivityTimeout() {return 0.0;}
-		virtual int SetCommInactivityTimeout (float value) {return 0;}
-		float GetPendingConnectTimeout();
-		int SetPendingConnectTimeout (float value);
+		virtual uint64_t GetCommInactivityTimeout() {return 0;}
+		virtual int SetCommInactivityTimeout (uint64_t value) {return 0;}
+		uint64_t GetPendingConnectTimeout();
+		int SetPendingConnectTimeout (uint64_t value);
 
 		#ifdef HAVE_EPOLL
 		struct epoll_event *GetEpollEvent() { return &EpollEvent; }
@@ -93,6 +93,7 @@ class EventableDescriptor: public Bindable_t
 		virtual bool Resume(){ return false; }
 
 		virtual int ReportErrorStatus(){ return 0; }
+		virtual bool IsConnectPending(){ return false; }
 
 	private:
 		bool bCloseNow;
@@ -194,10 +195,11 @@ class ConnectionDescriptor: public EventableDescriptor
 		virtual bool GetPeername (struct sockaddr*);
 		virtual bool GetSockname (struct sockaddr*);
 
-		virtual float GetCommInactivityTimeout();
-		virtual int SetCommInactivityTimeout (float value);
+		virtual uint64_t GetCommInactivityTimeout();
+		virtual int SetCommInactivityTimeout (uint64_t value);
 
 		virtual int ReportErrorStatus();
+		virtual bool IsConnectPending(){ return bConnectPending; }
 
 	protected:
 		struct OutboundPage {
@@ -276,8 +278,8 @@ class DatagramDescriptor: public EventableDescriptor
 		virtual bool GetPeername (struct sockaddr*);
 		virtual bool GetSockname (struct sockaddr*);
 
-    virtual float GetCommInactivityTimeout();
-    virtual int SetCommInactivityTimeout (float value);
+		virtual uint64_t GetCommInactivityTimeout();
+		virtual int SetCommInactivityTimeout (uint64_t value);
 
 		static int SendDatagram (const unsigned long, const char*, int, const char*, int);
 

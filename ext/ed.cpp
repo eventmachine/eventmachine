@@ -244,9 +244,9 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 EventableDescriptor::GetPendingConnectTimeout
 *********************************************/
 
-float EventableDescriptor::GetPendingConnectTimeout()
+uint64_t EventableDescriptor::GetPendingConnectTimeout()
 {
-	return ((float)PendingConnectTimeout / 1000000);
+	return PendingConnectTimeout;
 }
 
 
@@ -254,10 +254,10 @@ float EventableDescriptor::GetPendingConnectTimeout()
 EventableDescriptor::SetPendingConnectTimeout
 *********************************************/
 
-int EventableDescriptor::SetPendingConnectTimeout (float value)
+int EventableDescriptor::SetPendingConnectTimeout (uint64_t value)
 {
 	if (value > 0) {
-		PendingConnectTimeout = (uint64_t)(value * 1000000);
+		PendingConnectTimeout = value;
 		return 1;
 	}
 	return 0;
@@ -1713,9 +1713,9 @@ bool ConnectionDescriptor::GetSockname (struct sockaddr *s)
 ConnectionDescriptor::GetCommInactivityTimeout
 **********************************************/
 
-float ConnectionDescriptor::GetCommInactivityTimeout()
+uint64_t ConnectionDescriptor::GetCommInactivityTimeout()
 {
-	return ((float)InactivityTimeout / 1000000);
+	return InactivityTimeout;
 }
 
 
@@ -1723,10 +1723,10 @@ float ConnectionDescriptor::GetCommInactivityTimeout()
 ConnectionDescriptor::SetCommInactivityTimeout
 **********************************************/
 
-int ConnectionDescriptor::SetCommInactivityTimeout (float value)
+int ConnectionDescriptor::SetCommInactivityTimeout (uint64_t value)
 {
 	if (value > 0) {
-		InactivityTimeout = (uint64_t)(value * 1000000);
+		InactivityTimeout = value;
 		return 1;
 	}
 	return 0;
@@ -1769,19 +1769,19 @@ bool DatagramDescriptor::GetSockname (struct sockaddr *s)
 DatagramDescriptor::GetCommInactivityTimeout
 ********************************************/
 
-float DatagramDescriptor::GetCommInactivityTimeout()
+uint64_t DatagramDescriptor::GetCommInactivityTimeout()
 {
-	return ((float)InactivityTimeout / 1000000);
+	return InactivityTimeout;
 }
 
 /********************************************
 DatagramDescriptor::SetCommInactivityTimeout
 ********************************************/
 
-int DatagramDescriptor::SetCommInactivityTimeout (float value)
+int DatagramDescriptor::SetCommInactivityTimeout (uint64_t value)
 {
 	if (value > 0) {
-		InactivityTimeout = (uint64_t)(value * 1000000);
+		InactivityTimeout = value;
 		return 1;
 	}
 	return 0;

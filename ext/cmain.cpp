@@ -567,7 +567,7 @@ extern "C" float evma_get_comm_inactivity_timeout (const unsigned long binding)
 	ensure_eventmachine("evma_get_comm_inactivity_timeout");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed) {
-		return ed->GetCommInactivityTimeout();
+		return ((float)ed->GetCommInactivityTimeout() / 1000000);
 	}
 	else
 		return 0.0; //Perhaps this should be an exception. Access to an unknown binding.
@@ -582,7 +582,7 @@ extern "C" int evma_set_comm_inactivity_timeout (const unsigned long binding, fl
 	ensure_eventmachine("evma_set_comm_inactivity_timeout");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed) {
-		return ed->SetCommInactivityTimeout (value);
+		return ed->SetCommInactivityTimeout ((uint64_t)(value * 1000000));
 	}
 	else
 		return 0; //Perhaps this should be an exception. Access to an unknown binding.
@@ -598,7 +598,7 @@ extern "C" float evma_get_pending_connect_timeout (const unsigned long binding)
 	ensure_eventmachine("evma_get_pending_connect_timeout");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed) {
-		return ed->GetPendingConnectTimeout();
+		return ((float)ed->GetPendingConnectTimeout() / 1000000);
 	}
 	else
 		return 0.0;
@@ -614,7 +614,7 @@ extern "C" int evma_set_pending_connect_timeout (const unsigned long binding, fl
 	ensure_eventmachine("evma_set_pending_connect_timeout");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed) {
-		return ed->SetPendingConnectTimeout (value);
+		return ed->SetPendingConnectTimeout ((uint64_t)(value * 1000000));
 	}
 	else
 		return 0;
