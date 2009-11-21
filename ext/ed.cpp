@@ -246,7 +246,7 @@ EventableDescriptor::GetPendingConnectTimeout
 
 uint64_t EventableDescriptor::GetPendingConnectTimeout()
 {
-	return PendingConnectTimeout;
+	return PendingConnectTimeout / 1000;
 }
 
 
@@ -257,7 +257,7 @@ EventableDescriptor::SetPendingConnectTimeout
 int EventableDescriptor::SetPendingConnectTimeout (uint64_t value)
 {
 	if (value > 0) {
-		PendingConnectTimeout = value;
+		PendingConnectTimeout = value * 1000;
 		return 1;
 	}
 	return 0;
@@ -1715,7 +1715,7 @@ ConnectionDescriptor::GetCommInactivityTimeout
 
 uint64_t ConnectionDescriptor::GetCommInactivityTimeout()
 {
-	return InactivityTimeout;
+	return InactivityTimeout / 1000;
 }
 
 
@@ -1726,7 +1726,7 @@ ConnectionDescriptor::SetCommInactivityTimeout
 int ConnectionDescriptor::SetCommInactivityTimeout (uint64_t value)
 {
 	if (value > 0) {
-		InactivityTimeout = value;
+		InactivityTimeout = value * 1000;
 		return 1;
 	}
 	return 0;
@@ -1771,7 +1771,7 @@ DatagramDescriptor::GetCommInactivityTimeout
 
 uint64_t DatagramDescriptor::GetCommInactivityTimeout()
 {
-	return InactivityTimeout;
+	return InactivityTimeout / 1000;
 }
 
 /********************************************
@@ -1781,7 +1781,7 @@ DatagramDescriptor::SetCommInactivityTimeout
 int DatagramDescriptor::SetCommInactivityTimeout (uint64_t value)
 {
 	if (value > 0) {
-		InactivityTimeout = value;
+		InactivityTimeout = value * 1000;
 		return 1;
 	}
 	return 0;

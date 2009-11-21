@@ -140,6 +140,7 @@ class EventMachine_t
 		bool _RunOnce();
 		bool _RunTimers();
 		void _UpdateTime();
+		uint64_t _GetRealTime();
 		void _AddNewDescriptors();
 		void _ModifyDescriptors();
 		void _InitializeLoopBreaker();
