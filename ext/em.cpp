@@ -22,17 +22,6 @@ See the file COPYING for complete licensing information.
 
 #include "project.h"
 
-// Keep a global variable floating around
-// with the current loop time as set by the Event Machine.
-// This avoids the need for frequent expensive calls to time(NULL);
-Int64 gCurrentLoopTime;
-
-#ifdef OS_WIN32
-unsigned gTickCountTickover;
-unsigned gLastTickCount;
-#endif
-
-
 /* The numer of max outstanding timers was once a const enum defined in em.h.
  * Now we define it here so that users can change its value if necessary.
  */
@@ -355,17 +344,17 @@ void EventMachine_t::_UpdateTime()
 	#if defined(OS_UNIX)
 	struct timeval tv;
 	gettimeofday (&tv, NULL);
-	gCurrentLoopTime = (((Int64)(tv.tv_sec)) * 1000000LL) + ((Int64)(tv.tv_usec));
+	MyCurrentLoopTime = (((uint64_t)(tv.tv_sec)) * 1000000LL) + ((uint64_t)(tv.tv_usec));
 
 	#elif defined(OS_WIN32)
 	unsigned tick = GetTickCount();
-	if (tick < gLastTickCount)
-		gTickCountTickover += 1;
-	gLastTickCount = tick;
-	gCurrentLoopTime = ((Int64)gTickCountTickover << 32) + (Int64)tick;
+	if (tick < LastTickCountCount)
+		TickCountTickover += 1;
+	LastTickCountCount = tick;
+	MyCurrentLoopTime = ((uint64_t)TickCountTickover << 32) + (uint64_t)tick;
 
 	#else
-	gCurrentLoopTime = (Int64)time(NULL) * 1000000LL;
+	MyCurrentLoopTime = (uint64_t)time(NULL) * 1000000LL;
 	#endif
 }
 
@@ -549,8 +538,8 @@ bool EventMachine_t::_RunEpollOnce()
 	// Maybe there's a better way to do this. (Or maybe it's not that expensive after all.)
 	//
 	{ // dispatch heartbeats
-		if (gCurrentLoopTime >= NextHeartbeatTime) {
-			NextHeartbeatTime = gCurrentLoopTime + HeartbeatInterval;
+		if (MyCurrentLoopTime >= NextHeartbeatTime) {
+			NextHeartbeatTime = MyCurrentLoopTime + HeartbeatInterval;
 
 			for (int i=0; i < Descriptors.size(); i++) {
 				EventableDescriptor *ed = Descriptors[i];
@@ -650,8 +639,8 @@ bool EventMachine_t::_RunKqueueOnce()
 	}
 
 	{ // dispatch heartbeats
-		if (gCurrentLoopTime >= NextHeartbeatTime) {
-			NextHeartbeatTime = gCurrentLoopTime + HeartbeatInterval;
+		if (MyCurrentLoopTime >= NextHeartbeatTime) {
+			NextHeartbeatTime = MyCurrentLoopTime + HeartbeatInterval;
 
 			for (unsigned int i=0; i < Descriptors.size(); i++) {
 				EventableDescriptor *ed = Descriptors[i];
@@ -875,8 +864,8 @@ bool EventMachine_t::_RunSelectOnce()
 
 
 	{ // dispatch heartbeats
-		if (gCurrentLoopTime >= NextHeartbeatTime) {
-			NextHeartbeatTime = gCurrentLoopTime + HeartbeatInterval;
+		if (MyCurrentLoopTime >= NextHeartbeatTime) {
+			NextHeartbeatTime = MyCurrentLoopTime + HeartbeatInterval;
 
 			for (i=0; i < Descriptors.size(); i++) {
 				EventableDescriptor *ed = Descriptors[i];
@@ -938,10 +927,10 @@ bool EventMachine_t::_RunTimers()
 	// one that hasn't expired yet.
 
 	while (true) {
-		multimap<Int64,Timer_t>::iterator i = Timers.begin();
+		multimap<uint64_t,Timer_t>::iterator i = Timers.begin();
 		if (i == Timers.end())
 			break;
-		if (i->first > gCurrentLoopTime)
+		if (i->first > MyCurrentLoopTime)
 			break;
 		if (EventCallback)
 			(*EventCallback) (NULL, EM_TIMER_FIRED, NULL, i->second.GetBinding());
@@ -966,25 +955,25 @@ const unsigned long EventMachine_t::InstallOneshotTimer (int milliseconds)
 	#ifdef OS_UNIX
 	struct timeval tv;
 	gettimeofday (&tv, NULL);
-	Int64 fire_at = (((Int64)(tv.tv_sec)) * 1000000LL) + ((Int64)(tv.tv_usec));
-	fire_at += ((Int64)milliseconds) * 1000LL;
+	uint64_t fire_at = (((uint64_t)(tv.tv_sec)) * 1000000LL) + ((uint64_t)(tv.tv_usec));
+	fire_at += ((uint64_t)milliseconds) * 1000LL;
 	#endif
 
 	#ifdef OS_WIN32
 	unsigned tick = GetTickCount();
-	if (tick < gLastTickCount)
-		gTickCountTickover += 1;
-	gLastTickCount = tick;
+	if (tick < LastTickCountCount)
+		TickCountTickover += 1;
+	LastTickCountCount = tick;
 
-	Int64 fire_at = ((Int64)gTickCountTickover << 32) + (Int64)tick;
-	fire_at += (Int64)milliseconds;
+	uint64_t fire_at = ((uint64_t)TickCountTickover << 32) + (uint64_t)tick;
+	fire_at += (uint64_t)milliseconds;
 	#endif
 
 	Timer_t t;
 	#ifndef HAVE_MAKE_PAIR
-	multimap<Int64,Timer_t>::iterator i = Timers.insert (multimap<Int64,Timer_t>::value_type (fire_at, t));
+	multimap<uint64_t,Timer_t>::iterator i = Timers.insert (multimap<uint64_t,Timer_t>::value_type (fire_at, t));
 	#else
-	multimap<Int64,Timer_t>::iterator i = Timers.insert (make_pair (fire_at, t));
+	multimap<uint64_t,Timer_t>::iterator i = Timers.insert (make_pair (fire_at, t));
 	#endif
 	return i->second.GetBinding();
 }

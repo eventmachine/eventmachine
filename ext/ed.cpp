@@ -88,12 +88,13 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 		throw std::runtime_error ("bad eventable descriptor");
 	if (MyEventMachine == NULL)
 		throw std::runtime_error ("bad em in eventable descriptor");
-	CreatedAt = gCurrentLoopTime;
+	CreatedAt = MyEventMachine->GetCurrentTime();
 
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = 0;
 	EpollEvent.data.ptr = this;
 	#endif
+	LastActivity = MyEventMachine->GetCurrentTime();
 }
 
 
@@ -256,7 +257,7 @@ EventableDescriptor::SetPendingConnectTimeout
 int EventableDescriptor::SetPendingConnectTimeout (float value)
 {
 	if (value > 0) {
-		PendingConnectTimeout = (Int64)(value * 1000000);
+		PendingConnectTimeout = (uint64_t)(value * 1000000);
 		return 1;
 	}
 	return 0;
@@ -287,7 +288,6 @@ ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	bGotExtraKqueueEvent(false),
 	#endif
 	bIsServer (false),
-	LastIo (gCurrentLoopTime),
 	InactivityTimeout (0)
 {
 	// 22Jan09: Moved ArmKqueueWriter into SetConnectPending() to fix assertion failure in _WriteOutboundData()
@@ -637,7 +637,7 @@ void ConnectionDescriptor::Read()
 		return;
 	}
 
-	LastIo = gCurrentLoopTime;
+	LastActivity = MyEventMachine->GetCurrentTime();
 
 	int total_bytes_read = 0;
 	char readbuffer [16 * 1024 + 1];
@@ -843,7 +843,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 		return;
 	}
 
-	LastIo = gCurrentLoopTime;
+	LastActivity = MyEventMachine->GetCurrentTime();
 	size_t nbytes = 0;
 
 	#ifdef HAVE_WRITEV
@@ -1147,12 +1147,12 @@ void ConnectionDescriptor::Heartbeat()
 	 */
 
 	if (bConnectPending) {
-		if ((gCurrentLoopTime - CreatedAt) >= PendingConnectTimeout)
+		if ((MyEventMachine->GetCurrentTime() - CreatedAt) >= PendingConnectTimeout)
 			ScheduleClose (false);
 			//bCloseNow = true;
 	}
 	else {
-		if (InactivityTimeout && ((gCurrentLoopTime - LastIo) >= InactivityTimeout))
+		if (InactivityTimeout && ((MyEventMachine->GetCurrentTime() - LastActivity) >= InactivityTimeout))
 			ScheduleClose (false);
 			//bCloseNow = true;
 	}
@@ -1363,7 +1363,6 @@ DatagramDescriptor::DatagramDescriptor
 DatagramDescriptor::DatagramDescriptor (int sd, EventMachine_t *parent_em):
 	EventableDescriptor (sd, parent_em),
 	OutboundDataSize (0),
-	LastIo (gCurrentLoopTime),
 	InactivityTimeout (0)
 {
 	memset (&ReturnAddress, 0, sizeof(ReturnAddress));
@@ -1418,7 +1417,7 @@ void DatagramDescriptor::Heartbeat()
 {
 	// Close it if its inactivity timer has expired.
 
-	if (InactivityTimeout && ((gCurrentLoopTime - LastIo) >= InactivityTimeout))
+	if (InactivityTimeout && ((MyEventMachine->GetCurrentTime() - LastActivity) >= InactivityTimeout))
 		ScheduleClose (false);
 		//bCloseNow = true;
 }
@@ -1432,7 +1431,7 @@ void DatagramDescriptor::Read()
 {
 	int sd = GetSocket();
 	assert (sd != INVALID_SOCKET);
-	LastIo = gCurrentLoopTime;
+	LastActivity = MyEventMachine->GetCurrentTime();
 
 	// This is an extremely large read buffer.
 	// In many cases you wouldn't expect to get any more than 4K.
@@ -1509,7 +1508,7 @@ void DatagramDescriptor::Write()
 
 	int sd = GetSocket();
 	assert (sd != INVALID_SOCKET);
-	LastIo = gCurrentLoopTime;
+	LastActivity = MyEventMachine->GetCurrentTime();
 
 	assert (OutboundPages.size() > 0);
 
@@ -1727,7 +1726,7 @@ ConnectionDescriptor::SetCommInactivityTimeout
 int ConnectionDescriptor::SetCommInactivityTimeout (float value)
 {
 	if (value > 0) {
-		InactivityTimeout = (Int64)(value * 1000000);
+		InactivityTimeout = (uint64_t)(value * 1000000);
 		return 1;
 	}
 	return 0;
@@ -1782,7 +1781,7 @@ DatagramDescriptor::SetCommInactivityTimeout
 int DatagramDescriptor::SetCommInactivityTimeout (float value)
 {
 	if (value > 0) {
-		InactivityTimeout = (Int64)(value * 1000000);
+		InactivityTimeout = (uint64_t)(value * 1000000);
 		return 1;
 	}
 	return 0;

@@ -833,3 +833,14 @@ extern "C" int evma_set_heartbeat_interval(float interval)
 	ensure_eventmachine("evma_set_heartbeat_interval");
 	return EventMachine->SetHeartbeatInterval(interval);
 }
+
+
+/**************************
+evma_get_current_loop_time
+***************************/
+
+extern "C" uint64_t evma_get_current_loop_time()
+{
+	ensure_eventmachine("evma_get_current_loop_time");
+	return EventMachine->GetCurrentTime();
+}

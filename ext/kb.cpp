@@ -27,7 +27,6 @@ KeyboardDescriptor::KeyboardDescriptor
 KeyboardDescriptor::KeyboardDescriptor (EventMachine_t *parent_em):
 	EventableDescriptor (0, parent_em),
 	bReadAttemptedAfterClose (false),
-	LastIo (gCurrentLoopTime),
 	InactivityTimeout (0)
 {
 	#ifdef HAVE_EPOLL

@@ -999,11 +999,12 @@ static VALUE t_get_loop_time (VALUE self)
   static ID at = rb_intern("at");
 #endif
 
-  if (gCurrentLoopTime != 0) {
+  uint64_t current_time = evma_get_current_loop_time();
+  if (current_time != 0) {
 #ifndef HAVE_RB_TIME_NEW
-    return rb_funcall(cTime, at, 2, INT2NUM(gCurrentLoopTime / 1000000), INT2NUM(gCurrentLoopTime % 1000000));
+    return rb_funcall(cTime, at, 2, INT2NUM(current_time / 1000000), INT2NUM(current_time % 1000000));
 #else
-    return rb_time_new(gCurrentLoopTime / 1000000, gCurrentLoopTime % 1000000);
+    return rb_time_new(current_time / 1000000, current_time % 1000000);
 #endif
   }
   return Qnil;

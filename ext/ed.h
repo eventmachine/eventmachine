@@ -104,7 +104,7 @@ class EventableDescriptor: public Bindable_t
 		EMCallback EventCallback;
 		void _GenericInboundDispatch(const char*, int);
 
-		Int64 CreatedAt;
+		uint64_t CreatedAt;
 		bool bCallbackUnbind;
 		int UnbindReasonCode;
 		EventableDescriptor *ProxyTarget;
@@ -118,6 +118,7 @@ class EventableDescriptor: public Bindable_t
 
 		EventMachine_t *MyEventMachine;
 		int PendingConnectTimeout;
+		uint64_t LastActivity;
 };
 
 
@@ -235,7 +236,6 @@ class ConnectionDescriptor: public EventableDescriptor
 		#endif
 
 		bool bIsServer;
-		Int64 LastIo;
 		int InactivityTimeout;
 
 	private:
@@ -297,7 +297,6 @@ class DatagramDescriptor: public EventableDescriptor
 
 		struct sockaddr_in ReturnAddress;
 
-		Int64 LastIo;
 		int InactivityTimeout;
 };
 
@@ -358,7 +357,6 @@ class PipeDescriptor: public EventableDescriptor
 
 	protected:
 		bool bReadAttemptedAfterClose;
-		Int64 LastIo;
 		int InactivityTimeout;
 
 		deque<OutboundPage> OutboundPages;
@@ -391,7 +389,6 @@ class KeyboardDescriptor: public EventableDescriptor
 
 	protected:
 		bool bReadAttemptedAfterClose;
-		Int64 LastIo;
 		int InactivityTimeout;
 
 	private:

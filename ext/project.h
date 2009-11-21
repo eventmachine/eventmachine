@@ -96,6 +96,7 @@ typedef int socklen_t;
 typedef int pid_t;
 #endif
 
+#include <stdint.h>
 
 using namespace std;
 
