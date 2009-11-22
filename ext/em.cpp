@@ -490,12 +490,16 @@ EventMachine_t::_RunOnce
 
 bool EventMachine_t::_RunOnce()
 {
+	bool ret;
 	if (bEpoll)
-		return _RunEpollOnce();
+		ret = _RunEpollOnce();
 	else if (bKqueue)
-		return _RunKqueueOnce();
+		ret = _RunKqueueOnce();
 	else
-		return _RunSelectOnce();
+		ret = _RunSelectOnce();
+	_DispatchHeartbeats();
+	_CleanupSockets();
+	return ret;
 }
 
 
@@ -543,9 +547,6 @@ bool EventMachine_t::_RunEpollOnce()
 		timeval tv = {0, ((errno == EINTR) ? 5 : 50) * 1000};
 		EmSelect (0, NULL, NULL, NULL, &tv);
 	}
-
-	_DispatchHeartbeats();
-	_CleanupSockets();
 
 	#ifdef BUILD_FOR_RUBY
 	if (!rb_thread_alone()) {
@@ -612,9 +613,6 @@ bool EventMachine_t::_RunKqueueOnce()
 		--k;
 		++ke;
 	}
-
-	_DispatchHeartbeats();
-	_CleanupSockets();
 
 	// TODO, replace this with rb_thread_blocking_region for 1.9 builds.
 	#ifdef BUILD_FOR_RUBY
@@ -873,9 +871,6 @@ bool EventMachine_t::_RunSelectOnce()
 			EmSelect (0, NULL, NULL, NULL, &tv);
 		}
 	}
-
-	_DispatchHeartbeats();
-	_CleanupSockets();
 
 	return true;
 }
