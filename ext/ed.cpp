@@ -104,6 +104,8 @@ EventableDescriptor::~EventableDescriptor
 
 EventableDescriptor::~EventableDescriptor()
 {
+	if (NextHeartbeat)
+		MyEventMachine->ClearHeartbeat(NextHeartbeat);
 	if (EventCallback && bCallbackUnbind)
 		(*EventCallback)(GetBinding(), EM_CONNECTION_UNBOUND, NULL, UnbindReasonCode);
 	if (ProxiedFrom) {
@@ -258,9 +260,36 @@ int EventableDescriptor::SetPendingConnectTimeout (uint64_t value)
 {
 	if (value > 0) {
 		PendingConnectTimeout = value * 1000;
+		MyEventMachine->QueueHeartbeat(this);
 		return 1;
 	}
 	return 0;
+}
+
+
+/*************************************
+EventableDescriptor::GetNextHeartbeat
+*************************************/
+
+uint64_t EventableDescriptor::GetNextHeartbeat()
+{
+	if (NextHeartbeat)
+		MyEventMachine->ClearHeartbeat(NextHeartbeat);
+
+	NextHeartbeat = NULL;
+
+	if (!ShouldDelete()) {
+		uint64_t time_til_next = GetCommInactivityTimeout() * 1000;
+		if (IsConnectPending()) {
+			if (time_til_next == 0 || PendingConnectTimeout < time_til_next)
+				time_til_next = PendingConnectTimeout;
+		}
+		if (time_til_next == 0)
+			return NULL;
+		NextHeartbeat = time_til_next + MyEventMachine->GetRealTime();
+	}
+
+	return NextHeartbeat;
 }
 
 
@@ -1727,6 +1756,7 @@ int ConnectionDescriptor::SetCommInactivityTimeout (uint64_t value)
 {
 	if (value > 0) {
 		InactivityTimeout = value * 1000;
+		MyEventMachine->QueueHeartbeat(this);
 		return 1;
 	}
 	return 0;
@@ -1782,6 +1812,7 @@ int DatagramDescriptor::SetCommInactivityTimeout (uint64_t value)
 {
 	if (value > 0) {
 		InactivityTimeout = value * 1000;
+		MyEventMachine->QueueHeartbeat(this);
 		return 1;
 	}
 	return 0;

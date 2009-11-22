@@ -341,14 +341,14 @@ EventMachine_t::_UpdateTime
 
 void EventMachine_t::_UpdateTime()
 {
-	MyCurrentLoopTime = _GetRealTime();
+	MyCurrentLoopTime = GetRealTime();
 }
 
-/****************************
-EventMachine_t::_GetRealTime
-****************************/
+/***************************
+EventMachine_t::GetRealTime
+***************************/
 
-uint64_t EventMachine_t::_GetRealTime()
+uint64_t EventMachine_t::GetRealTime()
 {
 	uint64_t current_time;
 	#if defined(OS_UNIX)
@@ -367,6 +367,50 @@ uint64_t EventMachine_t::_GetRealTime()
 	current_time = (uint64_t)time(NULL) * 1000000LL;
 	#endif
 	return current_time;
+}
+
+/***********************************
+EventMachine_t::_DispatchHeartbeats
+***********************************/
+
+void EventMachine_t::_DispatchHeartbeats()
+{
+	while (true) {
+		multimap<uint64_t,EventableDescriptor*>::iterator i = Heartbeats.begin();
+		if (i == Heartbeats.end())
+			break;
+		if (i->first > MyCurrentLoopTime)
+			break;
+		EventableDescriptor *ed = i->second;
+		ed->Heartbeat();
+		QueueHeartbeat(ed);
+	}
+}
+
+/******************************
+EventMachine_t::QueueHeartbeat
+******************************/
+
+void EventMachine_t::QueueHeartbeat(EventableDescriptor *ed)
+{
+	uint64_t heartbeat = ed->GetNextHeartbeat();
+
+	if (heartbeat) {
+		#ifndef HAVE_MAKE_PAIR
+		Heartbeats.insert (multimap<uint64_t,EventableDescriptor*>::value_type (heartbeat, ed));
+		#else
+		Heartbeats.insert (make_pair (heartbeat, ed));
+		#endif
+	}
+}
+
+/******************************
+EventMachine_t::ClearHeartbeat
+******************************/
+
+void EventMachine_t::ClearHeartbeat(uint64_t key)
+{
+	Heartbeats.erase(key);
 }
 
 /*******************
@@ -500,6 +544,8 @@ bool EventMachine_t::_RunEpollOnce()
 		EmSelect (0, NULL, NULL, NULL, &tv);
 	}
 
+	_DispatchHeartbeats();
+
 	{ // cleanup dying sockets
 		// vector::pop_back works in constant time.
 		// TODO, rip this out and only delete the descriptors we know have died,
@@ -539,25 +585,6 @@ bool EventMachine_t::_RunEpollOnce()
 		while ((size_t)j < Descriptors.size())
 			Descriptors.pop_back();
 
-	}
-
-	// TODO, heartbeats.
-	// Added 14Sep07, its absence was noted by Brian Candler. But the comment was here, indicated
-	// that this got thought about and not done when EPOLL was originally written. Was there a reason
-	// not to do it, or was it an oversight? Certainly, running a heartbeat on 50,000 connections every
-	// two seconds can get to be a real bear, especially if all we're doing is timing out dead ones.
-	// Maybe there's a better way to do this. (Or maybe it's not that expensive after all.)
-	//
-	{ // dispatch heartbeats
-		if (MyCurrentLoopTime >= NextHeartbeatTime) {
-			NextHeartbeatTime = MyCurrentLoopTime + HeartbeatInterval;
-
-			for (int i=0; i < Descriptors.size(); i++) {
-				EventableDescriptor *ed = Descriptors[i];
-				assert (ed);
-				ed->Heartbeat();
-			}
-		}
 	}
 
 	#ifdef BUILD_FOR_RUBY
@@ -626,6 +653,8 @@ bool EventMachine_t::_RunKqueueOnce()
 		++ke;
 	}
 
+	_DispatchHeartbeats();
+
 	{ // cleanup dying sockets
 		// vector::pop_back works in constant time.
 		// TODO, rip this out and only delete the descriptors we know have died,
@@ -648,19 +677,6 @@ bool EventMachine_t::_RunKqueueOnce()
 			Descriptors.pop_back();
 
 	}
-
-	{ // dispatch heartbeats
-		if (MyCurrentLoopTime >= NextHeartbeatTime) {
-			NextHeartbeatTime = MyCurrentLoopTime + HeartbeatInterval;
-
-			for (unsigned int i=0; i < Descriptors.size(); i++) {
-				EventableDescriptor *ed = Descriptors[i];
-				assert (ed);
-				ed->Heartbeat();
-			}
-		}
-	}
-
 
 	// TODO, replace this with rb_thread_blocking_region for 1.9 builds.
 	#ifdef BUILD_FOR_RUBY
@@ -873,18 +889,7 @@ bool EventMachine_t::_RunSelectOnce()
 		}
 	}
 
-
-	{ // dispatch heartbeats
-		if (MyCurrentLoopTime >= NextHeartbeatTime) {
-			NextHeartbeatTime = MyCurrentLoopTime + HeartbeatInterval;
-
-			for (i=0; i < Descriptors.size(); i++) {
-				EventableDescriptor *ed = Descriptors[i];
-				assert (ed);
-				ed->Heartbeat();
-			}
-		}
-	}
+	_DispatchHeartbeats();
 
 	{ // cleanup dying sockets
 		// vector::pop_back works in constant time.
@@ -1704,6 +1709,7 @@ void EventMachine_t::_AddNewDescriptors()
 		*/
 		#endif
 
+		QueueHeartbeat(ed);
 		Descriptors.push_back (ed);
 	}
 	NewDescriptors.clear();

@@ -136,11 +136,15 @@ class EventMachine_t
 		bool UsingKqueue() { return bKqueue; }
 		bool UsingEpoll() { return bEpoll; }
 
+		void QueueHeartbeat(EventableDescriptor*);
+		void ClearHeartbeat(uint64_t);
+
+		uint64_t GetRealTime();
+
 	private:
 		bool _RunOnce();
 		bool _RunTimers();
 		void _UpdateTime();
-		uint64_t _GetRealTime();
 		void _AddNewDescriptors();
 		void _ModifyDescriptors();
 		void _InitializeLoopBreaker();
@@ -150,6 +154,7 @@ class EventMachine_t
 		bool _RunKqueueOnce();
 
 		void _ModifyEpollEvent (EventableDescriptor*);
+		void _DispatchHeartbeats();
 
 	public:
 		void _ReadLoopBreaker();
@@ -167,6 +172,7 @@ class EventMachine_t
 		};
 
 		multimap<uint64_t, Timer_t> Timers;
+		multimap<uint64_t, EventableDescriptor*> Heartbeats;
 		map<int, Bindable_t*> Files;
 		map<int, Bindable_t*> Pids;
 		vector<EventableDescriptor*> Descriptors;

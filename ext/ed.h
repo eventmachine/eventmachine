@@ -94,6 +94,7 @@ class EventableDescriptor: public Bindable_t
 
 		virtual int ReportErrorStatus(){ return 0; }
 		virtual bool IsConnectPending(){ return false; }
+		virtual uint64_t GetNextHeartbeat();
 
 	private:
 		bool bCloseNow;
@@ -120,6 +121,7 @@ class EventableDescriptor: public Bindable_t
 		EventMachine_t *MyEventMachine;
 		int PendingConnectTimeout;
 		uint64_t LastActivity;
+		uint64_t NextHeartbeat;
 };
 
 
