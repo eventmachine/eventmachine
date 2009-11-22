@@ -13,3 +13,4 @@ Makefile
 *.pdb
 *.dSYM
 java/src/.project
+*.rbc

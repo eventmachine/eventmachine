@@ -148,6 +148,7 @@ class EventMachine_t
 		void _AddNewDescriptors();
 		void _ModifyDescriptors();
 		void _InitializeLoopBreaker();
+		void _CleanupSockets();
 
 		bool _RunSelectOnce();
 		bool _RunEpollOnce();

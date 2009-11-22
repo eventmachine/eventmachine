@@ -545,47 +545,7 @@ bool EventMachine_t::_RunEpollOnce()
 	}
 
 	_DispatchHeartbeats();
-
-	{ // cleanup dying sockets
-		// vector::pop_back works in constant time.
-		// TODO, rip this out and only delete the descriptors we know have died,
-		// rather than traversing the whole list.
-		//  Modified 05Jan08 per suggestions by Chris Heath. It's possible that
-		//  an EventableDescriptor will have a descriptor value of -1. That will
-		//  happen if EventableDescriptor::Close was called on it. In that case,
-		//  don't call epoll_ctl to remove the socket's filters from the epoll set.
-		//  According to the epoll docs, this happens automatically when the
-		//  descriptor is closed anyway. This is different from the case where
-		//  the socket has already been closed but the descriptor in the ED object
-		//  hasn't yet been set to INVALID_SOCKET.
-		int i, j;
-		int nSockets = Descriptors.size();
-		for (i=0, j=0; i < nSockets; i++) {
-			EventableDescriptor *ed = Descriptors[i];
-			assert (ed);
-			if (ed->ShouldDelete()) {
-				if (ed->GetSocket() != INVALID_SOCKET) {
-					assert (bEpoll); // wouldn't be in this method otherwise.
-					assert (epfd != -1);
-					int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
-					// ENOENT or EBADF are not errors because the socket may be already closed when we get here.
-					if (e && (errno != ENOENT) && (errno != EBADF) && (errno != EPERM)) {
-						char buf [200];
-						snprintf (buf, sizeof(buf)-1, "unable to delete epoll event: %s", strerror(errno));
-						throw std::runtime_error (buf);
-					}
-				}
-
-				ModifiedDescriptors.erase (ed);
-				delete ed;
-			}
-			else
-				Descriptors [j++] = ed;
-		}
-		while ((size_t)j < Descriptors.size())
-			Descriptors.pop_back();
-
-	}
+	_CleanupSockets();
 
 	#ifdef BUILD_FOR_RUBY
 	if (!rb_thread_alone()) {
@@ -654,29 +614,7 @@ bool EventMachine_t::_RunKqueueOnce()
 	}
 
 	_DispatchHeartbeats();
-
-	{ // cleanup dying sockets
-		// vector::pop_back works in constant time.
-		// TODO, rip this out and only delete the descriptors we know have died,
-		// rather than traversing the whole list.
-		// In kqueue, closing a descriptor automatically removes its event filters.
-
-		int i, j;
-		int nSockets = Descriptors.size();
-		for (i=0, j=0; i < nSockets; i++) {
-			EventableDescriptor *ed = Descriptors[i];
-			assert (ed);
-			if (ed->ShouldDelete()) {
-				ModifiedDescriptors.erase (ed);
-				delete ed;
-			}
-			else
-				Descriptors [j++] = ed;
-		}
-		while ((size_t)j < Descriptors.size())
-			Descriptors.pop_back();
-
-	}
+	_CleanupSockets();
 
 	// TODO, replace this with rb_thread_blocking_region for 1.9 builds.
 	#ifdef BUILD_FOR_RUBY
@@ -691,6 +629,53 @@ bool EventMachine_t::_RunKqueueOnce()
 	#endif
 }
 
+
+/*******************************
+EventMachine_t::_CleanupSockets
+*******************************/
+
+void EventMachine_t::_CleanupSockets()
+{
+	// TODO, rip this out and only delete the descriptors we know have died,
+	// rather than traversing the whole list.
+	// Modified 05Jan08 per suggestions by Chris Heath. It's possible that
+	// an EventableDescriptor will have a descriptor value of -1. That will
+	// happen if EventableDescriptor::Close was called on it. In that case,
+	// don't call epoll_ctl to remove the socket's filters from the epoll set.
+	// According to the epoll docs, this happens automatically when the
+	// descriptor is closed anyway. This is different from the case where
+	// the socket has already been closed but the descriptor in the ED object
+	// hasn't yet been set to INVALID_SOCKET.
+	// In kqueue, closing a descriptor automatically removes its event filters.
+	int i, j;
+	int nSockets = Descriptors.size();
+	for (i=0, j=0; i < nSockets; i++) {
+		EventableDescriptor *ed = Descriptors[i];
+		assert (ed);
+		if (ed->ShouldDelete()) {
+		#ifdef HAVE_EPOLL
+			if (bEpoll) {
+				assert (epfd != -1);
+				if (ed->GetSocket() != INVALID_SOCKET) {
+					int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
+					// ENOENT or EBADF are not errors because the socket may be already closed when we get here.
+					if (e && (errno != ENOENT) && (errno != EBADF) && (errno != EPERM)) {
+						char buf [200];
+						snprintf (buf, sizeof(buf)-1, "unable to delete epoll event: %s", strerror(errno));
+						throw std::runtime_error (buf);
+					}
+				}
+				ModifiedDescriptors.erase(ed);
+			}
+		#endif
+			delete ed;
+		}
+		else
+			Descriptors [j++] = ed;
+	}
+	while ((size_t)j < Descriptors.size())
+		Descriptors.pop_back();
+}
 
 /*********************************
 EventMachine_t::_ModifyEpollEvent
@@ -890,23 +875,7 @@ bool EventMachine_t::_RunSelectOnce()
 	}
 
 	_DispatchHeartbeats();
-
-	{ // cleanup dying sockets
-		// vector::pop_back works in constant time.
-		int i, j;
-		int nSockets = Descriptors.size();
-		for (i=0, j=0; i < nSockets; i++) {
-			EventableDescriptor *ed = Descriptors[i];
-			assert (ed);
-			if (ed->ShouldDelete())
-				delete ed;
-			else
-				Descriptors [j++] = ed;
-		}
-		while ((size_t)j < Descriptors.size())
-			Descriptors.pop_back();
-
-	}
+	_CleanupSockets();
 
 	return true;
 }
