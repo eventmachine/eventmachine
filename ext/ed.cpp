@@ -276,7 +276,7 @@ uint64_t EventableDescriptor::GetNextHeartbeat()
 	if (NextHeartbeat)
 		MyEventMachine->ClearHeartbeat(NextHeartbeat);
 
-	NextHeartbeat = NULL;
+	NextHeartbeat = 0;
 
 	if (!ShouldDelete()) {
 		uint64_t time_til_next = GetCommInactivityTimeout() * 1000;
@@ -285,7 +285,7 @@ uint64_t EventableDescriptor::GetNextHeartbeat()
 				time_til_next = PendingConnectTimeout;
 		}
 		if (time_til_next == 0)
-			return NULL;
+			return 0;
 		NextHeartbeat = time_til_next + MyEventMachine->GetRealTime();
 	}
 
