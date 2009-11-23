@@ -514,12 +514,28 @@ bool EventMachine_t::_RunEpollOnce()
 	assert (epfd != -1);
 	int s;
 
+	timeval tv = _TimeTilNextEvent();
+
 	#ifdef BUILD_FOR_RUBY
+	int ret = 0;
+	fd_set fdreads;
+
+	FD_ZERO(&fdreads);
+	FD_SET(epfd, &fdreads);
+
+	while ((ret = rb_thread_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+		if (ret == -1) continue;
+		if (ret == 0) return true;
+	}
+
 	TRAP_BEG;
-	#endif
-	s = epoll_wait (epfd, epoll_events, MaxEvents, 50);
-	#ifdef BUILD_FOR_RUBY
+	s = epoll_wait (epfd, epoll_events, MaxEvents, 0);
 	TRAP_END;
+	#else
+	int duration = 0;
+	duration = duration + (tv.tv_sec * 1000);
+	duration = duration + (tv.tv_usec / 1000);
+	s = epoll_wait (epfd, epoll_events, MaxEvents, duration);
 	#endif
 
 	if (s > 0) {
@@ -547,12 +563,6 @@ bool EventMachine_t::_RunEpollOnce()
 		timeval tv = {0, ((errno == EINTR) ? 5 : 50) * 1000};
 		EmSelect (0, NULL, NULL, NULL, &tv);
 	}
-
-	#ifdef BUILD_FOR_RUBY
-	if (!rb_thread_alone()) {
-		rb_thread_schedule();
-	}
-	#endif
 
 	return true;
 	#else
@@ -627,6 +637,33 @@ bool EventMachine_t::_RunKqueueOnce()
 	#endif
 }
 
+
+/*********************************
+EventMachine_t::_TimeTilNextEvent
+*********************************/
+
+timeval EventMachine_t::_TimeTilNextEvent()
+{
+	multimap<uint64_t,EventableDescriptor*>::iterator heartbeats = Heartbeats.begin();
+	multimap<uint64_t,Timer_t>::iterator timers = Timers.begin();
+
+	uint64_t next_event = heartbeats->first;
+
+	if (timers->first != 0 && timers->first < next_event)
+		next_event = timers->first;
+
+	timeval tv;
+
+	if (next_event == 0) {
+		tv = Quantum;
+	} else {
+		uint64_t duration = next_event - MyCurrentLoopTime;
+		tv.tv_sec = duration / 1000000;
+		tv.tv_usec = duration % 1000000;
+	}
+
+	return tv;
+}
 
 /*******************************
 EventMachine_t::_CleanupSockets
