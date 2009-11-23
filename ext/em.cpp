@@ -659,13 +659,18 @@ EventMachine_t::_TimeTilNextEvent
 
 timeval EventMachine_t::_TimeTilNextEvent()
 {
-	multimap<uint64_t,EventableDescriptor*>::iterator heartbeats = Heartbeats.begin();
-	multimap<uint64_t,Timer_t>::iterator timers = Timers.begin();
+	uint64_t next_event = 0;
 
-	uint64_t next_event = heartbeats->first;
+	if (!Heartbeats.empty()) {
+		multimap<uint64_t,EventableDescriptor*>::iterator heartbeats = Heartbeats.begin();
+		next_event = heartbeats->first;
+	}
 
-	if (timers->first != 0 && timers->first < next_event)
-		next_event = timers->first;
+	if (!Timers.empty()) {
+		multimap<uint64_t,Timer_t>::iterator timers = Timers.begin();
+		if (timers->first != 0 && timers->first < next_event)
+			next_event = timers->first;
+	}
 
 	timeval tv;
 
