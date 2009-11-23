@@ -579,15 +579,30 @@ bool EventMachine_t::_RunKqueueOnce()
 {
 	#ifdef HAVE_KQUEUE
 	assert (kqfd != -1);
-	struct timespec ts = {0, 10000000}; // Too frequent. Use blocking_region
-
 	int k;
+
+	timeval tv = _TimeTilNextEvent();
+
 	#ifdef BUILD_FOR_RUBY
+	int ret = 0;
+	fd_set fdreads;
+
+	FD_ZERO(&fdreads);
+	FD_SET(kqfd, &fdreads);
+
+	while ((ret = rb_thread_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+		if (ret == -1) continue;
+		if (ret == 0) return true;
+	}
+
 	TRAP_BEG;
-	#endif
-	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, &ts);
-	#ifdef BUILD_FOR_RUBY
+	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, NULL);
 	TRAP_END;
+	#else
+	struct timespec ts;
+	ts.tv_sec = tv.tv_sec;
+	ts.tv_nsec = tv.tv_usec * 1000;
+	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, &ts);
 	#endif
 
 	struct kevent *ke = Karray;
@@ -864,7 +879,7 @@ bool EventMachine_t::_RunSelectOnce()
 	{ // read and write the sockets
 		//timeval tv = {1, 0}; // Solaris fails if the microseconds member is >= 1000000.
 		//timeval tv = Quantum;
-		SelectData.tv = Quantum;
+		SelectData.tv = _TimeTilNextEvent();
 		int s = SelectData._Select();
 		//rb_thread_blocking_region(xxx,(void*)&SelectData,RUBY_UBF_IO,0);
 		//int s = EmSelect (SelectData.maxsocket+1, &(SelectData.fdreads), &(SelectData.fdwrites), NULL, &(SelectData.tv));
