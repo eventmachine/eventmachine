@@ -941,7 +941,7 @@ void EventMachine_t::_ReadLoopBreaker()
 	char buffer [1024];
 	read (LoopBreakerReader, buffer, sizeof(buffer));
 	if (EventCallback)
-		(*EventCallback)(NULL, EM_LOOPBREAK_SIGNAL, "", 0);
+		(*EventCallback)(0, EM_LOOPBREAK_SIGNAL, "", 0);
 }
 
 
@@ -965,7 +965,7 @@ bool EventMachine_t::_RunTimers()
 		if (i->first > MyCurrentLoopTime)
 			break;
 		if (EventCallback)
-			(*EventCallback) (NULL, EM_TIMER_FIRED, NULL, i->second.GetBinding());
+			(*EventCallback) (0, EM_TIMER_FIRED, NULL, i->second.GetBinding());
 		Timers.erase (i);
 	}
 	return true;
@@ -1109,7 +1109,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		}
 	}
 
-	unsigned long out = NULL;
+	unsigned long out = 0;
 
 	#ifdef OS_UNIX
 	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
@@ -1238,10 +1238,10 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 	// The whole rest of this function is only compiled on Unix systems.
 	#ifdef OS_UNIX
 
-	unsigned long out = NULL;
+	unsigned long out = 0;
 
 	if (!server || !*server)
-		return NULL;
+		return 0;
 
 	sockaddr_un pun;
 	memset (&pun, 0, sizeof(pun));
@@ -1257,19 +1257,19 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 
 	int fd = socket (AF_LOCAL, SOCK_STREAM, 0);
 	if (fd == INVALID_SOCKET)
-		return NULL;
+		return 0;
 
 	// From here on, ALL error returns must close the socket.
 	// NOTE: At this point, the socket is still a blocking socket.
 	if (connect (fd, (struct sockaddr*)&pun, sizeof(pun)) != 0) {
 		closesocket (fd);
-		return NULL;
+		return 0;
 	}
 
 	// Set the newly-connected socket nonblocking.
 	if (!SetSocketNonblocking (fd)) {
 		closesocket (fd);
-		return NULL;
+		return 0;
 	}
 
 	// Set up a connection descriptor and add it to the event-machine.
@@ -1473,9 +1473,9 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	int family, bind_size;
 	struct sockaddr *bind_here = name2address (server, port, &family, &bind_size);
 	if (!bind_here)
-		return NULL;
+		return 0;
 
-	unsigned long output_binding = NULL;
+	unsigned long output_binding = 0;
 
 	//struct sockaddr_in sin;
 
@@ -1555,7 +1555,7 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	fail:
 	if (sd_accept != INVALID_SOCKET)
 		closesocket (sd_accept);
-	return NULL;
+	return 0;
 }
 
 
@@ -1565,7 +1565,7 @@ EventMachine_t::OpenDatagramSocket
 
 const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int port)
 {
-	unsigned long output_binding = NULL;
+	unsigned long output_binding = 0;
 
 	int sd = socket (AF_INET, SOCK_DGRAM, 0);
 	if (sd == INVALID_SOCKET)
@@ -1616,7 +1616,7 @@ const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int
 	fail:
 	if (sd != INVALID_SOCKET)
 		closesocket (sd);
-	return NULL;
+	return 0;
 }
 
 
@@ -1794,7 +1794,7 @@ const unsigned long EventMachine_t::_OpenFileForWriting (const char *filename)
 	 */
 
 	if (!filename || !*filename)
-		return NULL;
+		return 0;
 
   int fd = open (filename, O_CREAT|O_TRUNC|O_WRONLY|O_NONBLOCK, 0644);
   
@@ -1826,7 +1826,7 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 
 	// The whole rest of this function is only compiled on Unix systems.
 	#ifdef OS_UNIX
-	unsigned long output_binding = NULL;
+	unsigned long output_binding = 0;
 
 	struct sockaddr_un s_sun;
 
@@ -1887,7 +1887,7 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 	fail:
 	if (sd_accept != INVALID_SOCKET)
 		closesocket (sd_accept);
-	return NULL;
+	return 0;
 	#endif // OS_UNIX
 }
 
@@ -1948,18 +1948,18 @@ const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
 	#ifdef OS_UNIX
 	// Make sure the incoming array of command strings is sane.
 	if (!cmd_strings)
-		return NULL;
+		return 0;
 	int j;
 	for (j=0; j < 100 && cmd_strings[j]; j++)
 		;
 	if ((j==0) || (j==100))
-		return NULL;
+		return 0;
 
-	unsigned long output_binding = NULL;
+	unsigned long output_binding = 0;
 
 	int sv[2];
 	if (socketpair (AF_LOCAL, SOCK_STREAM, 0, sv) < 0)
-		return NULL;
+		return 0;
 	// from here, all early returns must close the pair of sockets.
 
 	// Set the parent side of the socketpair nonblocking.
@@ -1969,7 +1969,7 @@ const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
 	if (!SetSocketNonblocking (sv[0])) {
 		close (sv[0]);
 		close (sv[1]);
-		return NULL;
+		return 0;
 	}
 
 	pid_t f = fork();
