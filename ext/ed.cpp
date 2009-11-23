@@ -61,7 +61,8 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	ProxiedFrom(NULL),
 	MaxOutboundBufSize(0),
 	MyEventMachine (em),
-	PendingConnectTimeout(20000000)
+	PendingConnectTimeout(20000000),
+	InactivityTimeout (0)
 {
 	/* There are three ways to close a socket, all of which should
 	 * automatically signal to the event machine that this object
@@ -316,8 +317,7 @@ ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	#ifdef HAVE_KQUEUE
 	bGotExtraKqueueEvent(false),
 	#endif
-	bIsServer (false),
-	InactivityTimeout (0)
+	bIsServer (false)
 {
 	// 22Jan09: Moved ArmKqueueWriter into SetConnectPending() to fix assertion failure in _WriteOutboundData()
 	//  5May09: Moved EPOLLOUT into SetConnectPending() so it doesn't happen for attached read pipes
@@ -478,7 +478,7 @@ int ConnectionDescriptor::SendOutboundData (const char *data, int length)
 	if (bWatchOnly)
 		throw std::runtime_error ("cannot send data on a 'watch only' connection");
 
-	if (ProxiedFrom && MaxOutboundBufSize && GetOutboundDataSize() + length > MaxOutboundBufSize)
+	if (ProxiedFrom && MaxOutboundBufSize && (unsigned int)(GetOutboundDataSize() + length) > MaxOutboundBufSize)
 		ProxiedFrom->Pause();
 
 	#ifdef WITH_SSL
@@ -939,7 +939,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 	assert (bytes_written >= 0);
 	OutboundDataSize -= bytes_written;
 
-	if (ProxiedFrom && MaxOutboundBufSize && GetOutboundDataSize() < MaxOutboundBufSize && ProxiedFrom->IsPaused())
+	if (ProxiedFrom && MaxOutboundBufSize && (unsigned int)GetOutboundDataSize() < MaxOutboundBufSize && ProxiedFrom->IsPaused())
 		ProxiedFrom->Resume();
 
 	#ifdef HAVE_WRITEV
@@ -1391,8 +1391,7 @@ DatagramDescriptor::DatagramDescriptor
 
 DatagramDescriptor::DatagramDescriptor (int sd, EventMachine_t *parent_em):
 	EventableDescriptor (sd, parent_em),
-	OutboundDataSize (0),
-	InactivityTimeout (0)
+	OutboundDataSize (0)
 {
 	memset (&ReturnAddress, 0, sizeof(ReturnAddress));
 

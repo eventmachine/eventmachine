@@ -30,7 +30,6 @@ PipeDescriptor::PipeDescriptor
 PipeDescriptor::PipeDescriptor (int fd, pid_t subpid, EventMachine_t *parent_em):
 	EventableDescriptor (fd, parent_em),
 	bReadAttemptedAfterClose (false),
-	InactivityTimeout (0),
 	OutboundDataSize (0),
 	SubprocessPid (subpid)
 {

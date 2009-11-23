@@ -26,8 +26,7 @@ KeyboardDescriptor::KeyboardDescriptor
 
 KeyboardDescriptor::KeyboardDescriptor (EventMachine_t *parent_em):
 	EventableDescriptor (0, parent_em),
-	bReadAttemptedAfterClose (false),
-	InactivityTimeout (0)
+	bReadAttemptedAfterClose (false)
 {
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = EPOLLIN;

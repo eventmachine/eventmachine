@@ -494,6 +494,7 @@ static VALUE t_connect_server (VALUE self, VALUE server, VALUE port)
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eConnectionError, e.what());
 	}
+	return Qnil;
 }
 
 /*********************
@@ -514,6 +515,7 @@ static VALUE t_bind_connect_server (VALUE self, VALUE bind_addr, VALUE bind_port
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eConnectionError, e.what());
 	}
+	return Qnil;
 }
 
 /*********************
@@ -798,6 +800,7 @@ static VALUE t_watch_filename (VALUE self, VALUE fname)
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eUnsupported, e.what());
 	}
+	return Qnil;
 }
 
 
@@ -823,6 +826,7 @@ static VALUE t_watch_pid (VALUE self, VALUE pid)
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eUnsupported, e.what());
 	}
+	return Qnil;
 }
 
 

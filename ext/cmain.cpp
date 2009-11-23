@@ -148,6 +148,7 @@ extern "C" int evma_detach_fd (const unsigned long binding)
 		#else
 			throw std::runtime_error ("invalid binding to detach");
 		#endif
+			return -1;
 }
 
 /************************
@@ -166,6 +167,7 @@ extern "C" int evma_get_file_descriptor (const unsigned long binding)
 		#else
 			throw std::runtime_error ("invalid binding to get_fd");
 		#endif
+			return -1;
 }
 
 /***********************

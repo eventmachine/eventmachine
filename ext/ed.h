@@ -119,7 +119,8 @@ class EventableDescriptor: public Bindable_t
 		#endif
 
 		EventMachine_t *MyEventMachine;
-		int PendingConnectTimeout;
+		uint64_t PendingConnectTimeout;
+		uint64_t InactivityTimeout;
 		uint64_t LastActivity;
 		uint64_t NextHeartbeat;
 };
@@ -240,7 +241,6 @@ class ConnectionDescriptor: public EventableDescriptor
 		#endif
 
 		bool bIsServer;
-		int InactivityTimeout;
 
 	private:
 		void _UpdateEvents();
@@ -300,8 +300,6 @@ class DatagramDescriptor: public EventableDescriptor
 		int OutboundDataSize;
 
 		struct sockaddr_in ReturnAddress;
-
-		int InactivityTimeout;
 };
 
 
@@ -361,7 +359,6 @@ class PipeDescriptor: public EventableDescriptor
 
 	protected:
 		bool bReadAttemptedAfterClose;
-		int InactivityTimeout;
 
 		deque<OutboundPage> OutboundPages;
 		int OutboundDataSize;
@@ -393,7 +390,6 @@ class KeyboardDescriptor: public EventableDescriptor
 
 	protected:
 		bool bReadAttemptedAfterClose;
-		int InactivityTimeout;
 
 	private:
 		void _DispatchInboundData (const char *buffer, int size);
