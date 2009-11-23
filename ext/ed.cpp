@@ -1690,20 +1690,6 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 }
 
 
-/****************************************
-STATIC: DatagramDescriptor::SendDatagram
-****************************************/
-
-int DatagramDescriptor::SendDatagram (const unsigned long binding, const char *data, int length, const char *address, int port)
-{
-	DatagramDescriptor *dd = dynamic_cast <DatagramDescriptor*> (Bindable_t::GetObject (binding));
-	if (dd)
-		return dd->SendOutboundDatagram (data, length, address, port);
-	else
-		return -1;
-}
-
-
 /*********************************
 ConnectionDescriptor::GetPeername
 *********************************/

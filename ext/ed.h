@@ -283,9 +283,6 @@ class DatagramDescriptor: public EventableDescriptor
 		virtual uint64_t GetCommInactivityTimeout();
 		virtual int SetCommInactivityTimeout (uint64_t value);
 
-		static int SendDatagram (const unsigned long, const char*, int, const char*, int);
-
-
 	protected:
 		struct OutboundPage {
 			OutboundPage (const char *b, int l, struct sockaddr_in f, int o=0): Buffer(b), Length(l), Offset(o), From(f) {}

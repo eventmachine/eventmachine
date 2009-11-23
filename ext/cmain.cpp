@@ -355,7 +355,10 @@ evma_send_datagram
 extern "C" int evma_send_datagram (const unsigned long binding, const char *data, int data_length, const char *address, int port)
 {
 	ensure_eventmachine("evma_send_datagram");
-	return DatagramDescriptor::SendDatagram (binding, data, data_length, address, port);
+	DatagramDescriptor *dd = dynamic_cast <DatagramDescriptor*> (Bindable_t::GetObject (binding));
+	if (dd)
+		return dd->SendOutboundDatagram(data, data_length, address, port);
+	return -1;
 }
 
 
