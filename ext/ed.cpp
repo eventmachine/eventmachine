@@ -191,12 +191,13 @@ bool EventableDescriptor::IsCloseScheduled()
 EventableDescriptor::StartProxy
 *******************************/
 
-void EventableDescriptor::StartProxy(const unsigned long to, const unsigned long bufsize)
+void EventableDescriptor::StartProxy(const unsigned long to, const unsigned long bufsize, const unsigned long length)
 {
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (to));
 	if (ed) {
 		StopProxy();
 		ProxyTarget = ed;
+		BytesToProxy = length;
 		ed->SetProxiedFrom(this, bufsize);
 		return;
 	}
@@ -236,10 +237,24 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 {
 	assert(EventCallback);
 
-	if (ProxyTarget)
-		ProxyTarget->SendOutboundData(buf, size);
-	else
+	if (ProxyTarget) {
+		if (BytesToProxy > 0) {
+			unsigned long proxied = std::min(BytesToProxy, (unsigned long) size);
+			ProxyTarget->SendOutboundData(buf, proxied);
+			BytesToProxy -= proxied;
+			if (BytesToProxy == 0) {
+				StopProxy();
+				(*EventCallback)(GetBinding(), EM_PROXY_COMPLETED, NULL, 0);
+				if (proxied < size) {
+					(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf + proxied, size - proxied);
+				}
+			}
+		} else {
+			ProxyTarget->SendOutboundData(buf, size);
+		}
+	} else {
 		(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf, size);
+	}
 }
 
 

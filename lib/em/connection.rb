@@ -134,6 +134,11 @@ module EventMachine
     def proxy_target_unbound
     end
 
+    # EventMachine::Connection#proxy_completed is called when the reactor finished proxying all
+    # of the requested bytes.
+    def proxy_completed
+    end
+
     # EventMachine::Connection#proxy_incoming_to is called only by user code. It sets up
     # a low-level proxy relay for all data inbound for this connection, to the connection given
     # as the argument. This is essentially just a helper method for enable_proxy.
