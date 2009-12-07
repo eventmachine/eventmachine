@@ -25,6 +25,7 @@ See the file COPYING for complete licensing information.
 */
 #if defined(BUILD_FOR_RUBY) && defined(OS_WIN32)
 #undef stat
+#undef fstat
 #endif
 
 static EventMachine_t *EventMachine;

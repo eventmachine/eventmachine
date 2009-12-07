@@ -358,9 +358,9 @@ uint64_t EventMachine_t::GetRealTime()
 
 	#elif defined(OS_WIN32)
 	unsigned tick = GetTickCount();
-	if (tick < LastTickCountCount)
+	if (tick < LastTickCount)
 		TickCountTickover += 1;
-	LastTickCountCount = tick;
+	LastTickCount = tick;
 	current_time = ((uint64_t)TickCountTickover << 32) + (uint64_t)tick;
 
 	#else
@@ -1047,9 +1047,9 @@ const unsigned long EventMachine_t::InstallOneshotTimer (int milliseconds)
 
 	#ifdef OS_WIN32
 	unsigned tick = GetTickCount();
-	if (tick < LastTickCountCount)
+	if (tick < LastTickCount)
 		TickCountTickover += 1;
-	LastTickCountCount = tick;
+	LastTickCount = tick;
 
 	uint64_t fire_at = ((uint64_t)TickCountTickover << 32) + (uint64_t)tick;
 	fire_at += (uint64_t)milliseconds;
