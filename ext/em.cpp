@@ -1879,6 +1879,18 @@ void EventMachine_t::_ModifyDescriptors()
 	}
 	#endif
 
+	#ifdef HAVE_KQUEUE
+	if (Poller == Poller_Kqueue) {
+		set<EventableDescriptor*>::iterator i = ModifiedDescriptors.begin();
+		while (i != ModifiedDescriptors.end()) {
+			assert (*i);
+			if ((*i)->GetKqueueArmWrite())
+				ArmKqueueWriter (*i);
+			++i;
+		}
+	}
+	#endif
+
 	ModifiedDescriptors.clear();
 }
 
