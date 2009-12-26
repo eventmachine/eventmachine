@@ -137,7 +137,7 @@ class TestBasic < Test::Unit::TestCase
     end
   end
 
-  def xxx_test_unbind_error
+  def test_unbind_error
     assert_raises( RuntimeError ) {
       EM.run {
         EM.start_server TestHost, TestPort
@@ -173,8 +173,8 @@ class TestBasic < Test::Unit::TestCase
   end
   # This test causes issues, the machine becomes unreleasable after 
   # release_machine suffers an exception in event_callback.
-  def xxx_test_post_init_error
-    assert_raises( EventMachine::ConnectionNotBound ) {
+  def test_post_init_error
+    assert_raises( NameError ) {
       EM.run {
         EM::Timer.new(1) {EM.stop}
         EM.start_server TestHost, TestPort
