@@ -1421,6 +1421,7 @@ module EventMachine
       elsif c = @acceptors.delete( conn_binding )
         # no-op
       else
+        raise $! if $! # Bubble user generated errors.
         raise ConnectionNotBound, "recieved ConnectionUnbound for an unknown signature: #{conn_binding}"
       end
     elsif opcode == ConnectionAccepted
