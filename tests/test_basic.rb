@@ -112,20 +112,11 @@ class TestBasic < Test::Unit::TestCase
     assert !EM.reactor_running?
   end
 
-
-  #--------------------------------------
-
-  # TODO! This is an unfinished edge case.
-  # EM mishandles uncaught Ruby exceptions that fire from within #unbind handlers.
-  # A uncaught Ruby exception results in a call to EM::release_machine (which is in an ensure
-  # block in EM::run). But if EM is processing an unbind request, the release_machine call
-  # will cause a segmentation fault.
-  #
-
   TestHost = "127.0.0.1"
   TestPort = 9070
 
   class UnbindError < EM::Connection
+    ERR = Class.new(StandardError)
     def initialize *args
       super
     end
@@ -133,12 +124,12 @@ class TestBasic < Test::Unit::TestCase
       close_connection_after_writing
     end
     def unbind
-      raise "Blooey"
+      raise ERR
     end
   end
 
   def test_unbind_error
-    assert_raises( RuntimeError ) {
+    assert_raises( UnbindError::ERR ) {
       EM.run {
         EM.start_server TestHost, TestPort
         EM.connect TestHost, TestPort, UnbindError
