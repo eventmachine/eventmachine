@@ -30,17 +30,6 @@ require 'socket'
 require 'test/unit'
 
 class TestBasic < Test::Unit::TestCase
-
-  def setup
-    assert(!EM.reactor_running?)
-  end
-
-  def teardown
-    assert(!EM.reactor_running?)
-  end
-
-  #-------------------------------------
-
   def test_libtype
     lt = EventMachine.library_type
     em_lib = (ENV["EVENTMACHINE_LIBRARY"] || $eventmachine_library || :xxx).to_sym
@@ -280,5 +269,21 @@ class TestBasic < Test::Unit::TestCase
     }
     assert_equal(interval, $interval)
   end
+  
+  module PostInitRaiser
+    ERR = Class.new(StandardError)
+    def post_init
+      raise ERR
+    end
+  end
+  
+  def test_bubble_errors_from_post_init
+    localhost, port = '127.0.0.1', 9000
+    assert_raises(PostInitRaiser::ERR) do
+      EM.run do
+        EM.start_server localhost, port
+        EM.connect localhost, port, PostInitRaiser
+      end
+    end
+  end
 end
-
