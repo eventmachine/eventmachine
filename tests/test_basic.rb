@@ -146,47 +146,6 @@ class TestBasic < Test::Unit::TestCase
     }
   end
 
-  #------------------------------------
-  #
-  # TODO. This is an unfinished bug fix.
-  # This case was originally reported by Dan Aquino. If you throw a Ruby exception
-  # in a post_init handler, it gets rethrown as a confusing reactor exception.
-  # The problem is in eventmachine.rb, which calls post_init within the private
-  # initialize method of the EM::Connection class. This happens in both the EM::connect
-  # method and in the code that responds to connection-accepted events.
-  # What happens is that we instantiate the new connection object, which calls
-  # initialize, and then after initialize returns, we stick the new connection object
-  # into EM's @conns hashtable.
-  # But the problem is that Connection::initialize calls #post_init before it returns,
-  # and this may be user-written code that may throw an uncaught Ruby exception.
-  # If that happens, the reactor will abort, and it will then try to run down open
-  # connections. Because @conns never got a chance to properly reflect the new connection
-  # (because initialize never returned), we throw a ConnectionNotBound error
-  # (eventmachine.rb line 1080).
-  # When the bug is fixed, activate this test case.
-  #
-
-  class PostInitError < EM::Connection
-    def post_init
-      aaa bbb # should produce a Ruby exception
-    end
-  end
-  # This test causes issues, the machine becomes unreleasable after 
-  # release_machine suffers an exception in event_callback.
-  def test_post_init_error
-    assert_raises( NameError ) {
-      EM.run {
-        EM::Timer.new(1) {EM.stop}
-        EM.start_server TestHost, TestPort
-        EM.connect TestHost, TestPort, PostInitError
-      }
-    }
-    EM.run {
-      EM.stop
-    }
-    assert !EM.reactor_running?
-  end
-
   module BrsTestSrv
     def receive_data data
       $received << data
