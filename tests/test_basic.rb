@@ -245,4 +245,21 @@ class TestBasic < Test::Unit::TestCase
       end
     end
   end
+  
+  module InitializeRaiser
+    ERR = Class.new(StandardError)
+    def initialize
+      raise ERR
+    end
+  end
+  
+  def test_bubble_errors_from_initialize
+    localhost, port = '127.0.0.1', 9000
+    assert_raises(InitializeRaiser::ERR) do
+      EM.run do
+        EM.start_server localhost, port
+        EM.connect localhost, port, InitializeRaiser
+      end
+    end
+  end
 end
