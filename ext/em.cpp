@@ -524,7 +524,11 @@ bool EventMachine_t::_RunEpollOnce()
 	FD_SET(epfd, &fdreads);
 
 	while ((ret = rb_thread_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
-		if (ret == -1) continue;
+		if (ret == -1) {
+			assert(errno != EINVAL);
+			assert(errno != EBADF);
+			continue;
+		}
 		if (ret == 0) return true;
 	}
 
@@ -668,7 +672,7 @@ timeval EventMachine_t::_TimeTilNextEvent()
 
 	if (!Timers.empty()) {
 		multimap<uint64_t,Timer_t>::iterator timers = Timers.begin();
-		if (timers->first != 0 && timers->first < next_event)
+		if (next_event == 0 || timers->first < next_event)
 			next_event = timers->first;
 	}
 
@@ -677,9 +681,13 @@ timeval EventMachine_t::_TimeTilNextEvent()
 	if (next_event == 0) {
 		tv = Quantum;
 	} else {
-		uint64_t duration = next_event - MyCurrentLoopTime;
-		tv.tv_sec = duration / 1000000;
-		tv.tv_usec = duration % 1000000;
+		if (next_event > MyCurrentLoopTime) {
+			uint64_t duration = next_event - MyCurrentLoopTime;
+			tv.tv_sec = duration / 1000000;
+			tv.tv_usec = duration % 1000000;
+		} else {
+			tv.tv_sec = tv.tv_usec = 0;
+		}
 	}
 
 	return tv;
