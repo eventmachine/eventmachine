@@ -36,7 +36,7 @@ module EventMachine
       allocate.instance_eval do
         # Store signature
         @signature = sig
-        associate_callback_target sig
+        # associate_callback_target sig
 
         # Call a superclass's #initialize if it has one
         initialize(*args)
