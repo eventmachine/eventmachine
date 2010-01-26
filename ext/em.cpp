@@ -970,8 +970,10 @@ void EventMachine_t::_CleanBadDescriptors()
 
 		int ret = select(sd + 1, &fds, NULL, NULL, &tv);
 
-		if (ret == EBADF)
-			ed->ScheduleClose(false);
+		if (ret == -1) {
+			if (errno == EBADF)
+				ed->ScheduleClose(false);
+		}
 	}
 }
 
