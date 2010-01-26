@@ -1171,29 +1171,31 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 			Add (cd);
 			out = cd->GetBinding();
 		}
-		else {
-			/* This could be connection refused or some such thing.
-			 * We will come here on Linux if a localhost connection fails.
-			 * Changed 16Jul06: Originally this branch was a no-op, and
-			 * we'd drop down to the end of the method, close the socket,
-			 * and return NULL, which would cause the caller to GET A
-			 * FATAL EXCEPTION. Now we keep the socket around but schedule an
-			 * immediate close on it, so the caller will get a close-event
-			 * scheduled on it. This was only an issue for localhost connections
-			 * to non-listening ports. We may eventually need to revise this
-			 * revised behavior, in case it causes problems like making it hard
-			 * for people to know that a failure occurred.
-			 */
-			ConnectionDescriptor *cd = new ConnectionDescriptor (sd, this);
-			if (!cd)
-				throw std::runtime_error ("no connection allocated");
-			cd->ScheduleClose (false);
-			Add (cd);
-			out = cd->GetBinding();
-		}
 	}
 	else {
-		// The error from connect was something other then EINPROGRESS.
+		// The error from connect was something other then EINPROGRESS (EHOSTDOWN, etc).
+		// Fall through to the !out case below
+	}
+
+	if (!out) {
+		/* This could be connection refused or some such thing.
+		 * We will come here on Linux if a localhost connection fails.
+		 * Changed 16Jul06: Originally this branch was a no-op, and
+		 * we'd drop down to the end of the method, close the socket,
+		 * and return NULL, which would cause the caller to GET A
+		 * FATAL EXCEPTION. Now we keep the socket around but schedule an
+		 * immediate close on it, so the caller will get a close-event
+		 * scheduled on it. This was only an issue for localhost connections
+		 * to non-listening ports. We may eventually need to revise this
+		 * revised behavior, in case it causes problems like making it hard
+		 * for people to know that a failure occurred.
+		 */
+		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, this);
+		if (!cd)
+			throw std::runtime_error ("no connection allocated");
+		cd->ScheduleClose (false);
+		Add (cd);
+		out = cd->GetBinding();
 	}
 	#endif
 
