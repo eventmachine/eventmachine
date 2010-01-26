@@ -928,18 +928,52 @@ bool EventMachine_t::_RunSelectOnce()
 				_ReadLoopBreaker();
 		}
 		else if (s < 0) {
-			// select can fail on error in a handful of ways.
-			// If this happens, then wait for a little while to avoid busy-looping.
-			// If the error was EINTR, we probably caught SIGCHLD or something,
-			// so keep the wait short.
-			timeval tv = {0, ((errno == EINTR) ? 5 : 50) * 1000};
-			EmSelect (0, NULL, NULL, NULL, &tv);
+			switch (errno) {
+				case EBADF:
+					_CleanBadDescriptors();
+					break;
+				case EINVAL:
+					throw std::runtime_error ("Somehow EM passed an invalid nfds or invalid timeout to select(2), please report this!");
+					break;
+				default:
+					// select can fail on error in a handful of ways.
+					// If this happens, then wait for a little while to avoid busy-looping.
+					// If the error was EINTR, we probably caught SIGCHLD or something,
+					// so keep the wait short.
+					timeval tv = {0, ((errno == EINTR) ? 5 : 50) * 1000};
+					EmSelect (0, NULL, NULL, NULL, &tv);
+			}
 		}
 	}
 
 	return true;
 }
 
+void EventMachine_t::_CleanBadDescriptors()
+{
+	size_t i;
+
+	for (i = 0; i < Descriptors.size(); i++) {
+		EventableDescriptor *ed = Descriptors[i];
+		if (ed->ShouldDelete())
+			continue;
+
+		int sd = ed->GetSocket();
+
+		struct timeval tv;
+		tv.tv_sec = 0;
+		tv.tv_usec = 0;
+
+		fd_set fds;
+		FD_ZERO(&fds);
+		FD_SET(sd, &fds);
+
+		int ret = select(sd + 1, &fds, NULL, NULL, &tv);
+
+		if (ret == EBADF)
+			ed->ScheduleClose(false);
+	}
+}
 
 /********************************
 EventMachine_t::_ReadLoopBreaker

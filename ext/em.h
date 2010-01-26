@@ -157,6 +157,7 @@ class EventMachine_t
 		void _ModifyEpollEvent (EventableDescriptor*);
 		void _DispatchHeartbeats();
 		timeval _TimeTilNextEvent();
+		void _CleanBadDescriptors();
 
 	public:
 		void _ReadLoopBreaker();
