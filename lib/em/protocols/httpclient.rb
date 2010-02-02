@@ -142,6 +142,11 @@ module EventMachine
             req << "Cookie: #{args[:cookie]}"
           end
 
+          # Allow custom HTTP headers, e.g. SOAPAction
+          args[:custom_headers].each do |k,v|
+            req << "#{k}: #{v}"
+          end
+
           # Basic-auth stanza contributed by Matt Murphy.
           if args[:basic_auth]
             basic_auth_string = ["#{args[:basic_auth][:username]}:#{args[:basic_auth][:password]}"].pack('m').strip.gsub(/\n/,'')
