@@ -124,21 +124,20 @@ class TestTimers < Test::Unit::TestCase
   # Pure ruby and java versions have no built-in limit on the number of outstanding timers.
   #
   def test_timer_change_max_outstanding
-    ten_thousand_timers = proc {
-      10001.times {
-        EM.add_timer(5) {}
-      }
-    }
+    defaults = EM.get_max_timers
+    EM.set_max_timers(100)
+
+    one_hundred_one_timers = proc { 101.times { EM.add_timer(5) {} } }
 
     EM.run {
       if EM.library_type == :pure_ruby
-        ten_thousand_timers.call
+        one_hundred_one_timers.call
       elsif EM.library_type == :java
-        ten_thousand_timers.call
+        one_hundred_one_timers.call
       else
         begin
           assert_raises( RuntimeError ) {
-            ten_thousand_timers.call
+            one_hundred_one_timers.call
           }
         rescue Object
           p $!
@@ -148,15 +147,14 @@ class TestTimers < Test::Unit::TestCase
       EM.stop
     }
 
-    assert(!EM.reactor_running?, 'Reactor running when it should not be.')
-    assert( EM.get_max_timers != 10001 )
-    EM.set_max_timers( 10001 )
-    assert( EM.get_max_timers == 10001 )
+    EM.set_max_timers( 101 )
 
     EM.run {
-      ten_thousand_timers.call
+      one_hundred_one_timers.call
       EM.stop
     }
+  ensure
+    EM.set_max_timers(defaults)
   end
 
 end
