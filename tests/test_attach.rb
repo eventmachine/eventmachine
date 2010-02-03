@@ -51,6 +51,16 @@ class TestAttach < Test::Unit::TestCase
     end
   end
 
+  def setup
+    $read, $write, $sock, $r, $w, $fd, $sock, $before, $after = nil
+  end
+
+  def teardown
+    [$read, $write, $sock, $r, $w, $fd, $sock, $before, $after].each do |io|
+      io.close rescue nil
+    end
+  end
+
   def test_attach
     EM.run{
       EM.start_server Host, Port, EchoServer
@@ -88,8 +98,8 @@ class TestAttach < Test::Unit::TestCase
   def test_set_readable
     EM.run{
       $r, $w = IO.pipe
-      c = EM.watch $r, PipeWatch do |c|
-        c.notify_readable = false
+      c = EM.watch $r, PipeWatch do |con|
+        con.notify_readable = false
       end
 
       EM.next_tick{
