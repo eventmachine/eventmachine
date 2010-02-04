@@ -190,7 +190,7 @@ class TestFutures < Test::Unit::TestCase
       d = EM::DefaultDeferrable.new
       d.callback {n = 1; EM.stop}
       d.errback {n = 2; EM.stop}
-      d.timeout(1)
+      d.timeout(0.01)
     }
     assert_equal( 2, n )
   end
