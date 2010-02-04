@@ -121,7 +121,8 @@ class TestHttpClient2 < Test::Unit::TestCase
       e.callback {
         headers2 = e.headers
       }
-      EM::Timer.new(1) {EM.stop}
+      EM.tick_loop { EM.stop if headers && headers2 }
+      EM.add_timer(1) { EM.stop }
     }
     assert(headers)
     assert(headers2)
