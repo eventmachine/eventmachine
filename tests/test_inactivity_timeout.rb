@@ -37,14 +37,14 @@ class TestInactivityTimeout < Test::Unit::TestCase
     EM.run {
       EM.heartbeat_interval = 0.1
       EM.start_server("127.0.0.1", 12345)
-      EM.add_timer(0.2) {
+      EM.add_timer(0.1) {
         $start = Time.now
         c = EM.connect("127.0.0.1", 12345, TimeoutHandler)
-        c.comm_inactivity_timeout = 2.5
+        c.comm_inactivity_timeout = 0.2
       }
     }
 
-    assert_in_delta(2.5, (Time.now - $start), 0.3)
+    assert_in_delta(0.2, (Time.now - $start), 0.1)
   end
 
 end
