@@ -35,7 +35,7 @@ class TestProcessWatch < Test::Unit::TestCase
       child = EM.watch_process($fork_pid, ChildProcessWatcher)
       $pid = child.pid
 
-      EM.add_timer(0.5){
+      EM.add_timer(0.2){
         Process.kill('TERM', $fork_pid)
       }
     }

@@ -46,7 +46,7 @@ class TestAttach < Test::Unit::TestCase
     def unbind
       EM.next_tick do
         $sock.write("def\n")
-        EM.add_timer(0.5){ EM.stop }
+        EM.add_timer(0.1){ EM.stop }
       end
     end
   end

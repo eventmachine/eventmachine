@@ -63,6 +63,15 @@ class TestSendFile < Test::Unit::TestCase
     File.unlink( TestFilename ) if File.exist?( TestFilename )
   end
 
+  def setup_timeout(timeout = 4)
+    EM.schedule {
+      start_time = EM.current_time
+      EM.add_periodic_timer(0.01) {
+        raise "timeout" if EM.current_time - start_time >= timeout
+      }
+    }
+  end
+
   def test_send_file
     File.open( TestFilename, "w" ) {|f|
       f << ("A" * 5000)
@@ -72,7 +81,7 @@ class TestSendFile < Test::Unit::TestCase
 
     EM.run {
       EM.start_server TestHost, TestPort, TestModule
-      EM.add_timer(2) {EM.stop} # avoid hanging in case of error
+      setup_timeout
 
       EM.connect TestHost, TestPort, TestClient do |c|
         c.data_to { |d| data << d }
@@ -95,7 +104,7 @@ class TestSendFile < Test::Unit::TestCase
     assert_raises( ex_class ) {
       EM.run {
         EM.start_server TestHost, TestPort, TestModule
-        EM.add_timer(2) {EM.stop} # avoid hanging in case of error
+        setup_timeout
         EM.connect TestHost, TestPort, TestClient do |c|
           c.data_to { |d| data << d }
         end
@@ -131,7 +140,7 @@ class TestSendFile < Test::Unit::TestCase
 
     EM.run {
       EM.start_server TestHost, TestPort, StreamTestModule
-      EM.add_timer(2) {EM.stop} # avoid hanging in case of error
+      setup_timeout
       EM.connect TestHost, TestPort, TestClient do |c|
         c.data_to { |d| data << d }
       end
@@ -151,7 +160,7 @@ class TestSendFile < Test::Unit::TestCase
 
     EM.run {
       EM.start_server TestHost, TestPort, ChunkStreamTestModule
-      EM.add_timer(2) {EM.stop} # avoid hanging in case of error
+      setup_timeout
       EM.connect TestHost, TestPort, TestClient do |c|
         c.data_to { |d| data << d }
       end
@@ -175,7 +184,7 @@ class TestSendFile < Test::Unit::TestCase
     data = ''
     EM.run {
       EM.start_server TestHost, TestPort, BadFileTestModule
-      EM.add_timer(2) {EM.stop} # avoid hanging in case of error
+      setup_timeout
       EM.connect TestHost, TestPort, TestClient do |c|
         c.data_to { |d| data << d }
       end
@@ -198,7 +207,7 @@ class TestSendFile < Test::Unit::TestCase
 
     EM.run {
       EM.start_server TestHost, TestPort, StreamTestModule
-      EM.add_timer(2) {EM.stop} # avoid hanging in case of error
+      setup_timeout
       EM.connect TestHost, TestPort, TestClient do |c|
         c.data_to { |d| data << d }
       end
@@ -223,7 +232,7 @@ class TestSendFile < Test::Unit::TestCase
 
     EM.run {
       EM.start_server TestHost, TestPort, ChunkStreamTestModule
-      EM.add_timer(2) {EM.stop} # avoid hanging in case of error
+      setup_timeout
       EM.connect TestHost, TestPort, TestClient do |c|
         c.data_to { |d| data << d }
       end

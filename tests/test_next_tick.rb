@@ -61,7 +61,7 @@ class TestNextTick < Test::Unit::TestCase
   def test_pre_run_queue
     x = false
     EM.next_tick { EM.stop; x = true }
-    EM.run { EM.add_timer(0.2) { EM.stop } }
+    EM.run { EM.add_timer(0.01) { EM.stop } }
     assert x
   end
 

@@ -56,7 +56,7 @@ class TestSASL < Test::Unit::TestCase
 
       c = EM.connect( Host, Port, SaslClient )
       d = c.validate?( TestUser, TestPsw )
-      d.timeout 2
+      d.timeout 1
       d.callback {
         resp = true
         EM.stop

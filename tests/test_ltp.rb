@@ -55,7 +55,15 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
       EM.add_timer(0.1) { EM.stop }
     end
   end
-
+  
+  def setup_timeout(timeout = 4)
+    EM.schedule {
+      start_time = EM.current_time
+      EM.add_periodic_timer(0.01) {
+        raise "timeout" if EM.current_time - start_time >= timeout
+      }
+    }
+  end
 
   def test_simple_lines
     lines_received = []
@@ -63,7 +71,7 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
       EventMachine.start_server( TestHost, TestPort, SimpleLineTest ) do |conn|
         conn.instance_eval "@line_buffer = lines_received"
       end
-      EventMachine.add_timer(4) {assert(false, "test timed out")}
+      setup_timeout
 
       EventMachine.connect TestHost, TestPort, StopClient do |c|
         c.send_data "aaa\nbbb\r\nccc\n"
@@ -87,7 +95,7 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
       EventMachine.start_server( TestHost, TestPort, SimpleLineTest ) do |conn|
         conn.instance_eval "@error_message = lines_received"
       end
-      EventMachine.add_timer(4) {assert(false, "test timed out")}
+      setup_timeout
 
       EventMachine.connect TestHost, TestPort, StopClient do |c|
         c.send_data "a" * (16*1024 + 1)
@@ -126,7 +134,7 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
       EventMachine.start_server( TestHost, TestPort, LineAndTextTest ) do |conn|
         conn.instance_eval "@lines = lines_received; @text = text_received"
       end
-      EventMachine.add_timer(4) {assert(false, "test timed out")}
+      setup_timeout
 
       EventMachine.connect TestHost, TestPort, StopClient do |c|
         c.set_receive_data { |data| output << data }
@@ -166,7 +174,7 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
       EventMachine.start_server( TestHost, TestPort, BinaryTextTest ) do |conn|
         conn.instance_eval "@lines = lines_received; @text = text_received"
       end
-      EventMachine.add_timer(4) {assert(false, "test timed out")}
+      setup_timeout
 
       EventMachine.connect TestHost, TestPort, StopClient do |c|
         c.set_receive_data { |data| output << data }

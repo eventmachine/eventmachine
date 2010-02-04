@@ -98,9 +98,9 @@ class TestTimers < Test::Unit::TestCase
   def test_add_periodic_timer_cancel
     x = 0
     EventMachine.run {
-      pt = EM.add_periodic_timer(0.25) { x += 1 }
+      pt = EM.add_periodic_timer(0.1) { x += 1 }
       EM.cancel_timer(pt)
-      EM.add_timer(0.5) { EM.stop }
+      EM.add_timer(0.2) { EM.stop }
     }
     assert( x == 0 )
   end

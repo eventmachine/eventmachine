@@ -38,7 +38,7 @@ class TestFileWatch < Test::Unit::TestCase
       File.open(file.path, 'w'){ |f| f.puts 'hi' }
 
       # delete it
-      EM.add_timer(0.25){ file.close; file.delete }
+      EM.add_timer(0.01){ file.close; file.delete }
     }
 
     assert_equal($path, $tmp_path)

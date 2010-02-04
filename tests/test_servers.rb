@@ -61,7 +61,7 @@ class TestServers < Test::Unit::TestCase
       assert(grep_netstat(LocalTcpRexp).grep(%r(#{Port})).size >= 1, "Server didn't start")
       EM.stop_server sig
       # Give the server some time to shutdown.
-      EM.add_timer(0.1) {
+      EM.add_timer(0.2) {
         assert(grep_netstat(LocalTcpRexp).grep(%r(#{Port})).empty?, "Servers didn't stop")
         EM.stop
       }

@@ -39,10 +39,10 @@ class TestPendingConnectTimeout < Test::Unit::TestCase
       EM.heartbeat_interval = 0.1
       $start = Time.now
       c = EM.connect("1.2.3.4", 54321, TimeoutHandler)
-      c.pending_connect_timeout = 5
+      c.pending_connect_timeout = 0.2
     }
 
-    assert_in_delta(5, (Time.now - $start), 0.3)
+    assert_in_delta(0.2, (Time.now - $start), 0.1)
   end
 
 end

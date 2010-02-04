@@ -152,6 +152,15 @@ class TestBasic < Test::Unit::TestCase
     end
   end
 
+  def setup_timeout(timeout = 4)
+    EM.schedule {
+      start_time = EM.current_time
+      EM.add_periodic_timer(0.01) {
+        raise "timeout" if EM.current_time - start_time >= timeout
+      }
+    }
+  end
+
   # From ticket #50
   def test_byte_range_send
     $received = ''
@@ -160,7 +169,7 @@ class TestBasic < Test::Unit::TestCase
       EM::start_server TestHost, TestPort, BrsTestSrv
       EM::connect TestHost, TestPort, BrsTestCli
 
-      EM::add_timer(0.5) { assert(false, 'test timed out'); EM.stop; Kernel.warn "test timed out!" }
+      setup_timeout
     }
     assert_equal($sent, $received)
   end

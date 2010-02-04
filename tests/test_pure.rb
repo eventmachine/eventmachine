@@ -108,9 +108,18 @@ class TestPure < Test::Unit::TestCase
     EM.run {
       EM.start_server "0.0.0.0", 60002
       EM.connect "0.0.0.0", 60002, TestConnaccepted
-      EM::Timer.new(1) {timeout = true; EM.stop}
+      setup_timeout(1)
     }
     assert_equal( false, timeout )
+  end
+  
+  def setup_timeout(timeout = 4)
+    EM.schedule {
+      start_time = EM.current_time
+      EM.add_periodic_timer(0.01) {
+        raise "timeout" if EM.current_time - start_time >= timeout
+      }
+    }
   end
 
   def test_reactor_running

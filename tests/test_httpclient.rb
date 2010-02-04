@@ -44,7 +44,7 @@ class TestHttpClient < Test::Unit::TestCase
   def test_http_client
     ok = false
     EventMachine.run {
-      c = EventMachine::Protocols::HttpClient.send :request, :host => "www.bayshorenetworks.com", :port => 80
+      c = EventMachine::Protocols::HttpClient.send :request, :host => "www.google.com", :port => 80
       c.callback {
         ok = true
         EventMachine.stop
@@ -59,7 +59,7 @@ class TestHttpClient < Test::Unit::TestCase
   def test_http_client_1
     ok = false
     EventMachine.run {
-      c = EventMachine::Protocols::HttpClient.send :request, :host => "www.bayshorenetworks.com", :port => 80
+      c = EventMachine::Protocols::HttpClient.send :request, :host => "www.google.com", :port => 80
       c.callback {ok = true; EventMachine.stop}
       c.errback {EventMachine.stop}
     }
@@ -71,7 +71,7 @@ class TestHttpClient < Test::Unit::TestCase
   def test_http_client_2
     ok = false
     EventMachine.run {
-      c = EventMachine::Protocols::HttpClient.send :request, :host => "www.bayshorenetworks.com", :port => 80
+      c = EventMachine::Protocols::HttpClient.send :request, :host => "www.google.com", :port => 80
       c.callback {|result|
         ok = true;
         EventMachine.stop
@@ -154,6 +154,15 @@ class TestHttpClient < Test::Unit::TestCase
         close_connection_after_writing
       end
   end
+  
+  def setup_timeout(timeout = 4)
+    EM.schedule {
+      start_time = EM.current_time
+      EM.add_periodic_timer(0.01) {
+        raise "timeout" if EM.current_time - start_time >= timeout
+      }
+    }
+  end
 
   # TODO, this is WRONG. The handler is asserting an HTTP 1.1 request, but the client
   # is sending a 1.0 request. Gotta fix the client
@@ -161,7 +170,7 @@ class TestHttpClient < Test::Unit::TestCase
       response = nil
       EventMachine.run {
         EventMachine.start_server Localhost, Localport, PostContent
-        EventMachine.add_timer(2) {raise "timed out"}
+        setup_timeout(2)
         c = EventMachine::Protocols::HttpClient.request(
           :host=>Localhost,
           :port=>Localport,
@@ -186,7 +195,7 @@ class TestHttpClient < Test::Unit::TestCase
   def test_cookie
     ok = false
     EM.run {
-      c = EM::Protocols::HttpClient.send :request, :host => "www.bayshorenetworks.com", :port => 80, :cookie=>"aaa=bbb"
+      c = EM::Protocols::HttpClient.send :request, :host => "www.google.com", :port => 80, :cookie=>"aaa=bbb"
       c.callback {|result|
         ok = true;
         EventMachine.stop
@@ -202,7 +211,7 @@ class TestHttpClient < Test::Unit::TestCase
     ok = false
     EM.run {
       c = EM::P::HttpClient.request(
-        :host => "www.bayshorenetworks.com",
+        :host => "www.google.com",
         :port => 80,
         :version => "1.0"
       )
