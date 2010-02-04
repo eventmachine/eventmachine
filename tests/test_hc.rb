@@ -24,7 +24,6 @@
 #
 #
 
-# $:.unshift "../lib"
 require 'eventmachine'
 require 'test/unit'
 
@@ -49,27 +48,25 @@ class TestHeaderAndContentProtocol < Test::Unit::TestCase
       @request << [hdrs, content]
     end
   end
+  
+  class StopOnUnbind < EM::Connection
+    def unbind
+      EM.add_timer(0.1) { EM.stop }
+    end
+  end
 
   def test_no_content
     the_connection = nil
-    EventMachine.run {
-      EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
+    EM.run {
+      EM.start_server( TestHost, TestPort, SimpleTest ) do |conn|
         the_connection = conn
       end
-      EventMachine.add_timer(4) {raise "test timed out"}
+      setup_timeout
 
-      client = Module.new do
-        def unbind
-          EM.add_timer(0.1) { EM.stop }
-        end
-
-        def post_init
-          send_data [ "aaa\n", "bbb\r\n", "ccc\n", "\n" ].join
-          close_connection_after_writing
-        end
+      EM.connect TestHost, TestPort, StopOnUnbind do |c|
+        c.send_data [ "aaa\n", "bbb\r\n", "ccc\n", "\n" ].join
+        c.close_connection_after_writing
       end
-
-      EventMachine.connect( TestHost, TestPort, client )
     }
     assert_equal( ["aaa"], the_connection.first_header )
     assert_equal( [%w(aaa bbb ccc)], the_connection.my_headers )
@@ -84,26 +81,14 @@ class TestHeaderAndContentProtocol < Test::Unit::TestCase
       EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
         the_connection = conn
       end
-      EventMachine.add_timer(4) { assert(false, 'test timeout'); EM.stop }
+      setup_timeout
 
-      client = Module.new do
-        define_method(:headers) { headers }
-        define_method(:content) { content }
-
-        def unbind
-          EM.add_timer(0.1) { EM.stop }
-        end
-
-        def post_init
-          headers.each { |h| send_data "#{h}\r\n" }
-          send_data "\n"
-          send_data content
-          close_connection_after_writing
-        end
+      EM.connect TestHost, TestPort, StopOnUnbind do |c|
+        headers.each { |h| c.send_data "#{h}\r\n" }
+        c.send_data "\n"
+        c.send_data content
+        c.close_connection_after_writing
       end
-
-      EventMachine.connect( TestHost, TestPort, client )
-
     }
     assert_equal( ["aaa"], the_connection.first_header )
     assert_equal( [headers], the_connection.my_headers )
@@ -118,27 +103,16 @@ class TestHeaderAndContentProtocol < Test::Unit::TestCase
       EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
         the_connection = conn
       end
-      EventMachine.add_timer(4) { assert(false, 'test timeout'); EM.stop }
+      setup_timeout
 
-      client = Module.new do
-        define_method(:headers) { headers }
-        define_method(:content) { content }
-
-        def unbind
-          EM.add_timer(0.1) { EM.stop }
+      EventMachine.connect( TestHost, TestPort, StopOnUnbind ) do |c|
+        5.times do
+          headers.each { |h| c.send_data "#{h}\r\n" }
+          c.send_data "\n"
+          c.send_data content
         end
-
-        def post_init
-          5.times do
-            headers.each { |h| send_data "#{h}\r\n" }
-            send_data "\n"
-            send_data content
-          end
-          close_connection_after_writing
-        end
+        c.close_connection_after_writing
       end
-
-      EventMachine.connect( TestHost, TestPort, client )
     }
     assert_equal( ["aaa"] * 5, the_connection.first_header )
     assert_equal( [headers] * 5, the_connection.my_headers )
@@ -184,25 +158,14 @@ class TestHeaderAndContentProtocol < Test::Unit::TestCase
       EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
         the_connection = conn
       end
-      EventMachine.add_timer(4) {raise "test timed out"}
+      setup_timeout
 
-      client = Module.new do
-        define_method(:headers) { headers }
-        define_method(:content) { content }
-
-        def unbind
-          EM.add_timer(0.1) { EM.stop }
-        end
-
-        def post_init
-          headers.each { |h| send_data "#{h}\r\n" }
-          send_data "\n"
-          send_data content
-          close_connection_after_writing
-        end
+      EventMachine.connect( TestHost, TestPort, StopOnUnbind ) do |c|
+        headers.each { |h| c.send_data "#{h}\r\n" }
+        c.send_data "\n"
+        c.send_data content
+        c.close_connection_after_writing
       end
-
-      EventMachine.connect( TestHost, TestPort, client )
     }
 
     hsh = the_connection.headers_2_hash( the_connection.my_headers.shift )
@@ -213,6 +176,15 @@ class TestHeaderAndContentProtocol < Test::Unit::TestCase
       :x_tempest_header => "ddd"
     }
     assert_equal(expect, hsh)
+  end
+
+  def setup_timeout(timeout = 4)
+    EM.schedule {
+      start_time = EM.current_time
+      EM.add_periodic_timer(0.01) {
+        raise "timeout" if EM.current_time - start_time >= timeout
+      }
+    }
   end
 
 end
