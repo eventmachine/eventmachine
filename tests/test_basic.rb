@@ -30,6 +30,19 @@ require 'socket'
 require 'test/unit'
 
 class TestBasic < Test::Unit::TestCase
+  def test_connection_class_cache
+    mod = Module.new
+    a, b = nil, nil
+    EM.run {
+      EM.start_server '127.0.0.1', 9999, mod
+      a = EM.connect '127.0.0.1', 9999, mod
+      b = EM.connect '127.0.0.1', 9999, mod
+      EM.stop
+    }
+    assert_equal a.class, b.class
+    assert_kind_of EM::Connection, a
+  end
+
   def test_libtype
     lt = EventMachine.library_type
     em_lib = (ENV["EVENTMACHINE_LIBRARY"] || $eventmachine_library || :xxx).to_sym
