@@ -73,6 +73,7 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	NextHeartbeatTime (0),
 	LoopBreakerReader (-1),
 	LoopBreakerWriter (-1),
+	NumCloseScheduled (0),
 	bEpoll (false),
 	epfd (-1),
 	bKqueue (false),
@@ -679,10 +680,10 @@ timeval EventMachine_t::_TimeTilNextEvent()
 	if (!NewDescriptors.empty() || !ModifiedDescriptors.empty()) {
 		next_event = MyCurrentLoopTime;
 	}
-
+	
 	timeval tv;
 
-	if (next_event == 0) {
+	if (next_event == 0 || NumCloseScheduled > 0) {
 		tv = Quantum;
 	} else {
 		if (next_event > MyCurrentLoopTime) {

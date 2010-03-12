@@ -255,6 +255,15 @@ extern "C" int evma_is_paused (const unsigned long binding)
 	return 0;
 }
 
+/************************
+evma_num_close_scheduled
+************************/
+
+extern "C" int evma_num_close_scheduled ()
+{
+	return EventMachine->NumCloseScheduled;
+}
+
 /**********************
 evma_create_tcp_server
 **********************/

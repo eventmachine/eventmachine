@@ -633,6 +633,15 @@ static VALUE t_paused_p (VALUE self, VALUE signature)
 	return evma_is_paused(NUM2ULONG (signature)) ? Qtrue : Qfalse;
 }
 
+/*********************
+t_num_close_scheduled
+*********************/
+
+static VALUE t_num_close_scheduled (VALUE self)
+{
+	return INT2FIX(evma_num_close_scheduled());
+}
+
 /*****************
 t_open_udp_socket
 *****************/
@@ -1129,6 +1138,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "pause_connection", (VALUE (*)(...))t_pause, 1);
 	rb_define_module_function (EmModule, "resume_connection", (VALUE (*)(...))t_resume, 1);
 	rb_define_module_function (EmModule, "connection_paused?", (VALUE (*)(...))t_paused_p, 1);
+	rb_define_module_function (EmModule, "num_close_scheduled", (VALUE (*)(...))t_num_close_scheduled, 0);
 
 	rb_define_module_function (EmModule, "start_proxy", (VALUE (*)(...))t_start_proxy, 3);
 	rb_define_module_function (EmModule, "stop_proxy", (VALUE (*)(...))t_stop_proxy, 1);
