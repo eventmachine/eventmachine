@@ -45,6 +45,7 @@ module EventMachine
         @popq.shift.call @items.shift until @items.empty? || @popq.empty?
       end
     end
+    alias :<< :push
 
     # N.B. This is a peek, it's not thread safe, and may only tend toward 
     # accuracy.
