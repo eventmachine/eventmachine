@@ -114,7 +114,7 @@ static inline void event_callback (struct em_event* e)
 		case EM_CONNECTION_NOTIFY_WRITABLE:
 		{
 			VALUE conn = ensure_conn(signature);
-			rb_funcall (conn, Intern_notify_readable, 0);
+			rb_funcall (conn, Intern_notify_writable, 0);
 			return;
 		}
 		case EM_LOOPBREAK_SIGNAL:
