@@ -1743,12 +1743,9 @@ ConnectionDescriptor::SetCommInactivityTimeout
 
 int ConnectionDescriptor::SetCommInactivityTimeout (uint64_t value)
 {
-	if (value > 0) {
-		InactivityTimeout = value * 1000;
-		MyEventMachine->QueueHeartbeat(this);
-		return 1;
-	}
-	return 0;
+	InactivityTimeout = value * 1000;
+	MyEventMachine->QueueHeartbeat(this);
+	return 1;
 }
 
 /*******************************
