@@ -676,6 +676,10 @@ timeval EventMachine_t::_TimeTilNextEvent()
 			next_event = timers->first;
 	}
 
+	if (!NewDescriptors.empty() || !ModifiedDescriptors.empty()) {
+		next_event = MyCurrentLoopTime;
+	}
+
 	timeval tv;
 
 	if (next_event == 0) {
