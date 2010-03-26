@@ -164,10 +164,10 @@ module EventMachine
     # the Timeout expires (passing no arguments to the object's errbacks).
     # Setting the status at any time prior to a call to the expiration of the timeout
     # will cause the timer to be cancelled.
-    def timeout seconds
+    def timeout seconds, *args
       cancel_timeout
       me = self
-      @deferred_timeout = EventMachine::Timer.new(seconds) {me.fail}
+      @deferred_timeout = EventMachine::Timer.new(seconds) {me.fail(*args)}
     end
 
     # Cancels an outstanding timeout if any. Undoes the action of #timeout.
