@@ -235,7 +235,7 @@ static VALUE t_start_server (VALUE self, VALUE server, VALUE port)
 {
 	const unsigned long f = evma_create_tcp_server (StringValuePtr(server), FIX2INT(port));
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no acceptor");
+		rb_raise (rb_eRuntimeError, "no acceptor (port is in use or requires root privileges)");
 	return ULONG2NUM (f);
 }
 
