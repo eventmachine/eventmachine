@@ -519,7 +519,11 @@ int ConnectionDescriptor::_SendRawOutboundData (const char *data, int length)
 	// (Well, not so bad, small pages are coalesced in ::Write)
 
 	if (IsCloseScheduled())
-	//if (bCloseNow || bCloseAfterWriting)
+		return 0;
+
+	// 25Mar10: Ignore 0 length packets as they are not meaningful in TCP (as opposed to UDP)
+	// and can cause the assert(nbytes>0) to fail when OutboundPages has a bunch of 0 length pages.
+	if (length == 0)
 		return 0;
 
 	if (!data && (length > 0))
@@ -1602,11 +1606,11 @@ DatagramDescriptor::SendOutboundData
 
 int DatagramDescriptor::SendOutboundData (const char *data, int length)
 {
-	// This is an exact clone of ConnectionDescriptor::SendOutboundData.
-	// That means it needs to move to a common ancestor.
+	// This is almost an exact clone of ConnectionDescriptor::_SendRawOutboundData.
+	// That means most of it could be factored to a common ancestor. Note that
+	// empty datagrams are meaningful, which isn't the case for TCP streams.
 
 	if (IsCloseScheduled())
-	//if (bCloseNow || bCloseAfterWriting)
 		return 0;
 
 	if (!data && (length > 0))
@@ -1739,12 +1743,9 @@ ConnectionDescriptor::SetCommInactivityTimeout
 
 int ConnectionDescriptor::SetCommInactivityTimeout (uint64_t value)
 {
-	if (value > 0) {
-		InactivityTimeout = value * 1000;
-		MyEventMachine->QueueHeartbeat(this);
-		return 1;
-	}
-	return 0;
+	InactivityTimeout = value * 1000;
+	MyEventMachine->QueueHeartbeat(this);
+	return 1;
 }
 
 /*******************************

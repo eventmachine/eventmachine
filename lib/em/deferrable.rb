@@ -51,6 +51,13 @@ module EventMachine
       end
     end
 
+    # Cancels an outstanding callback to &block if any. Undoes the action of #callback.
+    #
+    def cancel_callback block
+      @callbacks ||= []
+      @callbacks.delete block
+    end
+
     # Specify a block to be executed if and when the Deferrable object receives
     # a status of :failed. See #set_deferred_status for more information.
     #--
@@ -67,6 +74,13 @@ module EventMachine
         @errbacks ||= []
         @errbacks.unshift block # << block
       end
+    end
+
+    # Cancels an outstanding errback to &block if any. Undoes the action of #errback.
+    #
+    def cancel_errback block
+      @errbacks ||= []
+      @errbacks.delete block
     end
 
     # Sets the "disposition" (status) of the Deferrable object. See also the large set of
