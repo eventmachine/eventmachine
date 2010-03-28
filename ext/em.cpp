@@ -1106,8 +1106,11 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	bind_as = *bind_as_ptr; // copy because name2address points to a static
 
 	int sd = socket (family, SOCK_STREAM, 0);
-	if (sd == INVALID_SOCKET)
-		throw std::runtime_error ("unable to create new socket");
+	if (sd == INVALID_SOCKET) {
+		char buf [200];
+		snprintf (buf, sizeof(buf)-1, "unable to create new socket: %s", strerror(errno));
+		throw std::runtime_error (buf);
+	}
 
 	/*
 	sockaddr_in pin;
