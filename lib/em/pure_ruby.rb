@@ -34,10 +34,7 @@ require 'socket'
 require 'fcntl'
 require 'set'
 
-
 module EventMachine
-
-
   class << self
     # This is mostly useful for automated tests.
     # Return a distinctive symbol so the caller knows whether he's dealing

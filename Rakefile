@@ -33,10 +33,6 @@ require 'rake'      unless defined?(Rake)
 Package = false # Build zips and tarballs?
 Dir.glob('tasks/*.rake').each { |r| Rake.application.add_import r }
 
-# e.g. rake EVENTMACHINE_LIBRARY=java for forcing java build tasks as defaults!
-$eventmachine_library = :java if RUBY_PLATFORM =~ /java/ || ENV['EVENTMACHINE_LIBRARY'] == 'java'
-$eventmachine_library = :pure_ruby if ENV['EVENTMACHINE_LIBRARY'] == 'pure_ruby'
-
 MAKE = ENV['MAKE'] || if RUBY_PLATFORM =~ /mswin/ # mingw uses make.
   'nmake'
 else
@@ -48,8 +44,7 @@ task :default => [:build, :test]
 
 desc "Build extension (or EVENTMACHINE_LIBRARY) and place in lib"
 build_task = 'ext:build'
-build_task = 'java:build' if $eventmachine_library == :java
-build_task = :dummy_build if $eventmachine_library == :pure_ruby
+build_task = 'java:build' if RUBY_PLATFORM =~ /java/
 task :build => build_task do |t|
   Dir.glob('{ext,java/src,ext/fastfilereader}/*.{so,bundle,dll,jar}').each do |f|
     mv f, "lib"

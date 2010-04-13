@@ -43,35 +43,6 @@ class TestBasic < Test::Unit::TestCase
     assert_kind_of EM::Connection, a
   end
 
-  def test_libtype
-    lt = EventMachine.library_type
-    em_lib = (ENV["EVENTMACHINE_LIBRARY"] || $eventmachine_library || :xxx).to_sym
-
-    # Running from test runner, under jruby.
-    if RUBY_PLATFORM == 'java'
-      unless em_lib == :pure_ruby
-        assert_equal( :java, lt )
-        return
-      end
-    end
-
-    case em_lib
-    when :pure_ruby
-      assert_equal( :pure_ruby, lt )
-    when :extension
-      assert_equal( :extension, lt )
-    when :java
-      assert_equal( :java, lt )
-    else
-      # Running from jruby as a standalone test.
-      if RUBY_PLATFORM == 'java'
-        assert_equal( :java, lt )
-      else
-        assert_equal( :extension, lt )
-      end
-    end
-  end
-
   #-------------------------------------
 
 
