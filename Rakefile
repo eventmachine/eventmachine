@@ -301,7 +301,7 @@ rescue LoadError
   require 'rake/rdoctask'
   Rake::RDocTask
 end
-df = begin; require 'rdoc/generator/darkfish'; true; rescue LoadError; end
+df = begin; require 'rdoc/rdoc'; require 'rdoc/generator/darkfish'; true; rescue LoadError; end
 rdtask = rdoc_task_type.new do |rd|
   rd.title = Spec.name
   rd.rdoc_dir = 'rdoc'
