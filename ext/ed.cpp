@@ -89,13 +89,13 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 		throw std::runtime_error ("bad eventable descriptor");
 	if (MyEventMachine == NULL)
 		throw std::runtime_error ("bad em in eventable descriptor");
-	CreatedAt = MyEventMachine->GetCurrentTime();
+	CreatedAt = MyEventMachine->GetCurrentLoopTime();
 
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = 0;
 	EpollEvent.data.ptr = this;
 	#endif
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 }
 
 
@@ -685,7 +685,7 @@ void ConnectionDescriptor::Read()
 		return;
 	}
 
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 
 	int total_bytes_read = 0;
 	char readbuffer [16 * 1024 + 1];
@@ -891,7 +891,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 		return;
 	}
 
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 	size_t nbytes = 0;
 
 	#ifdef HAVE_WRITEV
@@ -1195,12 +1195,12 @@ void ConnectionDescriptor::Heartbeat()
 	 */
 
 	if (bConnectPending) {
-		if ((MyEventMachine->GetCurrentTime() - CreatedAt) >= PendingConnectTimeout)
+		if ((MyEventMachine->GetCurrentLoopTime() - CreatedAt) >= PendingConnectTimeout)
 			ScheduleClose (false);
 			//bCloseNow = true;
 	}
 	else {
-		if (InactivityTimeout && ((MyEventMachine->GetCurrentTime() - LastActivity) >= InactivityTimeout))
+		if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout))
 			ScheduleClose (false);
 			//bCloseNow = true;
 	}
@@ -1464,7 +1464,7 @@ void DatagramDescriptor::Heartbeat()
 {
 	// Close it if its inactivity timer has expired.
 
-	if (InactivityTimeout && ((MyEventMachine->GetCurrentTime() - LastActivity) >= InactivityTimeout))
+	if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout))
 		ScheduleClose (false);
 		//bCloseNow = true;
 }
@@ -1478,7 +1478,7 @@ void DatagramDescriptor::Read()
 {
 	int sd = GetSocket();
 	assert (sd != INVALID_SOCKET);
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 
 	// This is an extremely large read buffer.
 	// In many cases you wouldn't expect to get any more than 4K.
@@ -1555,7 +1555,7 @@ void DatagramDescriptor::Write()
 
 	int sd = GetSocket();
 	assert (sd != INVALID_SOCKET);
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 
 	assert (OutboundPages.size() > 0);
 

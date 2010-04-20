@@ -848,5 +848,5 @@ evma_get_current_loop_time
 extern "C" uint64_t evma_get_current_loop_time()
 {
 	ensure_eventmachine("evma_get_current_loop_time");
-	return EventMachine->GetCurrentTime();
+	return EventMachine->GetCurrentLoopTime();
 }

@@ -141,7 +141,7 @@ void PipeDescriptor::Read()
 		return;
 	}
 
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 
 	int total_bytes_read = 0;
 	char readbuffer [16 * 1024];
@@ -201,7 +201,7 @@ void PipeDescriptor::Write()
 	int sd = GetSocket();
 	assert (sd != INVALID_SOCKET);
 
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 	char output_buffer [16 * 1024];
 	size_t nbytes = 0;
 
@@ -266,7 +266,7 @@ PipeDescriptor::Heartbeat
 void PipeDescriptor::Heartbeat()
 {
 	// If an inactivity timeout is defined, then check for it.
-	if (InactivityTimeout && ((MyEventMachine->GetCurrentTime() - LastActivity) >= InactivityTimeout))
+	if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout))
 		ScheduleClose (false);
 		//bCloseNow = true;
 }

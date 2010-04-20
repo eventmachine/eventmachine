@@ -127,7 +127,7 @@ class EventMachine_t
 		void _HandleKqueuePidEvent (struct kevent*);
 		#endif
 
-		uint64_t GetCurrentTime() { return MyCurrentLoopTime; }
+		uint64_t GetCurrentLoopTime() { return MyCurrentLoopTime; }
 
 		// Temporary:
 		void _UseEpoll();
