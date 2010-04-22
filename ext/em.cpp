@@ -523,13 +523,12 @@ bool EventMachine_t::_RunEpollOnce()
 	FD_ZERO(&fdreads);
 	FD_SET(epfd, &fdreads);
 
-	while ((ret = rb_thread_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	if ((ret = rb_thread_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
 		if (ret == -1) {
 			assert(errno != EINVAL);
 			assert(errno != EBADF);
-			continue;
 		}
-		if (ret == 0) return true;
+		return true;
 	}
 
 	TRAP_BEG;
@@ -594,9 +593,8 @@ bool EventMachine_t::_RunKqueueOnce()
 	FD_ZERO(&fdreads);
 	FD_SET(kqfd, &fdreads);
 
-	while ((ret = rb_thread_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
-		if (ret == -1) continue;
-		if (ret == 0) return true;
+	if ((ret = rb_thread_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+		return true;
 	}
 
 	TRAP_BEG;
