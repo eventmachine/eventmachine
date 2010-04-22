@@ -761,9 +761,9 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 	#else
 		int len = RARRAY (cmd)->len;
 	#endif
-	if (len > 98)
+	if (len >= 2048)
 		rb_raise (rb_eRuntimeError, "too many arguments to popen");
-	char *strings [100];
+	char *strings [2048];
 	for (int i=0; i < len; i++) {
 		VALUE ix = INT2FIX (i);
 		VALUE s = rb_ary_aref (1, &ix, cmd);

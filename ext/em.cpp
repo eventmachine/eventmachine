@@ -2006,9 +2006,9 @@ const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
 	if (!cmd_strings)
 		return 0;
 	int j;
-	for (j=0; j < 100 && cmd_strings[j]; j++)
+	for (j=0; j < 2048 && cmd_strings[j]; j++)
 		;
-	if ((j==0) || (j==100))
+	if ((j==0) || (j==2048))
 		return 0;
 
 	unsigned long output_binding = 0;
