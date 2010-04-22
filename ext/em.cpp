@@ -2174,7 +2174,8 @@ const unsigned long EventMachine_t::WatchFile (const char *fpath)
 		Add(inotify);
 	}
 
-	wd = inotify_add_watch(inotify->GetSocket(), fpath, IN_MODIFY | IN_DELETE_SELF | IN_MOVE_SELF);
+	wd = inotify_add_watch(inotify->GetSocket(), fpath,
+			       IN_MODIFY | IN_DELETE_SELF | IN_MOVE_SELF | IN_CREATE | IN_DELETE | IN_MOVE) ;
 	if (wd == -1) {
 		char errbuf[300];
 		sprintf(errbuf, "failed to open file %s for registering with inotify: %s", fpath, strerror(errno));
@@ -2250,19 +2251,33 @@ EventMachine_t::_ReadInotify_Events
 void EventMachine_t::_ReadInotifyEvents()
 {
 	#ifdef HAVE_INOTIFY
-	struct inotify_event event;
+	char buffer[1024];
 
 	assert(EventCallback);
 
-	while (read(inotify->GetSocket(), &event, INOTIFY_EVENT_SIZE) > 0) {
-		assert(event.len == 0);
-		if (event.mask & IN_MODIFY)
-			(*EventCallback)(Files [event.wd]->GetBinding(), EM_CONNECTION_READ, "modified", 8);
-		if (event.mask & IN_MOVE_SELF)
-			(*EventCallback)(Files [event.wd]->GetBinding(), EM_CONNECTION_READ, "moved", 5);
-		if (event.mask & IN_DELETE_SELF) {
-			(*EventCallback)(Files [event.wd]->GetBinding(), EM_CONNECTION_READ, "deleted", 7);
-			UnwatchFile ((int)event.wd);
+	for (;;) {
+		int returned = read(inotify->GetSocket(), buffer, sizeof(buffer));
+		assert(!(returned == 0 || returned == -1 && errno == EINVAL));
+		if (returned <= 0) {
+		    break;
+		}
+		int current = 0;
+		while (current < returned) {
+			struct inotify_event* event = (struct inotify_event*)(buffer+current);
+			map<int, Bindable_t*>::const_iterator bindable = Files.find(event->wd);
+			if (bindable != Files.end()) {
+				if (event->mask & (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVE)){
+					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "modified", 8);
+				}
+				if (event->mask & IN_MOVE_SELF){
+					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "moved", 5);
+				}
+				if (event->mask & IN_DELETE_SELF) {
+					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "deleted", 7);
+					UnwatchFile ((int)event->wd);
+				}
+			}
+			current += sizeof(struct inotify_event) + event->len;
 		}
 	}
 	#endif
