@@ -102,22 +102,22 @@ PipeDescriptor::~PipeDescriptor()
 	struct timespec req = {0, 50000000}; // 0.05s
 	int n;
 
-	// wait 0.25s for the process to die
-	for (n=0; n<5; n++) {
-		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) return;
-		nanosleep (&req, NULL);
-	}
-
-	// send SIGTERM and wait another 0.5s
-	kill (SubprocessPid, SIGTERM);
+	// wait 0.5s for the process to die
 	for (n=0; n<10; n++) {
+		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) return;
+		nanosleep (&req, NULL);
+	}
+
+	// send SIGTERM and wait another 1s
+	kill (SubprocessPid, SIGTERM);
+	for (n=0; n<20; n++) {
 		nanosleep (&req, NULL);
 		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) return;
 	}
 
-	// send SIGKILL and wait another 1s
+	// send SIGKILL and wait another 5s
 	kill (SubprocessPid, SIGKILL);
-	for (n=0; n<20; n++) {
+	for (n=0; n<100; n++) {
 		nanosleep (&req, NULL);
 		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) return;
 	}
