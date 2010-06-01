@@ -256,6 +256,11 @@ module EventMachine
     # and other options to be used with this Connection object. Here are the currently-supported
     # options:
     #
+    # * :ca_file :
+    # takes a String, which is interpreted as the name of a readable file in the
+    # local filesystem. The file is expected to contain a chain of X509 certificates in
+    # PEM format
+    #
     # * :cert_chain_file :
     # takes a String, which is interpreted as the name of a readable file in the
     # local filesystem. The file is expected to contain a chain of X509 certificates in
@@ -265,6 +270,10 @@ module EventMachine
     # * :private_key_file :
     # takes a String, which is interpreted as the name of a readable file in the
     # local filesystem. The file must contain a private key in PEM format.
+    #
+    # * :private_key_pwd :
+    # takes a String, which is interpreted as the password for the private_key_file
+    # specified above. if no password is supplied the file is opened without one.
     #
     # * :verify_peer :
     # takes either true or false. Default is false. This indicates whether a server should request a
@@ -297,7 +306,7 @@ module EventMachine
     # behaved than the ones for raw chunks of memory.
     #
     def start_tls args={}
-      priv_key, cert_chain, verify_peer = args.values_at(:private_key_file, :cert_chain_file, :verify_peer)
+      ca_file, priv_key, priv_key_pwd, cert_chain, verify_peer = args.values_at(:ca_file, :private_key_file, :private_key_pwd, :cert_chain_file, :verify_peer)
 
       [priv_key, cert_chain].each do |file|
         next if file.nil? or file.empty?
@@ -305,7 +314,7 @@ module EventMachine
           "Could not find #{file} for start_tls" unless File.exists? file
       end
 
-      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer)
+      EventMachine::set_tls_parms(@signature, ca_file || '', priv_key || '', priv_key_pwd || '', cert_chain || '', verify_peer)
       EventMachine::start_tls @signature
     end
 
