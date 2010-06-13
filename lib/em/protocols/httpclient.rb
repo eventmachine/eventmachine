@@ -145,7 +145,7 @@ module EventMachine
           # Allow custom HTTP headers, e.g. SOAPAction
           args[:custom_headers].each do |k,v|
             req << "#{k}: #{v}"
-          end
+          end if args[:custom_headers]
 
           # Basic-auth stanza contributed by Matt Murphy.
           if args[:basic_auth]
