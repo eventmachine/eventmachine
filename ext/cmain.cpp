@@ -149,6 +149,16 @@ extern "C" int evma_detach_fd (const unsigned long binding)
 			return -1;
 }
 
+/*********************
+evma_attach_server_fd
+**********************/
+
+extern "C" const unsigned long evma_attach_server_fd (int file_descriptor)
+{
+   ensure_eventmachine("evma_attach_server_fd");
+   return EventMachine->AttachServerFD (file_descriptor);
+}
+
 /************************
 evma_get_file_descriptor
 ************************/

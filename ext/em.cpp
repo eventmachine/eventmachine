@@ -1426,6 +1426,62 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 	return fd;
 }
 
+/******************************
+EventMachine_t::AttachServerFD
+*******************************/
+
+const unsigned long EventMachine_t::AttachServerFD (int sd_accept)
+{
+   unsigned long output_binding = 0;
+   
+   { // set reuseaddr to improve performance on restarts.
+       int oval = 1;
+       if (setsockopt (sd_accept, SOL_SOCKET, SO_REUSEADDR, (char*)&oval, sizeof(oval)) < 0) {
+           //__warning ("setsockopt failed while creating listener","");
+           goto fail;
+       }
+   }
+
+   { // set CLOEXEC. Only makes sense on Unix
+       #ifdef OS_UNIX
+       int cloexec = fcntl (sd_accept, F_GETFD, 0);
+       assert (cloexec >= 0);
+       cloexec |= FD_CLOEXEC;
+       fcntl (sd_accept, F_SETFD, cloexec);
+       #endif
+   }
+
+   if (listen (sd_accept, 100)) {
+       //__warning ("listen failed");
+       goto fail;
+   }
+
+   {
+       // Set the acceptor non-blocking.
+       // THIS IS CRUCIALLY IMPORTANT because we read it in a select loop.
+       if (!SetSocketNonblocking (sd_accept)) {
+       //int val = fcntl (sd_accept, F_GETFL, 0);
+       //if (fcntl (sd_accept, F_SETFL, val | O_NONBLOCK) == -1) {
+           goto fail;
+       }
+   }
+
+   { // Looking good.
+       AcceptorDescriptor *ad = new AcceptorDescriptor (sd_accept, this, false);
+       if (!ad)
+           throw std::runtime_error ("unable to allocate acceptor");
+       Add (ad);
+       output_binding = ad->GetBinding();
+   }
+
+   return output_binding;
+
+   fail:
+   if (sd_accept != INVALID_SOCKET)
+       close (sd_accept);
+   return 0;
+}
+
 /************
 name2address
 ************/

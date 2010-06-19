@@ -94,6 +94,7 @@ class EventMachine_t
 
 		const unsigned long AttachFD (int, bool);
 		int DetachFD (EventableDescriptor*);
+		const unsigned long AttachServerFD (int);
 
 		void ArmKqueueWriter (EventableDescriptor*);
 		void ArmKqueueReader (EventableDescriptor*);
