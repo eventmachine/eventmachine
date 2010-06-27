@@ -109,7 +109,7 @@ class TestEpoll < Test::Unit::TestCase
   end
   module TestDatagramClient
     def post_init
-      send_datagram "1234567890", "127.0.0.1", 9500
+      send_datagram "1234567890", $testing_localhost, 9500
     end
     def receive_data dgm
       $out = dgm
@@ -118,13 +118,16 @@ class TestEpoll < Test::Unit::TestCase
   end
 
   def test_datagrams
-    $in = $out = ""
-    EM.run {
-      EM.open_datagram_socket "127.0.0.1", 9500, TestDatagramServer
-      EM.open_datagram_socket "127.0.0.1", 0, TestDatagramClient
+    ["127.0.0.1", "::1"].each {  |localhost|
+      $testing_localhost = localhost
+      $in = $out = ""
+      EM.run {
+        EM.open_datagram_socket $testing_localhost, 9500, TestDatagramServer
+        EM.open_datagram_socket $testing_localhost, 0, TestDatagramClient
+      }
+      assert_equal( "1234567890", $in )
+      assert_equal( "abcdefghij", $out )
     }
-    assert_equal( "1234567890", $in )
-    assert_equal( "abcdefghij", $out )
   end
 
   # XXX this test fails randomly..

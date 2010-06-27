@@ -341,7 +341,7 @@ t_get_peername
 
 static VALUE t_get_peername (VALUE self, VALUE signature)
 {
-	struct sockaddr s;
+	struct sockaddr_storage s;
 	if (evma_get_peername (NUM2ULONG (signature), &s)) {
 		return rb_str_new ((const char*)&s, sizeof(s));
 	}
@@ -355,7 +355,7 @@ t_get_sockname
 
 static VALUE t_get_sockname (VALUE self, VALUE signature)
 {
-	struct sockaddr s;
+	struct sockaddr_storage s;
 	if (evma_get_sockname (NUM2ULONG (signature), &s)) {
 		return rb_str_new ((const char*)&s, sizeof(s));
 	}

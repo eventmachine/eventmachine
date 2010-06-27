@@ -28,11 +28,6 @@ See the file COPYING for complete licensing information.
 static unsigned int MaxOutstandingTimers = 10000;
 
 
-/* Internal helper to convert strings to internet addresses. IPv6-aware.
- * Not reentrant or threadsafe, optimized for speed.
- */
-static struct sockaddr *name2address (const char *server, int port, int *family, int *bind_size);
-
 /***************************************
 STATIC EventMachine_t::GetMaxTimerCount
 ***************************************/
@@ -1450,16 +1445,22 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 name2address
 ************/
 
-struct sockaddr *name2address (const char *server, int port, int *family, int *bind_size)
+struct sockaddr *EventMachine_t::name2address (const char *server, int port, int *family, int *bind_size)
 {
 	// THIS IS NOT RE-ENTRANT OR THREADSAFE. Optimize for speed.
 	// Check the more-common cases first.
 	// Return NULL if no resolution.
 
-	static struct sockaddr_in in4;
+	static union {
+
+
+		struct sockaddr_in in4;
 	#ifndef __CYGWIN__
-	static struct sockaddr_in6 in6;
+		struct sockaddr_in6 in6;
+		struct sockaddr_storage sin46;
+
 	#endif
+	};
 	struct hostent *hp;
 
 	if (!server || !*server)
@@ -1623,30 +1624,16 @@ const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int
 {
 	unsigned long output_binding = 0;
 
-	int sd = socket (AF_INET, SOCK_DGRAM, 0);
+	int family, bind_size;
+	struct sockaddr *bind_here = name2address (address, port, &family, &bind_size);
+	if (!bind_here)
+		return 0;       // right return code? -> old code!
+
+
+	int sd = socket (family, SOCK_DGRAM, 0);
 	if (sd == INVALID_SOCKET)
 		goto fail;
 	// from here on, early returns must close the socket!
-
-
-	struct sockaddr_in sin;
-	memset (&sin, 0, sizeof(sin));
-	sin.sin_family = AF_INET;
-	sin.sin_port = htons (port);
-
-
-	if (address && *address) {
-		sin.sin_addr.s_addr = inet_addr (address);
-		if (sin.sin_addr.s_addr == INADDR_NONE) {
-			hostent *hp = gethostbyname ((char*)address); // Windows requires the cast.
-			if (hp == NULL)
-				goto fail;
-			sin.sin_addr.s_addr = ((in_addr*)(hp->h_addr))->s_addr;
-		}
-	}
-	else
-		sin.sin_addr.s_addr = htonl (INADDR_ANY);
-
 
 	// Set the new socket nonblocking.
 	{
@@ -1656,8 +1643,26 @@ const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int
 			goto fail;
 	}
 
-	if (bind (sd, (struct sockaddr*)&sin, sizeof(sin)) != 0)
+	{ // set reuseaddr to improve performance on restarts.
+		int oval = 1;
+		if (setsockopt (sd, SOL_SOCKET, SO_REUSEADDR, (char*)&oval, sizeof(oval)) < 0) {
+			//__warning ("setsockopt failed while creating listener","");
+			goto fail;
+		}
+	}
+
+	{ // set CLOEXEC. Only makes sense on Unix
+		#ifdef OS_UNIX
+		int cloexec = fcntl (sd, F_GETFD, 0);
+		assert (cloexec >= 0);
+		cloexec |= FD_CLOEXEC;
+		fcntl (sd, F_SETFD, cloexec);
+		#endif
+	}
+
+	if (bind (sd, bind_here, bind_size)) {
 		goto fail;
+	}
 
 	{ // Looking good.
 		DatagramDescriptor *ds = new DatagramDescriptor (sd, this);

@@ -1313,7 +1313,7 @@ void AcceptorDescriptor::Read()
 	 */
 
 
-	struct sockaddr_in pin;
+	struct sockaddr_storage pin;
 	socklen_t addrlen = sizeof (pin);
 
 	for (int i=0; i < 10; i++) {
@@ -1390,12 +1390,12 @@ void AcceptorDescriptor::Heartbeat()
 AcceptorDescriptor::GetSockname
 *******************************/
 
-bool AcceptorDescriptor::GetSockname (struct sockaddr *s)
+bool AcceptorDescriptor::GetSockname (struct sockaddr_storage *s)
 {
 	bool ok = false;
 	if (s) {
 		socklen_t len = sizeof(*s);
-		int gp = getsockname (GetSocket(), s, &len);
+		int gp = getsockname (GetSocket(), (struct sockaddr *)s, &len);
 		if (gp == 0)
 			ok = true;
 	}
@@ -1492,7 +1492,7 @@ void DatagramDescriptor::Read()
 		// That's so we can put a guard byte at the end of what we send
 		// to user code.
 
-		struct sockaddr_in sin;
+		struct sockaddr_storage sin;
 		socklen_t slen = sizeof (sin);
 		memset (&sin, 0, slen);
 
@@ -1668,22 +1668,10 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 	if (!address || !*address || !port)
 		return 0;
 
-	sockaddr_in pin;
-	unsigned long HostAddr;
-
-	HostAddr = inet_addr (address);
-	if (HostAddr == INADDR_NONE) {
-		// The nasty cast to (char*) is because Windows is brain-dead.
-		hostent *hp = gethostbyname ((char*)address);
-		if (!hp)
-			return 0;
-		HostAddr = ((in_addr*)(hp->h_addr))->s_addr;
-	}
-
-	memset (&pin, 0, sizeof(pin));
-	pin.sin_family = AF_INET;
-	pin.sin_addr.s_addr = HostAddr;
-	pin.sin_port = htons (port);
+	int family, addr_size;
+	struct sockaddr *addr_here = EventMachine_t::name2address (address, port, &family, &addr_size);
+	if (!addr_here)
+		return 0;
 
 
 	if (!data && (length > 0))
@@ -1693,7 +1681,7 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 		throw std::runtime_error ("no allocation for outbound data");
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
-	OutboundPages.push_back (OutboundPage (buffer, length, pin));
+	OutboundPages.push_back (OutboundPage (buffer, length, *(struct sockaddr_storage*)addr_here));
 	OutboundDataSize += length;
 
 	#ifdef HAVE_EPOLL
@@ -1713,12 +1701,12 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 ConnectionDescriptor::GetPeername
 *********************************/
 
-bool ConnectionDescriptor::GetPeername (struct sockaddr *s)
+bool ConnectionDescriptor::GetPeername (struct sockaddr_storage *s)
 {
 	bool ok = false;
 	if (s) {
 		socklen_t len = sizeof(*s);
-		int gp = getpeername (GetSocket(), s, &len);
+		int gp = getpeername (GetSocket(), (struct sockaddr*)s, &len);
 		if (gp == 0)
 			ok = true;
 	}
@@ -1729,12 +1717,12 @@ bool ConnectionDescriptor::GetPeername (struct sockaddr *s)
 ConnectionDescriptor::GetSockname
 *********************************/
 
-bool ConnectionDescriptor::GetSockname (struct sockaddr *s)
+bool ConnectionDescriptor::GetSockname (struct sockaddr_storage *s)
 {
 	bool ok = false;
 	if (s) {
 		socklen_t len = sizeof(*s);
-		int gp = getsockname (GetSocket(), s, &len);
+		int gp = getsockname (GetSocket(), (struct sockaddr *)s, &len);
 		if (gp == 0)
 			ok = true;
 	}
@@ -1767,11 +1755,11 @@ int ConnectionDescriptor::SetCommInactivityTimeout (uint64_t value)
 DatagramDescriptor::GetPeername
 *******************************/
 
-bool DatagramDescriptor::GetPeername (struct sockaddr *s)
+bool DatagramDescriptor::GetPeername (struct sockaddr_storage *s)
 {
 	bool ok = false;
 	if (s) {
-		memset (s, 0, sizeof(struct sockaddr));
+		memset (s, 0, sizeof(*s));
 		memcpy (s, &ReturnAddress, sizeof(ReturnAddress));
 		ok = true;
 	}
@@ -1782,12 +1770,12 @@ bool DatagramDescriptor::GetPeername (struct sockaddr *s)
 DatagramDescriptor::GetSockname
 *******************************/
 
-bool DatagramDescriptor::GetSockname (struct sockaddr *s)
+bool DatagramDescriptor::GetSockname (struct sockaddr_storage *s)
 {
 	bool ok = false;
 	if (s) {
 		socklen_t len = sizeof(*s);
-		int gp = getsockname (GetSocket(), s, &len);
+		int gp = getsockname (GetSocket(), (struct sockaddr *)s, &len);
 		if (gp == 0)
 			ok = true;
 	}

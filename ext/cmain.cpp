@@ -467,7 +467,7 @@ extern "C" void evma_accept_ssl_peer (const unsigned long binding)
 evma_get_peername
 *****************/
 
-extern "C" int evma_get_peername (const unsigned long binding, struct sockaddr *sa)
+extern "C" int evma_get_peername (const unsigned long binding, struct sockaddr_storage *sa)
 {
 	ensure_eventmachine("evma_get_peername");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
@@ -482,7 +482,7 @@ extern "C" int evma_get_peername (const unsigned long binding, struct sockaddr *
 evma_get_sockname
 *****************/
 
-extern "C" int evma_get_sockname (const unsigned long binding, struct sockaddr *sa)
+extern "C" int evma_get_sockname (const unsigned long binding, struct sockaddr_storage *sa)
 {
 	ensure_eventmachine("evma_get_sockname");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));

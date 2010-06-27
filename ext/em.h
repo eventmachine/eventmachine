@@ -71,6 +71,12 @@ class EventMachine_t
 		static int GetMaxTimerCount();
 		static void SetMaxTimerCount (int);
 
+                /* Internal helper to convert strings to internet addresses.
+                 * IPv6-aware.
+                 * Not reentrant or threadsafe, optimized for speed.
+                 */
+                static struct sockaddr *name2address (const char *server, int port, int *family, int *bind_size);
+
 	public:
 		EventMachine_t (EMCallback);
 		virtual ~EventMachine_t();
