@@ -304,7 +304,7 @@ void EventMachine_t::_InitializeLoopBreaker()
 	#ifdef OS_UNIX
 	int fd[2];
 	if (pipe (fd))
-		throw std::runtime_error (std::strerror(errno));
+		throw std::runtime_error (strerror(errno));
 
 	LoopBreakerWriter = fd[1];
 	LoopBreakerReader = fd[0];
