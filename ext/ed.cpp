@@ -137,7 +137,7 @@ void EventableDescriptor::Close()
 	// Close the socket right now. Intended for emergencies.
 	if (MySocket != INVALID_SOCKET) {
 		shutdown (MySocket, 1);
-		closesocket (MySocket);
+		close (MySocket);
 		MySocket = INVALID_SOCKET;
 	}
 }
@@ -1333,7 +1333,7 @@ void AcceptorDescriptor::Read()
 		//int val = fcntl (sd, F_GETFL, 0);
 		//if (fcntl (sd, F_SETFL, val | O_NONBLOCK) == -1) {
 			shutdown (sd, 1);
-			closesocket (sd);
+			close (sd);
 			continue;
 		}
 

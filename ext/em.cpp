@@ -1141,7 +1141,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	// From here on, ALL error returns must close the socket.
 	// Set the new socket nonblocking.
 	if (!SetSocketNonblocking (sd)) {
-		closesocket (sd);
+		close (sd);
 		throw std::runtime_error ("unable to set socket as non-blocking");
 	}
 	// Disable slow-start (Nagle algorithm).
@@ -1154,11 +1154,11 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		int bind_to_size, bind_to_family;
 		struct sockaddr *bind_to = name2address (bind_addr, bind_port, &bind_to_family, &bind_to_size);
 		if (!bind_to) {
-			closesocket (sd);
+			close (sd);
 			throw std::runtime_error ("invalid bind address");
 		}
 		if (bind (sd, bind_to, bind_to_size) < 0) {
-			closesocket (sd);
+			close (sd);
 			throw std::runtime_error ("couldn't bind to address");
 		}
 	}
@@ -1269,7 +1269,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	#endif
 
 	if (!out)
-		closesocket (sd);
+		close (sd);
 	return out;
 }
 
@@ -1318,13 +1318,13 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 	// From here on, ALL error returns must close the socket.
 	// NOTE: At this point, the socket is still a blocking socket.
 	if (connect (fd, (struct sockaddr*)&pun, sizeof(pun)) != 0) {
-		closesocket (fd);
+		close (fd);
 		return 0;
 	}
 
 	// Set the newly-connected socket nonblocking.
 	if (!SetSocketNonblocking (fd)) {
-		closesocket (fd);
+		close (fd);
 		return 0;
 	}
 
@@ -1340,7 +1340,7 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 	out = cd->GetBinding();
 
 	if (!out)
-		closesocket (fd);
+		close (fd);
 
 	return out;
 	#endif
@@ -1610,7 +1610,7 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 
 	fail:
 	if (sd_accept != INVALID_SOCKET)
-		closesocket (sd_accept);
+		close (sd_accept);
 	return 0;
 }
 
@@ -1671,7 +1671,7 @@ const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int
 
 	fail:
 	if (sd != INVALID_SOCKET)
-		closesocket (sd);
+		close (sd);
 	return 0;
 }
 
@@ -1942,7 +1942,7 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 
 	fail:
 	if (sd_accept != INVALID_SOCKET)
-		closesocket (sd_accept);
+		close (sd_accept);
 	return 0;
 	#endif // OS_UNIX
 }
