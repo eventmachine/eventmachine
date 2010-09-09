@@ -70,6 +70,7 @@ module EventMachine
   SslHandshakeCompleted = 108
 
   # Exceptions that are defined in rubymain.cpp
+  class ConnectionError < RuntimeError; end
   class ConnectionNotBound < RuntimeError; end
   class UnknownTimerFired < RuntimeError; end
   class Unsupported < RuntimeError; end
