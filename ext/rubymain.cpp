@@ -1028,7 +1028,11 @@ t_start_proxy
 
 static VALUE t_start_proxy (VALUE self, VALUE from, VALUE to, VALUE bufsize, VALUE length)
 {
-	evma_start_proxy(NUM2ULONG (from), NUM2ULONG (to), NUM2ULONG(bufsize), NUM2ULONG(length));
+	try {
+		evma_start_proxy(NUM2ULONG (from), NUM2ULONG (to), NUM2ULONG(bufsize), NUM2ULONG(length));
+	} catch (std::runtime_error e) {
+		rb_raise (EM_eConnectionError, e.what());
+	}
 	return Qnil;
 }
 
@@ -1039,7 +1043,11 @@ t_stop_proxy
 
 static VALUE t_stop_proxy (VALUE self, VALUE from)
 {
-	evma_stop_proxy(NUM2ULONG (from));
+	try{
+		evma_stop_proxy(NUM2ULONG (from));
+	} catch (std::runtime_error e) {
+		rb_raise (EM_eConnectionError, e.what());
+	}
 	return Qnil;
 }
 

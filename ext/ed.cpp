@@ -224,6 +224,9 @@ EventableDescriptor::SetProxiedFrom
 
 void EventableDescriptor::SetProxiedFrom(EventableDescriptor *from, const unsigned long bufsize)
 {
+	if (from != NULL && ProxiedFrom != NULL)
+		throw std::runtime_error ("Tried to proxy to a busy target");
+
 	ProxiedFrom = from;
 	MaxOutboundBufSize = bufsize;
 }
