@@ -205,8 +205,14 @@ module EventMachine
             @threadpool.each { |t| t.exit }
             @threadpool.each do |t|
               next unless t.alive?
-              # ruby 1.9 has no kill!
-              t.respond_to?(:kill!) ? t.kill! : t.kill
+              begin
+                # Thread#kill! does not exist on 1.9 or rbx, and raises
+                # NotImplemented on jruby
+                t.kill!
+              rescue NoMethodError, NotImplementedError
+                t.kill
+                # XXX t.join here?
+              end
             end
             @threadqueue = nil
             @resultqueue = nil
