@@ -53,6 +53,7 @@ static VALUE Intern_ssl_verify_peer;
 static VALUE Intern_notify_readable;
 static VALUE Intern_notify_writable;
 static VALUE Intern_proxy_target_unbound;
+static VALUE Intern_proxy_completed;
 static VALUE Intern_connection_completed;
 
 static VALUE rb_cProcStatus;
@@ -156,6 +157,12 @@ static inline void event_callback (struct em_event* e)
 			rb_funcall (conn, Intern_proxy_target_unbound, 0);
 			return;
 		}
+		case EM_PROXY_COMPLETED:
+		{
+			VALUE conn = ensure_conn(signature);
+			rb_funcall (conn, Intern_proxy_completed, 0);
+			return;
+		}
 	}
 }
 
@@ -235,7 +242,7 @@ static VALUE t_start_server (VALUE self, VALUE server, VALUE port)
 {
 	const unsigned long f = evma_create_tcp_server (StringValuePtr(server), FIX2INT(port));
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no acceptor");
+		rb_raise (rb_eRuntimeError, "no acceptor (port is in use or requires root privileges)");
 	return ULONG2NUM (f);
 }
 
@@ -754,9 +761,9 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 	#else
 		int len = RARRAY (cmd)->len;
 	#endif
-	if (len > 98)
+	if (len >= 2048)
 		rb_raise (rb_eRuntimeError, "too many arguments to popen");
-	char *strings [100];
+	char *strings [2048];
 	for (int i=0; i < len; i++) {
 		VALUE ix = INT2FIX (i);
 		VALUE s = rb_ary_aref (1, &ix, cmd);
@@ -1019,9 +1026,13 @@ static VALUE t_get_loop_time (VALUE self)
 t_start_proxy
 **************/
 
-static VALUE t_start_proxy (VALUE self, VALUE from, VALUE to, VALUE bufsize)
+static VALUE t_start_proxy (VALUE self, VALUE from, VALUE to, VALUE bufsize, VALUE length)
 {
-	evma_start_proxy(NUM2ULONG (from), NUM2ULONG (to), NUM2ULONG(bufsize));
+	try {
+		evma_start_proxy(NUM2ULONG (from), NUM2ULONG (to), NUM2ULONG(bufsize), NUM2ULONG(length));
+	} catch (std::runtime_error e) {
+		rb_raise (EM_eConnectionError, e.what());
+	}
 	return Qnil;
 }
 
@@ -1032,7 +1043,11 @@ t_stop_proxy
 
 static VALUE t_stop_proxy (VALUE self, VALUE from)
 {
-	evma_stop_proxy(NUM2ULONG (from));
+	try{
+		evma_stop_proxy(NUM2ULONG (from));
+	} catch (std::runtime_error e) {
+		rb_raise (EM_eConnectionError, e.what());
+	}
 	return Qnil;
 }
 
@@ -1086,6 +1101,7 @@ extern "C" void Init_rubyeventmachine()
 	Intern_notify_readable = rb_intern ("notify_readable");
 	Intern_notify_writable = rb_intern ("notify_writable");
 	Intern_proxy_target_unbound = rb_intern ("proxy_target_unbound");
+	Intern_proxy_completed = rb_intern ("proxy_completed");
 	Intern_connection_completed = rb_intern ("connection_completed");
 
 	// INCOMPLETE, we need to define class Connections inside module EventMachine
@@ -1130,7 +1146,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "resume_connection", (VALUE (*)(...))t_resume, 1);
 	rb_define_module_function (EmModule, "connection_paused?", (VALUE (*)(...))t_paused_p, 1);
 
-	rb_define_module_function (EmModule, "start_proxy", (VALUE (*)(...))t_start_proxy, 3);
+	rb_define_module_function (EmModule, "start_proxy", (VALUE (*)(...))t_start_proxy, 4);
 	rb_define_module_function (EmModule, "stop_proxy", (VALUE (*)(...))t_stop_proxy, 1);
 
 	rb_define_module_function (EmModule, "watch_filename", (VALUE (*)(...))t_watch_filename, 1);

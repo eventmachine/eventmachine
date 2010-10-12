@@ -33,10 +33,6 @@ require 'rake'      unless defined?(Rake)
 Package = false # Build zips and tarballs?
 Dir.glob('tasks/*.rake').each { |r| Rake.application.add_import r }
 
-# e.g. rake EVENTMACHINE_LIBRARY=java for forcing java build tasks as defaults!
-$eventmachine_library = :java if RUBY_PLATFORM =~ /java/ || ENV['EVENTMACHINE_LIBRARY'] == 'java'
-$eventmachine_library = :pure_ruby if ENV['EVENTMACHINE_LIBRARY'] == 'pure_ruby'
-
 MAKE = ENV['MAKE'] || if RUBY_PLATFORM =~ /mswin/ # mingw uses make.
   'nmake'
 else
@@ -48,8 +44,7 @@ task :default => [:build, :test]
 
 desc "Build extension (or EVENTMACHINE_LIBRARY) and place in lib"
 build_task = 'ext:build'
-build_task = 'java:build' if $eventmachine_library == :java
-build_task = :dummy_build if $eventmachine_library == :pure_ruby
+build_task = 'java:build' if RUBY_PLATFORM =~ /java/
 task :build => build_task do |t|
   Dir.glob('{ext,java/src,ext/fastfilereader}/*.{so,bundle,dll,jar}').each do |f|
     mv f, "lib"
@@ -83,11 +78,11 @@ Spec = Gem::Specification.new do |s|
   s.platform          = Gem::Platform::RUBY
 
   s.has_rdoc          = true
-  s.rdoc_options      = %w(--title EventMachine --main README --line-numbers -x lib/em/version -x lib/emva -x lib/evma/ -x lib/pr_eventmachine -x lib/jeventmachine)
+  s.rdoc_options      = %w(--title EventMachine --main README --line-numbers -x lib/em/version -x lib/emva -x lib/evma/ -x lib/jeventmachine)
   s.extra_rdoc_files  = Dir['README,docs/*']
 
   excludes            = %w(.gitignore)
-  s.files             = `git ls-files`.split("\n") - excludes
+  s.files             = `git ls-files`.split("\n") - excludes rescue Errno::ENOENT
 
   s.require_path      = 'lib'
 
@@ -306,7 +301,7 @@ rescue LoadError
   require 'rake/rdoctask'
   Rake::RDocTask
 end
-df = begin; require 'rdoc/generator/darkfish'; true; rescue LoadError; end
+df = begin; require 'rdoc/rdoc'; require 'rdoc/generator/darkfish'; true; rescue LoadError; end
 rdtask = rdoc_task_type.new do |rd|
   rd.title = Spec.name
   rd.rdoc_dir = 'rdoc'

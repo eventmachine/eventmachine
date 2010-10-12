@@ -29,6 +29,40 @@ class TestProxyConnection < Test::Unit::TestCase
     end
   end
 
+  module PartialProxyConnection
+    def initialize(client, request, length)
+      @client, @request, @length = client, request, length
+    end
+
+    def post_init
+      EM::enable_proxy(self, @client, 0, @length)
+    end
+
+    def receive_data(data)
+      $unproxied_data = data
+      @client.send_data(data) 
+    end
+
+    def connection_completed
+      EM.next_tick {
+        send_data @request
+      }
+    end
+
+    def proxy_target_unbound
+      $unbound_early = true
+      EM.stop
+    end
+
+    def proxy_completed
+      $proxy_completed = true
+    end
+
+    def unbind
+      @client.close_connection_after_writing
+    end
+  end
+
   module Client
     def connection_completed
       send_data "EventMachine rocks!"
@@ -61,6 +95,12 @@ class TestProxyConnection < Test::Unit::TestCase
     end
   end
 
+  module PartialProxyServer
+    def receive_data(data)
+      EM.connect("127.0.0.1", 54321, PartialProxyConnection, self, data, 1)
+    end
+  end
+
   module EarlyClosingProxy
     def receive_data(data)
       EM.connect("127.0.0.1", 54321, ProxyConnection, self, data)
@@ -76,6 +116,18 @@ class TestProxyConnection < Test::Unit::TestCase
     }
 
     assert_equal("I know!", $client_data)
+  end
+
+  def test_partial_proxy_connection
+    EM.run {
+      EM.start_server("127.0.0.1", 54321, Server)
+      EM.start_server("127.0.0.1", 12345, PartialProxyServer)
+      EM.connect("127.0.0.1", 12345, Client)
+    }
+
+    assert_equal("I know!", $client_data)
+    assert_equal(" know!", $unproxied_data)
+    assert($proxy_completed)
   end
 
   def test_early_close

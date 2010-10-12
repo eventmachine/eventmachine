@@ -106,7 +106,7 @@ module EventMachine
         ary = [verb, "\n"]
         headers.each {|k,v| ary << "#{k}:#{v}\n" }
         ary << "content-length: #{body.to_s.length}\n"
-        ary << "content-type: text/plain; charset=UTF-8\n"
+        ary << "content-type: text/plain; charset=UTF-8\n" unless headers.has_key? 'content-type'
         ary << "\n"
         ary << body.to_s
         ary << "\0"

@@ -34,10 +34,7 @@ require 'socket'
 require 'fcntl'
 require 'set'
 
-
 module EventMachine
-
-
   class << self
     # This is mostly useful for automated tests.
     # Return a distinctive symbol so the caller knows whether he's dealing
@@ -236,15 +233,8 @@ module EventMachine
   module UuidGenerator
 
     def self.generate
-      if @ix and @ix >= 10000
-        @ix = nil
-        @seed = nil
-      end
-
-      @seed ||= `uuidgen`.chomp.gsub(/-/,"")
       @ix ||= 0
-
-      "#{@seed}#{@ix += 1}"
+      @ix += 1
     end
 
   end

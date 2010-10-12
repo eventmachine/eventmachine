@@ -142,7 +142,7 @@ class TestHttpClient2 < Test::Unit::TestCase
   def test_https_get
     d = nil
     EM.run {
-      http = EM::P::HttpClient2.connect :host => 'www.amazon.com', :port => 443, :ssl => true
+      http = EM::P::HttpClient2.connect :host => 'www.apple.com', :port => 443, :ssl => true
       d = http.get "/"
       d.callback {
         EM.stop

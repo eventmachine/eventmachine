@@ -84,7 +84,7 @@ class EventableDescriptor: public Bindable_t
 		struct epoll_event *GetEpollEvent() { return &EpollEvent; }
 		#endif
 
-		virtual void StartProxy(const unsigned long, const unsigned long);
+		virtual void StartProxy(const unsigned long, const unsigned long, const unsigned long);
 		virtual void StopProxy();
 		virtual void SetProxiedFrom(EventableDescriptor*, const unsigned long);
 		virtual int SendOutboundData(const char*,int){ return -1; }
@@ -109,6 +109,8 @@ class EventableDescriptor: public Bindable_t
 		uint64_t CreatedAt;
 		bool bCallbackUnbind;
 		int UnbindReasonCode;
+
+		unsigned long BytesToProxy;
 		EventableDescriptor *ProxyTarget;
 		EventableDescriptor *ProxiedFrom;
 

@@ -55,8 +55,8 @@ See the file COPYING for complete licensing information.
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <pwd.h>
+#include <string.h>
 typedef int SOCKET;
-#define closesocket close
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR -1
 #ifdef OS_SOLARIS8

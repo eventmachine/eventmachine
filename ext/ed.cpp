@@ -89,13 +89,13 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 		throw std::runtime_error ("bad eventable descriptor");
 	if (MyEventMachine == NULL)
 		throw std::runtime_error ("bad em in eventable descriptor");
-	CreatedAt = MyEventMachine->GetCurrentTime();
+	CreatedAt = MyEventMachine->GetCurrentLoopTime();
 
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = 0;
 	EpollEvent.data.ptr = this;
 	#endif
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 }
 
 
@@ -137,7 +137,7 @@ void EventableDescriptor::Close()
 	// Close the socket right now. Intended for emergencies.
 	if (MySocket != INVALID_SOCKET) {
 		shutdown (MySocket, 1);
-		closesocket (MySocket);
+		close (MySocket);
 		MySocket = INVALID_SOCKET;
 	}
 }
@@ -191,12 +191,13 @@ bool EventableDescriptor::IsCloseScheduled()
 EventableDescriptor::StartProxy
 *******************************/
 
-void EventableDescriptor::StartProxy(const unsigned long to, const unsigned long bufsize)
+void EventableDescriptor::StartProxy(const unsigned long to, const unsigned long bufsize, const unsigned long length)
 {
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (to));
 	if (ed) {
 		StopProxy();
 		ProxyTarget = ed;
+		BytesToProxy = length;
 		ed->SetProxiedFrom(this, bufsize);
 		return;
 	}
@@ -223,6 +224,9 @@ EventableDescriptor::SetProxiedFrom
 
 void EventableDescriptor::SetProxiedFrom(EventableDescriptor *from, const unsigned long bufsize)
 {
+	if (from != NULL && ProxiedFrom != NULL)
+		throw std::runtime_error ("Tried to proxy to a busy target");
+
 	ProxiedFrom = from;
 	MaxOutboundBufSize = bufsize;
 }
@@ -236,10 +240,24 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 {
 	assert(EventCallback);
 
-	if (ProxyTarget)
-		ProxyTarget->SendOutboundData(buf, size);
-	else
+	if (ProxyTarget) {
+		if (BytesToProxy > 0) {
+			unsigned long proxied = std::min(BytesToProxy, (unsigned long) size);
+			ProxyTarget->SendOutboundData(buf, proxied);
+			BytesToProxy -= proxied;
+			if (BytesToProxy == 0) {
+				StopProxy();
+				(*EventCallback)(GetBinding(), EM_PROXY_COMPLETED, NULL, 0);
+				if (proxied < size) {
+					(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf + proxied, size - proxied);
+				}
+			}
+		} else {
+			ProxyTarget->SendOutboundData(buf, size);
+		}
+	} else {
 		(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf, size);
+	}
 }
 
 
@@ -670,7 +688,7 @@ void ConnectionDescriptor::Read()
 		return;
 	}
 
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 
 	int total_bytes_read = 0;
 	char readbuffer [16 * 1024 + 1];
@@ -876,7 +894,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 		return;
 	}
 
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 	size_t nbytes = 0;
 
 	#ifdef HAVE_WRITEV
@@ -1180,12 +1198,12 @@ void ConnectionDescriptor::Heartbeat()
 	 */
 
 	if (bConnectPending) {
-		if ((MyEventMachine->GetCurrentTime() - CreatedAt) >= PendingConnectTimeout)
+		if ((MyEventMachine->GetCurrentLoopTime() - CreatedAt) >= PendingConnectTimeout)
 			ScheduleClose (false);
 			//bCloseNow = true;
 	}
 	else {
-		if (InactivityTimeout && ((MyEventMachine->GetCurrentTime() - LastActivity) >= InactivityTimeout))
+		if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout))
 			ScheduleClose (false);
 			//bCloseNow = true;
 	}
@@ -1318,7 +1336,7 @@ void AcceptorDescriptor::Read()
 		//int val = fcntl (sd, F_GETFL, 0);
 		//if (fcntl (sd, F_SETFL, val | O_NONBLOCK) == -1) {
 			shutdown (sd, 1);
-			closesocket (sd);
+			close (sd);
 			continue;
 		}
 
@@ -1449,7 +1467,7 @@ void DatagramDescriptor::Heartbeat()
 {
 	// Close it if its inactivity timer has expired.
 
-	if (InactivityTimeout && ((MyEventMachine->GetCurrentTime() - LastActivity) >= InactivityTimeout))
+	if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout))
 		ScheduleClose (false);
 		//bCloseNow = true;
 }
@@ -1463,7 +1481,7 @@ void DatagramDescriptor::Read()
 {
 	int sd = GetSocket();
 	assert (sd != INVALID_SOCKET);
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 
 	// This is an extremely large read buffer.
 	// In many cases you wouldn't expect to get any more than 4K.
@@ -1540,7 +1558,7 @@ void DatagramDescriptor::Write()
 
 	int sd = GetSocket();
 	assert (sd != INVALID_SOCKET);
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 
 	assert (OutboundPages.size() > 0);
 

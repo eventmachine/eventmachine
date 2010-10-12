@@ -102,22 +102,22 @@ PipeDescriptor::~PipeDescriptor()
 	struct timespec req = {0, 50000000}; // 0.05s
 	int n;
 
-	// wait 0.25s for the process to die
-	for (n=0; n<5; n++) {
-		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) return;
-		nanosleep (&req, NULL);
-	}
-
-	// send SIGTERM and wait another 0.5s
-	kill (SubprocessPid, SIGTERM);
+	// wait 0.5s for the process to die
 	for (n=0; n<10; n++) {
+		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) return;
+		nanosleep (&req, NULL);
+	}
+
+	// send SIGTERM and wait another 1s
+	kill (SubprocessPid, SIGTERM);
+	for (n=0; n<20; n++) {
 		nanosleep (&req, NULL);
 		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) return;
 	}
 
-	// send SIGKILL and wait another 1s
+	// send SIGKILL and wait another 5s
 	kill (SubprocessPid, SIGKILL);
-	for (n=0; n<20; n++) {
+	for (n=0; n<100; n++) {
 		nanosleep (&req, NULL);
 		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) return;
 	}
@@ -141,7 +141,7 @@ void PipeDescriptor::Read()
 		return;
 	}
 
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 
 	int total_bytes_read = 0;
 	char readbuffer [16 * 1024];
@@ -201,7 +201,7 @@ void PipeDescriptor::Write()
 	int sd = GetSocket();
 	assert (sd != INVALID_SOCKET);
 
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 	char output_buffer [16 * 1024];
 	size_t nbytes = 0;
 
@@ -266,7 +266,7 @@ PipeDescriptor::Heartbeat
 void PipeDescriptor::Heartbeat()
 {
 	// If an inactivity timeout is defined, then check for it.
-	if (InactivityTimeout && ((MyEventMachine->GetCurrentTime() - LastActivity) >= InactivityTimeout))
+	if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout))
 		ScheduleClose (false);
 		//bCloseNow = true;
 }

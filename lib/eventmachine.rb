@@ -1,75 +1,12 @@
-#--
-#
-# Author:: Francis Cianfrocca (gmail: blackhedd)
-# Homepage::  http://rubyeventmachine.com
-# Date:: 8 Apr 2006
-# 
-# See EventMachine and EventMachine::Connection for documentation and
-# usage examples.
-#
-#----------------------------------------------------------------------------
-#
-# Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
-# Gmail: blackhedd
-# 
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of either: 1) the GNU General Public License
-# as published by the Free Software Foundation; either version 2 of the
-# License, or (at your option) any later version; or 2) Ruby's License.
-# 
-# See the file COPYING for complete licensing information.
-#
-#---------------------------------------------------------------------------
-#
-# 
-
-
-#-- Select in a library based on a global variable.
-# PROVISIONALLY commented out this whole mechanism which selects
-# a pure-Ruby EM implementation if the extension is not available.
-# I expect this will cause a lot of people's code to break, as it
-# exposes misconfigurations and path problems that were masked up
-# till now. The reason I'm disabling it is because the pure-Ruby
-# code will have problems of its own, and it's not nearly as fast
-# anyway. Suggested by a problem report from Moshe Litvin. 05Jun07.
-#
-# 05Dec07: Re-enabled the pure-ruby mechanism, but without the automatic
-# fallback feature that tripped up Moshe Litvin. We shouldn't fail over to
-# the pure Ruby version because it's possible that the user intended to
-# run the extension but failed to do so because of a compilation or
-# similar error. So we require either a global variable or an environment
-# string be set in order to select the pure-Ruby version.
-#
-
-
-unless defined?($eventmachine_library)
-  $eventmachine_library = ENV['EVENTMACHINE_LIBRARY'] || :cascade
-end
-$eventmachine_library = $eventmachine_library.to_sym
-
-case $eventmachine_library
-when :pure_ruby
-  require 'pr_eventmachine'
-when :extension
-  require 'rubyeventmachine'
-when :java
+if RUBY_PLATFORM =~ /java/
+  require 'java'
   require 'jeventmachine'
-else # :cascade
-  # This is the case that most user code will take.
-  # Prefer the extension if available.
+else
   begin
-    if RUBY_PLATFORM =~ /java/
-      require 'java'
-      require 'jeventmachine'
-      $eventmachine_library = :java
-    else
-      require 'rubyeventmachine'
-      $eventmachine_library = :extension
-    end
+    require 'rubyeventmachine'
   rescue LoadError
-    warn "# EventMachine fell back to pure ruby mode" if $DEBUG
-    require 'pr_eventmachine'
-    $eventmachine_library = :pure_ruby
+    warn "Unable to load the EventMachine C extension; To use the pure-ruby reactor, require 'em/pure_ruby'"
+    raise
   end
 end
 
@@ -79,6 +16,7 @@ require 'em/future'
 require 'em/streamer'
 require 'em/spawnable'
 require 'em/processes'
+require 'em/iterator'
 require 'em/buftok'
 require 'em/timers'
 require 'em/protocols'
@@ -267,8 +205,14 @@ module EventMachine
             @threadpool.each { |t| t.exit }
             @threadpool.each do |t|
               next unless t.alive?
-              # ruby 1.9 has no kill!
-              t.respond_to?(:kill!) ? t.kill! : t.kill
+              begin
+                # Thread#kill! does not exist on 1.9 or rbx, and raises
+                # NotImplemented on jruby
+                t.kill!
+              rescue NoMethodError, NotImplementedError
+                t.kill
+                # XXX t.join here?
+              end
             end
             @threadqueue = nil
             @resultqueue = nil
@@ -1055,6 +999,7 @@ module EventMachine
   def self.spawn_threadpool # :nodoc:
     until @threadpool.size == @threadpool_size.to_i
       thread = Thread.new do
+        Thread.current.abort_on_exception = true
         while true
           op, cback = *@threadqueue.pop
           result = op.call
@@ -1369,8 +1314,8 @@ module EventMachine
   #  EM.run {
   #    EM.start_server("127.0.0.1", 8080, ProxyServer)
   #  }
-  def self.enable_proxy(from, to, bufsize=0)
-    EM::start_proxy(from.signature, to.signature, bufsize)
+  def self.enable_proxy(from, to, bufsize=0, length=0)
+    EM::start_proxy(from.signature, to.signature, bufsize, length)
   end
 
   # disable_proxy takes just one argument, a Connection that has proxying enabled via enable_proxy.

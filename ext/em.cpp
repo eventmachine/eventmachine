@@ -25,7 +25,7 @@ See the file COPYING for complete licensing information.
 /* The numer of max outstanding timers was once a const enum defined in em.h.
  * Now we define it here so that users can change its value if necessary.
  */
-static unsigned int MaxOutstandingTimers = 10000;
+static unsigned int MaxOutstandingTimers = 100000;
 
 
 /* Internal helper to convert strings to internet addresses. IPv6-aware.
@@ -304,7 +304,7 @@ void EventMachine_t::_InitializeLoopBreaker()
 	#ifdef OS_UNIX
 	int fd[2];
 	if (pipe (fd))
-		throw std::runtime_error ("no loop breaker");
+		throw std::runtime_error (strerror(errno));
 
 	LoopBreakerWriter = fd[1];
 	LoopBreakerReader = fd[0];
@@ -358,9 +358,9 @@ uint64_t EventMachine_t::GetRealTime()
 
 	#elif defined(OS_WIN32)
 	unsigned tick = GetTickCount();
-	if (tick < LastTickCountCount)
+	if (tick < LastTickCount)
 		TickCountTickover += 1;
-	LastTickCountCount = tick;
+	LastTickCount = tick;
 	current_time = ((uint64_t)TickCountTickover << 32) + (uint64_t)tick;
 
 	#else
@@ -523,13 +523,12 @@ bool EventMachine_t::_RunEpollOnce()
 	FD_ZERO(&fdreads);
 	FD_SET(epfd, &fdreads);
 
-	while ((ret = rb_thread_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	if ((ret = rb_thread_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
 		if (ret == -1) {
 			assert(errno != EINVAL);
 			assert(errno != EBADF);
-			continue;
 		}
-		if (ret == 0) return true;
+		return true;
 	}
 
 	TRAP_BEG;
@@ -594,9 +593,12 @@ bool EventMachine_t::_RunKqueueOnce()
 	FD_ZERO(&fdreads);
 	FD_SET(kqfd, &fdreads);
 
-	while ((ret = rb_thread_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
-		if (ret == -1) continue;
-		if (ret == 0) return true;
+	if ((ret = rb_thread_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+		if (ret == -1) {
+			assert(errno != EINVAL);
+			assert(errno != EBADF);
+		}
+		return true;
 	}
 
 	TRAP_BEG;
@@ -1049,9 +1051,9 @@ const unsigned long EventMachine_t::InstallOneshotTimer (int milliseconds)
 
 	#ifdef OS_WIN32
 	unsigned tick = GetTickCount();
-	if (tick < LastTickCountCount)
+	if (tick < LastTickCount)
 		TickCountTickover += 1;
-	LastTickCountCount = tick;
+	LastTickCount = tick;
 
 	uint64_t fire_at = ((uint64_t)TickCountTickover << 32) + (uint64_t)tick;
 	fire_at += (uint64_t)milliseconds;
@@ -1106,8 +1108,11 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	bind_as = *bind_as_ptr; // copy because name2address points to a static
 
 	int sd = socket (family, SOCK_STREAM, 0);
-	if (sd == INVALID_SOCKET)
-		throw std::runtime_error ("unable to create new socket");
+	if (sd == INVALID_SOCKET) {
+		char buf [200];
+		snprintf (buf, sizeof(buf)-1, "unable to create new socket: %s", strerror(errno));
+		throw std::runtime_error (buf);
+	}
 
 	/*
 	sockaddr_in pin;
@@ -1140,7 +1145,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	// From here on, ALL error returns must close the socket.
 	// Set the new socket nonblocking.
 	if (!SetSocketNonblocking (sd)) {
-		closesocket (sd);
+		close (sd);
 		throw std::runtime_error ("unable to set socket as non-blocking");
 	}
 	// Disable slow-start (Nagle algorithm).
@@ -1153,11 +1158,11 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		int bind_to_size, bind_to_family;
 		struct sockaddr *bind_to = name2address (bind_addr, bind_port, &bind_to_family, &bind_to_size);
 		if (!bind_to) {
-			closesocket (sd);
+			close (sd);
 			throw std::runtime_error ("invalid bind address");
 		}
 		if (bind (sd, bind_to, bind_to_size) < 0) {
-			closesocket (sd);
+			close (sd);
 			throw std::runtime_error ("couldn't bind to address");
 		}
 	}
@@ -1268,7 +1273,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	#endif
 
 	if (!out)
-		closesocket (sd);
+		close (sd);
 	return out;
 }
 
@@ -1317,13 +1322,13 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 	// From here on, ALL error returns must close the socket.
 	// NOTE: At this point, the socket is still a blocking socket.
 	if (connect (fd, (struct sockaddr*)&pun, sizeof(pun)) != 0) {
-		closesocket (fd);
+		close (fd);
 		return 0;
 	}
 
 	// Set the newly-connected socket nonblocking.
 	if (!SetSocketNonblocking (fd)) {
-		closesocket (fd);
+		close (fd);
 		return 0;
 	}
 
@@ -1339,7 +1344,7 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 	out = cd->GetBinding();
 
 	if (!out)
-		closesocket (fd);
+		close (fd);
 
 	return out;
 	#endif
@@ -1609,7 +1614,7 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 
 	fail:
 	if (sd_accept != INVALID_SOCKET)
-		closesocket (sd_accept);
+		close (sd_accept);
 	return 0;
 }
 
@@ -1670,7 +1675,7 @@ const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int
 
 	fail:
 	if (sd != INVALID_SOCKET)
-		closesocket (sd);
+		close (sd);
 	return 0;
 }
 
@@ -1941,7 +1946,7 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 
 	fail:
 	if (sd_accept != INVALID_SOCKET)
-		closesocket (sd_accept);
+		close (sd_accept);
 	return 0;
 	#endif // OS_UNIX
 }
@@ -2005,9 +2010,9 @@ const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
 	if (!cmd_strings)
 		return 0;
 	int j;
-	for (j=0; j < 100 && cmd_strings[j]; j++)
+	for (j=0; j < 2048 && cmd_strings[j]; j++)
 		;
-	if ((j==0) || (j==100))
+	if ((j==0) || (j==2048))
 		return 0;
 
 	unsigned long output_binding = 0;
@@ -2173,7 +2178,8 @@ const unsigned long EventMachine_t::WatchFile (const char *fpath)
 		Add(inotify);
 	}
 
-	wd = inotify_add_watch(inotify->GetSocket(), fpath, IN_MODIFY | IN_DELETE_SELF | IN_MOVE_SELF);
+	wd = inotify_add_watch(inotify->GetSocket(), fpath,
+			       IN_MODIFY | IN_DELETE_SELF | IN_MOVE_SELF | IN_CREATE | IN_DELETE | IN_MOVE) ;
 	if (wd == -1) {
 		char errbuf[300];
 		sprintf(errbuf, "failed to open file %s for registering with inotify: %s", fpath, strerror(errno));
@@ -2249,19 +2255,33 @@ EventMachine_t::_ReadInotify_Events
 void EventMachine_t::_ReadInotifyEvents()
 {
 	#ifdef HAVE_INOTIFY
-	struct inotify_event event;
+	char buffer[1024];
 
 	assert(EventCallback);
 
-	while (read(inotify->GetSocket(), &event, INOTIFY_EVENT_SIZE) > 0) {
-		assert(event.len == 0);
-		if (event.mask & IN_MODIFY)
-			(*EventCallback)(Files [event.wd]->GetBinding(), EM_CONNECTION_READ, "modified", 8);
-		if (event.mask & IN_MOVE_SELF)
-			(*EventCallback)(Files [event.wd]->GetBinding(), EM_CONNECTION_READ, "moved", 5);
-		if (event.mask & IN_DELETE_SELF) {
-			(*EventCallback)(Files [event.wd]->GetBinding(), EM_CONNECTION_READ, "deleted", 7);
-			UnwatchFile ((int)event.wd);
+	for (;;) {
+		int returned = read(inotify->GetSocket(), buffer, sizeof(buffer));
+		assert(!(returned == 0 || returned == -1 && errno == EINVAL));
+		if (returned <= 0) {
+		    break;
+		}
+		int current = 0;
+		while (current < returned) {
+			struct inotify_event* event = (struct inotify_event*)(buffer+current);
+			map<int, Bindable_t*>::const_iterator bindable = Files.find(event->wd);
+			if (bindable != Files.end()) {
+				if (event->mask & (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVE)){
+					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "modified", 8);
+				}
+				if (event->mask & IN_MOVE_SELF){
+					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "moved", 5);
+				}
+				if (event->mask & IN_DELETE_SELF) {
+					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "deleted", 7);
+					UnwatchFile ((int)event->wd);
+				}
+			}
+			current += sizeof(struct inotify_event) + event->len;
 		}
 	}
 	#endif

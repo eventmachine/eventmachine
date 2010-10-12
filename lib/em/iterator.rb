@@ -95,6 +95,7 @@ module EventMachine
       }
 
       @process_next = proc{
+        # p [:process_next, :pending=, @pending, :workers=, @workers, :ended=, @ended, :concurrency=, @concurrency, :list=, @list]
         unless @ended or @workers > @concurrency
           if @list.empty?
             @ended = true
@@ -211,7 +212,8 @@ module EventMachine
     #
     def spawn_workers
       EM.next_tick(start_worker = proc{
-        if @workers < @concurrency
+        if @workers < @concurrency and !@ended
+          # p [:spawning_worker, :workers=, @workers, :concurrency=, @concurrency, :ended=, @ended]
           @workers += 1
           @process_next.call
           EM.next_tick(start_worker)
@@ -234,6 +236,7 @@ if __FILE__ == $0
 
   EM.run{
     EM::Iterator.new(1..50).each{ |num,iter| p num; iter.next }
+    EM::Iterator.new([1,2,3], 10).each{ |num,iter| p num; iter.next }
 
     i = EM::Iterator.new(1..100, 5)
     i.each(proc{|num,iter|
