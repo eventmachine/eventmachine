@@ -233,15 +233,8 @@ module EventMachine
   module UuidGenerator
 
     def self.generate
-      if @ix and @ix >= 10000
-        @ix = nil
-        @seed = nil
-      end
-
-      @seed ||= `uuidgen`.chomp.gsub(/-/,"")
       @ix ||= 0
-
-      "#{@seed}#{@ix += 1}"
+      @ix += 1
     end
 
   end
