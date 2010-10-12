@@ -25,7 +25,7 @@ See the file COPYING for complete licensing information.
 /* The numer of max outstanding timers was once a const enum defined in em.h.
  * Now we define it here so that users can change its value if necessary.
  */
-static unsigned int MaxOutstandingTimers = 10000;
+static unsigned int MaxOutstandingTimers = 100000;
 
 
 /* Internal helper to convert strings to internet addresses. IPv6-aware.
