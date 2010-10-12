@@ -594,6 +594,10 @@ bool EventMachine_t::_RunKqueueOnce()
 	FD_SET(kqfd, &fdreads);
 
 	if ((ret = rb_thread_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+		if (ret == -1) {
+			assert(errno != EINVAL);
+			assert(errno != EBADF);
+		}
 		return true;
 	}
 
