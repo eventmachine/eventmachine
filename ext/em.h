@@ -79,6 +79,7 @@ class EventMachine_t
 		void ScheduleHalt();
 		void SignalLoopBreaker();
 		const unsigned long InstallOneshotTimer (int);
+		const bool UninstallOneshotTimer (unsigned long);
 		const unsigned long ConnectToServer (const char *, int, const char *, int);
 		const unsigned long ConnectToUnixServer (const char *);
 
@@ -175,6 +176,7 @@ class EventMachine_t
 		};
 
 		multimap<uint64_t, Timer_t> Timers;
+		map<unsigned long, uint64_t> TimerBindings;
 		multimap<uint64_t, EventableDescriptor*> Heartbeats;
 		map<int, Bindable_t*> Files;
 		map<int, Bindable_t*> Pids;

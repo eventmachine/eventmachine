@@ -1021,6 +1021,7 @@ bool EventMachine_t::_RunTimers()
 			break;
 		if (EventCallback)
 			(*EventCallback) (0, EM_TIMER_FIRED, NULL, i->second.GetBinding());
+		TimerBindings.erase (i->second.GetBinding());
 		Timers.erase (i);
 	}
 	return true;
@@ -1062,10 +1063,30 @@ const unsigned long EventMachine_t::InstallOneshotTimer (int milliseconds)
 	Timer_t t;
 	#ifndef HAVE_MAKE_PAIR
 	multimap<uint64_t,Timer_t>::iterator i = Timers.insert (multimap<uint64_t,Timer_t>::value_type (fire_at, t));
+	TimerBindings.insert (map<unsigned long,uint64_t>::value_type (t.GetBinding(), fire_at));
 	#else
 	multimap<uint64_t,Timer_t>::iterator i = Timers.insert (make_pair (fire_at, t));
+	TimerBindings.insert (make_pair (t.GetBinding(), fire_at));
 	#endif
 	return i->second.GetBinding();
+}
+
+
+/***********************************
+EventMachine_t::UninstallOneshotTimer
+***********************************/
+
+const bool EventMachine_t::UninstallOneshotTimer (unsigned long binding)
+{
+	map<unsigned long,uint64_t>::iterator fire_at = TimerBindings.find(binding);
+	if (fire_at == TimerBindings.end()) {
+		return false;
+	}
+
+	Timers.erase (fire_at->second);
+	TimerBindings.erase (fire_at);
+
+	return true;
 }
 
 
