@@ -56,6 +56,11 @@ module EventMachine
       Reactor.instance.install_oneshot_timer(interval / 1000)
     end
 
+    # #cancel_oneshot_timer
+    def cancel_oneshot_timer sig
+      Reactor.instance.uninstall_oneshot_timer(sig)
+    end
+
     # run_machine
     def run_machine
       Reactor.instance.run
