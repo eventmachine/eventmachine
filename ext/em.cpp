@@ -1076,17 +1076,14 @@ const unsigned long EventMachine_t::InstallOneshotTimer (int milliseconds)
 EventMachine_t::UninstallOneshotTimer
 ***********************************/
 
-bool EventMachine_t::UninstallOneshotTimer (const unsigned long binding)
+void EventMachine_t::UninstallOneshotTimer (const unsigned long binding)
 {
 	map<unsigned long,uint64_t>::iterator fire_at = TimerBindings.find(binding);
-	if (fire_at == TimerBindings.end()) {
-		return false;
-	}
+	if (fire_at == TimerBindings.end())
+		return;
 
 	Timers.erase (fire_at->second);
 	TimerBindings.erase (fire_at);
-
-	return true;
 }
 
 

@@ -107,10 +107,10 @@ extern "C" const unsigned long evma_install_oneshot_timer (int seconds)
 evma_uninstall_oneshot_timer
 **************************/
 
-extern "C" int evma_uninstall_oneshot_timer (const unsigned long binding)
+extern "C" void evma_uninstall_oneshot_timer (const unsigned long binding)
 {
 	ensure_eventmachine("evma_uninstall_oneshot_timer");
-	return EventMachine->UninstallOneshotTimer (binding) ? 1 : 0;
+	EventMachine->UninstallOneshotTimer (binding);
 }
 
 
