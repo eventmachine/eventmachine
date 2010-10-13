@@ -272,10 +272,17 @@ class Reactor
   # Replaced original implementation 05Dec07, was way too slow because of the sort.
   def install_oneshot_timer interval
     uuid = UuidGenerator::generate
-    #@timers << [Time.now + interval, uuid]
+    fire_at = Time.now + interval
+    #@timers << [fire_at, uuid]
     #@timers.sort! {|a,b| a.first <=> b.first}
-    @timers.add([Time.now + interval, uuid])
+    @timers.add([fire_at, uuid])
+    @timer_bindings[uuid] = fire_at
     uuid
+  end
+
+  def uninstall_oneshot_timer uuid
+    fire_at = @timer_bindings.delete uuid
+    @timers.delete [fire_at, uuid] if fire_at
   end
 
   # Called before run, this is a good place to clear out arrays
@@ -285,6 +292,7 @@ class Reactor
     @stop_scheduled = false
     @selectables ||= {}; @selectables.clear
     @timers = SortedSet.new # []
+    @timer_bindings = {}
     set_timer_quantum(0.1)
     @current_loop_time = Time.now
     @next_heartbeat = @current_loop_time + HeartbeatInterval
@@ -328,6 +336,7 @@ class Reactor
   def run_timers
     @timers.each {|t|
       if t.first <= @current_loop_time
+        @timer_bindings.delete t.last
         @timers.delete t
         EventMachine::event_callback "", TimerFired, t.last
       else
