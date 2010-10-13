@@ -79,7 +79,7 @@ class EventMachine_t
 		void ScheduleHalt();
 		void SignalLoopBreaker();
 		const unsigned long InstallOneshotTimer (int);
-		const bool UninstallOneshotTimer (unsigned long);
+		bool UninstallOneshotTimer (const unsigned long);
 		const unsigned long ConnectToServer (const char *, int, const char *, int);
 		const unsigned long ConnectToUnixServer (const char *);
 
