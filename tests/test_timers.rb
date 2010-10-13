@@ -157,4 +157,21 @@ class TestTimers < Test::Unit::TestCase
     EM.set_max_timers(defaults)
   end
 
+  def test_timer_cancel_not_outstanding
+    defaults = EM.get_max_timers
+    EM.set_max_timers(100)
+
+    one_hundred_one_canceled_timers = proc { 101.times {
+      t = EM.add_timer(5) {}
+      EM.cancel_timer(t)
+    } }
+
+    EM.run {
+      one_hundred_one_canceled_timers.call
+      EM.stop
+    }
+  ensure
+    EM.set_max_timers(defaults)
+  end
+
 end
