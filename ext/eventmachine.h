@@ -44,6 +44,7 @@ extern "C" {
 	void evma_run_machine();
 	void evma_release_library();
 	const unsigned long evma_install_oneshot_timer (int seconds);
+	int evma_uninstall_oneshot_timer (const unsigned long binding);
 	const unsigned long evma_connect_to_server (const char *bind_addr, int bind_port, const char *server, int port);
 	const unsigned long evma_connect_to_unix_server (const char *server);
 
