@@ -242,7 +242,7 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 
 	if (ProxyTarget) {
 		if (BytesToProxy > 0) {
-			unsigned long proxied = std::min(BytesToProxy, (unsigned long) size);
+			unsigned long proxied = min(BytesToProxy, (unsigned long) size);
 			ProxyTarget->SendOutboundData(buf, proxied);
 			BytesToProxy -= proxied;
 			if (BytesToProxy == 0) {
