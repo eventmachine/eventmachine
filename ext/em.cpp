@@ -1019,13 +1019,11 @@ bool EventMachine_t::_RunTimers()
 			break;
 		if (i->first > MyCurrentLoopTime)
 			break;
-		uint64_t fire_at = i->first;
 		const unsigned long binding = i->second.GetBinding();
 		if (EventCallback)
 			(*EventCallback) (0, EM_TIMER_FIRED, NULL, binding);
-		// Save fire_at and binding beforehand, the iterator might be invalid now
-		TimerBindings.erase (binding);
-		Timers.erase (fire_at);
+		// The iterator might be invalid now, uninstall checks for unknown timers
+		UninstallOneshotTimer(binding);
 	}
 	return true;
 }
