@@ -1019,10 +1019,13 @@ bool EventMachine_t::_RunTimers()
 			break;
 		if (i->first > MyCurrentLoopTime)
 			break;
+		uint64_t fire_at = i->first;
+		const unsigned long binding = i->second.GetBinding();
 		if (EventCallback)
-			(*EventCallback) (0, EM_TIMER_FIRED, NULL, i->second.GetBinding());
-		TimerBindings.erase (i->second.GetBinding());
-		Timers.erase (i);
+			(*EventCallback) (0, EM_TIMER_FIRED, NULL, binding);
+		// Save fire_at and binding beforehand, the iterator might be invalid now
+		TimerBindings.erase (binding);
+		Timers.erase (fire_at);
 	}
 	return true;
 }
@@ -1078,12 +1081,13 @@ EventMachine_t::UninstallOneshotTimer
 
 void EventMachine_t::UninstallOneshotTimer (const unsigned long binding)
 {
-	map<unsigned long,uint64_t>::iterator fire_at = TimerBindings.find(binding);
-	if (fire_at == TimerBindings.end())
+	map<unsigned long,uint64_t>::iterator i = TimerBindings.find(binding);
+	if (i == TimerBindings.end())
 		return;
 
-	Timers.erase (fire_at->second);
-	TimerBindings.erase (fire_at);
+	uint64_t fire_at = i->second;
+	TimerBindings.erase (i);
+	Timers.erase (fire_at);
 }
 
 

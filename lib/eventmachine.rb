@@ -355,7 +355,8 @@ module EventMachine
     if timer_or_sig.respond_to? :cancel
       timer_or_sig.cancel
     else
-      @timers[timer_or_sig] = false if @timers.has_key?(timer_or_sig)
+      cancel_oneshot_timer(timer_or_sig)
+      @timers.delete timer_or_sig
     end
   end
 
@@ -1389,7 +1390,6 @@ module EventMachine
       c.connection_completed
     elsif opcode == TimerFired
       t = @timers.delete( data )
-      return if t == false # timer cancelled
       t or raise UnknownTimerFired, "timer data: #{data}"
       t.call
     elsif opcode == ConnectionData
