@@ -23,8 +23,6 @@
 #
 # 
 
-
-
 module EventMachine
   module Protocols
 
@@ -51,7 +49,6 @@ module EventMachine
     # DNS: Some way to cache DNS lookups for hostnames we connect to. Ruby's
     # DNS lookups are unbelievably slow.
     # HEAD requests.
-    # Chunked transfer encoding.
     # Convenience methods for requests. get, post, url, etc.
     # SSL.
     # Handle status codes like 304, 100, etc.
@@ -180,7 +177,7 @@ module EventMachine
             if ary.length == 2
               data = ary.last
               if ary.first == ""
-                if (@content_length and @content_length > 0) || @connection_close
+                if (@content_length and @content_length > 0) || @chunked || @connection_close
                   @read_state = :content
                 else
                   dispatch_response
@@ -200,6 +197,8 @@ module EventMachine
                   @content_length ||= $'.to_i
                 elsif ary.first =~ /\Aconnection:\s*close/i
                   @connection_close = true
+                elsif ary.first =~ /\Atransfer-encoding:\s*chunked/i
+                  @chunked = true
                 end
               end
             else
@@ -207,12 +206,32 @@ module EventMachine
               data = ""
             end
           when :content
-            # If there was no content-length header, we have to wait until the connection
-            # closes. Everything we get until that point is content.
-            # TODO: Must impose a content-size limit, and also must implement chunking.
-            # Also, must support either temporary files for large content, or calling
-            # a content-consumer block supplied by the user.
-            if @content_length
+            if @chunked && @chunk_length
+              bytes_needed = @chunk_length - @chunk_read
+              new_data = data[0, bytes_needed]
+              @chunk_read += new_data.length
+              @content += new_data
+              data = data[bytes_needed..-1] || ""
+              if @chunk_length == @chunk_read && data[0,2] == "\r\n"
+                @chunk_length = nil
+                data = data[2..-1]
+              end
+            elsif @chunked
+              if (m = data.match(/\A(\S*)\r\n/m))
+                data = data[m[0].length..-1]
+                @chunk_length = m[1].to_i(16)
+                @chunk_read = 0
+                if @chunk_length == 0
+                  dispatch_response
+                  @read_state = :base
+                end
+              end
+            elsif @content_length
+              # If there was no content-length header, we have to wait until the connection
+              # closes. Everything we get until that point is content.
+              # TODO: Must impose a content-size limit, and also must implement chunking.
+              # Also, must support either temporary files for large content, or calling
+              # a content-consumer block supplied by the user.
               bytes_needed = @content_length - @content.length
               @content += data[0, bytes_needed]
               data = data[bytes_needed..-1] || ""
@@ -263,6 +282,5 @@ module EventMachine
         end
       end
     end
-
   end
 end
