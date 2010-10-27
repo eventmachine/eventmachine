@@ -119,6 +119,58 @@ class TestTimers < Test::Unit::TestCase
     assert( x == 4 )
   end
 
+  def test_restartable_timer
+    x = false
+    EventMachine.run {
+      EventMachine::RestartableTimer.new(0.1) do
+        x = true
+        EventMachine.stop
+      end
+    }
+    assert x
+  end
+
+  def test_add_restartable_timer
+    x = false
+    EventMachine.run {
+      rt = EventMachine.add_restartable_timer(0.1) { x = true }
+      assert rt.respond_to?(:restart)
+      EventMachine.stop
+    }
+  end
+
+  def test_restart_restartable_timer
+    x = false
+    EventMachine.run {
+      EventMachine.add_timer(0.4) { x = 1 }
+      rt = EventMachine::RestartableTimer.new(0.3) do
+        x = true
+      end
+      EventMachine.add_timer(0.2) { rt.restart }
+      EventMachine.add_timer(0.6) { EventMachine.stop }
+    }
+    assert x == true
+  end
+
+  def test_restartable_timer_cancel
+    x = false
+    EventMachine.run {
+      rt = EventMachine::RestartableTimer.new(0.3) { x = true }
+      rt.cancel
+      EventMachine::Timer.new(0.1) { EventMachine.stop }
+    }
+    assert !x
+  end
+
+  def test_add_restartable_timer_cancel
+    x = false
+    EventMachine.run {
+      rt = EventMachine.add_restartable_timer(0.2) { x = true }
+      EventMachine.cancel_timer(rt)
+      EventMachine.add_timer(0.3) { EventMachine.stop }
+    }
+    assert !x
+  end
 
   # This test is only applicable to compiled versions of the reactor.
   # Pure ruby and java versions have no built-in limit on the number of outstanding timers.

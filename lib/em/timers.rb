@@ -54,4 +54,37 @@ module EventMachine
       end
     end
   end
+
+  # Creates a restartable timer
+  #
+  #  puts "started timer at #{Time.now}"
+  #  timer = EventMachine::RestartableTimer.new(5) do
+  #    # should be about 7 seconds later, due to restart at 2 seconds
+  #    puts "completed timer at #{Time.now}"
+  #  end
+  #  EventMachine::Timer.new(2) { timer.restart }
+  #
+  class RestartableTimer < Timer
+    def initialize(interval, callback=nil, &block)
+      @interval = interval
+      @code = callback || block
+      @work = method(:fire)
+      schedule
+    end
+
+    # Restart the timer
+    def restart
+      cancel
+      schedule
+    end
+
+    def schedule
+      @signature = EventMachine::add_timer(@interval, @work)
+    end
+
+    def fire
+      @code.call
+    end
+  end
+
 end
