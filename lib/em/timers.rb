@@ -64,26 +64,38 @@ module EventMachine
   #  end
   #  EventMachine::Timer.new(2) { timer.restart }
   #
-  class RestartableTimer < Timer
-    def initialize(interval, callback=nil, &block)
+  class RestartableTimer
+    def initialize interval, callback=nil, &block
       @interval = interval
       @code = callback || block
+      @done = false
       @work = method(:fire)
       schedule
     end
 
-    # Restart the timer
-    def restart
-      cancel
-      schedule
+    # Cancel the timer
+    def cancel
+      @done = true
+      EventMachine.send :cancel_timer, @signature
     end
 
-    def schedule
+    # Restart the timer
+    def restart
+      unless @done
+        EventMachine.send :cancel_timer, @signature
+        schedule
+      end
+    end
+
+    def schedule # :nodoc
       @signature = EventMachine::add_timer(@interval, @work)
     end
 
-    def fire
-      @code.call
+    def fire # :nodoc
+      unless @done
+        @done = true
+        @code.call
+      end
     end
   end
 

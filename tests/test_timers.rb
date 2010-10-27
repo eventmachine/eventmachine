@@ -152,6 +152,21 @@ class TestTimers < Test::Unit::TestCase
     assert x == true
   end
 
+  def test_cannot_restart_already_fired_restartable_timer
+    x = false
+    EventMachine.run {
+      rt = EventMachine::RestartableTimer.new(0.1) do
+        x = true
+      end
+      EventMachine.add_timer(0.2) { 
+        x = false
+        rt.restart
+      }
+      EventMachine.add_timer(0.4) { EventMachine.stop }
+    }
+    assert !x
+  end
+
   def test_restartable_timer_cancel
     x = false
     EventMachine.run {
@@ -168,6 +183,22 @@ class TestTimers < Test::Unit::TestCase
       rt = EventMachine.add_restartable_timer(0.2) { x = true }
       EventMachine.cancel_timer(rt)
       EventMachine.add_timer(0.3) { EventMachine.stop }
+    }
+    assert !x
+  end
+
+  def test_cannot_restart_cancelled_restartable_timer
+    x = false
+    EventMachine.run {
+      rt = EventMachine::RestartableTimer.new(0.2) do
+        x = true
+      end
+      rt.cancel
+      EventMachine.add_timer(0.1) { 
+        x = false
+        rt.restart
+      }
+      EventMachine.add_timer(0.4) { EventMachine.stop }
     }
     assert !x
   end
