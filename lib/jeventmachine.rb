@@ -68,6 +68,8 @@ module EventMachine
   ConnectionNotifyReadable = 106
   ConnectionNotifyWritable = 107
   SslHandshakeCompleted = 108
+  NULL_EM_REACTOR = com.rubyeventmachine.NullEmReactor.new
+  @em ||= NULL_EM_REACTOR
 
   # Exceptions that are defined in rubymain.cpp
   class ConnectionError < RuntimeError; end
@@ -93,7 +95,7 @@ module EventMachine
     @em = JEM.new
   end
   def self.release_machine
-    @em = com.rubyeventmachine.NullEmReactor.new
+    @em = NULL_EM_REACTOR
   end
   def self.add_oneshot_timer interval
     @em.installOneshotTimer interval
@@ -255,4 +257,6 @@ module EventMachine
     end
   end
 end
+
+#EventMachine.initialize
 
