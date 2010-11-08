@@ -227,6 +227,12 @@ namespace :java do
     mv 'java/em_reactor.jar', 'lib/'
   end
 
+  Rake::TestTask.new(:test) do |t|
+    t.pattern = 'tests/jruby/**/test_*.rb'
+    t.warning = true
+  end
+
+
   task :compile do
     chdir('java') do
       mkdir_p "build"
