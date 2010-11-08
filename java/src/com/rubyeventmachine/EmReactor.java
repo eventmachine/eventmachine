@@ -36,7 +36,8 @@ import java.net.*;
 import java.util.concurrent.atomic.*;
 import java.security.*;
 
-public class EmReactor {
+public class EmReactor implements EmReactorInterface
+{
 	public final int EM_TIMER_FIRED = 100;
 	public final int EM_CONNECTION_READ = 101;
 	public final int EM_CONNECTION_UNBOUND = 102;

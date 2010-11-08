@@ -93,7 +93,7 @@ module EventMachine
     @em = JEM.new
   end
   def self.release_machine
-    @em = nil
+    @em = com.rubyeventmachine.NullEmReactor.new
   end
   def self.add_oneshot_timer interval
     @em.installOneshotTimer interval
