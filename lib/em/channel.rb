@@ -35,7 +35,7 @@ module EventMachine
     # Add items to the channel, which are pushed out to all subscribers.
     def push(*items)
       items = items.dup
-      EM.schedule { @subs.values.each { |s| items.each { |i| s.call i } } }
+      EM.schedule { items.each { |i| @subs.values.each { |s| s.call i } } }
     end
     alias << push
 

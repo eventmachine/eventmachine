@@ -53,7 +53,7 @@ module EventMachine
       @http_chunks = args[:http_chunks]
 
       if File.exist?(filename)
-        @size = File.size?(filename)
+        @size = File.size(filename)
         if @size <= MappingThreshold
           stream_without_mapping filename
         else
