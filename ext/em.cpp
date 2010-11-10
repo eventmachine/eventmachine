@@ -77,7 +77,8 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	epfd (-1),
 	bKqueue (false),
 	kqfd (-1),
-	inotify (NULL)
+	inotify (NULL),
+	bDebug (false)
 {
 	// Default time-slice is just smaller than one hundred mills.
 	Quantum.tv_sec = 0;
@@ -2377,5 +2378,15 @@ int EventMachine_t::SetHeartbeatInterval(float interval)
 	}
 	return 0;
 }
+
+/***********************
+EventMachine_t::SetDebug
+***********************/
+
+void EventMachine_t::SetDebug(bool debug)
+{
+	bDebug = debug;
+}
+
 //#endif // OS_UNIX
 

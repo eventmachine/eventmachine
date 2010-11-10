@@ -74,6 +74,40 @@ static inline VALUE ensure_conn(const unsigned long signature)
 }
 
 
+static const char *event_num_to_string(int event)
+{
+	 switch (event) {
+		case EM_CONNECTION_READ:
+			return "Connection Read";
+		case EM_CONNECTION_ACCEPTED:
+			return "Connection Accepted";
+		case EM_CONNECTION_UNBOUND:
+			return "Connection Unbound";
+		case EM_CONNECTION_COMPLETED:
+			return "Connection Complete";
+		case EM_CONNECTION_NOTIFY_READABLE:
+			return "Connection Notify Readable";
+		case EM_CONNECTION_NOTIFY_WRITABLE:
+			return "Connection Notify Writable";
+		case EM_LOOPBREAK_SIGNAL:
+			return "Loopbreak Signal";
+		case EM_TIMER_FIRED:
+			return "Timer Fired";
+		case EM_PROXY_TARGET_UNBOUND:
+			return "Proxy Target Unbound";
+		case EM_PROXY_COMPLETED:
+			return "Proxy Complete";
+		#ifdef WITH_SSL
+		case EM_SSL_HANDSHAKE_COMPLETED:
+			return "SSL Handshake Completed";
+		case EM_SSL_VERIFY:
+			return "SSL Verify";
+		#endif
+		default:
+			return "Unknown event";
+	 }
+}
+
 /****************
 t_event_callback
 ****************/
@@ -84,6 +118,9 @@ static inline void event_callback (struct em_event* e)
 	int event = e->event;
 	const char *data_str = e->data_str;
 	const unsigned long data_num = e->data_num;
+
+	if (evma_get_debug())
+		printf("Event Received (%s)\n", event_num_to_string(event));
 
 	switch (event) {
 		case EM_CONNECTION_READ:
@@ -922,6 +959,25 @@ static VALUE t__kqueue_set (VALUE self, VALUE val)
 }
 
 
+/***********
+t__debug_p
+***********/
+
+static VALUE t__debug_p (VALUE self)
+{
+	return (evma_get_debug() == 1 ? Qtrue : Qfalse);
+}
+
+/*************
+t__debug_set
+*************/
+
+static void t__debug_set (VALUE self, VALUE val)
+{
+	evma_set_debug(val == Qtrue ? 1 : 0);
+}
+
+
 /********
 t__ssl_p
 ********/
@@ -1193,6 +1249,10 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "kqueue", (VALUE(*)(...))t__kqueue, 0);
 	rb_define_module_function (EmModule, "kqueue=", (VALUE(*)(...))t__kqueue_set, 1);
 	rb_define_module_function (EmModule, "kqueue?", (VALUE(*)(...))t__kqueue_p, 0);
+
+	rb_define_module_function (EmModule, "debug=", (VALUE(*)(...))t__debug_set, 1);
+	rb_define_module_function (EmModule, "debug", (VALUE(*)(...))t__debug_p, 0);
+	rb_define_module_function (EmModule, "debug?", (VALUE(*)(...))t__debug_p, 0);
 
 	rb_define_module_function (EmModule, "ssl?", (VALUE(*)(...))t__ssl_p, 0);
 

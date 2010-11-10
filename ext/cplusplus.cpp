@@ -199,4 +199,3 @@ void EM::Callback (const unsigned long sig, int ev, const char *data, const unsi
 			break;
 	}
 }
-

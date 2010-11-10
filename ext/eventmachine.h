@@ -114,6 +114,9 @@ extern "C" {
 	void evma_set_epoll (int use);
 	void evma_set_kqueue (int use);
 
+  void evma_set_debug(int debug);
+  int evma_get_debug(void);
+
 	uint64_t evma_get_current_loop_time();
 #if __cplusplus
 }

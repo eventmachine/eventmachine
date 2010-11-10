@@ -850,3 +850,24 @@ extern "C" uint64_t evma_get_current_loop_time()
 	ensure_eventmachine("evma_get_current_loop_time");
 	return EventMachine->GetCurrentLoopTime();
 }
+
+
+/*************
+evma_set_debug
+*************/
+
+extern "C" void evma_set_debug(int debug)
+{
+	ensure_eventmachine("evma_set_debug");
+	EventMachine->SetDebug(debug);
+}
+
+/*************
+evma_get_debug
+*************/
+
+extern "C" int evma_get_debug(void)
+{
+	ensure_eventmachine("evma_get_debug");
+	return EventMachine->GetDebug();
+}

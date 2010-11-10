@@ -141,6 +141,9 @@ class EventMachine_t
 
 		uint64_t GetRealTime();
 
+		void SetDebug(bool debug);
+		bool GetDebug() { return bDebug; }
+
 	private:
 		bool _RunOnce();
 		bool _RunTimers();
@@ -200,6 +203,8 @@ class EventMachine_t
 		#endif
 
 	private:
+		bool bDebug;
+
 		bool bEpoll;
 		int epfd; // Epoll file-descriptor
 		#ifdef HAVE_EPOLL
