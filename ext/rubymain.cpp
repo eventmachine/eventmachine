@@ -43,6 +43,7 @@ static VALUE Intern_at_signature;
 static VALUE Intern_at_timers;
 static VALUE Intern_at_conns;
 static VALUE Intern_at_error_handler;
+static VALUE Intern_at_debug_handler;
 static VALUE Intern_event_callback;
 static VALUE Intern_run_deferred_callbacks;
 static VALUE Intern_delete;
@@ -108,6 +109,15 @@ static const char *event_num_to_string(int event)
 	 }
 }
 
+/******************
+event_debug_handler
+******************/
+static void event_debug_handler(VALUE msg, VALUE data)
+{
+	VALUE debug_handler = rb_ivar_get(EmModule, Intern_at_debug_handler);
+	rb_funcall (debug_handler, Intern_call, 2, msg, data);
+}
+
 /****************
 t_event_callback
 ****************/
@@ -119,8 +129,14 @@ static inline void event_callback (struct em_event* e)
 	const char *data_str = e->data_str;
 	const unsigned long data_num = e->data_num;
 
-	if (evma_get_debug())
-		printf("Event Received (%s)\n", event_num_to_string(event));
+	if (evma_get_debug()) {
+		if (!rb_ivar_defined(EmModule, Intern_at_debug_handler))
+			printf("Event received (%s)\n", event_num_to_string(event));
+		else {
+			const char *event_name = event_num_to_string(event);
+			event_debug_handler(rb_str_new(event_name, strlen(event_name)), data_str ? rb_str_new(data_str, data_num) : ULONG2NUM(data_num));
+		}
+	}
 
 	switch (event) {
 		case EM_CONNECTION_READ:
@@ -1146,6 +1162,7 @@ extern "C" void Init_rubyeventmachine()
 	Intern_at_timers = rb_intern ("@timers");
 	Intern_at_conns = rb_intern ("@conns");
 	Intern_at_error_handler = rb_intern("@error_handler");
+	Intern_at_debug_handler = rb_intern("@debug_handler");
 
 	Intern_event_callback = rb_intern ("event_callback");
 	Intern_run_deferred_callbacks = rb_intern ("run_deferred_callbacks");
