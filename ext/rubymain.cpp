@@ -56,6 +56,12 @@ static VALUE Intern_notify_writable;
 static VALUE Intern_proxy_target_unbound;
 static VALUE Intern_proxy_completed;
 static VALUE Intern_connection_completed;
+static VALUE Intern_connection_read;
+static VALUE Intern_connection_accepted;
+static VALUE Intern_connection_unbound;
+static VALUE Intern_loopbreak_signal;
+static VALUE Intern_timer_fired;
+static VALUE Intern_callback_unknown;
 
 static VALUE rb_cProcStatus;
 
@@ -75,47 +81,47 @@ static inline VALUE ensure_conn(const unsigned long signature)
 }
 
 
-static const char *event_num_to_string(int event)
+static VALUE event_num_to_id(int event)
 {
 	 switch (event) {
 		case EM_CONNECTION_READ:
-			return "Connection Read";
+			return Intern_connection_read;
 		case EM_CONNECTION_ACCEPTED:
-			return "Connection Accepted";
+			return Intern_connection_accepted;
 		case EM_CONNECTION_UNBOUND:
-			return "Connection Unbound";
+			return Intern_connection_unbound;
 		case EM_CONNECTION_COMPLETED:
-			return "Connection Complete";
+			return Intern_connection_completed;
 		case EM_CONNECTION_NOTIFY_READABLE:
-			return "Connection Notify Readable";
+			return Intern_notify_readable;
 		case EM_CONNECTION_NOTIFY_WRITABLE:
-			return "Connection Notify Writable";
+			return Intern_notify_writable;
 		case EM_LOOPBREAK_SIGNAL:
-			return "Loopbreak Signal";
+			return Intern_loopbreak_signal;
 		case EM_TIMER_FIRED:
-			return "Timer Fired";
+			return Intern_timer_fired;
 		case EM_PROXY_TARGET_UNBOUND:
-			return "Proxy Target Unbound";
+			return Intern_proxy_target_unbound;
 		case EM_PROXY_COMPLETED:
-			return "Proxy Complete";
+			return Intern_proxy_completed;
 		#ifdef WITH_SSL
 		case EM_SSL_HANDSHAKE_COMPLETED:
-			return "SSL Handshake Completed";
+			return Intern_ssl_handshake_completed;
 		case EM_SSL_VERIFY:
-			return "SSL Verify";
+			return Intern_ssl_verify_peer;
 		#endif
 		default:
-			return "Unknown event";
+			return Intern_callback_unknown;
 	 }
 }
 
 /******************
 event_debug_handler
 ******************/
-static void event_debug_handler(VALUE msg, VALUE data)
+static void event_debug_handler(VALUE msg, VALUE current_time, VALUE signature, VALUE data)
 {
 	VALUE debug_handler = rb_ivar_get(EmModule, Intern_at_debug_handler);
-	rb_funcall (debug_handler, Intern_call, 2, msg, data);
+	rb_funcall (debug_handler, Intern_call, 4, msg, current_time, signature, data);
 }
 
 /****************
@@ -130,12 +136,22 @@ static inline void event_callback (struct em_event* e)
 	const unsigned long data_num = e->data_num;
 
 	if (evma_get_debug()) {
+		uint64_t current_time = evma_get_current_loop_time();
+
+		ID id = event_num_to_id(event);
+		unsigned long sig = signature;
+
+		// The signature for timer's seems to be 0 with the signature in data_num, set sig as needed
+		if (id == Intern_timer_fired)
+			sig = data_num;
+
 		if (!rb_ivar_defined(EmModule, Intern_at_debug_handler))
-			printf("Event received (%s)\n", event_num_to_string(event));
-		else {
-			const char *event_name = event_num_to_string(event);
-			event_debug_handler(rb_str_new(event_name, strlen(event_name)), data_str ? rb_str_new(data_str, data_num) : ULONG2NUM(data_num));
-		}
+			printf("%lld.%.03lld event %s received on signature %lu\n",
+					current_time / 1000000LL, current_time % 1000000LL,
+			 		rb_id2name(id), sig);
+		else
+			event_debug_handler(ID2SYM(id), INT2FIX(current_time), ULONG2NUM(sig),
+						data_str ? rb_str_new(data_str, data_num) : ULONG2NUM(data_num));
 	}
 
 	switch (event) {
@@ -1176,6 +1192,12 @@ extern "C" void Init_rubyeventmachine()
 	Intern_proxy_target_unbound = rb_intern ("proxy_target_unbound");
 	Intern_proxy_completed = rb_intern ("proxy_completed");
 	Intern_connection_completed = rb_intern ("connection_completed");
+	Intern_connection_read = rb_intern ("connection_read");
+	Intern_connection_accepted = rb_intern ("connection_accepted");
+	Intern_connection_unbound = rb_intern ("connection_unbound");
+	Intern_loopbreak_signal = rb_intern ("loopbreak_signal");
+	Intern_timer_fired = rb_intern ("timer_fired");
+	Intern_callback_unknown = rb_intern ("callback_unknown");
 
 	// INCOMPLETE, we need to define class Connections inside module EventMachine
 	// run_machine and run_machine_without_threads are now identical.
