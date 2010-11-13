@@ -1298,17 +1298,17 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_method (EmConnection, "get_outbound_data_size", (VALUE(*)(...))conn_get_outbound_data_size, 0);
 	rb_define_method (EmConnection, "associate_callback_target", (VALUE(*)(...))conn_associate_callback_target, 1);
 
-	rb_define_const (EmModule, "TimerFired", INT2NUM(100));
-	rb_define_const (EmModule, "ConnectionData", INT2NUM(101));
-	rb_define_const (EmModule, "ConnectionUnbound", INT2NUM(102));
-	rb_define_const (EmModule, "ConnectionAccepted", INT2NUM(103));
-	rb_define_const (EmModule, "ConnectionCompleted", INT2NUM(104));
-	rb_define_const (EmModule, "LoopbreakSignalled", INT2NUM(105));
+	rb_define_const (EmModule, "TimerFired", INT2NUM(EM_TIMER_FIRED));
+	rb_define_const (EmModule, "ConnectionData", INT2NUM(EM_CONNECTION_READ));
+	rb_define_const (EmModule, "ConnectionUnbound", INT2NUM(EM_CONNECTION_UNBOUND));
+	rb_define_const (EmModule, "ConnectionAccepted", INT2NUM(EM_CONNECTION_ACCEPTED));
+	rb_define_const (EmModule, "ConnectionCompleted", INT2NUM(EM_CONNECTION_COMPLETED));
+	rb_define_const (EmModule, "LoopbreakSignalled", INT2NUM(EM_LOOPBREAK_SIGNAL));
 
-	rb_define_const (EmModule, "ConnectionNotifyReadable", INT2NUM(106));
-	rb_define_const (EmModule, "ConnectionNotifyWritable", INT2NUM(107));
+	rb_define_const (EmModule, "ConnectionNotifyReadable", INT2NUM(EM_CONNECTION_NOTIFY_READABLE));
+	rb_define_const (EmModule, "ConnectionNotifyWritable", INT2NUM(EM_CONNECTION_NOTIFY_WRITABLE));
 
-	rb_define_const (EmModule, "SslHandshakeCompleted", INT2NUM(108));
+	rb_define_const (EmModule, "SslHandshakeCompleted", INT2NUM(EM_SSL_HANDSHAKE_COMPLETED));
 
 }
 
