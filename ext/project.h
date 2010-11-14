@@ -96,7 +96,9 @@ typedef int socklen_t;
 typedef int pid_t;
 #endif
 
+#if !defined(_MSC_VER) || _MSC_VER > 1400
 #include <stdint.h>
+#endif
 
 using namespace std;
 
