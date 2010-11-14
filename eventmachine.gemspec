@@ -15,6 +15,8 @@ Gem::Specification.new do |s|
   s.files = `git ls-files`.split("\n")
   s.extensions = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
 
+  s.add_development_dependency 'rake-compiler'
+
   s.summary = 'Ruby/EventMachine library'
   s.description = "EventMachine implements a fast, single-threaded engine for arbitrary network
 communications. It's extremely easy to use in Ruby. EventMachine wraps all
