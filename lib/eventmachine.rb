@@ -3,7 +3,9 @@ if RUBY_PLATFORM =~ /java/
   require 'jeventmachine'
 else
   begin
-    require 'rubyeventmachine'
+    unless defined?(EventMachine) and EventMachine.library_type == :pure_ruby
+      require 'rubyeventmachine'
+    end
   rescue LoadError
     warn "Unable to load the EventMachine C extension; To use the pure-ruby reactor, require 'em/pure_ruby'"
     raise

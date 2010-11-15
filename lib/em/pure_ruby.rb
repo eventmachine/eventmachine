@@ -1007,6 +1007,7 @@ module EventMachine
   end
 end
 
-#--------------------------------------------------------------
-
+# load base EM api on top, now that we have the underlying pure ruby
+# implementation defined
+require 'eventmachine'
 
