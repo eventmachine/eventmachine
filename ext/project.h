@@ -154,6 +154,5 @@ extern "C" {
 #include "page.h"
 #include "ssl.h"
 #include "eventmachine.h"
-#include "eventmachine_cpp.h"
 
 #endif // __Project__H_
