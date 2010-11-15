@@ -29,5 +29,5 @@ are provided with the package, primarily to serve as examples. The real goal
 of EventMachine is to enable programs to easily interface with other programs
 using TCP/IP, especially if custom protocols are required."
 
-  s.rdoc_options = ["--title", "EventMachine", "--main", "README", "-x", "lib/em/version", "-x", "lib/emva", "-x", "lib/evma/", "-x", "lib/jeventmachine"]
+  s.rdoc_options = ["--title", "EventMachine", "--main", "README", "-x", "lib/em/version", "-x", "lib/jeventmachine"]
 end
