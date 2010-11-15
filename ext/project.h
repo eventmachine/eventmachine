@@ -147,10 +147,8 @@ extern "C" {
 
 #include "binder.h"
 #include "em.h"
-#include "epoll.h"
 #include "sigs.h"
 #include "ed.h"
-#include "files.h"
 #include "page.h"
 #include "ssl.h"
 #include "eventmachine.h"

@@ -75,7 +75,6 @@ class EventMachine_t
 		const unsigned long CreateTcpServer (const char *, int);
 		const unsigned long OpenDatagramSocket (const char *, int);
 		const unsigned long CreateUnixDomainServer (const char*);
-		const unsigned long _OpenFileForWriting (const char*);
 		const unsigned long OpenKeyboard();
 		//const char *Popen (const char*, const char*);
 		const unsigned long Socketpair (char* const*);

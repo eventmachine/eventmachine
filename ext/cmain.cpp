@@ -553,17 +553,6 @@ extern "C" void evma_signal_loopbreak()
 
 
 
-/****************
-evma__write_file
-****************/
-
-extern "C" const unsigned long evma__write_file (const char *filename)
-{
-	ensure_eventmachine("evma__write_file");
-	return EventMachine->_OpenFileForWriting (filename);
-}
-
-
 /********************************
 evma_get_comm_inactivity_timeout
 ********************************/

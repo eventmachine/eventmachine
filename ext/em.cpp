@@ -1842,31 +1842,6 @@ void EventMachine_t::Modify (EventableDescriptor *ed)
 }
 
 
-/***********************************
-EventMachine_t::_OpenFileForWriting
-***********************************/
-
-const unsigned long EventMachine_t::_OpenFileForWriting (const char *filename)
-{
-  /*
-	 * Return the binding-text of the newly-opened file,
-	 * or NULL if there was a problem.
-	 */
-
-	if (!filename || !*filename)
-		return 0;
-
-  int fd = open (filename, O_CREAT|O_TRUNC|O_WRONLY|O_NONBLOCK, 0644);
-  
-	FileStreamDescriptor *fsd = new FileStreamDescriptor (fd, this);
-  if (!fsd)
-  	throw std::runtime_error ("no file-stream allocated");
-  Add (fsd);
-  return fsd->GetBinding();
-
-}
-
-
 /**************************************
 EventMachine_t::CreateUnixDomainServer
 **************************************/
