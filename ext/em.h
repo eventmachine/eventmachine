@@ -17,16 +17,6 @@ See the file COPYING for complete licensing information.
 
 *****************************************************************************/
 
-
-
-#ifdef OS_WIN32
-#include "emwin.h"
-#endif
-
-
-// THIS ENTIRE FILE WILL EVENTUALLY BE FOR UNIX BUILDS ONLY.
-//#ifdef OS_UNIX
-
 #ifndef __EventMachine__H_
 #define __EventMachine__H_
 
@@ -235,5 +225,3 @@ struct SelectData_t
 };
 
 #endif // __EventMachine__H_
-
-//#endif // OS_UNIX
