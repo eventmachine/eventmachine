@@ -52,9 +52,6 @@ evma_initialize_library
 
 extern "C" void evma_initialize_library (EMCallback cb)
 {
-	// Probably a bad idea to mess with the signal mask of a process
-	// we're just being linked into.
-	//InstallSignalHandlers();
 	if (EventMachine)
 		#ifdef BUILD_FOR_RUBY
 			rb_raise(rb_eRuntimeError, "eventmachine already initialized: evma_initialize_library");

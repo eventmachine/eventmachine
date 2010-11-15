@@ -189,6 +189,8 @@ class EventMachine_t
 		#endif
 
 	private:
+		bool bTerminateSignalReceived;
+
 		bool bEpoll;
 		int epfd; // Epoll file-descriptor
 		#ifdef HAVE_EPOLL

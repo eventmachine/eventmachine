@@ -147,7 +147,6 @@ extern "C" {
 
 #include "binder.h"
 #include "em.h"
-#include "sigs.h"
 #include "ed.h"
 #include "page.h"
 #include "ssl.h"

@@ -73,6 +73,7 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	NextHeartbeatTime (0),
 	LoopBreakerReader (-1),
 	LoopBreakerWriter (-1),
+	bTerminateSignalReceived (false),
 	bEpoll (false),
 	epfd (-1),
 	bKqueue (false),
@@ -83,7 +84,6 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	Quantum.tv_sec = 0;
 	Quantum.tv_usec = 90000;
 
-	gTerminateSignalReceived = false;
 	// Make sure the current loop time is sane, in case we do any initializations of
 	// objects before we start running.
 	_UpdateTime();
@@ -185,7 +185,7 @@ void EventMachine_t::ScheduleHalt()
    * We need a FAQ. And one of the questions is: how do I stop EM when Ctrl-C happens?
    * The answer is to call evma_stop_machine, which calls here, from a SIGINT handler.
    */
-	gTerminateSignalReceived = true;
+	bTerminateSignalReceived = true;
 }
 
 
@@ -419,10 +419,6 @@ EventMachine_t::Run
 
 void EventMachine_t::Run()
 {
-	#ifdef OS_WIN32
-	HookControlC (true);
-	#endif
-
 	#ifdef HAVE_EPOLL
 	if (bEpoll) {
 		epfd = epoll_create (MaxEpollDescriptors);
@@ -474,13 +470,9 @@ void EventMachine_t::Run()
 
 		if (!_RunOnce())
 			break;
-		if (gTerminateSignalReceived)
+		if (bTerminateSignalReceived)
 			break;
 	}
-
-	#ifdef OS_WIN32
-	HookControlC (false);
-	#endif
 }
 
 
