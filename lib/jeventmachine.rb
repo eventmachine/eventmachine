@@ -28,7 +28,7 @@
 # which is a garden-variety Ruby-extension glue module.
 
 require 'java'
-require 'em_reactor'
+require 'rubyeventmachine'
 require 'socket'
 
 java_import java.io.FileDescriptor
