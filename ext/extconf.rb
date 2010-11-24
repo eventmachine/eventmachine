@@ -48,10 +48,10 @@ if ENV['CROSS_COMPILING']
     $INCFLAGS << " -I#{Dir.pwd}" # for the openssl headers
   else
     STDERR.puts
-    STDERR.puts "*************************************************************************************"
+    STDERR.puts "**************************************************************************************"
     STDERR.puts "**** Cross-compiled OpenSSL not found"
-    STDERR.puts "**** Run: hg clone http://bitbucket.org/ged/ruby-pg && cd ruby-pg && rake openssl_lib"
-    STDERR.puts "*************************************************************************************"
+    STDERR.puts "**** Run: hg clone http://bitbucket.org/ged/ruby-pg && cd ruby-pg && rake openssl_libs"
+    STDERR.puts "**************************************************************************************"
     STDERR.puts
   end
 end
