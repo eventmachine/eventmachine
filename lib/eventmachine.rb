@@ -122,7 +122,7 @@ require 'thread'
 # Interesting thought.
 #
 module EventMachine
-  class <<self
+  class << self
     # Exposed to allow joining on the thread, when run in a multithreaded
     # environment. Performing other actions on the thread has undefined
     # semantics.
