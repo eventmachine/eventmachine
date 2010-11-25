@@ -47,7 +47,8 @@ end
 
 task :cross_cxx do
   ENV['CROSS_COMPILING'] = 'yes'
-  ENV['CXX'] = 'i386-mingw32-g++'
+  require 'rake/extensioncompiler'
+  ENV['CXX'] = "#{Rake::ExtensionCompiler.mingw_host}-g++"
 end
 
 if Rake::Task.task_defined?(:cross)
