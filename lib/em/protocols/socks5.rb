@@ -62,8 +62,13 @@ module EventMachine
             if @host =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/ # IPv4
               packet << [1, $1.to_i, $2.to_i, $3.to_i, $4.to_i].pack("C*")
             elsif @host =~ /^[\da-f\:]+$/i # IPv6
-              close_connection
-              raise "IPv6 address support is not implemented"
+              l, r = if @host =~ /^(.*)::(.*)$/
+                [$1,$2].map {|i| i.split ":"}
+              else
+                [@host.split(":"),[]]
+              end
+              dec_groups = (l + Array.new(8-l.size-r.size, '0') + r).map {|i| i.hex}
+              packet << ([4] + dec_groups).pack("Cn8")
             else # Domain
               packet << [3, @host.length, @host].pack("CCA*")
             end
