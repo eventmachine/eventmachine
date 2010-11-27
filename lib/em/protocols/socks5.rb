@@ -58,7 +58,7 @@ module EventMachine
           if @socks_methods.include?(method_code)
             @socks_state = :connecting
             packet = [5, 1, 0].pack("C*")
-            
+
             if @host =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/ # IPv4
               packet << [1, $1.to_i, $2.to_i, $3.to_i, $4.to_i].pack("C*")
             elsif @host.include?(":") # IPv6
@@ -82,12 +82,28 @@ module EventMachine
             return
           end
         elsif @socks_state == :connecting
-          return if @buffer.size < 10
+          return if @buffer.size < 4
 
-          header_resp = @buffer.slice! 0, 10
-          _, response_code, _, address_type, _, _ = header_resp.unpack('CCCCNn')
+          header_resp = @buffer.slice! 0, 4
+          _, response_code, _, address_type = header_resp.unpack("C*")
 
           if response_code == 0
+            case address_type
+            when 1
+              @buffer.slice! 0, 4
+            when 3
+              len = @buffer.slice! 0, 1
+              @buffer.slice! 0, len.unpack("C").first
+            when 4
+              @buffer.slice! 0, 16
+            else
+              @socks_state = :invalid
+              @socks_error_code = address_type
+              close_connection
+              return
+            end
+            @buffer.slice! 0, 2
+
             @socks_state = :connected
             restore_methods
 
@@ -98,7 +114,7 @@ module EventMachine
             @socks_error_code = response_code
             close_connection
             return
-          end          
+          end
         end
       end
     end
