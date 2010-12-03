@@ -112,8 +112,14 @@ public class ConnectTest {
 		Application a = new Application();
 		a.addTimer(0, new Timer() {
 			public void fire() {
-				application.startServer(new InetSocketAddress("localhost", 20000), new DefaultConnectionFactory());
-			}
+        try
+        {
+          application.startServer(new InetSocketAddress("localhost", 20000), new DefaultConnectionFactory());
+        }
+        catch(EmReactorException e)
+        {          
+        }
+      }
 		});
 		a.addTimer(500, new Timer() {
 			public void fire() {
