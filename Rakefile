@@ -236,7 +236,7 @@ namespace :java do
   task :compile do
     chdir('java') do
       mkdir_p "build"
-      sh 'javac src/com/rubyeventmachine/*.java -d build'
+      sh 'javac src/com/rubyeventmachine/*.java -d build -target 1.5'
     end
   end
 
