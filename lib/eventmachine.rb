@@ -1,6 +1,8 @@
 if RUBY_PLATFORM =~ /java/
   require 'java'
   require 'jeventmachine'
+elsif defined?(EventMachine.library_type) and EventMachine.library_type == :pure_ruby
+  # assume 'em/pure_ruby' was loaded already
 else
   begin
     require 'rubyeventmachine'
@@ -120,7 +122,7 @@ require 'thread'
 # Interesting thought.
 #
 module EventMachine
-  class <<self
+  class << self
     # Exposed to allow joining on the thread, when run in a multithreaded
     # environment. Performing other actions on the thread has undefined
     # semantics.

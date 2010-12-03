@@ -45,15 +45,11 @@ module EventMachine
     end
     alias_method :resume, :notify
     alias_method :run, :notify # for formulations like (EM.spawn {xxx}).run
-    #attr_accessor :receiver
 
-    #--
-    # I know I'm missing something stupid, but the inside of class << s
-    # can't see locally-bound values. It can see globals, though.
     def set_receiver blk
-      $em______tmpglobal = blk
-      class << self
-        define_method :call, $em______tmpglobal.dup
+      (class << self ; self ; end).class_eval do
+        remove_method :call if method_defined? :call
+        define_method :call, blk
       end
     end
 

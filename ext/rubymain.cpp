@@ -737,18 +737,6 @@ static VALUE t_setuid_string (VALUE self, VALUE username)
 
 
 
-/*************
-t__write_file
-*************/
-
-static VALUE t__write_file (VALUE self, VALUE filename)
-{
-	const unsigned long f = evma__write_file (StringValuePtr (filename));
-	if (!f)
-		rb_raise (rb_eRuntimeError, "file not opened");
-	return ULONG2NUM (f);
-}
-
 /**************
 t_invoke_popen
 **************/
@@ -1171,9 +1159,6 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "send_file_data", (VALUE(*)(...))t_send_file_data, 2);
 	rb_define_module_function (EmModule, "get_heartbeat_interval", (VALUE(*)(...))t_get_heartbeat_interval, 0);
 	rb_define_module_function (EmModule, "set_heartbeat_interval", (VALUE(*)(...))t_set_heartbeat_interval, 1);
-
-	// Provisional:
-	rb_define_module_function (EmModule, "_write_file", (VALUE(*)(...))t__write_file, 1);
 
 	rb_define_module_function (EmModule, "get_peername", (VALUE(*)(...))t_get_peername, 1);
 	rb_define_module_function (EmModule, "get_sockname", (VALUE(*)(...))t_get_sockname, 1);

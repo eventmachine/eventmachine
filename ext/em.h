@@ -17,16 +17,6 @@ See the file COPYING for complete licensing information.
 
 *****************************************************************************/
 
-
-
-#ifdef OS_WIN32
-#include "emwin.h"
-#endif
-
-
-// THIS ENTIRE FILE WILL EVENTUALLY BE FOR UNIX BUILDS ONLY.
-//#ifdef OS_UNIX
-
 #ifndef __EventMachine__H_
 #define __EventMachine__H_
 
@@ -85,7 +75,6 @@ class EventMachine_t
 		const unsigned long CreateTcpServer (const char *, int);
 		const unsigned long OpenDatagramSocket (const char *, int);
 		const unsigned long CreateUnixDomainServer (const char*);
-		const unsigned long _OpenFileForWriting (const char*);
 		const unsigned long OpenKeyboard();
 		//const char *Popen (const char*, const char*);
 		const unsigned long Socketpair (char* const*);
@@ -200,6 +189,8 @@ class EventMachine_t
 		#endif
 
 	private:
+		bool bTerminateSignalReceived;
+
 		bool bEpoll;
 		int epfd; // Epoll file-descriptor
 		#ifdef HAVE_EPOLL
@@ -235,5 +226,3 @@ struct SelectData_t
 };
 
 #endif // __EventMachine__H_
-
-//#endif // OS_UNIX

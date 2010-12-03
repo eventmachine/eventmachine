@@ -96,7 +96,9 @@ typedef int socklen_t;
 typedef int pid_t;
 #endif
 
+#if !defined(_MSC_VER) || _MSC_VER > 1400
 #include <stdint.h>
+#endif
 
 using namespace std;
 
@@ -145,13 +147,9 @@ extern "C" {
 
 #include "binder.h"
 #include "em.h"
-#include "epoll.h"
-#include "sigs.h"
 #include "ed.h"
-#include "files.h"
 #include "page.h"
 #include "ssl.h"
 #include "eventmachine.h"
-#include "eventmachine_cpp.h"
 
 #endif // __Project__H_

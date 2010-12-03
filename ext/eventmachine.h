@@ -97,7 +97,6 @@ extern "C" {
 	float evma_get_heartbeat_interval();
 	int evma_set_heartbeat_interval(float);
 
-	const unsigned long evma__write_file (const char *filename);
 	const unsigned long evma_popen (char * const*cmd_strings);
 
 	const unsigned long evma_watch_filename (const char *fname);
