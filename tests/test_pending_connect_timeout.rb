@@ -26,22 +26,24 @@ class TestPendingConnectTimeout < Test::Unit::TestCase
     assert_equal(2.5, timeout)
   end
 
-  module TimeoutHandler
-    def unbind
-      EM.stop
-    end
-  end
-
   def test_for_real
-    start = nil
+    start, finish = nil
+
+    timeout_handler = Module.new do
+      define_method :unbind do
+        finish = Time.now
+        EM.stop
+      end
+    end
+
     EM.run {
       EM.heartbeat_interval = 0.1
       start = Time.now
-      c = EM.connect("1.2.3.4", 54321, TimeoutHandler)
+      c = EM.connect("1.2.3.4", 54321, timeout_handler)
       c.pending_connect_timeout = 0.2
     }
 
-    assert_in_delta(0.2, (Time.now - start), 0.1)
+    assert_in_delta(0.2, (finish - start), 0.1)
   end
 
 end
