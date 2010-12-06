@@ -3,26 +3,27 @@ require 'em_test_helper'
 class TestPendingConnectTimeout < Test::Unit::TestCase
 
   def test_default
-    $timeout = nil
+    timeout = nil
     EM.run {
       c = EM.connect("127.0.0.1", 54321)
-      $timeout = c.pending_connect_timeout
+      timeout = c.pending_connect_timeout
       EM.stop
     }
 
-    assert_equal(20.0, $timeout)
+    assert_equal(20.0, timeout)
   end
 
   def test_set_and_get
-    $timeout = nil
+    timeout = nil
+
     EM.run {
-      c = EM.connect("1.2.3.4", 54321)
+      c = EM.connect("127.0.0.1", 54321)
       c.pending_connect_timeout = 2.5
-      $timeout = c.pending_connect_timeout
+      timeout = c.pending_connect_timeout
       EM.stop
     }
 
-    assert_equal(2.5, $timeout)
+    assert_equal(2.5, timeout)
   end
 
   module TimeoutHandler
@@ -32,15 +33,15 @@ class TestPendingConnectTimeout < Test::Unit::TestCase
   end
 
   def test_for_real
-    $timeout = nil
+    start = nil
     EM.run {
       EM.heartbeat_interval = 0.1
-      $start = Time.now
+      start = Time.now
       c = EM.connect("1.2.3.4", 54321, TimeoutHandler)
       c.pending_connect_timeout = 0.2
     }
 
-    assert_in_delta(0.2, (Time.now - $start), 0.1)
+    assert_in_delta(0.2, (Time.now - start), 0.1)
   end
 
 end
