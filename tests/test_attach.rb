@@ -15,11 +15,8 @@
 #---------------------------------------------------------------------------
 #
 
-$:.unshift "../lib"
-require 'eventmachine'
+require 'em_test_helper'
 require 'socket'
-require 'test/unit'
-
 
 class TestAttach < Test::Unit::TestCase
 

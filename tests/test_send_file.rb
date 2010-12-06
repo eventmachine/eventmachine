@@ -24,10 +24,8 @@
 #
 # 
 
-$:.unshift "../lib"
-require 'eventmachine'
+require 'em_test_helper'
 require 'socket'
-require 'test/unit'
 
 class TestSendFile < Test::Unit::TestCase
 
@@ -61,15 +59,6 @@ class TestSendFile < Test::Unit::TestCase
 
   def teardown
     File.unlink( TestFilename ) if File.exist?( TestFilename )
-  end
-
-  def setup_timeout(timeout = 4)
-    EM.schedule {
-      start_time = EM.current_time
-      EM.add_periodic_timer(0.01) {
-        raise "timeout" if EM.current_time - start_time >= timeout
-      }
-    }
   end
 
   def test_send_file

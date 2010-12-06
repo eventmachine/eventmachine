@@ -25,9 +25,7 @@
 #
 #
 
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestTimers < Test::Unit::TestCase
 
@@ -135,14 +133,9 @@ class TestTimers < Test::Unit::TestCase
       elsif EM.library_type == :java
         one_hundred_one_timers.call
       else
-        begin
-          assert_raises( RuntimeError ) {
-            one_hundred_one_timers.call
-          }
-        rescue Object
-          p $!
-          assert(false, $!.message)
-        end
+        assert_raises( RuntimeError ) {
+          one_hundred_one_timers.call
+        }
       end
       EM.stop
     }

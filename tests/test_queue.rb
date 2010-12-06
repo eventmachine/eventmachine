@@ -1,6 +1,4 @@
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestEventMachineQueue < Test::Unit::TestCase
   def test_queue_push

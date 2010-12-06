@@ -1,6 +1,4 @@
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 if EM.kqueue?
   class TestProcessWatch < Test::Unit::TestCase

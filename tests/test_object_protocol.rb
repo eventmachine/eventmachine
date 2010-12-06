@@ -1,6 +1,4 @@
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestObjectProtocol < Test::Unit::TestCase
   Host = "127.0.0.1"

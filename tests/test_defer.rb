@@ -24,9 +24,7 @@
 #
 #
 
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 unless RUBY_VERSION >= '1.9.0'
   class TestDeferUsage < Test::Unit::TestCase

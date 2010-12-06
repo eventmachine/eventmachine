@@ -25,8 +25,7 @@
 #
 #
 
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestLineAndTextProtocol < Test::Unit::TestCase
 
@@ -56,15 +55,6 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
     end
   end
   
-  def setup_timeout(timeout = 4)
-    EM.schedule {
-      start_time = EM.current_time
-      EM.add_periodic_timer(0.01) {
-        raise "timeout" if EM.current_time - start_time >= timeout
-      }
-    }
-  end
-
   def test_simple_lines
     lines_received = []
     EventMachine.run {

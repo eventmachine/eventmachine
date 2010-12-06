@@ -30,9 +30,7 @@
 ###### of its performance impact.
 
 
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestErrors < Test::Unit::TestCase
 

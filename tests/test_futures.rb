@@ -24,9 +24,7 @@
 #
 #
 
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestFutures < Test::Unit::TestCase
 

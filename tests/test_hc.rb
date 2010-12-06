@@ -24,8 +24,7 @@
 #
 #
 
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestHeaderAndContentProtocol < Test::Unit::TestCase
 
@@ -176,15 +175,6 @@ class TestHeaderAndContentProtocol < Test::Unit::TestCase
       :x_tempest_header => "ddd"
     }
     assert_equal(expect, hsh)
-  end
-
-  def setup_timeout(timeout = 4)
-    EM.schedule {
-      start_time = EM.current_time
-      EM.add_periodic_timer(0.01) {
-        raise "timeout" if EM.current_time - start_time >= timeout
-      }
-    }
   end
 
 end

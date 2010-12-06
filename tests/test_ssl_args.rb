@@ -1,8 +1,7 @@
 require "test/unit"
 require 'tempfile'
 
-$:.unshift File.expand_path(File.dirname(__FILE__) + '/../lib')
-require "eventmachine"
+require 'em_test_helper'
 
 module EventMachine
   def self._set_mocks

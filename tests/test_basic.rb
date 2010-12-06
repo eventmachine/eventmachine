@@ -24,10 +24,8 @@
 #
 # 
 
-$:.unshift File.expand_path(File.dirname(__FILE__) + "/../lib")
-require 'eventmachine'
+require 'em_test_helper'
 require 'socket'
-require 'test/unit'
 
 class TestBasic < Test::Unit::TestCase
   def test_connection_class_cache
@@ -134,15 +132,6 @@ class TestBasic < Test::Unit::TestCase
       send_data $sent
       close_connection_after_writing
     end
-  end
-
-  def setup_timeout(timeout = 4)
-    EM.schedule {
-      start_time = EM.current_time
-      EM.add_periodic_timer(0.01) {
-        raise "timeout" if EM.current_time - start_time >= timeout
-      }
-    }
   end
 
   # From ticket #50

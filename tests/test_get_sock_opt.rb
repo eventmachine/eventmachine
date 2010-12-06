@@ -1,7 +1,5 @@
-$:.unshift File.expand_path(File.dirname(__FILE__) + "/../lib")
-require 'eventmachine'
+require 'em_test_helper'
 require 'socket'
-require 'test/unit'
 
 class TestGetSockOpt < Test::Unit::TestCase
 

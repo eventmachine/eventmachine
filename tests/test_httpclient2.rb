@@ -24,9 +24,7 @@
 #
 #
 
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestHttpClient2 < Test::Unit::TestCase
   Localhost = "127.0.0.1"

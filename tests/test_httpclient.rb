@@ -24,9 +24,7 @@
 #
 #
 
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestHttpClient < Test::Unit::TestCase
 
@@ -155,15 +153,6 @@ class TestHttpClient < Test::Unit::TestCase
       end
   end
   
-  def setup_timeout(timeout = 4)
-    EM.schedule {
-      start_time = EM.current_time
-      EM.add_periodic_timer(0.01) {
-        raise "timeout" if EM.current_time - start_time >= timeout
-      }
-    }
-  end
-
   # TODO, this is WRONG. The handler is asserting an HTTP 1.1 request, but the client
   # is sending a 1.0 request. Gotta fix the client
   def test_post
