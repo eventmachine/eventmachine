@@ -46,7 +46,7 @@ class TestPause < Test::Unit::TestCase
       EM.start_server TestHost, TestPort, test_server
       EM.connect TestHost, TestPort, test_client
 
-      EM.add_timer(0.1) do
+      EM.add_timer(0.05) do
         assert_equal 1, s_rx
         assert_equal 0, c_rx
         assert server.paused?
@@ -56,7 +56,7 @@ class TestPause < Test::Unit::TestCase
 
         assert !server.paused?
 
-        EM.add_timer(0.1) do
+        EM.add_timer(0.05) do
           assert server.paused?
           assert s_rx > 1
           assert c_rx > 0

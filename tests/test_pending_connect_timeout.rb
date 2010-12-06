@@ -3,27 +3,20 @@ require 'em_test_helper'
 class TestPendingConnectTimeout < Test::Unit::TestCase
 
   def test_default
-    timeout = nil
     EM.run {
       c = EM.connect("127.0.0.1", 54321)
-      timeout = c.pending_connect_timeout
+      assert_equal 20.0, c.pending_connect_timeout
       EM.stop
     }
-
-    assert_equal(20.0, timeout)
   end
 
   def test_set_and_get
-    timeout = nil
-
     EM.run {
       c = EM.connect("127.0.0.1", 54321)
       c.pending_connect_timeout = 2.5
-      timeout = c.pending_connect_timeout
+      assert_equal 2.5, c.pending_connect_timeout
       EM.stop
     }
-
-    assert_equal(2.5, timeout)
   end
 
   def test_for_real

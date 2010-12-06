@@ -31,10 +31,10 @@ class TestTimers < Test::Unit::TestCase
 
   def test_timer_with_block
     x = false
-    EventMachine.run {
-      EventMachine::Timer.new(0.25) {
+    EM.run {
+      EM::Timer.new(0) {
         x = true
-        EventMachine.stop
+        EM.stop
       }
     }
     assert x
@@ -42,79 +42,82 @@ class TestTimers < Test::Unit::TestCase
 
   def test_timer_with_proc
     x = false
-    EventMachine.run {
-      EventMachine::Timer.new(0.25, proc {
+    EM.run {
+      EM::Timer.new(0, proc {
         x = true
-        EventMachine.stop
+        EM.stop
       })
     }
     assert x
   end
 
   def test_timer_cancel
-    x = true
-    EventMachine.run {
-      timer = EventMachine::Timer.new(0.25, proc { x = false })
-      timer.cancel
-      EventMachine::Timer.new(0.5, proc {EventMachine.stop})
-    }
-    assert x
+    assert_nothing_raised do
+      EM.run {
+        timer = EM::Timer.new(0.01) { flunk "Timer was not cancelled." }
+        timer.cancel
+
+        EM.add_timer(0.02) { EM.stop }
+      }
+    end
   end
 
   def test_periodic_timer
     x = 0
-    EventMachine.run {
-      EventMachine::PeriodicTimer.new(0.1) do
+    EM.run {
+      EM::PeriodicTimer.new(0) do
         x += 1
-        EventMachine.stop if x == 4
+        EM.stop if x == 4
       end
     }
-    assert( x == 4 )
+
+    assert_equal 4, x
   end
 
   def test_add_periodic_timer
     x = 0
     EM.run {
-      t = EM.add_periodic_timer(0.1) do
+      t = EM.add_periodic_timer(0) do
         x += 1
         EM.stop  if x == 4
       end
       assert t.respond_to?(:cancel)
     }
+    assert_equal 4, x
   end
 
   def test_periodic_timer_cancel
     x = 0
-    EventMachine.run {
-      pt = EventMachine::PeriodicTimer.new(0.25, proc { x += 1 })
+    EM.run {
+      pt = EM::PeriodicTimer.new(0.01) { x += 1 }
       pt.cancel
-      EventMachine::Timer.new(0.5) {EventMachine.stop}
+      EM::Timer.new(0.02) { EM.stop }
     }
-    assert( x == 0 )
+    assert_equal 0, x
   end
 
   def test_add_periodic_timer_cancel
     x = 0
-    EventMachine.run {
-      pt = EM.add_periodic_timer(0.1) { x += 1 }
+    EM.run {
+      pt = EM.add_periodic_timer(0.01) { x += 1 }
       EM.cancel_timer(pt)
-      EM.add_timer(0.2) { EM.stop }
+      EM.add_timer(0.02) { EM.stop }
     }
-    assert( x == 0 )
+    assert_equal 0, x
   end
 
   def test_periodic_timer_self_cancel
     x = 0
-    EventMachine.run {
-      pt = EventMachine::PeriodicTimer.new(0.1) {
+    EM.run {
+      pt = EM::PeriodicTimer.new(0) {
         x += 1
         if x == 4
           pt.cancel
-          EventMachine.stop
+          EM.stop
         end
       }
     }
-    assert( x == 4 )
+    assert_equal 4, x
   end
 
 
@@ -126,7 +129,7 @@ class TestTimers < Test::Unit::TestCase
       EM.set_max_timers(100)
 
       one_hundred_one_timers = lambda do
-        101.times { EM.add_timer(0.1) {} }
+        101.times { EM.add_timer(0.01) {} }
         EM.stop
       end
 
