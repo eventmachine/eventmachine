@@ -113,21 +113,29 @@ class TestAttach < Test::Unit::TestCase
     assert_equal $read, "jkl\n"
   end
 
-  module PipeReader
-    def receive_data data
-      $read = data
-      EM.stop
-    end
-  end
-
   def test_read_write_pipe
-    EM.run{
-      $r, $w = IO.pipe
-      EM.attach $r, PipeReader
-      writer = EM.attach($w)
+    result = nil
+
+    pipe_reader = Module.new do
+      define_method :receive_data do |data|
+        result = data
+        EM.stop
+      end
+    end
+
+    r,w = IO.pipe
+
+    EM.run {
+      EM.attach r, pipe_reader
+      writer = EM.attach(w)
       writer.send_data 'ghi'
+      
+      # XXX: Process will hang in Windows without this line
+      writer.close_connection_after_writing
     }
 
-    assert_equal $read, "ghi"
+    assert_equal "ghi", result
+  ensure
+    [r,w].each {|io| io.close rescue nil }
   end
 end
