@@ -30,6 +30,7 @@ class TestInactivityTimeout < Test::Unit::TestCase
     end
 
     EM.run {
+      setup_timeout
       EM.heartbeat_interval = 0.1
       EM.start_server("127.0.0.1", 12345)
       EM.add_timer(0.1) {

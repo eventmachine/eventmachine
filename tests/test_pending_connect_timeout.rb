@@ -30,6 +30,7 @@ class TestPendingConnectTimeout < Test::Unit::TestCase
     end
 
     EM.run {
+      setup_timeout
       EM.heartbeat_interval = 0.1
       start = Time.now
       c = EM.connect("1.2.3.4", 54321, timeout_handler)
