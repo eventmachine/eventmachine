@@ -29,19 +29,14 @@ require 'em_test_helper'
 class TestPure < Test::Unit::TestCase
 
 
-  Host,Port = "0.0.0.0", 9060
+  Host = "127.0.0.1"
+  Port = 9060
 
 
   # These tests are intended to exercise problems that come up in the
   # pure-Ruby implementation. However, we DON'T constrain them such that
   # they only run in pure-Ruby. These tests need to work identically in
   # any implementation.
-
-  def setup
-  end
-
-  def teardown
-  end
 
   #-------------------------------------
 
@@ -87,7 +82,7 @@ class TestPure < Test::Unit::TestCase
   end
   def test_connrefused
     EM.run {
-      EM.connect "0.0.0.0", 60001, TestConnrefused
+      EM.connect "127.0.0.1", 60001, TestConnrefused
     }
   end
 
@@ -104,8 +99,8 @@ class TestPure < Test::Unit::TestCase
   def test_connaccepted
     timeout = false
     EM.run {
-      EM.start_server "0.0.0.0", 60002
-      EM.connect "0.0.0.0", 60002, TestConnaccepted
+      EM.start_server "127.0.0.1", 60002
+      EM.connect "127.0.0.1", 60002, TestConnaccepted
       setup_timeout(1)
     }
     assert_equal( false, timeout )
