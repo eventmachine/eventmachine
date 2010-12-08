@@ -65,7 +65,7 @@ class TestTimers < Test::Unit::TestCase
   def test_periodic_timer
     x = 0
     EM.run {
-      EM::PeriodicTimer.new(0) do
+      EM::PeriodicTimer.new(0.01) do
         x += 1
         EM.stop if x == 4
       end
@@ -77,7 +77,7 @@ class TestTimers < Test::Unit::TestCase
   def test_add_periodic_timer
     x = 0
     EM.run {
-      t = EM.add_periodic_timer(0) do
+      t = EM.add_periodic_timer(0.01) do
         x += 1
         EM.stop  if x == 4
       end
