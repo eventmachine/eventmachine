@@ -25,14 +25,17 @@
 # 
 
 require 'em_test_helper'
-require 'tmpdir'
-require 'fileutils'
+require 'tempfile'
 
 class TestSendFile < Test::Unit::TestCase
 
   module TestModule
+    def initialize filename
+      @filename = filename
+    end
+
     def post_init
-      send_file_data TestFilename
+      send_file_data @filename
       close_connection_after_writing
     end
   end
@@ -53,23 +56,21 @@ class TestSendFile < Test::Unit::TestCase
 
   TestHost = "127.0.0.1"
   TestPort = 9055
-  TestFilename = File.join(Dir.tmpdir, "em_test_file_delete_me")
 
-  def teardown
-    if File.exist? TestFilename
-      FileUtils.rm( TestFilename ) rescue nil
-    end
+  def setup
+    @file = Tempfile.new("em_test_file")
+    @filename = @file.path
   end
 
   def test_send_file
-    File.open( TestFilename, "w" ) {|f|
+    File.open( @filename, "w" ) {|f|
       f << ("A" * 5000)
     }
 
     data = ''
 
     EM.run {
-      EM.start_server TestHost, TestPort, TestModule
+      EM.start_server TestHost, TestPort, TestModule, @filename
       setup_timeout
 
       EM.connect TestHost, TestPort, TestClient do |c|
@@ -82,7 +83,7 @@ class TestSendFile < Test::Unit::TestCase
 
   # EventMachine::Connection#send_file_data has a strict upper limit on the filesize it will work with.
   def test_send_large_file
-    File.open( TestFilename, "w" ) {|f|
+    File.open( @filename, "w" ) {|f|
       f << ("A" * 1000000)
     }
 
@@ -91,7 +92,7 @@ class TestSendFile < Test::Unit::TestCase
     ex_class = RUBY_PLATFORM == 'java' ? NativeException : RuntimeError
     assert_raises( ex_class ) {
       EM.run {
-        EM.start_server TestHost, TestPort, TestModule
+        EM.start_server TestHost, TestPort, TestModule, @filename
         setup_timeout
         EM.connect TestHost, TestPort, TestClient do |c|
           c.data_to { |d| data << d }
@@ -101,30 +102,38 @@ class TestSendFile < Test::Unit::TestCase
   end
 
   module StreamTestModule
+    def initialize filename
+      @filename = filename
+    end
+
     def post_init
-      EM::Deferrable.future( stream_file_data(TestFilename)) {
+      EM::Deferrable.future( stream_file_data(@filename)) {
         close_connection_after_writing
       }
     end
   end
 
   module ChunkStreamTestModule
+    def initialize filename
+      @filename = filename
+    end
+
     def post_init
-      EM::Deferrable.future( stream_file_data(TestFilename, :http_chunks=>true)) {
+      EM::Deferrable.future( stream_file_data(@filename, :http_chunks=>true)) {
         close_connection_after_writing
       }
     end
   end
 
   def test_stream_file_data
-    File.open( TestFilename, "w" ) {|f|
+    File.open( @filename, "w" ) {|f|
       f << ("A" * 1000)
     }
 
     data = ''
 
     EM.run {
-      EM.start_server TestHost, TestPort, StreamTestModule
+      EM.start_server TestHost, TestPort, StreamTestModule, @filename
       setup_timeout
       EM.connect TestHost, TestPort, TestClient do |c|
         c.data_to { |d| data << d }
@@ -135,14 +144,14 @@ class TestSendFile < Test::Unit::TestCase
   end
 
   def test_stream_chunked_file_data
-    File.open( TestFilename, "w" ) {|f|
+    File.open( @filename, "w" ) {|f|
       f << ("A" * 1000)
     }
 
     data = ''
 
     EM.run {
-      EM.start_server TestHost, TestPort, ChunkStreamTestModule
+      EM.start_server TestHost, TestPort, ChunkStreamTestModule, @filename
       setup_timeout
       EM.connect TestHost, TestPort, TestClient do |c|
         c.data_to { |d| data << d }
@@ -153,8 +162,12 @@ class TestSendFile < Test::Unit::TestCase
   end
 
   module BadFileTestModule
+    def initialize filename
+      @filename = filename
+    end
+
     def post_init
-      de = stream_file_data( TestFilename+"..." )
+      de = stream_file_data( @filename+".wrong" )
       de.errback {|msg|
         send_data msg
         close_connection_after_writing
@@ -164,7 +177,7 @@ class TestSendFile < Test::Unit::TestCase
   def test_stream_bad_file
     data = ''
     EM.run {
-      EM.start_server TestHost, TestPort, BadFileTestModule
+      EM.start_server TestHost, TestPort, BadFileTestModule, @filename
       setup_timeout(5)
       EM.connect TestHost, TestPort, TestClient do |c|
         c.data_to { |d| data << d }
@@ -180,14 +193,14 @@ class TestSendFile < Test::Unit::TestCase
     rescue LoadError
       return
     end
-    File.open( TestFilename, "w" ) {|f|
+    File.open( @filename, "w" ) {|f|
       f << ("A" * 10000)
     }
 
     data = ''
 
     EM.run {
-      EM.start_server TestHost, TestPort, StreamTestModule
+      EM.start_server TestHost, TestPort, StreamTestModule, @filename
       setup_timeout
       EM.connect TestHost, TestPort, TestClient do |c|
         c.data_to { |d| data << d }
@@ -203,14 +216,14 @@ class TestSendFile < Test::Unit::TestCase
     rescue LoadError
       return
     end
-    File.open( TestFilename, "w" ) {|f|
+    File.open( @filename, "w" ) {|f|
       f << ("A" * 100000)
     }
 
     data = ''
 
     EM.run {
-      EM.start_server TestHost, TestPort, ChunkStreamTestModule
+      EM.start_server TestHost, TestPort, ChunkStreamTestModule, @filename
       setup_timeout
       EM.connect TestHost, TestPort, TestClient do |c|
         c.data_to { |d| data << d }
