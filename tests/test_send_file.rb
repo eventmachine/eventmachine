@@ -25,7 +25,8 @@
 # 
 
 require 'em_test_helper'
-require 'socket'
+require 'tmpdir'
+require 'fileutils'
 
 class TestSendFile < Test::Unit::TestCase
 
@@ -50,15 +51,14 @@ class TestSendFile < Test::Unit::TestCase
     end
   end
 
-  TestHost = "0.0.0.0"
+  TestHost = "127.0.0.1"
   TestPort = 9055
-  TestFilename = "./xxxxxx"
-
-  def setup
-  end
+  TestFilename = File.join(Dir.tmpdir, "em_test_file_delete_me")
 
   def teardown
-    File.unlink( TestFilename ) if File.exist?( TestFilename )
+    if File.exist? TestFilename
+      FileUtils.rm( TestFilename ) rescue nil
+    end
   end
 
   def test_send_file
@@ -78,7 +78,6 @@ class TestSendFile < Test::Unit::TestCase
     }
 
     assert_equal( "A" * 5000, data )
-    File.unlink TestFilename
   end
 
   # EventMachine::Connection#send_file_data has a strict upper limit on the filesize it will work with.
@@ -99,10 +98,7 @@ class TestSendFile < Test::Unit::TestCase
         end
       }
     }
-
-    File.unlink TestFilename
   end
-
 
   module StreamTestModule
     def post_init
@@ -136,8 +132,6 @@ class TestSendFile < Test::Unit::TestCase
     }
 
     assert_equal( "A" * 1000, data )
-
-    File.unlink TestFilename
   end
 
   def test_stream_chunked_file_data
@@ -156,8 +150,6 @@ class TestSendFile < Test::Unit::TestCase
     }
 
     assert_equal( "3e8\r\n#{"A" * 1000}\r\n0\r\n\r\n", data )
-
-    File.unlink TestFilename
   end
 
   module BadFileTestModule
@@ -173,7 +165,7 @@ class TestSendFile < Test::Unit::TestCase
     data = ''
     EM.run {
       EM.start_server TestHost, TestPort, BadFileTestModule
-      setup_timeout
+      setup_timeout(5)
       EM.connect TestHost, TestPort, TestClient do |c|
         c.data_to { |d| data << d }
       end
@@ -203,8 +195,6 @@ class TestSendFile < Test::Unit::TestCase
     }
 
     assert_equal( "A" * 10000, data )
-
-    File.unlink TestFilename
   end
 
   def test_stream_large_chunked_file_data
@@ -233,8 +223,6 @@ class TestSendFile < Test::Unit::TestCase
       "0\r\n\r\n"
     ].join
     assert_equal( expected, data )
-
-    File.unlink TestFilename
   end
 
 end
