@@ -1,8 +1,7 @@
 require 'em_test_helper'
 
-class TestSslVerify < Test::Unit::TestCase
-
-  if EM.ssl?
+if EM.ssl?
+  class TestSslVerify < Test::Unit::TestCase
     def setup
       $dir = File.dirname(File.expand_path(__FILE__)) + '/'
       $cert_from_file = File.read($dir+'client.crt')
@@ -77,9 +76,7 @@ class TestSslVerify < Test::Unit::TestCase
       assert(!$client_handshake_completed)
       assert(!$server_handshake_completed)
     end
-
-  else
-    warn "EM built without SSL support, skipping tests in #{__FILE__}"
   end
-
+else
+  warn "EM built without SSL support, skipping tests in #{__FILE__}"
 end
