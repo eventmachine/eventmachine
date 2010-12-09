@@ -298,7 +298,7 @@ uint64_t EventableDescriptor::GetNextHeartbeat()
 	NextHeartbeat = 0;
 
 	if (!ShouldDelete()) {
-		uint64_t time_til_next = GetCommInactivityTimeout() * 1000;
+		uint64_t time_til_next = InactivityTimeout;
 		if (IsConnectPending()) {
 			if (time_til_next == 0 || PendingConnectTimeout < time_til_next)
 				time_til_next = PendingConnectTimeout;
