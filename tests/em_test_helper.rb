@@ -8,7 +8,7 @@ Test::Unit::TestCase.class_eval do
   def setup_timeout(timeout = 2)
     EM.schedule {
       EM.add_timer(timeout) {
-        raise "Test timed out."
+        raise EMTestTimeout, "Test was cancelled after #{timeout} seconds."
       }
     }
   end
