@@ -351,6 +351,7 @@ EventMachine_t::GetRealTime
 uint64_t EventMachine_t::GetRealTime()
 {
 	uint64_t current_time;
+
 	#if defined(OS_UNIX)
 	struct timeval tv;
 	gettimeofday (&tv, NULL);
@@ -362,10 +363,12 @@ uint64_t EventMachine_t::GetRealTime()
 		TickCountTickover += 1;
 	LastTickCount = tick;
 	current_time = ((uint64_t)TickCountTickover << 32) + (uint64_t)tick;
+	current_time *= 1000; // convert to microseconds
 
 	#else
 	current_time = (uint64_t)time(NULL) * 1000000LL;
 	#endif
+
 	return current_time;
 }
 
@@ -1028,28 +1031,9 @@ const unsigned long EventMachine_t::InstallOneshotTimer (int milliseconds)
 {
 	if (Timers.size() > MaxOutstandingTimers)
 		return false;
-	// Don't use the global loop-time variable here, because we might
-	// get called before the main event machine is running.
 
-	// XXX This should be replaced with a call to _GetRealTime(), but I don't
-	// understand if this is a bug or not? For OS_UNIX we multiply the argument
-	// milliseconds by 1000, but for OS_WIN32 we do not? This needs to be sorted out.
-	#ifdef OS_UNIX
-	struct timeval tv;
-	gettimeofday (&tv, NULL);
-	uint64_t fire_at = (((uint64_t)(tv.tv_sec)) * 1000000LL) + ((uint64_t)(tv.tv_usec));
+	uint64_t fire_at = GetRealTime();
 	fire_at += ((uint64_t)milliseconds) * 1000LL;
-	#endif
-
-	#ifdef OS_WIN32
-	unsigned tick = GetTickCount();
-	if (tick < LastTickCount)
-		TickCountTickover += 1;
-	LastTickCount = tick;
-
-	uint64_t fire_at = ((uint64_t)TickCountTickover << 32) + (uint64_t)tick;
-	fire_at += (uint64_t)milliseconds;
-	#endif
 
 	Timer_t t;
 	#ifndef HAVE_MAKE_PAIR
