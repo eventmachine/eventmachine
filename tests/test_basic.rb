@@ -124,22 +124,27 @@ class TestBasic < Test::Unit::TestCase
   def test_bind_connect
     local_ip = UDPSocket.open {|s| s.connect('google.com', 80); s.addr.last }
 
-    bind_port = rand(33333)+1025
+    bind_port = TestPort + 1
 
-    test = self
-    EM.run do
-      EM.start_server(TestHost, TestPort, Module.new do
-        define_method :post_init do
-          begin
-            test.assert_equal bind_port, Socket.unpack_sockaddr_in(get_peername).first
-            test.assert_equal local_ip, Socket.unpack_sockaddr_in(get_peername).last
-          ensure
-            EM.stop_event_loop
-          end
+    port, ip = nil
+    bound_server = Module.new do
+      define_method :post_init do
+        begin
+          port, ip = Socket.unpack_sockaddr_in(get_peername)
+        ensure
+          EM.stop
         end
-      end)
+      end
+    end
+
+    EM.run do
+      setup_timeout
+      EM.start_server TestHost, TestPort, bound_server
       EM.bind_connect local_ip, bind_port, TestHost, TestPort
     end
+
+    assert_equal bind_port, port
+    assert_equal local_ip, ip
   end
 
   def test_reactor_thread?
