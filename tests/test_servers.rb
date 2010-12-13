@@ -3,20 +3,17 @@ require 'socket'
 
 class TestServers < Test::Unit::TestCase
 
-  Host = "127.0.0.1"
-  Port = 9555
+  def setup
+    @port = next_port
+  end
 
-  def server_alive?(host=Host, port=Port)
-    s = TCPSocket.new( host, port )
-    s.close
-    s
-  rescue Errno::ECONNREFUSED
-    false
+  def server_alive?
+    port_in_use?(@port)
   end
 
   def run_test_stop_server
     EM.run {
-      sig = EM.start_server(Host, Port)
+      sig = EM.start_server("127.0.0.1", @port)
       assert server_alive?, "Server didn't start"
       EM.stop_server sig
       # Give the server some time to shutdown.

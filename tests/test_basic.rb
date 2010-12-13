@@ -2,13 +2,17 @@ require 'em_test_helper'
 require 'socket'
 
 class TestBasic < Test::Unit::TestCase
+  def setup
+    @port = next_port
+  end
+
   def test_connection_class_cache
     mod = Module.new
     a, b = nil, nil
     EM.run {
-      EM.start_server '127.0.0.1', 9999, mod
-      a = EM.connect '127.0.0.1', 9999, mod
-      b = EM.connect '127.0.0.1', 9999, mod
+      EM.start_server '127.0.0.1', @port, mod
+      a = EM.connect '127.0.0.1', @port, mod
+      b = EM.connect '127.0.0.1', @port, mod
       EM.stop
     }
     assert_equal a.class, b.class
@@ -19,23 +23,29 @@ class TestBasic < Test::Unit::TestCase
 
 
   def test_em
-    EventMachine.run {
-      EventMachine.add_timer 0 do
-        EventMachine.stop
-      end
-    }
+    assert_nothing_raised do
+      EventMachine.run {
+        setup_timeout
+        EventMachine.add_timer 0 do
+          EventMachine.stop
+        end
+      }
+    end
   end
 
   #-------------------------------------
 
   def test_timer
-    n = 0
-    EventMachine.run {
-      EventMachine.add_periodic_timer(0.1) {
-        n += 1
-        EventMachine.stop if n == 2
+    assert_nothing_raised do
+      EventMachine.run {
+        setup_timeout
+        n = 0
+        EventMachine.add_periodic_timer(0.1) {
+          n += 1
+          EventMachine.stop if n == 2
+        }
       }
-    }
+    end
   end
 
   #-------------------------------------
@@ -48,11 +58,13 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_server
-    EventMachine.run {
-      EventMachine.start_server "localhost", 9000, Trivial
-      EventMachine.connect "localhost", 9000
-    }
-    assert( true ) # make sure it halts
+    assert_nothing_raised do
+      EventMachine.run {
+        setup_timeout
+        EventMachine.start_server "127.0.0.1", @port, Trivial
+        EventMachine.connect "127.0.0.1", @port
+      }
+    end
   end
 
   #--------------------------------------
@@ -67,9 +79,6 @@ class TestBasic < Test::Unit::TestCase
     assert a
     assert !EM.reactor_running?
   end
-
-  TestHost = "127.0.0.1"
-  TestPort = 9070
 
   class UnbindError < EM::Connection
     ERR = Class.new(StandardError)
@@ -87,8 +96,8 @@ class TestBasic < Test::Unit::TestCase
   def test_unbind_error
     assert_raises( UnbindError::ERR ) {
       EM.run {
-        EM.start_server TestHost, TestPort
-        EM.connect TestHost, TestPort, UnbindError
+        EM.start_server "127.0.0.1", @port
+        EM.connect "127.0.0.1", @port, UnbindError
       }
     }
   end
@@ -113,8 +122,8 @@ class TestBasic < Test::Unit::TestCase
     $received = ''
     $sent = (0..255).to_a.pack('C*')
     EM::run {
-      EM::start_server TestHost, TestPort, BrsTestSrv
-      EM::connect TestHost, TestPort, BrsTestCli
+      EM::start_server "127.0.0.1", @port, BrsTestSrv
+      EM::connect "127.0.0.1", @port, BrsTestCli
 
       setup_timeout
     }
@@ -124,7 +133,7 @@ class TestBasic < Test::Unit::TestCase
   def test_bind_connect
     local_ip = UDPSocket.open {|s| s.connect('google.com', 80); s.addr.last }
 
-    bind_port = TestPort + 1
+    bind_port = next_port
 
     port, ip = nil
     bound_server = Module.new do
@@ -139,8 +148,8 @@ class TestBasic < Test::Unit::TestCase
 
     EM.run do
       setup_timeout
-      EM.start_server TestHost, TestPort, bound_server
-      EM.bind_connect local_ip, bind_port, TestHost, TestPort
+      EM.start_server "127.0.0.1", @port, bound_server
+      EM.bind_connect local_ip, bind_port, "127.0.0.1", @port
     end
 
     assert_equal bind_port, port
@@ -164,7 +173,6 @@ class TestBasic < Test::Unit::TestCase
   
   def test_schedule_from_thread
     x = false
-    assert !x
     EM.run do
       Thread.new { EM.schedule { x = true; EM.stop } }.join
     end
@@ -189,11 +197,10 @@ class TestBasic < Test::Unit::TestCase
   end
   
   def test_bubble_errors_from_post_init
-    localhost, port = '127.0.0.1', 9000
     assert_raises(PostInitRaiser::ERR) do
       EM.run do
-        EM.start_server localhost, port
-        EM.connect localhost, port, PostInitRaiser
+        EM.start_server "127.0.0.1", @port
+        EM.connect "127.0.0.1", @port, PostInitRaiser
       end
     end
   end
@@ -206,11 +213,10 @@ class TestBasic < Test::Unit::TestCase
   end
   
   def test_bubble_errors_from_initialize
-    localhost, port = '127.0.0.1', 9000
     assert_raises(InitializeRaiser::ERR) do
       EM.run do
-        EM.start_server localhost, port
-        EM.connect localhost, port, InitializeRaiser
+        EM.start_server "127.0.0.1", @port
+        EM.connect "127.0.0.1", @port, InitializeRaiser
       end
     end
   end

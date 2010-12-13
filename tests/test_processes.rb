@@ -2,11 +2,14 @@ require 'em_test_helper'
 
 class TestProcesses < Test::Unit::TestCase
 
-  # TODO: These tests are for features not implemented on windows. 
-  # TODO: Should probably test for some sane exception being thrown.
-  if windows?
-    warn("EM.popen not supported on Windows, skipping tests in #{__FILE__}")
-  else
+  popen_supported = begin
+    EM.system("ruby -v")
+    true
+  rescue RuntimeError => e
+    e.to_s !~ /unsupported/
+  end
+
+  if popen_supported
 
     # EM::DeferrableChildProcess is a sugaring of a common use-case
     # involving EM::popen.
@@ -102,6 +105,15 @@ class TestProcesses < Test::Unit::TestCase
       }
 
       assert_equal("hello\n", $out)
+    end
+  else
+    warn "EM.popen not implemented, skipping tests in #{__FILE__}"
+  
+    # Because some rubies will complain if a TestCase class has no tests
+    def test_em_popen_unsupported
+      assert_raises(RuntimeError) do
+        EM.system("ruby -v")
+      end
     end
   end
 end

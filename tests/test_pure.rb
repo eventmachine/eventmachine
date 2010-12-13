@@ -2,10 +2,9 @@ require 'em_test_helper'
 
 class TestPure < Test::Unit::TestCase
 
-
-  Host = "127.0.0.1"
-  Port = 9060
-
+  def setup
+    @port = next_port
+  end
 
   # These tests are intended to exercise problems that come up in the
   # pure-Ruby implementation. However, we DON'T constrain them such that
@@ -17,27 +16,21 @@ class TestPure < Test::Unit::TestCase
   # The EM reactor needs to run down open connections and release other resources
   # when it stops running. Make sure this happens even if user code throws a Ruby
   # exception.
-  # One way to see this is to run identical tests that open a TCP server and throw
-  # an exception. (We do this twice because an exception aborts a test. We make the
-  # two tests identical except for the method name because we can't predict the order
-  # in which the test harness will run them.)
   # If exception handling is incorrect, the second test will fail with a no-bind error
   # because the TCP server opened in the first test will not have been closed.
-  #
-  def run_exception
-      EM.run {
-        EM.start_server Host, Port
-        raise "an exception"
-      }
-  end
-  def test_exception_1
-    assert_raises( RuntimeError ) { run_exception }
-  end
-  def test_exception_2
-    ex_class = RUBY_PLATFORM == 'java' ? NativeException : RuntimeError
-    assert_raises( ex_class ) { run_exception }
-  end
 
+  def test_exception_handling_releases_resources
+    exception = Class.new(StandardError)
+    
+    2.times do
+      assert_raises(exception) do
+        EM.run do
+          EM.start_server "127.0.0.1", @port
+          raise exception
+        end
+      end
+    end
+  end
 
   # Under some circumstances, the pure Ruby library would emit an Errno::ECONNREFUSED
   # exception on certain kinds of TCP connect-errors.
@@ -55,9 +48,12 @@ class TestPure < Test::Unit::TestCase
     end
   end
   def test_connrefused
-    EM.run {
-      EM.connect "127.0.0.1", 60001, TestConnrefused
-    }
+    assert_nothing_raised do
+      EM.run {
+        setup_timeout
+        EM.connect "127.0.0.1", @port, TestConnrefused
+      }
+    end
   end
 
 
@@ -71,13 +67,13 @@ class TestPure < Test::Unit::TestCase
     end
   end
   def test_connaccepted
-    timeout = false
-    EM.run {
-      EM.start_server "127.0.0.1", 60002
-      EM.connect "127.0.0.1", 60002, TestConnaccepted
-      setup_timeout(1)
-    }
-    assert_equal( false, timeout )
+    assert_nothing_raised do
+      EM.run {
+        EM.start_server "127.0.0.1", @port
+        EM.connect "127.0.0.1", @port, TestConnaccepted
+        setup_timeout(1)
+      }
+    end
   end
   
   def test_reactor_running

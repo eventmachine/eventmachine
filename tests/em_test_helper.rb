@@ -1,6 +1,7 @@
 require 'eventmachine'
 require 'test/unit'
 require 'rbconfig'
+require 'socket'
 
 Test::Unit::TestCase.class_eval do
   class EMTestTimeout < StandardError ; end
@@ -13,13 +14,39 @@ Test::Unit::TestCase.class_eval do
     }
   end
 
-  # http://blog.emptyway.com/2009/11/03/proper-way-to-detect-windows-platform-in-ruby/
-  def self.windows?
-    Config::CONFIG['host_os'] =~ /mswin|mingw/
+  def port_in_use?(port, host="127.0.0.1")
+    s = TCPSocket.new(host, port)
+    s.close
+    s
+  rescue Errno::ECONNREFUSED
+    false
   end
 
-  # http://stackoverflow.com/questions/1342535/how-can-i-tell-if-im-running-from-jruby-vs-ruby/1685970#1685970
-  def self.jruby?
-    defined? JRUBY_VERSION
+  def next_port
+    @@port ||= 9000
+    begin
+      @@port += 1 
+    end while port_in_use?(@@port)
+    
+    @@port
   end
+
+  def exception_class
+    jruby? ? NativeException : RuntimeError
+  end
+
+  module PlatformHelper
+    # http://blog.emptyway.com/2009/11/03/proper-way-to-detect-windows-platform-in-ruby/
+    def windows?
+      Config::CONFIG['host_os'] =~ /mswin|mingw/
+    end
+
+    # http://stackoverflow.com/questions/1342535/how-can-i-tell-if-im-running-from-jruby-vs-ruby/1685970#1685970
+    def jruby?
+      defined? JRUBY_VERSION
+    end
+  end
+
+  include PlatformHelper
+  extend PlatformHelper
 end
