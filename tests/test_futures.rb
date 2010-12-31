@@ -1,32 +1,4 @@
-# $Id$
-#
-# Author:: Francis Cianfrocca (gmail: blackhedd)
-# Homepage::  http://rubyeventmachine.com
-# Date:: 8 April 2006
-# 
-# See EventMachine and EventMachine::Connection for documentation and
-# usage examples.
-#
-#----------------------------------------------------------------------------
-#
-# Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
-# Gmail: blackhedd
-# 
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of either: 1) the GNU General Public License
-# as published by the Free Software Foundation; either version 2 of the
-# License, or (at your option) any later version; or 2) Ruby's License.
-# 
-# See the file COPYING for complete licensing information.
-#
-#---------------------------------------------------------------------------
-#
-#
-#
-
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestFutures < Test::Unit::TestCase
 
@@ -37,14 +9,14 @@ class TestFutures < Test::Unit::TestCase
   end
 
   def test_future
-      assert_equal(100, EventMachine::Deferrable.future(100) )
+      assert_equal(100, EM::Deferrable.future(100) )
 
       p1 = proc { 100 + 1 }
-      assert_equal(101, EventMachine::Deferrable.future(p1) )
+      assert_equal(101, EM::Deferrable.future(p1) )
   end
 
   class MyFuture
-      include EventMachine::Deferrable
+      include EM::Deferrable
       def initialize *args
         super
         set_deferred_status :succeeded, 40
@@ -52,7 +24,7 @@ class TestFutures < Test::Unit::TestCase
   end
 
   class MyErrorFuture
-      include EventMachine::Deferrable
+      include EM::Deferrable
       def initialize *args
         super
         set_deferred_status :failed, 41
@@ -67,7 +39,7 @@ class TestFutures < Test::Unit::TestCase
       end
 
       value = nil
-      EventMachine::Deferrable.future my_future, proc {|v| value=v}
+      EM::Deferrable.future my_future, proc {|v| value=v}
       assert_equal( 40, value )
   end
 
@@ -76,7 +48,7 @@ class TestFutures < Test::Unit::TestCase
       # Call future with two additional arguments and they will be treated as a callback
       # and an errback.
       value = nil
-      EventMachine::Deferrable.future MyErrorFuture.new, nil, proc {|v| value=v}
+      EM::Deferrable.future MyErrorFuture.new, nil, proc {|v| value=v}
       assert_equal( 41, value )
   end
 
@@ -85,7 +57,7 @@ class TestFutures < Test::Unit::TestCase
       # Call future with no additional arguments but with a block, and the block will be
       # treated as a callback.
       value = nil
-      EventMachine::Deferrable.future MyFuture.new do |v|
+      EM::Deferrable.future MyFuture.new do |v|
         value=v
       end
       assert_equal( 40, value )
@@ -93,7 +65,7 @@ class TestFutures < Test::Unit::TestCase
 
 
   class RecursiveCallback
-      include EventMachine::Deferrable
+      include EM::Deferrable
   end
 
   # A Deferrable callback can call #set_deferred_status to change the values

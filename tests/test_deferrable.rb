@@ -1,6 +1,4 @@
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestDeferrable < Test::Unit::TestCase
   class Later
@@ -8,28 +6,30 @@ class TestDeferrable < Test::Unit::TestCase
   end
 
   def test_timeout_without_args
-    $args = "unset"
-
-    EM.run {
-      df = Later.new
-      df.timeout(0.2)
-      df.errback { $args = "none" }
-      EM.add_timer(0.5) { EM.stop }
-    }
-
-    assert_equal("none", $args)
+    assert_nothing_raised do
+      EM.run {
+        df = Later.new
+        df.timeout(0)
+        df.errback { EM.stop }
+        EM.add_timer(0.01) { flunk "Deferrable was not timed out." }
+      }
+    end
   end
 
   def test_timeout_with_args
-    $args = "unset"
+    args = nil
 
     EM.run {
       df = Later.new
-      df.timeout(0.2, :timeout, :foo)
-      df.errback { |type, name| $args = [type, name] }
-      EM.add_timer(0.5) { EM.stop }
+      df.timeout(0, :timeout, :foo)
+      df.errback do |type, name|
+        args = [type, name]
+        EM.stop
+      end
+
+      EM.add_timer(0.01) { flunk "Deferrable was not timed out." }
     }
 
-    assert_equal([:timeout, :foo], $args)
+    assert_equal [:timeout, :foo], args
   end
 end
