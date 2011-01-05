@@ -14,8 +14,8 @@ module EventMachine
       def receive_data data # :nodoc:
         (@buf ||= '') << data
 
-        while line = @buf.slice!(/(.*)\r?\n/)
-          receive_line(line)
+        while @buf.slice!(/(.*?)\r?\n/)
+          receive_line($1)
         end
       end
 
