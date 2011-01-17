@@ -208,7 +208,7 @@ end
 
 #-----------------------------------------------------------------
 
-module EventMachine
+module EventMachine #:nodoc: all
 
   class Error < Exception; end
 
@@ -216,7 +216,7 @@ end
 
 #-----------------------------------------------------------------
 
-module EventMachine
+module EventMachine #:nodoc: all
   class Connection
     def get_outbound_data_size
       EventMachine::get_outbound_data_size @signature
@@ -226,7 +226,7 @@ end
 
 #-----------------------------------------------------------------
 
-module EventMachine
+module EventMachine #:nodoc: all
 
   # Factored out so we can substitute other implementations
   # here if desired, such as the one in ActiveRBAC.
@@ -243,7 +243,7 @@ end
 
 #-----------------------------------------------------------------
 
-module EventMachine
+module EventMachine #:nodoc: all
 
   TimerFired = 100
   ConnectionData = 101
@@ -256,7 +256,7 @@ end
 
 #-----------------------------------------------------------------
 
-module EventMachine
+module EventMachine #:nodoc: all
 class Reactor
   include Singleton
 
@@ -414,7 +414,7 @@ end
 
 #--------------------------------------------------------------
 
-class IO
+class IO #:nodoc: all
   extend Forwardable
   def_delegator :@my_selectable, :close_scheduled?
   def_delegator :@my_selectable, :select_for_reading?
@@ -433,7 +433,7 @@ end
 
 #--------------------------------------------------------------
 
-module EventMachine
+module EventMachine #:nodoc: all
   class Selectable
 
     attr_reader :io, :uuid
@@ -494,7 +494,7 @@ end
 #--------------------------------------------------------------
 
 
-module EventMachine
+module EventMachine #:nodoc: all
 
   class StreamObject < Selectable
     def initialize io
@@ -636,7 +636,7 @@ end
 
 
 
-module EventMachine
+module EventMachine #:nodoc: all
   class EvmaTCPClient < StreamObject
 
     def self.connect bind_addr, bind_port, host, port
@@ -687,7 +687,7 @@ end
 
 
 
-module EventMachine
+module EventMachine #:nodoc: all
   class EvmaKeyboard < StreamObject
 
     def self.open
@@ -717,7 +717,7 @@ end
 
 
 
-module EventMachine
+module EventMachine #:nodoc: all
   class EvmaUNIXClient < StreamObject
 
     def self.connect chain
@@ -765,7 +765,7 @@ end
 
 #--------------------------------------------------------------
 
-module EventMachine
+module EventMachine #:nodoc: all
   class EvmaTCPServer < Selectable
 
     # TODO, refactor and unify with EvmaUNIXServer.
@@ -820,7 +820,7 @@ end
 
 #--------------------------------------------------------------
 
-module EventMachine
+module EventMachine #:nodoc: all
   class EvmaUNIXServer < Selectable
 
     # TODO, refactor and unify with EvmaTCPServer.
@@ -876,7 +876,7 @@ end
 
 #--------------------------------------------------------------
 
-module EventMachine
+module EventMachine #:nodoc: all
   class LoopbreakReader < Selectable
 
     def select_for_reading?
@@ -894,7 +894,7 @@ end
 #--------------------------------------------------------------
 
 
-module EventMachine
+module EventMachine #:nodoc: all
 
   class DatagramObject < Selectable
     def initialize io
@@ -941,7 +941,7 @@ end
 
 #--------------------------------------------------------------
 
-module EventMachine
+module EventMachine #:nodoc: all
   class EvmaUDPSocket < DatagramObject
 
     class << self
