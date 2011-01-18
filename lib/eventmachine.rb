@@ -1373,7 +1373,7 @@ module EventMachine
           @wrapped_exception = $!
           EM.stop
         else
-          raise ConnectionNotBound, "recieved ConnectionUnbound for an unknown signature: #{conn_binding}"
+          raise ConnectionNotBound, "received ConnectionUnbound for an unknown signature: #{conn_binding}"
         end
       end
     elsif opcode == ConnectionAccepted
