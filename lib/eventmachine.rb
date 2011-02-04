@@ -12,7 +12,7 @@ else
   end
 end
 
-require "em/version"
+require 'em/version'
 require 'em/deferrable'
 require 'em/future'
 require 'em/streamer'
@@ -29,9 +29,11 @@ require 'em/channel'
 require 'em/file_watch'
 require 'em/process_watch'
 require 'em/tick_loop'
+require 'em/resolver'
 
 require 'shellwords'
 require 'thread'
+require 'resolv'
 
 # == Introduction
 # EventMachine provides a fast, lightweight framework for implementing
