@@ -1,6 +1,7 @@
 module EventMachine
   module DNS
     class Resolver
+
       def self.resolve(hostname)
         Request.new(socket, hostname)
       end
@@ -13,19 +14,24 @@ module EventMachine
         @socket
       end
 
-      def self.nameserver=(ns)
-        @nameserver = ns
+      def self.nameservers=(ns)
+        @nameservers = ns
       end
 
-      def self.nameserver
-        unless defined?(@nameserver)
+      def self.nameservers
+        unless defined?(@nameservers)
+          @nameservers = []
           IO::readlines('/etc/resolv.conf').each do |line|
             if line =~ /^nameserver (.+)$/
-              @nameserver = $1.split(/\s+/).first
+              @nameservers << $1.split(/\s+/).first
             end
           end
         end
-        @nameserver
+        @nameservers
+      end
+
+      def self.nameserver
+        nameservers.shuffle.first
       end
     end
 
@@ -44,7 +50,6 @@ module EventMachine
       def unbind
       end
 
-      # Periodically called each second to fire request retries
       def tick
         @requests.each do |id,req|
           req.tick
@@ -68,7 +73,7 @@ module EventMachine
       end
 
       def nameserver
-        @nameserver ||= Resolver.nameserver
+        @nameserver || Resolver.nameserver
       end
 
       # Decodes the packet, looks for the request and passes the
