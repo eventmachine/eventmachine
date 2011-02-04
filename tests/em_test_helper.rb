@@ -1,4 +1,4 @@
-require 'eventmachine'
+require 'lib/eventmachine'
 require 'test/unit'
 require 'rbconfig'
 require 'socket'

@@ -20,6 +20,14 @@ class TestBasic < Test::Unit::TestCase
     }
   end
 
+  def test_garbage
+    assert_raises( ArgumentError ) {
+      EM.run {
+        EM::DNS::Resolver.resolve 123
+      }
+    }
+  end
+
   def test_a_pair
     EM.run {
       d = EM::DNS::Resolver.resolve "google.com"
