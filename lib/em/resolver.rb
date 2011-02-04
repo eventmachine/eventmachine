@@ -133,9 +133,9 @@ module EventMachine
         private
 
           def send
-            @socket.send_packet(packet.encode)
             @tries += 1
             @last_send = Time.now
+            @socket.send_packet(packet.encode)
           end
 
           def id
