@@ -6,7 +6,7 @@ module EventMachine
     end
 
     def self.socket
-      unless defined?(@socket)
+      if !@socket || (@socket && @socket.error?)
         @socket = DNSSocket.open
       end
 
@@ -38,6 +38,9 @@ module EventMachine
       def post_init
         @requests = {}
         EM.add_periodic_timer(0.1, &method(:tick))
+      end
+
+      def unbind
       end
 
       # Periodically called each second to fire request retries
@@ -95,13 +98,13 @@ module EventMachine
           @last_send = Time.at(0)
           @retry_interval = 3
           @max_tries = 5
+
           EM.next_tick { tick }
         end
 
         def tick
           # Break early if nothing to do
           return if @last_send + @retry_interval > Time.now
-
           if @tries < @max_tries
             send
           else
@@ -118,6 +121,7 @@ module EventMachine
               addrs << data.address.to_s
             end
           end
+
           if addrs.empty?
             fail "rcode=#{msg.rcode}"
           else
