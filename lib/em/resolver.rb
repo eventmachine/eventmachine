@@ -1,36 +1,37 @@
 module EventMachine
-  module DNSResolver
-
-    def self.resolve(hostname)
-      Request.new(socket, hostname)
-    end
-
-    def self.socket
-      if !@socket || (@socket && @socket.error?)
-        @socket = DNSSocket.open
+  module DNS
+    class Resolver
+      def self.resolve(hostname)
+        Request.new(socket, hostname)
       end
 
-      @socket
-    end
+      def self.socket
+        if !@socket || (@socket && @socket.error?)
+          @socket = Socket.open
+        end
 
-    def self.nameserver=(ns)
-      @nameserver = ns
-    end
+        @socket
+      end
 
-    def self.nameserver
-      unless defined?(@nameserver)
-        IO::readlines('/etc/resolv.conf').each do |line|
-          if line =~ /^nameserver (.+)$/
-            @nameserver = $1.split(/\s+/).first
+      def self.nameserver=(ns)
+        @nameserver = ns
+      end
+
+      def self.nameserver
+        unless defined?(@nameserver)
+          IO::readlines('/etc/resolv.conf').each do |line|
+            if line =~ /^nameserver (.+)$/
+              @nameserver = $1.split(/\s+/).first
+            end
           end
         end
+        @nameserver
       end
-      @nameserver
     end
 
     class RequestIdAlreadyUsed < RuntimeError; end
 
-    class DNSSocket < EventMachine::Connection
+    class Socket < EventMachine::Connection
       def self.open
         EventMachine::open_datagram_socket('0.0.0.0', 0, self)
       end
@@ -67,7 +68,7 @@ module EventMachine
       end
 
       def nameserver
-        @nameserver ||= DNSResolver.nameserver
+        @nameserver ||= Resolver.nameserver
       end
 
       # Decodes the packet, looks for the request and passes the

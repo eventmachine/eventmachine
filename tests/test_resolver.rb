@@ -1,10 +1,9 @@
 require 'em_test_helper'
 
 class TestBasic < Test::Unit::TestCase
-
   def test_a
     EM.run {
-      d = EM::DNSResolver.resolve "google.com"
+      d = EM::DNS::Resolver.resolve "google.com"
       d.errback { assert false }
       d.callback { |r|
         assert r
@@ -15,7 +14,7 @@ class TestBasic < Test::Unit::TestCase
 
   def test_bad_host
     EM.run {
-      d = EM::DNSResolver.resolve "asdfasasdf"
+      d = EM::DNS::Resolver.resolve "asdfasasdf"
       d.callback { assert false }
       d.errback  { assert true; EM.stop }
     }
@@ -23,7 +22,7 @@ class TestBasic < Test::Unit::TestCase
 
   def test_a_pair
     EM.run {
-      d = EM::DNSResolver.resolve "google.com"
+      d = EM::DNS::Resolver.resolve "google.com"
       d.errback { assert false }
       d.callback { |r|
         assert_equal(Array, r.class)
@@ -32,5 +31,4 @@ class TestBasic < Test::Unit::TestCase
       }
     }
   end
-
 end
