@@ -39,4 +39,17 @@ class TestBasic < Test::Unit::TestCase
       }
     }
   end
+
+  def test_localhost
+    EM.run {
+      d = EM::DNS::Resolver.resolve "localhost"
+      d.errback { assert false }
+      d.callback { |r|
+        assert_equal("127.0.0.1", r.first)
+        assert_equal(Array, r.class)
+
+        EM.stop
+      }
+    }
+  end
 end

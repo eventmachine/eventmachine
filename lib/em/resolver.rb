@@ -9,6 +9,18 @@ module EventMachine
       def self.socket
         if !@socket || (@socket && @socket.error?)
           @socket = Socket.open
+
+          @hosts  = {}
+          IO.readlines('/etc/hosts').each do |line|
+            next if line =~ /^#/
+            addr, host = line.split(/\s+/)
+
+            if @hosts[host]
+              @hosts[host] << addr
+            else
+              @hosts[host] = [addr]
+            end
+          end
         end
 
         @socket
@@ -19,9 +31,9 @@ module EventMachine
       end
 
       def self.nameservers
-        unless defined?(@nameservers)
+        if !@nameservers
           @nameservers = []
-          IO::readlines('/etc/resolv.conf').each do |line|
+          IO.readlines('/etc/resolv.conf').each do |line|
             if line =~ /^nameserver (.+)$/
               @nameservers << $1.split(/\s+/).first
             end
@@ -32,6 +44,10 @@ module EventMachine
 
       def self.nameserver
         nameservers.shuffle.first
+      end
+
+      def self.hosts
+        @hosts
       end
     end
 
@@ -105,7 +121,11 @@ module EventMachine
           @retry_interval = 3
           @max_tries = 5
 
-          EM.next_tick { tick }
+          if addrs = Resolver.hosts[hostname]
+            succeed addrs
+          else
+            EM.next_tick { tick }
+          end
         end
 
         def tick
@@ -118,7 +138,6 @@ module EventMachine
           end
         end
 
-        # Called by DNSSocket#receive_data
         def receive_answer(msg)
           addrs = []
           msg.each_answer do |name,ttl,data|
