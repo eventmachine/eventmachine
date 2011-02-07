@@ -61,6 +61,7 @@ extern "C" {
 
 	void evma_stop_tcp_server (const unsigned long signature);
 	const unsigned long evma_create_tcp_server (const char *address, int port);
+	const unsigned long evma_reuse_server (int descriptor);
 	const unsigned long evma_create_unix_domain_server (const char *filename);
 	const unsigned long evma_open_datagram_socket (const char *server, int port);
 	const unsigned long evma_open_keyboard();
@@ -87,6 +88,7 @@ extern "C" {
 	int evma_send_file_data_to_connection (const unsigned long binding, const char *filename);
 
 	void evma_close_connection (const unsigned long binding, int after_writing);
+	void evma_preserve_server_sockets();
 	int evma_report_connection_error_status (const unsigned long binding);
 	void evma_signal_loopbreak();
 	void evma_set_timer_quantum (int);

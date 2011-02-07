@@ -60,6 +60,8 @@ class EventMachine_t
 	public:
 		static int GetMaxTimerCount();
 		static void SetMaxTimerCount (int);
+		static void PreserveServerSockets();
+		static bool ShouldPreserveServerSockets();
 
 	public:
 		EventMachine_t (EMCallback);
@@ -73,6 +75,7 @@ class EventMachine_t
 		const unsigned long ConnectToUnixServer (const char *);
 
 		const unsigned long CreateTcpServer (const char *, int);
+		const unsigned long OutputBinding (int);
 		const unsigned long OpenDatagramSocket (const char *, int);
 		const unsigned long CreateUnixDomainServer (const char*);
 		const unsigned long OpenKeyboard();

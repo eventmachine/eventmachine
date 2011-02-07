@@ -26,6 +26,7 @@ See the file COPYING for complete licensing information.
  * Now we define it here so that users can change its value if necessary.
  */
 static unsigned int MaxOutstandingTimers = 100000;
+static bool PreserveServerSockets_ = false;
 
 
 /* Internal helper to convert strings to internet addresses. IPv6-aware.
@@ -61,6 +62,22 @@ void EventMachine_t::SetMaxTimerCount (int count)
 	MaxOutstandingTimers = count;
 }
 
+/********************************************
+STATIC EventMachine_t::PreserveServerSockets
+********************************************/
+
+void EventMachine_t::PreserveServerSockets ()
+{
+	PreserveServerSockets_ = true;
+}
+/*************************************************
+STATIC EventMachine_t::ShouldPreserveServerSockets
+**************************************************/
+
+bool EventMachine_t::ShouldPreserveServerSockets ()
+{
+	return PreserveServerSockets_;
+}
 
 
 /******************************
@@ -1551,7 +1568,7 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 		}
 	}
 
-	{ // set CLOEXEC. Only makes sense on Unix
+	if(!EventMachine_t::ShouldPreserveServerSockets()) { // set CLOEXEC. Only makes sense on Unix
 		#ifdef OS_UNIX
 		int cloexec = fcntl (sd_accept, F_GETFD, 0);
 		assert (cloexec >= 0);
@@ -1582,15 +1599,7 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 		}
 	}
 
-	{ // Looking good.
-		AcceptorDescriptor *ad = new AcceptorDescriptor (sd_accept, this);
-		if (!ad)
-			throw std::runtime_error ("unable to allocate acceptor");
-		Add (ad);
-		output_binding = ad->GetBinding();
-	}
-
-	return output_binding;
+	return OutputBinding(sd_accept);
 
 	fail:
 	if (sd_accept != INVALID_SOCKET)
@@ -1598,6 +1607,14 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	return 0;
 }
 
+const unsigned long EventMachine_t::OutputBinding(int sd_accept)
+{
+	AcceptorDescriptor *ad = new AcceptorDescriptor (sd_accept, this);
+	if (!ad)
+		throw std::runtime_error ("unable to allocate acceptor");
+	Add (ad);
+	return ad->GetBinding();
+}
 
 /**********************************
 EventMachine_t::OpenDatagramSocket

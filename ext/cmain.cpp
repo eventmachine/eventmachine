@@ -273,6 +273,16 @@ extern "C" const unsigned long evma_create_unix_domain_server (const char *filen
 	return EventMachine->CreateUnixDomainServer (filename);
 }
 
+/**********************
+evma_create_tcp_server
+**********************/
+
+extern "C" const unsigned long evma_reuse_server (int descriptor)
+{
+	ensure_eventmachine("evma_reuse_server");
+	return EventMachine->OutputBinding (descriptor);
+}
+
 /*************************
 evma_open_datagram_socket
 *************************/
@@ -370,6 +380,16 @@ extern "C" void evma_close_connection (const unsigned long binding, int after_wr
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed)
 		ed->ScheduleClose (after_writing ? true : false);
+}
+
+/****************************
+evma_preserve_server_sockets
+****************************/
+
+extern "C" void evma_preserve_server_sockets()
+{
+	ensure_eventmachine("evma_preserve_server_sockets");
+	EventMachine_t::PreserveServerSockets();
 }
 
 /***********************************

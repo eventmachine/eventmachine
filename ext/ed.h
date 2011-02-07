@@ -102,6 +102,7 @@ class EventableDescriptor: public Bindable_t
 
 	protected:
 		int MySocket;
+		bool bIsAcceptorSocket;
 
 		EMCallback EventCallback;
 		void _GenericInboundDispatch(const char*, int);

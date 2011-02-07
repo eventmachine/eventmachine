@@ -519,8 +519,12 @@ module EventMachine
 
     s = if port
           start_tcp_server server, port
-        else
+        elsif server.kind_of?(String)
           start_unix_server server
+        elsif server.kind_of?(Fixnum)
+          reuse_server server
+        else
+          raise "Invalid server spec: #{server.inspect}, #{port.inspect}"
         end
     @acceptors[s] = [klass,args,block]
     s

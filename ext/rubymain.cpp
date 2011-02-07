@@ -257,6 +257,18 @@ static VALUE t_stop_server (VALUE self, VALUE signature)
 }
 
 
+/**************
+t_start_server
+**************/
+
+static VALUE t_reuse_server (VALUE self, VALUE descriptor)
+{
+	const unsigned long f = evma_reuse_server (FIX2INT(descriptor));
+	if (!f)
+		rb_raise (rb_eRuntimeError, "no acceptor (bad descriptor)");
+	return ULONG2NUM (f);
+}
+
 /*******************
 t_start_unix_server
 *******************/
@@ -468,6 +480,16 @@ t_close_connection
 static VALUE t_close_connection (VALUE self, VALUE signature, VALUE after_writing)
 {
 	evma_close_connection (NUM2ULONG (signature), ((after_writing == Qtrue) ? 1 : 0));
+	return Qnil;
+}
+
+/*************************
+t_preserve_server_sockets
+*************************/
+
+static VALUE t_preserve_server_sockets (VALUE self)
+{
+	evma_preserve_server_sockets();
 	return Qnil;
 }
 
@@ -1118,6 +1140,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "add_oneshot_timer", (VALUE(*)(...))t_add_oneshot_timer, 1);
 	rb_define_module_function (EmModule, "start_tcp_server", (VALUE(*)(...))t_start_server, 2);
 	rb_define_module_function (EmModule, "stop_tcp_server", (VALUE(*)(...))t_stop_server, 1);
+	rb_define_module_function (EmModule, "reuse_server", (VALUE(*)(...))t_reuse_server, 1);
 	rb_define_module_function (EmModule, "start_unix_server", (VALUE(*)(...))t_start_unix_server, 1);
 	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 4);
 	rb_define_module_function (EmModule, "start_tls", (VALUE(*)(...))t_start_tls, 1);
@@ -1126,6 +1149,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "send_datagram", (VALUE(*)(...))t_send_datagram, 5);
 	rb_define_module_function (EmModule, "close_connection", (VALUE(*)(...))t_close_connection, 2);
 	rb_define_module_function (EmModule, "report_connection_error_status", (VALUE(*)(...))t_report_connection_error_status, 1);
+	rb_define_module_function (EmModule, "preserve_server_sockets", (VALUE (*)(...))t_preserve_server_sockets, 0);
 	rb_define_module_function (EmModule, "connect_server", (VALUE(*)(...))t_connect_server, 2);
 	rb_define_module_function (EmModule, "bind_connect_server", (VALUE(*)(...))t_bind_connect_server, 4);
 	rb_define_module_function (EmModule, "connect_unix_server", (VALUE(*)(...))t_connect_unix_server, 1);

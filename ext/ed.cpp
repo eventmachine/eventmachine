@@ -62,7 +62,8 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	MaxOutboundBufSize(0),
 	MyEventMachine (em),
 	PendingConnectTimeout(20000000),
-	InactivityTimeout (0)
+	InactivityTimeout (0),
+	bIsAcceptorSocket(false)
 {
 	/* There are three ways to close a socket, all of which should
 	 * automatically signal to the event machine that this object
@@ -127,7 +128,6 @@ void EventableDescriptor::SetEventCallback (EMCallback cb)
 	EventCallback = cb;
 }
 
-
 /**************************
 EventableDescriptor::Close
 **************************/
@@ -136,7 +136,8 @@ void EventableDescriptor::Close()
 {
 	// Close the socket right now. Intended for emergencies.
 	if (MySocket != INVALID_SOCKET) {
-		shutdown (MySocket, 1);
+		if(bIsAcceptorSocket && EventMachine_t::ShouldPreserveServerSockets())
+			shutdown (MySocket, 1);
 		close (MySocket);
 		MySocket = INVALID_SOCKET;
 	}
@@ -1264,6 +1265,7 @@ AcceptorDescriptor::AcceptorDescriptor
 AcceptorDescriptor::AcceptorDescriptor (int sd, EventMachine_t *parent_em):
 	EventableDescriptor (sd, parent_em)
 {
+	bIsAcceptorSocket = true;
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = EPOLLIN;
 	#endif
