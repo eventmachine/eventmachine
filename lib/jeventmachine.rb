@@ -189,7 +189,7 @@ module EventMachine
   end
   def self.get_peername sig
     if peer = @em.getPeerName(sig)
-      Socket.pack_sockaddr_in *peer
+      Socket.pack_sockaddr_in(*peer)
     end
   end
   def self.attach_fd fileno, watch_mode

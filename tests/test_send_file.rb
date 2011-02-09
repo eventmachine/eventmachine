@@ -1,251 +1,217 @@
-# $Id$
-#
-# Author:: Francis Cianfrocca (gmail: blackhedd)
-# Homepage::  http://rubyeventmachine.com
-# Date:: 8 April 2006
-# 
-# See EventMachine and EventMachine::Connection for documentation and
-# usage examples.
-#
-#----------------------------------------------------------------------------
-#
-# Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
-# Gmail: blackhedd
-# 
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of either: 1) the GNU General Public License
-# as published by the Free Software Foundation; either version 2 of the
-# License, or (at your option) any later version; or 2) Ruby's License.
-# 
-# See the file COPYING for complete licensing information.
-#
-#---------------------------------------------------------------------------
-#
-#
-# 
-
-$:.unshift "../lib"
-require 'eventmachine'
-require 'socket'
-require 'test/unit'
+require 'em_test_helper'
+require 'tempfile'
 
 class TestSendFile < Test::Unit::TestCase
 
-  module TestModule
-    def post_init
-      send_file_data TestFilename
-      close_connection_after_writing
-    end
-  end
-
-  module TestClient
-    def data_to(&blk)
-      @data_to = blk
-    end
-    
-    def receive_data(data)
-      @data_to.call(data) if @data_to
-    end
-    
-    def unbind
-      EM.stop
-    end
-  end
-
-  TestHost = "0.0.0.0"
-  TestPort = 9055
-  TestFilename = "./xxxxxx"
-
-  def setup
-  end
-
-  def teardown
-    File.unlink( TestFilename ) if File.exist?( TestFilename )
-  end
-
-  def setup_timeout(timeout = 4)
-    EM.schedule {
-      start_time = EM.current_time
-      EM.add_periodic_timer(0.01) {
-        raise "timeout" if EM.current_time - start_time >= timeout
-      }
-    }
-  end
-
-  def test_send_file
-    File.open( TestFilename, "w" ) {|f|
-      f << ("A" * 5000)
-    }
-
-    data = ''
-
-    EM.run {
-      EM.start_server TestHost, TestPort, TestModule
-      setup_timeout
-
-      EM.connect TestHost, TestPort, TestClient do |c|
-        c.data_to { |d| data << d }
+  if EM.respond_to?(:send_file_data)
+    module TestModule
+      def initialize filename
+        @filename = filename
       end
-    }
 
-    assert_equal( "A" * 5000, data )
-    File.unlink TestFilename
-  end
+      def post_init
+        send_file_data @filename
+        close_connection_after_writing
+      end
+    end
 
-  # EventMachine::Connection#send_file_data has a strict upper limit on the filesize it will work with.
-  def test_send_large_file
-    File.open( TestFilename, "w" ) {|f|
-      f << ("A" * 1000000)
-    }
+    module TestClient
+      def data_to(&blk)
+        @data_to = blk
+      end
 
-    data = ''
+      def receive_data(data)
+        @data_to.call(data) if @data_to
+      end
 
-    ex_class = RUBY_PLATFORM == 'java' ? NativeException : RuntimeError
-    assert_raises( ex_class ) {
+      def unbind
+        EM.stop
+      end
+    end
+
+    def setup
+      @file = Tempfile.new("em_test_file")
+      @filename = @file.path
+      @port = next_port
+    end
+
+    def test_send_file
+      File.open( @filename, "w" ) {|f|
+        f << ("A" * 5000)
+      }
+
+      data = ''
+
       EM.run {
-        EM.start_server TestHost, TestPort, TestModule
+        EM.start_server "127.0.0.1", @port, TestModule, @filename
         setup_timeout
-        EM.connect TestHost, TestPort, TestClient do |c|
+
+        EM.connect "127.0.0.1", @port, TestClient do |c|
           c.data_to { |d| data << d }
         end
       }
-    }
 
-    File.unlink TestFilename
-  end
+      assert_equal( "A" * 5000, data )
+    end
 
+    # EM::Connection#send_file_data has a strict upper limit on the filesize it will work with.
+    def test_send_large_file
+      File.open( @filename, "w" ) {|f|
+        f << ("A" * 1000000)
+      }
 
-  module StreamTestModule
-    def post_init
-      EM::Deferrable.future( stream_file_data(TestFilename)) {
-        close_connection_after_writing
+      data = ''
+
+      assert_raises(RuntimeError) {
+        EM.run {
+          EM.start_server "127.0.0.1", @port, TestModule, @filename
+          setup_timeout
+          EM.connect "127.0.0.1", @port, TestClient do |c|
+            c.data_to { |d| data << d }
+          end
+        }
       }
     end
-  end
 
-  module ChunkStreamTestModule
-    def post_init
-      EM::Deferrable.future( stream_file_data(TestFilename, :http_chunks=>true)) {
-        close_connection_after_writing
+    module StreamTestModule
+      def initialize filename
+        @filename = filename
+      end
+
+      def post_init
+        EM::Deferrable.future( stream_file_data(@filename)) {
+          close_connection_after_writing
+        }
+      end
+    end
+
+    module ChunkStreamTestModule
+      def initialize filename
+        @filename = filename
+      end
+
+      def post_init
+        EM::Deferrable.future( stream_file_data(@filename, :http_chunks=>true)) {
+          close_connection_after_writing
+        }
+      end
+    end
+
+    def test_stream_file_data
+      File.open( @filename, "w" ) {|f|
+        f << ("A" * 1000)
       }
-    end
-  end
 
-  def test_stream_file_data
-    File.open( TestFilename, "w" ) {|f|
-      f << ("A" * 1000)
-    }
+      data = ''
 
-    data = ''
-
-    EM.run {
-      EM.start_server TestHost, TestPort, StreamTestModule
-      setup_timeout
-      EM.connect TestHost, TestPort, TestClient do |c|
-        c.data_to { |d| data << d }
-      end
-    }
-
-    assert_equal( "A" * 1000, data )
-
-    File.unlink TestFilename
-  end
-
-  def test_stream_chunked_file_data
-    File.open( TestFilename, "w" ) {|f|
-      f << ("A" * 1000)
-    }
-
-    data = ''
-
-    EM.run {
-      EM.start_server TestHost, TestPort, ChunkStreamTestModule
-      setup_timeout
-      EM.connect TestHost, TestPort, TestClient do |c|
-        c.data_to { |d| data << d }
-      end
-    }
-
-    assert_equal( "3e8\r\n#{"A" * 1000}\r\n0\r\n\r\n", data )
-
-    File.unlink TestFilename
-  end
-
-  module BadFileTestModule
-    def post_init
-      de = stream_file_data( TestFilename+"..." )
-      de.errback {|msg|
-        send_data msg
-        close_connection_after_writing
+      EM.run {
+        EM.start_server "127.0.0.1", @port, StreamTestModule, @filename
+        setup_timeout
+        EM.connect "127.0.0.1", @port, TestClient do |c|
+          c.data_to { |d| data << d }
+        end
       }
+
+      assert_equal( "A" * 1000, data )
+    end
+
+    def test_stream_chunked_file_data
+      File.open( @filename, "w" ) {|f|
+        f << ("A" * 1000)
+      }
+
+      data = ''
+
+      EM.run {
+        EM.start_server "127.0.0.1", @port, ChunkStreamTestModule, @filename
+        setup_timeout
+        EM.connect "127.0.0.1", @port, TestClient do |c|
+          c.data_to { |d| data << d }
+        end
+      }
+
+      assert_equal( "3e8\r\n#{"A" * 1000}\r\n0\r\n\r\n", data )
+    end
+
+    module BadFileTestModule
+      def initialize filename
+        @filename = filename
+      end
+
+      def post_init
+        de = stream_file_data( @filename+".wrong" )
+        de.errback {|msg|
+          send_data msg
+          close_connection_after_writing
+        }
+      end
+    end
+    def test_stream_bad_file
+      data = ''
+      EM.run {
+        EM.start_server "127.0.0.1", @port, BadFileTestModule, @filename
+        setup_timeout(5)
+        EM.connect "127.0.0.1", @port, TestClient do |c|
+          c.data_to { |d| data << d }
+        end
+      }
+
+      assert_equal( "file not found", data )
+    end
+  else
+    warn "EM.send_file_data not implemented, skipping tests in #{__FILE__}"
+
+    # Because some rubies will complain if a TestCase class has no tests
+    def test_em_send_file_data_not_implemented
+      assert !EM.respond_to?(:send_file_data)
     end
   end
-  def test_stream_bad_file
-    data = ''
-    EM.run {
-      EM.start_server TestHost, TestPort, BadFileTestModule
-      setup_timeout
-      EM.connect TestHost, TestPort, TestClient do |c|
-        c.data_to { |d| data << d }
-      end
-    }
 
-    assert_equal( "file not found", data )
-  end
+  begin
+    require 'fastfilereaderext'
 
-  def test_stream_large_file_data
-    begin
-      require 'fastfilereaderext'
-    rescue LoadError
-      return
+    def test_stream_large_file_data
+      File.open( @filename, "w" ) {|f|
+        f << ("A" * 10000)
+      }
+
+      data = ''
+
+      EM.run {
+        EM.start_server "127.0.0.1", @port, StreamTestModule, @filename
+        setup_timeout
+        EM.connect "127.0.0.1", @port, TestClient do |c|
+          c.data_to { |d| data << d }
+        end
+      }
+
+      assert_equal( "A" * 10000, data )
     end
-    File.open( TestFilename, "w" ) {|f|
-      f << ("A" * 10000)
-    }
 
-    data = ''
+    def test_stream_large_chunked_file_data
+      File.open( @filename, "w" ) {|f|
+        f << ("A" * 100000)
+      }
 
-    EM.run {
-      EM.start_server TestHost, TestPort, StreamTestModule
-      setup_timeout
-      EM.connect TestHost, TestPort, TestClient do |c|
-        c.data_to { |d| data << d }
-      end
-    }
+      data = ''
 
-    assert_equal( "A" * 10000, data )
+      EM.run {
+        EM.start_server "127.0.0.1", @port, ChunkStreamTestModule, @filename
+        setup_timeout
+        EM.connect "127.0.0.1", @port, TestClient do |c|
+          c.data_to { |d| data << d }
+        end
+      }
 
-    File.unlink TestFilename
-  end
-
-  def test_stream_large_chunked_file_data
-    begin
-      require 'fastfilereaderext'
-    rescue LoadError
-      return
+      expected = [
+        "4000\r\n#{"A" * 16384}\r\n" * 6,
+        "6a0\r\n#{"A" * 0x6a0}\r\n",
+        "0\r\n\r\n"
+      ].join
+      assert_equal( expected, data )
     end
-    File.open( TestFilename, "w" ) {|f|
-      f << ("A" * 100000)
-    }
-
-    data = ''
-
-    EM.run {
-      EM.start_server TestHost, TestPort, ChunkStreamTestModule
-      setup_timeout
-      EM.connect TestHost, TestPort, TestClient do |c|
-        c.data_to { |d| data << d }
-      end
-    }
-
-    expected = [
-      "4000\r\n#{"A" * 16384}\r\n" * 6,
-      "6a0\r\n#{"A" * 0x6a0}\r\n",
-      "0\r\n\r\n"
-    ].join
-    assert_equal( expected, data )
-
-    File.unlink TestFilename
+  rescue LoadError
+    warn "require 'fastfilereaderext' failed, skipping tests in #{__FILE__}"
   end
 
 end

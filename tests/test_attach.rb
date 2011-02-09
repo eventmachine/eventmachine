@@ -1,31 +1,7 @@
-# $Id$
-#
-#----------------------------------------------------------------------------
-#
-# Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
-# Gmail: blackhedd
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of either: 1) the GNU General Public License
-# as published by the Free Software Foundation; either version 2 of the
-# License, or (at your option) any later version; or 2) Ruby's License.
-#
-# See the file COPYING for complete licensing information.
-#
-#---------------------------------------------------------------------------
-#
-
-$:.unshift "../lib"
-require 'eventmachine'
+require 'em_test_helper'
 require 'socket'
-require 'test/unit'
-
 
 class TestAttach < Test::Unit::TestCase
-
-  Host = "127.0.0.1"
-  Port = 9550
-
   class EchoServer < EM::Connection
     def receive_data data
       send_data data
@@ -33,47 +9,51 @@ class TestAttach < Test::Unit::TestCase
   end
 
   class EchoClient < EM::Connection
-    def initialize
+    def initialize socket
       self.notify_readable = true
-      $sock.write("abc\n")
+      @socket = socket
+      @socket.write("abc\n")
     end
 
     def notify_readable
-      $read = $sock.readline
+      $read = @socket.readline
       $fd = detach
     end
 
     def unbind
       EM.next_tick do
-        $sock.write("def\n")
-        EM.add_timer(0.1){ EM.stop }
+        @socket.write("def\n")
+        EM.add_timer(0.1) { EM.stop }
       end
     end
   end
 
   def setup
-    $read, $write, $sock, $r, $w, $fd, $sock, $before, $after = nil
+    @port = next_port
+    $read, $r, $w, $fd = nil
   end
 
   def teardown
-    [$read, $write, $sock, $r, $w, $fd, $sock, $before, $after].each do |io|
+    [$r, $w].each do |io|
       io.close rescue nil
     end
   end
 
   def test_attach
-    EM.run{
-      EM.start_server Host, Port, EchoServer
-      $sock = TCPSocket.new Host, Port
-      EM.watch $sock, EchoClient
+    socket = nil
+
+    EM.run {
+      EM.start_server "127.0.0.1", @port, EchoServer
+      socket = TCPSocket.new "127.0.0.1", @port
+      EM.watch socket, EchoClient, socket
     }
 
     assert_equal $read, "abc\n"
-    unless defined? JRuby # jruby filenos are not real
-      assert_equal $fd, $sock.fileno
+    unless jruby? # jruby filenos are not real
+      assert_equal $fd, socket.fileno
     end
-    assert_equal false, $sock.closed?
-    assert_equal $sock.readline, "def\n"
+    assert_equal false, socket.closed?
+    assert_equal socket.readline, "def\n"
   end
 
   module PipeWatch
@@ -96,6 +76,8 @@ class TestAttach < Test::Unit::TestCase
   end
 
   def test_set_readable
+    before, after = nil
+
     EM.run{
       $r, $w = IO.pipe
       c = EM.watch $r, PipeWatch do |con|
@@ -103,34 +85,42 @@ class TestAttach < Test::Unit::TestCase
       end
 
       EM.next_tick{
-        $before = c.notify_readable?
+        before = c.notify_readable?
         c.notify_readable = true
-        $after = c.notify_readable?
+        after = c.notify_readable?
       }
 
       $w.write("jkl\n")
     }
 
-    assert !$before
-    assert $after
+    assert !before
+    assert after
     assert_equal $read, "jkl\n"
   end
 
-  module PipeReader
-    def receive_data data
-      $read = data
-      EM.stop
-    end
-  end
-
   def test_read_write_pipe
-    EM.run{
-      $r, $w = IO.pipe
-      EM.attach $r, PipeReader
-      writer = EM.attach($w)
+    result = nil
+
+    pipe_reader = Module.new do
+      define_method :receive_data do |data|
+        result = data
+        EM.stop
+      end
+    end
+
+    r,w = IO.pipe
+
+    EM.run {
+      EM.attach r, pipe_reader
+      writer = EM.attach(w)
       writer.send_data 'ghi'
+
+      # XXX: Process will hang in Windows without this line
+      writer.close_connection_after_writing
     }
 
-    assert_equal $read, "ghi"
+    assert_equal "ghi", result
+  ensure
+    [r,w].each {|io| io.close rescue nil }
   end
 end

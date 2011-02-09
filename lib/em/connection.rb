@@ -405,7 +405,9 @@ module EventMachine
     #
     def send_datagram data, recipient_address, recipient_port
       data = data.to_s
-      EventMachine::send_datagram @signature, data, data.length, recipient_address, Integer(recipient_port)
+      size = data.bytesize if data.respond_to?(:bytesize)
+      size ||= data.size
+      EventMachine::send_datagram @signature, data, size, recipient_address, Integer(recipient_port)
     end
 
 

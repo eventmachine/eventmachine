@@ -1,0 +1,3 @@
+--exclude jeventmachine --exclude pure_ruby
+-
+docs/DEFERRABLES docs/EPOLL docs/KEYBOARD

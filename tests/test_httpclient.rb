@@ -1,32 +1,4 @@
-# $Id$
-#
-# Author:: Francis Cianfrocca (gmail: blackhedd)
-# Homepage::  http://rubyeventmachine.com
-# Date:: 8 April 2006
-# 
-# See EventMachine and EventMachine::Connection for documentation and
-# usage examples.
-#
-#----------------------------------------------------------------------------
-#
-# Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
-# Gmail: blackhedd
-# 
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of either: 1) the GNU General Public License
-# as published by the Free Software Foundation; either version 2 of the
-# License, or (at your option) any later version; or 2) Ruby's License.
-# 
-# See the file COPYING for complete licensing information.
-#
-#---------------------------------------------------------------------------
-#
-#
-#
-
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestHttpClient < Test::Unit::TestCase
 
@@ -43,13 +15,13 @@ class TestHttpClient < Test::Unit::TestCase
 
   def test_http_client
     ok = false
-    EventMachine.run {
-      c = EventMachine::Protocols::HttpClient.send :request, :host => "www.google.com", :port => 80
+    EM.run {
+      c = EM::P::HttpClient.send :request, :host => "www.google.com", :port => 80
       c.callback {
         ok = true
-        EventMachine.stop
+        EM.stop
       }
-      c.errback {EventMachine.stop} # necessary, otherwise a failure blocks the test suite forever.
+      c.errback {EM.stop} # necessary, otherwise a failure blocks the test suite forever.
     }
     assert ok
   end
@@ -58,10 +30,10 @@ class TestHttpClient < Test::Unit::TestCase
 
   def test_http_client_1
     ok = false
-    EventMachine.run {
-      c = EventMachine::Protocols::HttpClient.send :request, :host => "www.google.com", :port => 80
-      c.callback {ok = true; EventMachine.stop}
-      c.errback {EventMachine.stop}
+    EM.run {
+      c = EM::P::HttpClient.send :request, :host => "www.google.com", :port => 80
+      c.callback {ok = true; EM.stop}
+      c.errback {EM.stop}
     }
     assert ok
   end
@@ -70,13 +42,13 @@ class TestHttpClient < Test::Unit::TestCase
 
   def test_http_client_2
     ok = false
-    EventMachine.run {
-      c = EventMachine::Protocols::HttpClient.send :request, :host => "www.google.com", :port => 80
+    EM.run {
+      c = EM::P::HttpClient.send :request, :host => "www.google.com", :port => 80
       c.callback {|result|
         ok = true;
-        EventMachine.stop
+        EM.stop
       }
-      c.errback {EventMachine.stop}
+      c.errback {EM.stop}
     }
     assert ok
   end
@@ -89,7 +61,7 @@ class TestHttpClient < Test::Unit::TestCase
   # causing this test to hang. Observe, there was no problem with responses
   # lacking a content-length, just when the content-length was zero.
   #
-  class EmptyContent < EventMachine::Connection
+  class EmptyContent < EM::Connection
       def initialize *args
         super
       end
@@ -101,12 +73,12 @@ class TestHttpClient < Test::Unit::TestCase
 
   def test_http_empty_content
       ok = false
-      EventMachine.run {
-        EventMachine.start_server "127.0.0.1", 9701, EmptyContent
-        c = EventMachine::Protocols::HttpClient.send :request, :host => "127.0.0.1", :port => 9701
+      EM.run {
+        EM.start_server "127.0.0.1", 9701, EmptyContent
+        c = EM::P::HttpClient.send :request, :host => "127.0.0.1", :port => 9701
         c.callback {|result|
           ok = true
-          EventMachine.stop
+          EM.stop
         }
       }
       assert ok
@@ -115,7 +87,7 @@ class TestHttpClient < Test::Unit::TestCase
 
   #---------------------------------------
 
-  class PostContent < EventMachine::Protocols::LineAndTextProtocol
+  class PostContent < EM::P::LineAndTextProtocol
       def initialize *args
         super
         @lines = []
@@ -155,23 +127,14 @@ class TestHttpClient < Test::Unit::TestCase
       end
   end
   
-  def setup_timeout(timeout = 4)
-    EM.schedule {
-      start_time = EM.current_time
-      EM.add_periodic_timer(0.01) {
-        raise "timeout" if EM.current_time - start_time >= timeout
-      }
-    }
-  end
-
   # TODO, this is WRONG. The handler is asserting an HTTP 1.1 request, but the client
   # is sending a 1.0 request. Gotta fix the client
   def test_post
       response = nil
-      EventMachine.run {
-        EventMachine.start_server Localhost, Localport, PostContent
+      EM.run {
+        EM.start_server Localhost, Localport, PostContent
         setup_timeout(2)
-        c = EventMachine::Protocols::HttpClient.request(
+        c = EM::P::HttpClient.request(
           :host=>Localhost,
           :port=>Localport,
           :method=>:post,
@@ -181,7 +144,7 @@ class TestHttpClient < Test::Unit::TestCase
         )
         c.callback {|r|
           response = r
-          EventMachine.stop
+          EM.stop
         }
       }
 
@@ -198,9 +161,9 @@ class TestHttpClient < Test::Unit::TestCase
       c = EM::Protocols::HttpClient.send :request, :host => "www.google.com", :port => 80, :cookie=>"aaa=bbb"
       c.callback {|result|
         ok = true;
-        EventMachine.stop
+        EM.stop
       }
-      c.errback {EventMachine.stop}
+      c.errback {EM.stop}
     }
     assert ok
   end
@@ -217,9 +180,9 @@ class TestHttpClient < Test::Unit::TestCase
       )
       c.callback {|result|
         ok = true;
-        EventMachine.stop
+        EM.stop
       }
-      c.errback {EventMachine.stop}
+      c.errback {EM.stop}
     }
     assert ok
   end

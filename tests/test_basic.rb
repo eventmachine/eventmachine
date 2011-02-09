@@ -1,42 +1,18 @@
-# $Id$
-#
-# Author:: Francis Cianfrocca (gmail: blackhedd)
-# Homepage::  http://rubyeventmachine.com
-# Date:: 8 April 2006
-# 
-# See EventMachine and EventMachine::Connection for documentation and
-# usage examples.
-#
-#----------------------------------------------------------------------------
-#
-# Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
-# Gmail: blackhedd
-# 
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of either: 1) the GNU General Public License
-# as published by the Free Software Foundation; either version 2 of the
-# License, or (at your option) any later version; or 2) Ruby's License.
-# 
-# See the file COPYING for complete licensing information.
-#
-#---------------------------------------------------------------------------
-#
-#
-# 
-
-$:.unshift File.expand_path(File.dirname(__FILE__) + "/../lib")
-require 'eventmachine'
+require 'em_test_helper'
 require 'socket'
-require 'test/unit'
 
 class TestBasic < Test::Unit::TestCase
+  def setup
+    @port = next_port
+  end
+
   def test_connection_class_cache
     mod = Module.new
     a, b = nil, nil
     EM.run {
-      EM.start_server '127.0.0.1', 9999, mod
-      a = EM.connect '127.0.0.1', 9999, mod
-      b = EM.connect '127.0.0.1', 9999, mod
+      EM.start_server '127.0.0.1', @port, mod
+      a = EM.connect '127.0.0.1', @port, mod
+      b = EM.connect '127.0.0.1', @port, mod
       EM.stop
     }
     assert_equal a.class, b.class
@@ -47,23 +23,29 @@ class TestBasic < Test::Unit::TestCase
 
 
   def test_em
-    EventMachine.run {
-      EventMachine.add_timer 0 do
-        EventMachine.stop
-      end
-    }
+    assert_nothing_raised do
+      EM.run {
+        setup_timeout
+        EM.add_timer 0 do
+          EM.stop
+        end
+      }
+    end
   end
 
   #-------------------------------------
 
   def test_timer
-    n = 0
-    EventMachine.run {
-      EventMachine.add_periodic_timer(0.1) {
-        n += 1
-        EventMachine.stop if n == 2
+    assert_nothing_raised do
+      EM.run {
+        setup_timeout
+        n = 0
+        EM.add_periodic_timer(0.1) {
+          n += 1
+          EM.stop if n == 2
+        }
       }
-    }
+    end
   end
 
   #-------------------------------------
@@ -71,22 +53,24 @@ class TestBasic < Test::Unit::TestCase
   # This test once threw an already-running exception.
   module Trivial
     def post_init
-      EventMachine.stop
+      EM.stop
     end
   end
 
   def test_server
-    EventMachine.run {
-      EventMachine.start_server "localhost", 9000, Trivial
-      EventMachine.connect "localhost", 9000
-    }
-    assert( true ) # make sure it halts
+    assert_nothing_raised do
+      EM.run {
+        setup_timeout
+        EM.start_server "127.0.0.1", @port, Trivial
+        EM.connect "127.0.0.1", @port
+      }
+    end
   end
 
   #--------------------------------------
 
-  # EventMachine#run_block starts the reactor loop, runs the supplied block, and then STOPS
-  # the loop automatically. Contrast with EventMachine#run, which keeps running the reactor
+  # EM#run_block starts the reactor loop, runs the supplied block, and then STOPS
+  # the loop automatically. Contrast with EM#run, which keeps running the reactor
   # even after the supplied block completes.
   def test_run_block
     assert !EM.reactor_running?
@@ -95,9 +79,6 @@ class TestBasic < Test::Unit::TestCase
     assert a
     assert !EM.reactor_running?
   end
-
-  TestHost = "127.0.0.1"
-  TestPort = 9070
 
   class UnbindError < EM::Connection
     ERR = Class.new(StandardError)
@@ -115,8 +96,8 @@ class TestBasic < Test::Unit::TestCase
   def test_unbind_error
     assert_raises( UnbindError::ERR ) {
       EM.run {
-        EM.start_server TestHost, TestPort
-        EM.connect TestHost, TestPort, UnbindError
+        EM.start_server "127.0.0.1", @port
+        EM.connect "127.0.0.1", @port, UnbindError
       }
     }
   end
@@ -136,22 +117,13 @@ class TestBasic < Test::Unit::TestCase
     end
   end
 
-  def setup_timeout(timeout = 4)
-    EM.schedule {
-      start_time = EM.current_time
-      EM.add_periodic_timer(0.01) {
-        raise "timeout" if EM.current_time - start_time >= timeout
-      }
-    }
-  end
-
   # From ticket #50
   def test_byte_range_send
     $received = ''
     $sent = (0..255).to_a.pack('C*')
     EM::run {
-      EM::start_server TestHost, TestPort, BrsTestSrv
-      EM::connect TestHost, TestPort, BrsTestCli
+      EM::start_server "127.0.0.1", @port, BrsTestSrv
+      EM::connect "127.0.0.1", @port, BrsTestCli
 
       setup_timeout
     }
@@ -161,22 +133,27 @@ class TestBasic < Test::Unit::TestCase
   def test_bind_connect
     local_ip = UDPSocket.open {|s| s.connect('google.com', 80); s.addr.last }
 
-    bind_port = rand(33333)+1025
+    bind_port = next_port
 
-    test = self
-    EM.run do
-      EM.start_server(TestHost, TestPort, Module.new do
-        define_method :post_init do
-          begin
-            test.assert_equal bind_port, Socket.unpack_sockaddr_in(get_peername).first
-            test.assert_equal local_ip, Socket.unpack_sockaddr_in(get_peername).last
-          ensure
-            EM.stop_event_loop
-          end
+    port, ip = nil
+    bound_server = Module.new do
+      define_method :post_init do
+        begin
+          port, ip = Socket.unpack_sockaddr_in(get_peername)
+        ensure
+          EM.stop
         end
-      end)
-      EM.bind_connect local_ip, bind_port, TestHost, TestPort
+      end
     end
+
+    EM.run do
+      setup_timeout
+      EM.start_server "127.0.0.1", @port, bound_server
+      EM.bind_connect local_ip, bind_port, "127.0.0.1", @port
+    end
+
+    assert_equal bind_port, port
+    assert_equal local_ip, ip
   end
 
   def test_reactor_thread?
@@ -196,21 +173,24 @@ class TestBasic < Test::Unit::TestCase
   
   def test_schedule_from_thread
     x = false
-    assert !x
     EM.run do
       Thread.new { EM.schedule { x = true; EM.stop } }.join
     end
     assert x
   end
 
-  def test_set_heartbeat_interval
-    interval = 0.5
-    EM.run {
-      EM.set_heartbeat_interval interval
-      $interval = EM.get_heartbeat_interval
-      EM.stop
-    }
-    assert_equal(interval, $interval)
+  if EM.respond_to? :set_heartbeat_interval
+    def test_set_heartbeat_interval
+      interval = 0.5
+      EM.run {
+        EM.set_heartbeat_interval interval
+        $interval = EM.get_heartbeat_interval
+        EM.stop
+      }
+      assert_equal(interval, $interval)
+    end
+  else
+    warn "EM.set_heartbeat_interval not implemented, skipping a test in #{__FILE__}"
   end
   
   module PostInitRaiser
@@ -221,11 +201,10 @@ class TestBasic < Test::Unit::TestCase
   end
   
   def test_bubble_errors_from_post_init
-    localhost, port = '127.0.0.1', 9000
     assert_raises(PostInitRaiser::ERR) do
       EM.run do
-        EM.start_server localhost, port
-        EM.connect localhost, port, PostInitRaiser
+        EM.start_server "127.0.0.1", @port
+        EM.connect "127.0.0.1", @port, PostInitRaiser
       end
     end
   end
@@ -238,11 +217,10 @@ class TestBasic < Test::Unit::TestCase
   end
   
   def test_bubble_errors_from_initialize
-    localhost, port = '127.0.0.1', 9000
     assert_raises(InitializeRaiser::ERR) do
       EM.run do
-        EM.start_server localhost, port
-        EM.connect localhost, port, InitializeRaiser
+        EM.start_server "127.0.0.1", @port
+        EM.connect "127.0.0.1", @port, InitializeRaiser
       end
     end
   end
