@@ -38,7 +38,8 @@ import java.security.*;
 
 public class EmReactor implements EmReactorInterface
 {
-	public final int EM_TIMER_FIRED = 100;
+  private static final NullEventableChannel NULL_EVENTABLE_CHANNEL = new NullEventableChannel();
+  public final int EM_TIMER_FIRED = 100;
 	public final int EM_CONNECTION_READ = 101;
 	public final int EM_CONNECTION_UNBOUND = 102;
 	public final int EM_CONNECTION_ACCEPTED = 103;
@@ -127,7 +128,7 @@ public class EmReactor implements EmReactorInterface
 		while (iter2.hasNext()) {
 			long b = iter2.next();
 
-			EventableChannel ec = Connections.get(b);
+			EventableChannel ec = getConnection(b);
 			if (ec != null) {
 				try {
 					ec.register();
@@ -432,15 +433,25 @@ public class EmReactor implements EmReactorInterface
 	}
 
 	public void sendData (long sig, ByteBuffer bb) throws IOException {
-		Connections.get(sig).scheduleOutboundData( bb );
+		getConnection(sig).scheduleOutboundData(bb);
 	}
 
-	public void sendData (long sig, byte[] data) throws IOException {
+  private EventableChannel getConnection(long sig)
+  {
+    EventableChannel channel = Connections.get(sig);
+    if (channel == null)
+    {
+      channel = NULL_EVENTABLE_CHANNEL;
+    }
+    return channel;
+  }
+
+  public void sendData (long sig, byte[] data) throws IOException {
 		sendData (sig, ByteBuffer.wrap(data));
 	}
 
 	public void setCommInactivityTimeout (long sig, long mills) {
-		Connections.get(sig).setCommInactivityTimeout (mills);
+		getConnection(sig).setCommInactivityTimeout(mills);
 	}
 
 	public void sendDatagram (long sig, String data, int length, String recipAddress, int recipPort) {
@@ -448,7 +459,7 @@ public class EmReactor implements EmReactorInterface
 	}
 
 	public void sendDatagram (long sig, ByteBuffer bb, String recipAddress, int recipPort) {
-		(Connections.get(sig)).scheduleOutboundDatagram( bb, recipAddress, recipPort);
+		(getConnection(sig)).scheduleOutboundDatagram( bb, recipAddress, recipPort);
 	}
 
 	public long connectTcpServer (String address, int port) {
@@ -495,7 +506,7 @@ public class EmReactor implements EmReactorInterface
 	}
 
 	public void closeConnection (long sig, boolean afterWriting) {
-		EventableChannel ec = Connections.get(sig);
+		EventableChannel ec = getConnection(sig);
 		if (ec != null)
 			if (ec.scheduleClose (afterWriting))
 				UnboundConnections.add (sig);
@@ -512,7 +523,7 @@ public class EmReactor implements EmReactorInterface
 	}
 
 	public void startTls (long sig) throws NoSuchAlgorithmException, KeyManagementException {
-		Connections.get(sig).startTls();
+		getConnection(sig).startTls();
 	}
 
 	public void setTimerQuantum (int mills) {
@@ -522,7 +533,7 @@ public class EmReactor implements EmReactorInterface
 	}
 
 	public Object[] getPeerName (long sig) {
-		return Connections.get(sig).getPeerName();
+		return getConnection(sig).getPeerName();
 	}
 
 	public long attachChannel (SocketChannel sc, boolean watch_mode) {
@@ -541,7 +552,7 @@ public class EmReactor implements EmReactorInterface
 	}
 
 	public SocketChannel detachChannel (long sig) {
-		EventableSocketChannel ec = (EventableSocketChannel) Connections.get (sig);
+		EventableSocketChannel ec = (EventableSocketChannel) getConnection(sig);
 		if (ec != null) {
 			UnboundConnections.add (sig);
 			return ec.getChannel();
@@ -551,19 +562,19 @@ public class EmReactor implements EmReactorInterface
 	}
 
 	public void setNotifyReadable (long sig, boolean mode) {
-		((EventableSocketChannel) Connections.get(sig)).setNotifyReadable(mode);
+		((EventableSocketChannel) getConnection(sig)).setNotifyReadable(mode);
 	}
 
 	public void setNotifyWritable (long sig, boolean mode) {
-		((EventableSocketChannel) Connections.get(sig)).setNotifyWritable(mode);
+		((EventableSocketChannel) getConnection(sig)).setNotifyWritable(mode);
 	}
 
 	public boolean isNotifyReadable (long sig) {
-		return Connections.get(sig).isNotifyReadable();
+		return getConnection(sig).isNotifyReadable();
 	}
 
 	public boolean isNotifyWritable (long sig) {
-		return Connections.get(sig).isNotifyWritable();
+		return getConnection(sig).isNotifyWritable();
 	}
 
 	public int getConnectionCount() {
