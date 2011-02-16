@@ -1393,12 +1393,11 @@ void AcceptorDescriptor::Heartbeat()
 AcceptorDescriptor::GetSockname
 *******************************/
 
-bool AcceptorDescriptor::GetSockname (struct sockaddr *s)
+bool AcceptorDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		socklen_t len = sizeof(*s);
-		int gp = getsockname (GetSocket(), s, &len);
+		int gp = getsockname (GetSocket(), s, len);
 		if (gp == 0)
 			ok = true;
 	}
@@ -1716,12 +1715,11 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 ConnectionDescriptor::GetPeername
 *********************************/
 
-bool ConnectionDescriptor::GetPeername (struct sockaddr *s)
+bool ConnectionDescriptor::GetPeername (struct sockaddr *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		socklen_t len = sizeof(*s);
-		int gp = getpeername (GetSocket(), s, &len);
+		int gp = getpeername (GetSocket(), s, len);
 		if (gp == 0)
 			ok = true;
 	}
@@ -1732,12 +1730,11 @@ bool ConnectionDescriptor::GetPeername (struct sockaddr *s)
 ConnectionDescriptor::GetSockname
 *********************************/
 
-bool ConnectionDescriptor::GetSockname (struct sockaddr *s)
+bool ConnectionDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		socklen_t len = sizeof(*s);
-		int gp = getsockname (GetSocket(), s, &len);
+		int gp = getsockname (GetSocket(), s, len);
 		if (gp == 0)
 			ok = true;
 	}
@@ -1770,10 +1767,11 @@ int ConnectionDescriptor::SetCommInactivityTimeout (uint64_t value)
 DatagramDescriptor::GetPeername
 *******************************/
 
-bool DatagramDescriptor::GetPeername (struct sockaddr *s)
+bool DatagramDescriptor::GetPeername (struct sockaddr *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
+		*len = sizeof(struct sockaddr);
 		memset (s, 0, sizeof(struct sockaddr));
 		memcpy (s, &ReturnAddress, sizeof(ReturnAddress));
 		ok = true;
@@ -1785,12 +1783,11 @@ bool DatagramDescriptor::GetPeername (struct sockaddr *s)
 DatagramDescriptor::GetSockname
 *******************************/
 
-bool DatagramDescriptor::GetSockname (struct sockaddr *s)
+bool DatagramDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		socklen_t len = sizeof(*s);
-		int gp = getsockname (GetSocket(), s, &len);
+		int gp = getsockname (GetSocket(), s, len);
 		if (gp == 0)
 			ok = true;
 	}
