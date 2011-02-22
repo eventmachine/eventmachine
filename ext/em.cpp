@@ -585,6 +585,10 @@ bool EventMachine_t::_RunKqueueOnce()
 
 	timeval tv = _TimeTilNextEvent();
 
+	struct timespec ts;
+	ts.tv_sec = tv.tv_sec;
+	ts.tv_nsec = tv.tv_usec * 1000;
+
 	#ifdef BUILD_FOR_RUBY
 	int ret = 0;
 	fd_set fdreads;
@@ -601,12 +605,10 @@ bool EventMachine_t::_RunKqueueOnce()
 	}
 
 	TRAP_BEG;
-	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, NULL);
+	ts.tv_sec = ts.tv_nsec = 0;
+	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, &ts);
 	TRAP_END;
 	#else
-	struct timespec ts;
-	ts.tv_sec = tv.tv_sec;
-	ts.tv_nsec = tv.tv_usec * 1000;
 	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, &ts);
 	#endif
 
