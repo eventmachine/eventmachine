@@ -56,7 +56,7 @@ class EventableDescriptor: public Bindable_t
 		bool ShouldDelete();
 		// Do we have any data to write? This is used by ShouldDelete.
 		virtual int GetOutboundDataSize() {return 0;}
-		virtual bool IsWatchOnly(){ return false; }
+		virtual bool IsWatchOnly(){ return bWatchOnly; }
 
 		virtual void ScheduleClose (bool after_writing);
 		bool IsCloseScheduled();
@@ -102,6 +102,7 @@ class EventableDescriptor: public Bindable_t
 
 	protected:
 		int MySocket;
+		bool bWatchOnly;
 
 		EMCallback EventCallback;
 		void _GenericInboundDispatch(const char*, int);
@@ -174,7 +175,6 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		bool IsNotifyReadable(){ return bNotifyReadable; }
 		bool IsNotifyWritable(){ return bNotifyWritable; }
-		virtual bool IsWatchOnly(){ return bWatchOnly; }
 
 		virtual void Read();
 		virtual void Write();
@@ -221,7 +221,6 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		bool bNotifyReadable;
 		bool bNotifyWritable;
-		bool bWatchOnly;
 
 		bool bReadAttemptedAfterClose;
 		bool bWriteAttemptedAfterClose;

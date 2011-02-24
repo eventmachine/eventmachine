@@ -54,6 +54,7 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	bCloseNow (false),
 	bCloseAfterWriting (false),
 	MySocket (sd),
+	bWatchOnly (false),
 	EventCallback (NULL),
 	bCallbackUnbind (true),
 	UnbindReasonCode (0),
@@ -135,7 +136,7 @@ EventableDescriptor::Close
 void EventableDescriptor::Close()
 {
 	// Close the socket right now. Intended for emergencies.
-	if (MySocket != INVALID_SOCKET) {
+	if (MySocket != INVALID_SOCKET && !bWatchOnly) {
 		shutdown (MySocket, 1);
 		close (MySocket);
 		MySocket = INVALID_SOCKET;
@@ -322,7 +323,6 @@ ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	bConnectPending (false),
 	bNotifyReadable (false),
 	bNotifyWritable (false),
-	bWatchOnly (false),
 	bReadAttemptedAfterClose (false),
 	bWriteAttemptedAfterClose (false),
 	OutboundDataSize (0),
