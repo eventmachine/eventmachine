@@ -442,8 +442,8 @@ public class EmReactor {
 		Connections.get(sig).setCommInactivityTimeout (mills);
 	}
 
-	public void sendDatagram (long sig, String data, int length, String recipAddress, int recipPort) {
-		sendDatagram (sig, ByteBuffer.wrap(data.getBytes()), recipAddress, recipPort);
+	public void sendDatagram (long sig, byte[] data, int length, String recipAddress, int recipPort) {
+		sendDatagram (sig, ByteBuffer.wrap(data), recipAddress, recipPort);
 	}
 
 	public void sendDatagram (long sig, ByteBuffer bb, String recipAddress, int recipPort) {
