@@ -53,7 +53,6 @@ module EventMachine
     # HEAD requests.
     # Chunked transfer encoding.
     # Convenience methods for requests. get, post, url, etc.
-    # SSL.
     # Handle status codes like 304, 100, etc.
     # Refactor this code so that protocol errors all get handled one way (an exception?),
     # instead of sprinkling set_deferred_status :failed calls everywhere.
