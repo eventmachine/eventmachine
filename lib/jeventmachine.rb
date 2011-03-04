@@ -118,7 +118,7 @@ module EventMachine
     @em.sendData sig, data.to_java_bytes
   end
   def self.send_datagram sig, data, length, address, port
-    @em.sendDatagram sig, data, length, address, port
+    @em.sendDatagram sig, data.to_java_bytes, length, address, port
   end
   def self.connect_server server, port
     bind_connect_server nil, nil, server, port
