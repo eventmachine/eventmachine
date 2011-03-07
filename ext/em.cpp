@@ -309,6 +309,11 @@ void EventMachine_t::_InitializeLoopBreaker()
 	LoopBreakerWriter = fd[1];
 	LoopBreakerReader = fd[0];
 
+	int writeFlags = fcntl (LoopBreakerWriter, F_GETFD, 0);
+	fcntl(LoopBreakerWriter, F_SETFD, writeFlags | FD_CLOEXEC);
+	int readFlags = fcntl (LoopBreakerReader, F_GETFD, 0);
+	fcntl(LoopBreakerReader, F_SETFD, readFlags | FD_CLOEXEC);
+
 	/* 16Jan11: Make sure the pipe is non-blocking, so more than 65k loopbreaks
 	 * in one tick do not fill up the pipe and block the process on write() */
 	SetSocketNonblocking (LoopBreakerWriter);
