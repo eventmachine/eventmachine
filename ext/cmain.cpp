@@ -806,6 +806,45 @@ extern "C" int evma_get_outbound_data_size (const uintptr_t binding)
 	return ed ? ed->GetOutboundDataSize() : 0;
 }
 
+/*********************
+evma_enable_keepalive
+*********************/
+
+extern "C" int evma_enable_keepalive (const unsigned long binding, int idle, int intvl, int cnt)
+{
+	ensure_eventmachine("evma_enable_keepalive");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+        if (ed) {
+		int res = ed->EnableKeepalive(idle, intvl, cnt);
+		if (res < 0)
+			rb_raise(rb_eRuntimeError, "Could not enable keepalive: %s", strerror(errno));
+		return res;
+	} else {
+		rb_raise(rb_eRuntimeError, "Attempted to enable keepalive on invalid binding");
+		// dead code
+		return -1;
+	}
+}
+
+/**********************
+evma_disable_keepalive
+**********************/
+
+extern "C" int evma_disable_keepalive (const unsigned long binding)
+{
+	ensure_eventmachine("evma_disable_keepalive");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+        if (ed) {
+		int res = ed->DisableKeepalive();
+		if (res < 0)
+			rb_raise(rb_eRuntimeError, "Could not disable keepalive: %s", strerror(errno));
+		return res;
+	} else {
+		rb_raise(rb_eRuntimeError, "Attempted to disable keepalive on invalid binding");
+		// dead code
+		return -1;
+	}
+}
 
 /**************
 evma_set_epoll

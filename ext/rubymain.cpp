@@ -1251,6 +1251,29 @@ static VALUE conn_associate_callback_target (VALUE self UNUSED, VALUE sig UNUSED
 }
 
 
+/******************
+t_enable_keepalive
+******************/
+
+static VALUE t_enable_keepalive (VALUE self, VALUE idle, VALUE intvl, VALUE cnt)
+{
+  VALUE sig = rb_ivar_get (self, Intern_at_signature);
+  int i_idle = NUM2INT(idle);
+  int i_intvl = NUM2INT(intvl);
+  int i_cnt = NUM2INT(cnt);
+  return INT2NUM (evma_enable_keepalive(NUM2ULONG(sig), i_idle, i_intvl, i_cnt));
+}
+
+/******************
+t_disable_keepalive
+******************/
+
+static VALUE t_disable_keepalive (VALUE self)
+{
+  VALUE sig = rb_ivar_get (self, Intern_at_signature);
+  return INT2NUM (evma_disable_keepalive(NUM2ULONG(sig)));
+}
+
 /***************
 t_get_loop_time
 ****************/
@@ -1499,6 +1522,8 @@ extern "C" void Init_rubyeventmachine()
 
 	rb_define_method (EmConnection, "get_outbound_data_size", (VALUE(*)(...))conn_get_outbound_data_size, 0);
 	rb_define_method (EmConnection, "associate_callback_target", (VALUE(*)(...))conn_associate_callback_target, 1);
+	rb_define_method (EmConnection, "enable_keepalive", (VALUE(*)(...))t_enable_keepalive, 3);
+	rb_define_method (EmConnection, "disable_keepalive", (VALUE(*)(...))t_disable_keepalive, 0);
 
 	// Connection states
 	rb_define_const (EmModule, "TimerFired",               INT2NUM(EM_TIMER_FIRED               ));
