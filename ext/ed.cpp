@@ -236,6 +236,39 @@ bool EventableDescriptor::IsCloseScheduled()
 }
 
 
+/***********************************
+EventableDescriptor::EnableKeepalive
+***********************************/
+
+int EventableDescriptor::EnableKeepalive(int idle, int intvl, int cnt)
+{
+	int ret;
+	int val = 1;
+	// interval between last data pkt and first keepalive pkt
+	if ((ret = setsockopt(MySocket, SOL_TCP, TCP_KEEPIDLE, &idle, sizeof(idle))) < 0)
+		goto done;
+	// interval between keepalives
+	if ((ret = setsockopt(MySocket, SOL_TCP, TCP_KEEPINTVL, &intvl, sizeof(intvl))) < 0)
+		goto done;
+	// number of dropped probes before disconnect
+	if ((ret = setsockopt(MySocket, SOL_TCP, TCP_KEEPCNT, &cnt, sizeof(cnt))) < 0)
+		goto done;
+	if ((ret = setsockopt(MySocket, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val))) < 0)
+		goto done;
+done:
+	return ret;
+}
+
+/***********************************
+EventableDescriptor::DisableKeepalive
+***********************************/
+int EventableDescriptor::DisableKeepalive()
+{
+	int val = 0;
+	return setsockopt(MySocket, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val));
+}
+
+
 /*******************************
 EventableDescriptor::StartProxy
 *******************************/
