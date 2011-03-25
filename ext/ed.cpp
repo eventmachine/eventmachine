@@ -242,7 +242,8 @@ EventableDescriptor::EnableKeepalive
 
 int EventableDescriptor::EnableKeepalive(int idle, int intvl, int cnt)
 {
-	int ret;
+	int ret = 0;
+#ifdef SOL_TCP
 	int val = 1;
 	// interval between last data pkt and first keepalive pkt
 	if ((ret = setsockopt(MySocket, SOL_TCP, TCP_KEEPIDLE, &idle, sizeof(idle))) < 0)
@@ -255,6 +256,7 @@ int EventableDescriptor::EnableKeepalive(int idle, int intvl, int cnt)
 		goto done;
 	if ((ret = setsockopt(MySocket, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val))) < 0)
 		goto done;
+#endif
 done:
 	return ret;
 }
@@ -1440,7 +1442,11 @@ void AcceptorDescriptor::Read()
 	socklen_t addrlen = sizeof (pin);
 
 	for (int i=0; i < 10; i++) {
-		int sd = accept4 (GetSocket(), (struct sockaddr*)&pin, &addrlen, SOCK_CLOEXEC);
+#ifdef HAVE_SOCK_CLOEXEC
+		int sd = EM_ACCEPT(GetSocket(), (struct sockaddr*)&pin, &addrlen, EM_CLOEXEC);
+#else
+		int sd = EM_ACCEPT(GetSocket(), (struct sockaddr*)&pin, &addrlen);
+#endif
 		if (sd == INVALID_SOCKET) {
 			// This breaks the loop when we've accepted everything on the kernel queue,
 			// up to 10 new connections. But what if the *first* accept fails?
