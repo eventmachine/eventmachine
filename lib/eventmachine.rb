@@ -134,7 +134,13 @@ module EventMachine
   @reactor_running = false
   @next_tick_queue = []
   @threadpool = nil
-  
+
+  # System errnos
+  ERRNOS = Errno::constants.grep(/^E/).inject(Hash.new(:unknown)) { |hash, name|
+    errno = Errno.send(:const_get, name)
+    hash[errno::Errno] = errno
+    hash
+  }
 
   # EventMachine::run initializes and runs an event loop.
   # This method only returns if user-callback code calls stop_event_loop.
@@ -1363,7 +1369,11 @@ module EventMachine
     if opcode == ConnectionUnbound
       if c = @conns.delete( conn_binding )
         begin
-          c.unbind
+          if c.method(:unbind).arity == 1
+            c.unbind(data == 0 ? nil : EventMachine::ERRNOS[data])
+          else
+            c.unbind
+          end
         rescue
           @wrapped_exception = $!
           stop

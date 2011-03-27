@@ -233,9 +233,16 @@ module EventMachine
     # it's useful to check the status of the connection using #error? before attempting to send data.
     # This function is synchronous: it will return immediately without blocking.
     #
-    #
     def error?
-      EventMachine::report_connection_error_status(@signature) != 0
+      errno = EventMachine::report_connection_error_status(@signature)
+      case errno
+      when 0
+        false
+      when -1
+        true
+      else
+        EventMachine::ERRNOS[errno]
+      end
     end
 
     # #connection_completed is called by the event loop when a remote TCP connection

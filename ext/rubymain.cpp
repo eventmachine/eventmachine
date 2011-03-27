@@ -95,9 +95,13 @@ static inline void event_callback (struct em_event* e)
 			return;
 		}
 		case EM_CONNECTION_ACCEPTED:
+		{
+			rb_funcall (EmModule, Intern_event_callback, 3, ULONG2NUM(signature), INT2FIX(event), ULONG2NUM(data_num));
+			return;
+		}
 		case EM_CONNECTION_UNBOUND:
 		{
-			rb_funcall (EmModule, Intern_event_callback, 3, ULONG2NUM(signature), INT2FIX(event), data_str ? rb_str_new(data_str,data_num) : ULONG2NUM(data_num));
+			rb_funcall (EmModule, Intern_event_callback, 3, ULONG2NUM(signature), INT2FIX(event), ULONG2NUM(data_num));
 			return;
 		}
 		case EM_CONNECTION_COMPLETED:

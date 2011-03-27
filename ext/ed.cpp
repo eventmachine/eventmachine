@@ -703,6 +703,7 @@ void ConnectionDescriptor::Read()
 		
 
 		int r = read (sd, readbuffer, sizeof(readbuffer) - 1);
+		int e = errno;
 		//cerr << "<R:" << r << ">";
 
 		if (r > 0) {
@@ -721,8 +722,21 @@ void ConnectionDescriptor::Read()
 			break;
 		}
 		else {
-			// Basically a would-block, meaning we've read everything there is to read.
-			break;
+			#ifdef OS_UNIX
+			if ((e != EINPROGRESS) && (e != EWOULDBLOCK) && (e != EAGAIN) && (e != EINTR)) {
+			#endif
+			#ifdef OS_WIN32
+			if ((e != WSAEINPROGRESS) && (e != WSAEWOULDBLOCK)) {
+			#endif
+				// 26Mar11: Previously, all read errors were assumed to be EWOULDBLOCK and ignored.
+				// Now, instead, we call Close() on errors like ECONNRESET and ENOTCONN.
+				UnbindReasonCode = e;
+				Close();
+				break;
+			} else {
+				// Basically a would-block, meaning we've read everything there is to read.
+				break;
+			}
 		}
 
 	}
@@ -831,9 +845,12 @@ void ConnectionDescriptor::Write()
 			// from EventMachine_t::AttachFD as well.
 			SetConnectPending (false);
 		}
-		else
+		else {
+			if (o == 0)
+				UnbindReasonCode = error;
 			ScheduleClose (false);
 			//bCloseNow = true;
+		}
 	}
 	else {
 
@@ -953,6 +970,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 	#endif
 
 	bool err = false;
+	int e = errno;
 	if (bytes_written < 0) {
 		err = true;
 		bytes_written = 0;
@@ -1003,12 +1021,14 @@ void ConnectionDescriptor::_WriteOutboundData()
 
 	if (err) {
 		#ifdef OS_UNIX
-		if ((errno != EINPROGRESS) && (errno != EWOULDBLOCK) && (errno != EINTR))
+		if ((e != EINPROGRESS) && (e != EWOULDBLOCK) && (e != EINTR)) {
 		#endif
 		#ifdef OS_WIN32
-		if ((errno != WSAEINPROGRESS) && (errno != WSAEWOULDBLOCK))
+		if ((e != WSAEINPROGRESS) && (e != WSAEWOULDBLOCK)) {
 		#endif
+			UnbindReasonCode = e;
 			Close();
+		}
 	}
 }
 
@@ -1019,6 +1039,10 @@ ConnectionDescriptor::ReportErrorStatus
 
 int ConnectionDescriptor::ReportErrorStatus()
 {
+	if (MySocket == INVALID_SOCKET) {
+		return -1;
+	}
+
 	int error;
 	socklen_t len;
 	len = sizeof(error);
@@ -1030,8 +1054,10 @@ int ConnectionDescriptor::ReportErrorStatus()
 	#endif
 	if ((o == 0) && (error == 0))
 		return 0;
+	else if (o == 0)
+		return error;
 	else
-		return 1;
+		return -1;
 }
 
 
@@ -1199,11 +1225,13 @@ void ConnectionDescriptor::Heartbeat()
 
 	if (bConnectPending) {
 		if ((MyEventMachine->GetCurrentLoopTime() - CreatedAt) >= PendingConnectTimeout)
+			UnbindReasonCode = ETIMEDOUT;
 			ScheduleClose (false);
 			//bCloseNow = true;
 	}
 	else {
 		if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout))
+			UnbindReasonCode = ETIMEDOUT;
 			ScheduleClose (false);
 			//bCloseNow = true;
 	}
@@ -1582,6 +1610,7 @@ void DatagramDescriptor::Write()
 			#ifdef OS_WIN32
 			if ((e != WSAEINPROGRESS) && (e != WSAEWOULDBLOCK)) {
 			#endif
+				UnbindReasonCode = e;
 				Close();
 				break;
 			}

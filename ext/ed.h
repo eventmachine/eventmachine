@@ -92,6 +92,7 @@ class EventableDescriptor: public Bindable_t
 		virtual bool Pause(){ return false; }
 		virtual bool Resume(){ return false; }
 
+		void SetUnbindReasonCode(int code){ UnbindReasonCode = code; }
 		virtual int ReportErrorStatus(){ return 0; }
 		virtual bool IsConnectPending(){ return false; }
 		virtual uint64_t GetNextHeartbeat();

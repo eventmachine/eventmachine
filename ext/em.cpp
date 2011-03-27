@@ -1150,6 +1150,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	}
 
 	unsigned long out = 0;
+	int e = 0;
 
 	#ifdef OS_UNIX
 	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
@@ -1183,7 +1184,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	else if (errno == EINPROGRESS) {
 		// Errno will generally always be EINPROGRESS, but on Linux
 		// we have to look at getsockopt to be sure what really happened.
-		int error;
+		int error = 0;
 		socklen_t len;
 		len = sizeof(error);
 		int o = getsockopt (sd, SOL_SOCKET, SO_ERROR, &error, &len);
@@ -1197,11 +1198,15 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 			cd->SetConnectPending (true);
 			Add (cd);
 			out = cd->GetBinding();
+		} else {
+			// Fall through to the !out case below.
+			e = error;
 		}
 	}
 	else {
 		// The error from connect was something other then EINPROGRESS (EHOSTDOWN, etc).
 		// Fall through to the !out case below
+		e = errno;
 	}
 
 	if (!out) {
@@ -1220,6 +1225,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, this);
 		if (!cd)
 			throw std::runtime_error ("no connection allocated");
+		cd->SetUnbindReasonCode(e);
 		cd->ScheduleClose (false);
 		Add (cd);
 		out = cd->GetBinding();
