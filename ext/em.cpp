@@ -1096,34 +1096,6 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		throw std::runtime_error (buf);
 	}
 
-	/*
-	sockaddr_in pin;
-	unsigned long HostAddr;
-
-	HostAddr = inet_addr (server);
-	if (HostAddr == INADDR_NONE) {
-		hostent *hp = gethostbyname ((char*)server); // Windows requires (char*)
-		if (!hp) {
-			// TODO: This gives the caller a fatal error. Not good.
-			// They can respond by catching RuntimeError (blecch).
-			// Possibly we need to fire an unbind event and provide
-			// a status code so user code can detect the cause of the
-			// failure.
-			return NULL;
-		}
-		HostAddr = ((in_addr*)(hp->h_addr))->s_addr;
-	}
-
-	memset (&pin, 0, sizeof(pin));
-	pin.sin_family = AF_INET;
-	pin.sin_addr.s_addr = HostAddr;
-	pin.sin_port = htons (port);
-
-	int sd = socket (AF_INET, SOCK_STREAM, 0);
-	if (sd == INVALID_SOCKET)
-		return NULL;
-	*/
-
 	// From here on, ALL error returns must close the socket.
 	// Set the new socket nonblocking.
 	if (!SetSocketNonblocking (sd)) {
@@ -1531,25 +1503,6 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	if (sd_accept == INVALID_SOCKET) {
 		goto fail;
 	}
-
-	/*
-	memset (&sin, 0, sizeof(sin));
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = INADDR_ANY;
-	sin.sin_port = htons (port);
-
-	if (server && *server) {
-		sin.sin_addr.s_addr = inet_addr (server);
-		if (sin.sin_addr.s_addr == INADDR_NONE) {
-			hostent *hp = gethostbyname ((char*)server); // Windows requires the cast.
-			if (hp == NULL) {
-				//__warning ("hostname not resolved: ", server);
-				goto fail;
-			}
-			sin.sin_addr.s_addr = ((in_addr*)(hp->h_addr))->s_addr;
-		}
-	}
-	*/
 
 	{ // set reuseaddr to improve performance on restarts.
 		int oval = 1;
