@@ -1,6 +1,6 @@
 require 'em_test_helper'
 
-class TestBasic < Test::Unit::TestCase
+class TestResolver < Test::Unit::TestCase
   def test_a
     EM.run {
       d = EM::DNS::Resolver.resolve "google.com"
