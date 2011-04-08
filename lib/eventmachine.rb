@@ -12,7 +12,7 @@ else
   end
 end
 
-require "em/version"
+require 'em/version'
 require 'em/deferrable'
 require 'em/future'
 require 'em/streamer'
@@ -29,9 +29,11 @@ require 'em/channel'
 require 'em/file_watch'
 require 'em/process_watch'
 require 'em/tick_loop'
+require 'em/resolver'
 
 require 'shellwords'
 require 'thread'
+require 'resolv'
 
 # == Introduction
 # EventMachine provides a fast, lightweight framework for implementing
@@ -132,7 +134,13 @@ module EventMachine
   @reactor_running = false
   @next_tick_queue = []
   @threadpool = nil
-  
+
+  # System errnos
+  ERRNOS = Errno::constants.grep(/^E/).inject(Hash.new(:unknown)) { |hash, name|
+    errno = Errno.send(:const_get, name)
+    hash[errno::Errno] = errno
+    hash
+  }
 
   # EventMachine::run initializes and runs an event loop.
   # This method only returns if user-callback code calls stop_event_loop.
@@ -1361,7 +1369,11 @@ module EventMachine
     if opcode == ConnectionUnbound
       if c = @conns.delete( conn_binding )
         begin
-          c.unbind
+          if c.method(:unbind).arity == 1
+            c.unbind(data == 0 ? nil : EventMachine::ERRNOS[data])
+          else
+            c.unbind
+          end
         rescue
           @wrapped_exception = $!
           stop
@@ -1373,7 +1385,7 @@ module EventMachine
           @wrapped_exception = $!
           EM.stop
         else
-          raise ConnectionNotBound, "recieved ConnectionUnbound for an unknown signature: #{conn_binding}"
+          raise ConnectionNotBound, "received ConnectionUnbound for an unknown signature: #{conn_binding}"
         end
       end
     elsif opcode == ConnectionAccepted

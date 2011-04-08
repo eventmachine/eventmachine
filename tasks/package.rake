@@ -24,10 +24,12 @@ else
 
   Rake::ExtensionTask.new("rubyeventmachine", GEMSPEC) do |ext|
     ext.ext_dir = 'ext'
+    ext.source_pattern = '*.{h,c,cpp}'
     setup_cross_compilation(ext)
   end
   Rake::ExtensionTask.new("fastfilereaderext", GEMSPEC) do |ext|
     ext.ext_dir = 'ext/fastfilereader'
+    ext.source_pattern = '*.{h,c,cpp}'
     setup_cross_compilation(ext)
   end
 end

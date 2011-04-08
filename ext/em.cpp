@@ -308,6 +308,10 @@ void EventMachine_t::_InitializeLoopBreaker()
 
 	LoopBreakerWriter = fd[1];
 	LoopBreakerReader = fd[0];
+
+	/* 16Jan11: Make sure the pipe is non-blocking, so more than 65k loopbreaks
+	 * in one tick do not fill up the pipe and block the process on write() */
+	SetSocketNonblocking (LoopBreakerWriter);
 	#endif
 
 	#ifdef OS_WIN32
@@ -581,6 +585,10 @@ bool EventMachine_t::_RunKqueueOnce()
 
 	timeval tv = _TimeTilNextEvent();
 
+	struct timespec ts;
+	ts.tv_sec = tv.tv_sec;
+	ts.tv_nsec = tv.tv_usec * 1000;
+
 	#ifdef BUILD_FOR_RUBY
 	int ret = 0;
 	fd_set fdreads;
@@ -597,12 +605,10 @@ bool EventMachine_t::_RunKqueueOnce()
 	}
 
 	TRAP_BEG;
-	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, NULL);
+	ts.tv_sec = ts.tv_nsec = 0;
+	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, &ts);
 	TRAP_END;
 	#else
-	struct timespec ts;
-	ts.tv_sec = tv.tv_sec;
-	ts.tv_nsec = tv.tv_usec * 1000;
 	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, &ts);
 	#endif
 
@@ -1090,34 +1096,6 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		throw std::runtime_error (buf);
 	}
 
-	/*
-	sockaddr_in pin;
-	unsigned long HostAddr;
-
-	HostAddr = inet_addr (server);
-	if (HostAddr == INADDR_NONE) {
-		hostent *hp = gethostbyname ((char*)server); // Windows requires (char*)
-		if (!hp) {
-			// TODO: This gives the caller a fatal error. Not good.
-			// They can respond by catching RuntimeError (blecch).
-			// Possibly we need to fire an unbind event and provide
-			// a status code so user code can detect the cause of the
-			// failure.
-			return NULL;
-		}
-		HostAddr = ((in_addr*)(hp->h_addr))->s_addr;
-	}
-
-	memset (&pin, 0, sizeof(pin));
-	pin.sin_family = AF_INET;
-	pin.sin_addr.s_addr = HostAddr;
-	pin.sin_port = htons (port);
-
-	int sd = socket (AF_INET, SOCK_STREAM, 0);
-	if (sd == INVALID_SOCKET)
-		return NULL;
-	*/
-
 	// From here on, ALL error returns must close the socket.
 	// Set the new socket nonblocking.
 	if (!SetSocketNonblocking (sd)) {
@@ -1144,6 +1122,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	}
 
 	unsigned long out = 0;
+	int e = 0;
 
 	#ifdef OS_UNIX
 	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
@@ -1177,7 +1156,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	else if (errno == EINPROGRESS) {
 		// Errno will generally always be EINPROGRESS, but on Linux
 		// we have to look at getsockopt to be sure what really happened.
-		int error;
+		int error = 0;
 		socklen_t len;
 		len = sizeof(error);
 		int o = getsockopt (sd, SOL_SOCKET, SO_ERROR, &error, &len);
@@ -1191,11 +1170,15 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 			cd->SetConnectPending (true);
 			Add (cd);
 			out = cd->GetBinding();
+		} else {
+			// Fall through to the !out case below.
+			e = error;
 		}
 	}
 	else {
 		// The error from connect was something other then EINPROGRESS (EHOSTDOWN, etc).
 		// Fall through to the !out case below
+		e = errno;
 	}
 
 	if (!out) {
@@ -1214,6 +1197,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, this);
 		if (!cd)
 			throw std::runtime_error ("no connection allocated");
+		cd->SetUnbindReasonCode(e);
 		cd->ScheduleClose (false);
 		Add (cd);
 		out = cd->GetBinding();
@@ -1519,25 +1503,6 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	if (sd_accept == INVALID_SOCKET) {
 		goto fail;
 	}
-
-	/*
-	memset (&sin, 0, sizeof(sin));
-	sin.sin_family = AF_INET;
-	sin.sin_addr.s_addr = INADDR_ANY;
-	sin.sin_port = htons (port);
-
-	if (server && *server) {
-		sin.sin_addr.s_addr = inet_addr (server);
-		if (sin.sin_addr.s_addr == INADDR_NONE) {
-			hostent *hp = gethostbyname ((char*)server); // Windows requires the cast.
-			if (hp == NULL) {
-				//__warning ("hostname not resolved: ", server);
-				goto fail;
-			}
-			sin.sin_addr.s_addr = ((in_addr*)(hp->h_addr))->s_addr;
-		}
-	}
-	*/
 
 	{ // set reuseaddr to improve performance on restarts.
 		int oval = 1;

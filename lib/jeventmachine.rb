@@ -118,7 +118,7 @@ module EventMachine
     @em.sendData sig, data.to_java_bytes
   end
   def self.send_datagram sig, data, length, address, port
-    @em.sendDatagram sig, data, length, address, port
+    @em.sendDatagram sig, data.to_java_bytes, length, address, port
   end
   def self.connect_server server, port
     bind_connect_server nil, nil, server, port
@@ -131,6 +131,10 @@ module EventMachine
   end
   def self.set_comm_inactivity_timeout sig, interval
     @em.setCommInactivityTimeout sig, interval
+  end
+  def self.set_pending_connect_timeout sig, val
+  end
+  def self.set_heartbeat_interval val
   end
   def self.start_tls sig
     @em.startTls sig
@@ -247,6 +251,13 @@ module EventMachine
   end
   def self.get_connection_count
     @em.getConnectionCount
+  end
+
+  def self.set_tls_parms(sig, params)
+  end
+  def self.start_tls(sig)
+  end
+  def self.send_file_data(sig, filename)
   end
 
   class Connection

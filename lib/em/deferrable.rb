@@ -49,6 +49,7 @@ module EventMachine
         @callbacks ||= []
         @callbacks.unshift block # << block
       end
+      self
     end
 
     # Cancels an outstanding callback to &block if any. Undoes the action of #callback.
@@ -74,6 +75,7 @@ module EventMachine
         @errbacks ||= []
         @errbacks.unshift block # << block
       end
+      self
     end
 
     # Cancels an outstanding errback to &block if any. Undoes the action of #errback.
@@ -168,6 +170,7 @@ module EventMachine
       cancel_timeout
       me = self
       @deferred_timeout = EventMachine::Timer.new(seconds) {me.fail(*args)}
+      self
     end
 
     # Cancels an outstanding timeout if any. Undoes the action of #timeout.

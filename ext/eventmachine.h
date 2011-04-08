@@ -72,8 +72,8 @@ extern "C" {
 	void evma_accept_ssl_peer (const unsigned long binding);
 	#endif
 
-	int evma_get_peername (const unsigned long binding, struct sockaddr*);
-	int evma_get_sockname (const unsigned long binding, struct sockaddr*);
+	int evma_get_peername (const unsigned long binding, struct sockaddr*, socklen_t*);
+	int evma_get_sockname (const unsigned long binding, struct sockaddr*, socklen_t*);
 	int evma_get_subprocess_pid (const unsigned long binding, pid_t*);
 	int evma_get_subprocess_status (const unsigned long binding, int*);
 	int evma_get_connection_count();
