@@ -184,6 +184,10 @@ module EventMachine
       EventMachine::get_sock_opt @signature, level, option
     end
 
+    def set_sock_opt(level, option, value)
+      EventMachine::set_sock_opt(@signature, level, option, value)
+    end
+
     # EventMachine::Connection#close_connection_after_writing is a variant of close_connection.
     # All of the descriptive comments given for close_connection also apply to
     # close_connection_after_writing, <i>with one exception:</i> If the connection has

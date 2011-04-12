@@ -581,6 +581,24 @@ static VALUE t_get_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optna
 	return rb_str_new(buf, len);
 }
 
+/* Set socket option
+ *
+ * call-seq:
+ *    EM.set_sock_opt(connection, level, optname, value) => true
+ */
+static VALUE t_set_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optname, VALUE optval)
+{
+	int fd = evma_get_file_descriptor(NUM2ULONG(signature));
+	int level = NUM2INT(lev), option = NUM2INT(optname);
+	int val = NUM2INT(optval);
+
+	if (setsockopt(fd, level, option, &val, sizeof(val)) < 0) {
+		rb_sys_fail("setsockopt");
+	}
+
+	return Qtrue;
+}
+
 /********************
 t_is_notify_readable
 ********************/
@@ -1131,6 +1149,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "attach_fd", (VALUE (*)(...))t_attach_fd, 2);
 	rb_define_module_function (EmModule, "detach_fd", (VALUE (*)(...))t_detach_fd, 1);
 	rb_define_module_function (EmModule, "get_sock_opt", (VALUE (*)(...))t_get_sock_opt, 3);
+	rb_define_module_function (EmModule, "set_sock_opt", (VALUE (*)(...))t_set_sock_opt, 4);
 	rb_define_module_function (EmModule, "set_notify_readable", (VALUE (*)(...))t_set_notify_readable, 2);
 	rb_define_module_function (EmModule, "set_notify_writable", (VALUE (*)(...))t_set_notify_writable, 2);
 	rb_define_module_function (EmModule, "is_notify_readable", (VALUE (*)(...))t_is_notify_readable, 1);
@@ -1203,4 +1222,3 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_const (EmModule, "SslHandshakeCompleted", INT2NUM(108));
 
 }
-
