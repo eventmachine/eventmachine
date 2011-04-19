@@ -91,13 +91,13 @@ require 'resolv'
 # machine is initialized and before it starts looping. This is the place
 # to open up a TCP server by specifying the address and port it will listen
 # on, together with the module that will process the data.
-# 
+#
 # Our EchoServer is extremely simple as the echo protocol doesn't require
 # much work. Basically you want to send back to the remote peer whatever
 # data it sends you. We'll dress it up with a little extra text to make it
 # interesting. Also, we'll close the connection in case the received data
 # contains the word "quit."
-# 
+#
 # So what about this module EchoServer? Well, whenever a network connection
 # (either a client or a server) starts up, EventMachine instantiates an anonymous
 # class, that your module has been mixed into. Exactly one of these class
@@ -107,7 +107,7 @@ require 'resolv'
 # always runs in the context of a class instance, so you can create instance
 # variables as you wish and they will be carried over to other callbacks
 # made on that same connection.
-# 
+#
 # Looking back up at EchoServer, you can see that we've defined the method
 # receive_data which (big surprise) is called whenever data has been received
 # from the remote end of the connection. Very simple. We get the data
@@ -116,7 +116,7 @@ require 'resolv'
 # with some extra text added in. And if the user sends the word "quit,"
 # we'll close the connection with (naturally) close_connection.
 # (Notice that closing the connection doesn't terminate the processing loop,
-# or change the fact that your echo server is still accepting connections!) 
+# or change the fact that your echo server is still accepting connections!)
 #
 # == Questions and Futures
 # Would it be useful for EventMachine to incorporate the Observer pattern
@@ -133,6 +133,7 @@ module EventMachine
   @next_tick_mutex = Mutex.new
   @reactor_running = false
   @next_tick_queue = []
+  @tails = []
   @threadpool = nil
 
   # System errnos
@@ -183,7 +184,6 @@ module EventMachine
   # a C++ runtime error.
   #
   def self.run blk=nil, tail=nil, &block
-    @tails ||= []
     tail and @tails.unshift(tail)
 
     if reactor_running?
@@ -194,6 +194,7 @@ module EventMachine
       @timers = {}
       @wrapped_exception = nil
       @next_tick_queue ||= []
+      @tails ||= []
       begin
         @reactor_running = true
         initialize_event_machine
@@ -285,6 +286,26 @@ module EventMachine
     end
   end
 
+  # add_shutdown_hook adds a block to call as the reactor is shutting down.
+  #
+  # These callbacks are called in the _reverse_ order to which they are added.
+  #
+  # === Usage example
+  #
+  # EM.run do
+  #   EM.add_shutdown_hook { puts "b" }
+  #   EM.add_shutdown_hook { puts "a" }
+  #   EM.stop
+  # end
+  #
+  # Outputs:
+  #   a
+  #   b
+  #
+  def self.add_shutdown_hook &block
+    @tails << block
+  end
+
   # EventMachine#add_timer adds a one-shot timer to the event loop.
   # Call it with one or two parameters. The first parameters is a delay-time
   # expressed in <i>seconds</i> (not milliseconds). The second parameter, if
@@ -338,7 +359,7 @@ module EventMachine
   # This method schedules execution of the given block repeatedly, at intervals
   # of time <i>at least</i> as great as the number of seconds given in the first
   # parameter to the call.
-  # 
+  #
   # === Usage example
   #
   # The following sample program will write a dollar-sign to stderr every five seconds.
@@ -392,24 +413,24 @@ module EventMachine
   #      puts "We're sending a dumb HTTP request to the remote peer."
   #      send_data "GET / HTTP/1.1\r\nHost: www.microsoft.com\r\n\r\n"
   #    end
-  #  
+  #
   #    def receive_data data
   #      puts "We received #{data.length} bytes from the remote peer."
   #      puts "We're going to stop the event loop now."
   #      EventMachine::stop_event_loop
   #    end
-  #  
+  #
   #    def unbind
   #      puts "A connection has terminated."
   #    end
   #  end
-  #  
+  #
   #  puts "We're starting the event loop now."
   #  EventMachine::run {
   #    EventMachine::connect "www.microsoft.com", 80, Redmond
   #  }
   #  puts "The event loop has stopped."
-  #  
+  #
   # This program will produce approximately the following output:
   #
   #  We're starting the event loop now.
@@ -485,13 +506,13 @@ module EventMachine
   #
   #  module LineCounter
   #    MaxLinesPerConnection = 10
-  #  
+  #
   #    def post_init
   #      puts "Received a new connection"
   #      @data_received = ""
   #      @line_count = 0
   #    end
-  #  
+  #
   #    def receive_data data
   #      @data_received << data
   #      while @data_received.slice!( /^[^\n]*[\n]/m )
@@ -501,14 +522,14 @@ module EventMachine
   #      end
   #    end
   #  end
-  #  
+  #
   #  EventMachine::run {
   #    host,port = "192.168.0.100", 8090
   #    EventMachine::start_server host, port, LineCounter
   #    puts "Now accepting connections on address #{host}, port #{port}..."
   #    EventMachine::add_periodic_timer( 10 ) { $stderr.write "*" }
   #  }
-  #  
+  #
   #
   def self.start_server server, port=nil, handler=nil, *args, &block
     begin
@@ -571,36 +592,36 @@ module EventMachine
   # request, parses the HTTP header of the response, and then
   # (antisocially) ends the event loop, which automatically drops the connection
   # (and incidentally calls the connection's unbind method).
-  # 
+  #
   #  module DumbHttpClient
   #    def post_init
   #      send_data "GET / HTTP/1.1\r\nHost: _\r\n\r\n"
   #      @data = ""
   #      @parsed = false
   #    end
-  #  
+  #
   #    def receive_data data
   #      @data << data
   #      if !@parsed and @data =~ /[\n][\r]*[\n]/m
   #        @parsed = true
   #        puts "RECEIVED HTTP HEADER:"
   #        $`.each {|line| puts ">>> #{line}" }
-  #  
+  #
   #        puts "Now we'll terminate the loop, which will also close the connection"
   #        EventMachine::stop_event_loop
   #      end
   #    end
-  #  
+  #
   #    def unbind
   #      puts "A connection has terminated"
   #    end
   #  end
-  #  
+  #
   #  EventMachine::run {
   #    EventMachine::connect "www.bayshorenetworks.com", 80, DumbHttpClient
   #  }
   #  puts "The event loop has ended"
-  #  
+  #
   #
   # There are times when it's more convenient to define a protocol handler
   # as a Class rather than a Module. Here's how to do this:
@@ -610,7 +631,7 @@ module EventMachine
   #      super
   #      # whatever else you want to do here
   #    end
-  #    
+  #
   #    #.......your other class code
   #  end
   #
@@ -1171,7 +1192,7 @@ module EventMachine
   #
   # You can access the filename being monitored from within this object using FileWatch#path.
   #
-  # When a file is deleted, FileWatch#stop_watching will be called after your file_deleted callback, 
+  # When a file is deleted, FileWatch#stop_watching will be called after your file_deleted callback,
   # to clean up the underlying monitoring and remove EventMachine's reference to the now-useless FileWatch.
   # This will in turn call unbind, if you wish to use it.
   #
