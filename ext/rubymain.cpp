@@ -430,8 +430,9 @@ t_set_comm_inactivity_timeout
 static VALUE t_set_comm_inactivity_timeout (VALUE self, VALUE signature, VALUE timeout)
 {
 	float ti = RFLOAT_VALUE(timeout);
-	if (evma_set_comm_inactivity_timeout (NUM2ULONG (signature), ti));
+	if (evma_set_comm_inactivity_timeout(NUM2ULONG(signature), ti)) {
 		return Qtrue;
+	}
 	return Qfalse;
 }
 
@@ -451,8 +452,9 @@ t_set_pending_connect_timeout
 static VALUE t_set_pending_connect_timeout (VALUE self, VALUE signature, VALUE timeout)
 {
 	float ti = RFLOAT_VALUE(timeout);
-	if (evma_set_pending_connect_timeout (NUM2ULONG (signature), ti));
+	if (evma_set_pending_connect_timeout(NUM2ULONG(signature), ti)) {
 		return Qtrue;
+	}
 	return Qfalse;
 }
 
