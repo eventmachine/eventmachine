@@ -53,6 +53,20 @@ class TestHttpClient < Test::Unit::TestCase
     assert ok
   end
 
+  #-------------------------------------
+
+  def test_http_client_ssl
+    response_code = nil
+    EM.run {
+      c = EM::P::HttpClient.send :request, :host => "www.apple.com", :ssl => true
+      c.callback { |response|
+        response_code = response[:status]
+        EM.stop
+      }
+      c.errback {EM.stop} # necessary, otherwise a failure blocks the test suite forever.
+    }
+    assert_equal 200, response_code
+  end
 
   #-----------------------------------------
 

@@ -53,7 +53,6 @@ module EventMachine
     # HEAD requests.
     # Chunked transfer encoding.
     # Convenience methods for requests. get, post, url, etc.
-    # SSL.
     # Handle status codes like 304, 100, etc.
     # Refactor this code so that protocol errors all get handled one way (an exception?),
     # instead of sprinkling set_deferred_status :failed calls everywhere.
@@ -66,16 +65,18 @@ module EventMachine
       # :host => 'ip/dns', :port => fixnum, :verb => 'GET', :request => 'path',
       # :basic_auth => {:username => '', :password => ''}, :content => 'content',
       # :contenttype => 'text/plain', :query_string => '', :host_header => '',
-      # :cookie => ''
+      # :cookie => '', :ssl => false
       def self.request( args = {} )
-        args[:port] ||= 80
-        EventMachine.connect( args[:host], args[:port], self ) {|c|
-          # According to the docs, we will get here AFTER post_init is called.
-          c.instance_eval {@args = args}
-        }
+        args[:port] ||= args[:ssl] ? 443 : 80
+        EventMachine.connect( args[:host], args[:port], self, args )
+      end
+
+      def initialize(args)
+        @args = args
       end
 
       def post_init
+        start_tls if @args[:ssl]
         @start_time = Time.now
         @data = ""
         @read_state = :base
@@ -87,8 +88,14 @@ module EventMachine
       # NB: This naive technique won't work when we have to support multiple
       # requests on a single connection.
       def connection_completed
+        return if @args[:ssl]
         @connected = true
         send_request @args
+      end
+      
+      def ssl_handshake_completed
+        @connected = true
+        send_request @args        
       end
 
       def send_request args
