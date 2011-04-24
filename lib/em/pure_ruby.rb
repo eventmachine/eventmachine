@@ -3,7 +3,7 @@
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com
 # Date:: 8 Apr 2006
-# 
+#
 # See EventMachine and EventMachine::Connection for documentation and
 # usage examples.
 #
@@ -11,17 +11,17 @@
 #
 # Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
 # Gmail: blackhedd
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of either: 1) the GNU General Public License
 # as published by the Free Software Foundation; either version 2 of the
 # License, or (at your option) any later version; or 2) Ruby's License.
-# 
+#
 # See the file COPYING for complete licensing information.
 #
 #-------------------------------------------------------------------
 #
-# 
+#
 
 # TODO List:
 # TCP-connects currently assume non-blocking connect is available- need to
@@ -34,320 +34,318 @@ require 'socket'
 require 'fcntl'
 require 'set'
 
-module EventMachine #:nodoc: all
+# @private
+module EventMachine
   class << self
     # This is mostly useful for automated tests.
     # Return a distinctive symbol so the caller knows whether he's dealing
     # with an extension or with a pure-Ruby library.
+    # @private
     def library_type
       :pure_ruby
     end
 
-    # #initialize_event_machine
+    # @private
     def initialize_event_machine
       Reactor.instance.initialize_for_run
     end
 
-    # #add_oneshot_timer
-    #--
     # Changed 04Oct06: intervals from the caller are now in milliseconds, but our native-ruby
     # processor still wants them in seconds.
+    # @private
     def add_oneshot_timer interval
       Reactor.instance.install_oneshot_timer(interval / 1000)
     end
 
-    # run_machine
+    # @private
     def run_machine
       Reactor.instance.run
     end
 
-    # release_machine. Probably a no-op.
+    # @private
     def release_machine
     end
 
-    # #stop
+    # @private
     def stop
       Reactor.instance.stop
     end
 
-    # #connect_server. Return a connection descriptor to the caller.
-    # TODO, what do we return here if we can't connect?
+    # @private
     def connect_server host, port
       bind_connect_server nil, nil, host, port
     end
 
+    # @private
     def bind_connect_server bind_addr, bind_port, host, port
       EvmaTCPClient.connect(bind_addr, bind_port, host, port).uuid
     end
 
-    # #send_data
+    # @private
     def send_data target, data, datalength
       selectable = Reactor.instance.get_selectable( target ) or raise "unknown send_data target"
       selectable.send_data data
     end
 
-    # #close_connection
+
     # The extension version does NOT raise any kind of an error if an attempt is made
     # to close a non-existent connection. Not sure whether we should. For now, we'll
     # raise an error here in that case.
+    # @private
     def close_connection target, after_writing
       selectable = Reactor.instance.get_selectable( target ) or raise "unknown close_connection target"
       selectable.schedule_close after_writing
     end
 
-    # #start_tcp_server
+    # @private
     def start_tcp_server host, port
       (s = EvmaTCPServer.start_server host, port) or raise "no acceptor"
       s.uuid
     end
 
-    # #stop_tcp_server
+    # @private
     def stop_tcp_server sig
       s = Reactor.instance.get_selectable(sig)
       s.schedule_close
     end
 
-    # #start_unix_server
+    # @private
     def start_unix_server chain
       (s = EvmaUNIXServer.start_server chain) or raise "no acceptor"
       s.uuid
     end
 
-    # #connect_unix_server
+    # @private
     def connect_unix_server chain
       EvmaUNIXClient.connect(chain).uuid
     end
 
-    # #signal_loopbreak
+    # @private
     def signal_loopbreak
       Reactor.instance.signal_loopbreak
     end
 
-    # #get_peername
+    # @private
     def get_peername sig
       selectable = Reactor.instance.get_selectable( sig ) or raise "unknown get_peername target"
       selectable.get_peername
     end
 
-    # #open_udp_socket
+    # @private
     def open_udp_socket host, port
       EvmaUDPSocket.create(host, port).uuid
     end
 
-    # #send_datagram. This is currently only for UDP!
+    # This is currently only for UDP!
     # We need to make it work with unix-domain sockets as well.
+    # @private
     def send_datagram target, data, datalength, host, port
       selectable = Reactor.instance.get_selectable( target ) or raise "unknown send_data target"
       selectable.send_datagram data, Socket::pack_sockaddr_in(port, host)
     end
 
 
-    # #set_timer_quantum in milliseconds. The underlying Reactor function wants a (possibly
+    # Sets reactor quantum in milliseconds. The underlying Reactor function wants a (possibly
     # fractional) number of seconds.
+    # @private
     def set_timer_quantum interval
       Reactor.instance.set_timer_quantum(( 1.0 * interval) / 1000.0)
     end
 
-    # #epoll is a harmless no-op in the pure-Ruby implementation. This is intended to ensure
+    # This method is a harmless no-op in the pure-Ruby implementation. This is intended to ensure
     # that user code behaves properly across different EM implementations.
+    # @private
     def epoll
     end
 
-    # #ssl? is not implemented for pure-Ruby implementation
+    # This method is not implemented for pure-Ruby implementation
+    # @private
     def ssl?
       false
     end
 
-    # #set_rlimit_nofile is a no-op in the pure-Ruby implementation. We simply return Ruby's built-in
+    # This method is a no-op in the pure-Ruby implementation. We simply return Ruby's built-in
     # per-process file-descriptor limit.
+    # @private
     def set_rlimit_nofile n
       1024
     end
 
-    # #set_max_timer_count is a harmless no-op in pure Ruby, which doesn't have a built-in limit
+    # This method is a harmless no-op in pure Ruby, which doesn't have a built-in limit
     # on the number of available timers.
+    # @private
     def set_max_timer_count n
     end
 
-    # #send_file_data
+    # @private
     def send_file_data sig, filename
       sz = File.size(filename)
       raise "file too large" if sz > 32*1024
       data =
-      begin
-        File.read filename
-      rescue
-        ""
-      end
+        begin
+          File.read filename
+        rescue
+          ""
+        end
       send_data sig, data, data.length
     end
 
-    # #get_outbound_data_size
-    #
+    # @private
     def get_outbound_data_size sig
       r = Reactor.instance.get_selectable( sig ) or raise "unknown get_outbound_data_size target"
       r.get_outbound_data_size
     end
 
-    # #read_keyboard
-    #
+    # @private
     def read_keyboard
       EvmaKeyboard.open.uuid
     end
 
-    # #set_comm_inactivity_timeout
-    #
+    # @private
     def set_comm_inactivity_timeout sig, tm
       r = Reactor.instance.get_selectable( sig ) or raise "unknown set_comm_inactivity_timeout target"
       r.set_inactivity_timeout tm
     end
   end
-
 end
 
 
-#-----------------------------------------------------------------
-
-module EventMachine #:nodoc: all
-
+module EventMachine
+  # @private
   class Error < Exception; end
-
 end
 
-#-----------------------------------------------------------------
-
-module EventMachine #:nodoc: all
+module EventMachine
+  # @private
   class Connection
+    # @private
     def get_outbound_data_size
       EventMachine::get_outbound_data_size @signature
     end
   end
 end
 
-#-----------------------------------------------------------------
-
-module EventMachine #:nodoc: all
+module EventMachine
 
   # Factored out so we can substitute other implementations
   # here if desired, such as the one in ActiveRBAC.
+  # @private
   module UuidGenerator
-
     def self.generate
       @ix ||= 0
       @ix += 1
     end
-
   end
-
 end
 
-#-----------------------------------------------------------------
 
-module EventMachine #:nodoc: all
-
+module EventMachine
+  # @private
   TimerFired = 100
+  # @private
   ConnectionData = 101
+  # @private
   ConnectionUnbound = 102
+  # @private
   ConnectionAccepted = 103
+  # @private
   ConnectionCompleted = 104
+  # @private
   LoopbreakSignalled = 105
-
 end
 
-#-----------------------------------------------------------------
+module EventMachine
+  # @private
+  class Reactor
+    include Singleton
 
-module EventMachine #:nodoc: all
-class Reactor
-  include Singleton
+    HeartbeatInterval = 2
 
-  HeartbeatInterval = 2
+    attr_reader :current_loop_time
 
-  attr_reader :current_loop_time
+    def initialize
+      initialize_for_run
+    end
 
-  def initialize
-    initialize_for_run
-  end
+    def install_oneshot_timer interval
+      uuid = UuidGenerator::generate
+      #@timers << [Time.now + interval, uuid]
+      #@timers.sort! {|a,b| a.first <=> b.first}
+      @timers.add([Time.now + interval, uuid])
+      uuid
+    end
 
-  #--
-  # Replaced original implementation 05Dec07, was way too slow because of the sort.
-  def install_oneshot_timer interval
-    uuid = UuidGenerator::generate
-    #@timers << [Time.now + interval, uuid]
-    #@timers.sort! {|a,b| a.first <=> b.first}
-    @timers.add([Time.now + interval, uuid])
-    uuid
-  end
-
-  # Called before run, this is a good place to clear out arrays
-  # with cruft that may be left over from a previous run.
-  def initialize_for_run
-    @running = false
-    @stop_scheduled = false
-    @selectables ||= {}; @selectables.clear
-    @timers = SortedSet.new # []
-    set_timer_quantum(0.1)
-    @current_loop_time = Time.now
-    @next_heartbeat = @current_loop_time + HeartbeatInterval
-  end
-
-  def add_selectable io
-    @selectables[io.uuid] = io
-  end
-
-  def get_selectable uuid
-    @selectables[uuid]
-  end
-
-  def run
-    raise Error.new( "already running" ) if @running
-    @running = true
-
-    begin
-      open_loopbreaker
-
-      loop {
-        @current_loop_time = Time.now
-
-        break if @stop_scheduled
-        run_timers
-        break if @stop_scheduled
-        crank_selectables
-        break if @stop_scheduled
-        run_heartbeats
-      }
-    ensure
-      close_loopbreaker
-      @selectables.each {|k, io| io.close}
-      @selectables.clear
-
+    # Called before run, this is a good place to clear out arrays
+    # with cruft that may be left over from a previous run.
+    # @private
+    def initialize_for_run
       @running = false
-    end
-
-  end
-
-  def run_timers
-    @timers.each {|t|
-      if t.first <= @current_loop_time
-        @timers.delete t
-        EventMachine::event_callback "", TimerFired, t.last
-      else
-        break
-      end
-    }
-    #while @timers.length > 0 and @timers.first.first <= now
-    #  t = @timers.shift
-    #  EventMachine::event_callback "", TimerFired, t.last
-    #end
-  end
-
-  def run_heartbeats
-    if @next_heartbeat <= @current_loop_time
+      @stop_scheduled = false
+      @selectables ||= {}; @selectables.clear
+      @timers = SortedSet.new # []
+      set_timer_quantum(0.1)
+      @current_loop_time = Time.now
       @next_heartbeat = @current_loop_time + HeartbeatInterval
-      @selectables.each {|k,io| io.heartbeat}
     end
-  end
 
-  def crank_selectables
+    def add_selectable io
+      @selectables[io.uuid] = io
+    end
+
+    def get_selectable uuid
+      @selectables[uuid]
+    end
+
+    def run
+      raise Error.new( "already running" ) if @running
+      @running = true
+
+      begin
+        open_loopbreaker
+
+        loop {
+          @current_loop_time = Time.now
+
+          break if @stop_scheduled
+          run_timers
+          break if @stop_scheduled
+          crank_selectables
+          break if @stop_scheduled
+          run_heartbeats
+        }
+      ensure
+        close_loopbreaker
+        @selectables.each {|k, io| io.close}
+        @selectables.clear
+
+        @running = false
+      end
+
+    end
+
+    def run_timers
+      @timers.each {|t|
+        if t.first <= @current_loop_time
+          @timers.delete t
+          EventMachine::event_callback "", TimerFired, t.last
+        else
+          break
+        end
+      }
+      #while @timers.length > 0 and @timers.first.first <= now
+      #  t = @timers.shift
+      #  EventMachine::event_callback "", TimerFired, t.last
+      #end
+    end
+
+    def run_heartbeats
+      if @next_heartbeat <= @current_loop_time
+        @next_heartbeat = @current_loop_time + HeartbeatInterval
+        @selectables.each {|k,io| io.heartbeat}
+      end
+    end
+
+    def crank_selectables
       #$stderr.write 'R'
 
       readers = @selectables.values.select {|io| io.select_for_reading?}
@@ -364,57 +362,55 @@ class Reactor
           true
         end
       }
-  end
+    end
 
-  # #stop
-  def stop
-    raise Error.new( "not running") unless @running
-    @stop_scheduled = true
-  end
+    # #stop
+    def stop
+      raise Error.new( "not running") unless @running
+      @stop_scheduled = true
+    end
 
-  def open_loopbreaker
-    # Can't use an IO.pipe because they can't be set nonselectable in Windows.
-    # Pick a random localhost UDP port.
-    #@loopbreak_writer.close if @loopbreak_writer
-    #rd,@loopbreak_writer = IO.pipe
-    @loopbreak_reader = UDPSocket.new
-    @loopbreak_writer = UDPSocket.new
-    bound = false
-    100.times {
-      @loopbreak_port = rand(10000) + 40000
-      begin
-        @loopbreak_reader.bind "localhost", @loopbreak_port
-        bound = true
-        break
-      rescue
-      end
-    }
-    raise "Unable to bind Loopbreaker" unless bound
-    LoopbreakReader.new(@loopbreak_reader)
-  end
+    def open_loopbreaker
+      # Can't use an IO.pipe because they can't be set nonselectable in Windows.
+      # Pick a random localhost UDP port.
+      #@loopbreak_writer.close if @loopbreak_writer
+      #rd,@loopbreak_writer = IO.pipe
+      @loopbreak_reader = UDPSocket.new
+      @loopbreak_writer = UDPSocket.new
+      bound = false
+      100.times {
+        @loopbreak_port = rand(10000) + 40000
+        begin
+          @loopbreak_reader.bind "localhost", @loopbreak_port
+          bound = true
+          break
+        rescue
+        end
+      }
+      raise "Unable to bind Loopbreaker" unless bound
+      LoopbreakReader.new(@loopbreak_reader)
+    end
 
-  def close_loopbreaker
-    @loopbreak_writer.close
-    @loopbreak_writer = nil
-  end
+    def close_loopbreaker
+      @loopbreak_writer.close
+      @loopbreak_writer = nil
+    end
 
-  def signal_loopbreak
-    #@loopbreak_writer.write '+' if @loopbreak_writer
-    @loopbreak_writer.send('+',0,"localhost",@loopbreak_port) if @loopbreak_writer
-  end
+    def signal_loopbreak
+      #@loopbreak_writer.write '+' if @loopbreak_writer
+      @loopbreak_writer.send('+',0,"localhost",@loopbreak_port) if @loopbreak_writer
+    end
 
-  def set_timer_quantum interval_in_seconds
-    @timer_quantum = interval_in_seconds
+    def set_timer_quantum interval_in_seconds
+      @timer_quantum = interval_in_seconds
+    end
+
   end
 
 end
 
-end
-
-
-#--------------------------------------------------------------
-
-class IO #:nodoc: all
+# @private
+class IO
   extend Forwardable
   def_delegator :@my_selectable, :close_scheduled?
   def_delegator :@my_selectable, :select_for_reading?
@@ -431,9 +427,8 @@ class IO #:nodoc: all
   def_delegator :@my_selectable, :heartbeat
 end
 
-#--------------------------------------------------------------
-
-module EventMachine #:nodoc: all
+module EventMachine
+  # @private
   class Selectable
 
     attr_reader :io, :uuid
@@ -491,11 +486,8 @@ module EventMachine #:nodoc: all
 
 end
 
-#--------------------------------------------------------------
-
-
-module EventMachine #:nodoc: all
-
+module EventMachine
+  # @private
   class StreamObject < Selectable
     def initialize io
       super io
@@ -571,10 +563,10 @@ module EventMachine #:nodoc: all
         begin
           data = data.to_s
           w = if io.respond_to?(:write_nonblock)
-            io.write_nonblock data
-          else
-            io.syswrite data
-          end
+                io.write_nonblock data
+              else
+                io.syswrite data
+              end
 
           if w < data.length
             @outbound_q.unshift data[w..-1]
@@ -636,7 +628,8 @@ end
 
 
 
-module EventMachine #:nodoc: all
+module EventMachine
+  # @private
   class EvmaTCPClient < StreamObject
 
     def self.connect bind_addr, bind_port, host, port
@@ -683,11 +676,10 @@ module EventMachine #:nodoc: all
   end
 end
 
-#--------------------------------------------------------------
 
 
-
-module EventMachine #:nodoc: all
+module EventMachine
+  # @private
   class EvmaKeyboard < StreamObject
 
     def self.open
@@ -713,11 +705,9 @@ module EventMachine #:nodoc: all
 end
 
 
-#--------------------------------------------------------------
 
-
-
-module EventMachine #:nodoc: all
+module EventMachine
+  # @private
   class EvmaUNIXClient < StreamObject
 
     def self.connect chain
@@ -765,7 +755,8 @@ end
 
 #--------------------------------------------------------------
 
-module EventMachine #:nodoc: all
+module EventMachine
+  # @private
   class EvmaTCPServer < Selectable
 
     # TODO, refactor and unify with EvmaUNIXServer.
@@ -820,7 +811,8 @@ end
 
 #--------------------------------------------------------------
 
-module EventMachine #:nodoc: all
+module EventMachine
+  # @private
   class EvmaUNIXServer < Selectable
 
     # TODO, refactor and unify with EvmaTCPServer.
@@ -876,7 +868,8 @@ end
 
 #--------------------------------------------------------------
 
-module EventMachine #:nodoc: all
+module EventMachine
+  # @private
   class LoopbreakReader < Selectable
 
     def select_for_reading?
@@ -884,18 +877,17 @@ module EventMachine #:nodoc: all
     end
 
     def eventable_read
-          io.sysread(128)
-          EventMachine::event_callback "", LoopbreakSignalled, ""
+      io.sysread(128)
+      EventMachine::event_callback "", LoopbreakSignalled, ""
     end
 
   end
 end
 
-#--------------------------------------------------------------
 
 
 module EventMachine #:nodoc: all
-
+  # @private
   class DatagramObject < Selectable
     def initialize io
       super io
@@ -939,9 +931,8 @@ module EventMachine #:nodoc: all
 end
 
 
-#--------------------------------------------------------------
-
-module EventMachine #:nodoc: all
+module EventMachine
+  # @private
   class EvmaUDPSocket < DatagramObject
 
     class << self

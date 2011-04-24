@@ -33,11 +33,11 @@ EM.run do
     end
   end
 
-  # This part of the example is more fake, but imagine sleep was in fact a 
+  # This part of the example is more fake, but imagine sleep was in fact a
   # long running calculation to achieve the value.
   40.times do
     EM.defer lambda { v = sleep(rand * 2); RandChannel << [Time.now, v] }
   end
-  
+
   EM.add_timer(5) { EM.stop }
 end
