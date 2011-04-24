@@ -6,6 +6,8 @@ module EventMachine
         Request.new(socket, hostname)
       end
 
+      @socket = @nameservers = nil
+
       def self.socket
         if !@socket || (@socket && @socket.error?)
           @socket = Socket.open
@@ -56,6 +58,10 @@ module EventMachine
     class Socket < EventMachine::Connection
       def self.open
         EventMachine::open_datagram_socket('0.0.0.0', 0, self)
+      end
+
+      def initialize
+        @nameserver = nil
       end
 
       def post_init
