@@ -36,21 +36,25 @@ module EventMachine
     # prior #set_deferred_status call.
     #
     #--
-    # If there is no status, add a callback to an internal list.
+    # If there is no status, prepend a callback to an internal list.
     # If status is succeeded, execute the callback immediately.
     # If status is failed, do nothing.
     #
     def callback &block
       return unless block
-      @deferred_status ||= :unknown
-      if @deferred_status == :succeeded
-        block.call(*@deferred_args)
-      elsif @deferred_status != :failed
-        @callbacks ||= []
-        @callbacks.unshift block # << block
-      end
+      self.dispatch_or_add_callback(:prepend, &block)
       self
     end
+    alias prepend_callback callback
+
+    # Same as #callback but instead of prepending callback to callbacks list,
+    # appends it.
+    def append_callback(&block)
+      return unless block
+      self.dispatch_or_add_callback(:append, &block)
+      self
+    end
+
 
     # Cancels an outstanding callback to &block if any. Undoes the action of #callback.
     #
@@ -197,7 +201,26 @@ module EventMachine
       set_deferred_status :failed, *args
     end
     alias set_deferred_failure fail
-  end
+
+
+    protected
+
+    def dispatch_or_add_callback(position, &block)
+      @deferred_status ||= :unknown
+      if @deferred_status == :succeeded
+        block.call(*@deferred_args)
+      elsif @deferred_status != :failed
+        @callbacks ||= []
+
+        if position == :append
+          @callbacks.push(block)
+        else
+          @callbacks.unshift(block)
+        end
+      end
+    end
+
+  end # Deferrable
 
 
   # DefaultDeferrable is an otherwise empty class that includes Deferrable.
@@ -205,5 +228,5 @@ module EventMachine
   # as a way of communicating deferred status to some other part of a program.
   class DefaultDeferrable
     include Deferrable
-  end
-end
+  end # DefaultDeferrable
+end # EventMachine

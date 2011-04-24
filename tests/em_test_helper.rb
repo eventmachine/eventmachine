@@ -1,4 +1,10 @@
-require 'lib/eventmachine'
+# 1.9.2 no longer adds current working directory on $LOAD_PATH
+# by default
+
+require "pathname"
+__root = Pathname.new(File.dirname(__FILE__)).parent
+
+require "#{__root}/lib/eventmachine"
 require 'test/unit'
 require 'rbconfig'
 require 'socket'
