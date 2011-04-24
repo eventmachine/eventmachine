@@ -126,7 +126,7 @@ class EventMachine_t
 		bool UsingEpoll() { return bEpoll; }
 
 		void QueueHeartbeat(EventableDescriptor*);
-		void ClearHeartbeat(uint64_t);
+		void ClearHeartbeat(uint64_t, EventableDescriptor*);
 
 		uint64_t GetRealTime();
 

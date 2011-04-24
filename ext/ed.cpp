@@ -107,7 +107,7 @@ EventableDescriptor::~EventableDescriptor
 EventableDescriptor::~EventableDescriptor()
 {
 	if (NextHeartbeat)
-		MyEventMachine->ClearHeartbeat(NextHeartbeat);
+		MyEventMachine->ClearHeartbeat(NextHeartbeat, this);
 	if (EventCallback && bCallbackUnbind)
 		(*EventCallback)(GetBinding(), EM_CONNECTION_UNBOUND, NULL, UnbindReasonCode);
 	if (ProxiedFrom) {
@@ -294,7 +294,7 @@ EventableDescriptor::GetNextHeartbeat
 uint64_t EventableDescriptor::GetNextHeartbeat()
 {
 	if (NextHeartbeat)
-		MyEventMachine->ClearHeartbeat(NextHeartbeat);
+		MyEventMachine->ClearHeartbeat(NextHeartbeat, this);
 
 	NextHeartbeat = 0;
 

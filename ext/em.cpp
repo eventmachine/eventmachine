@@ -415,9 +415,17 @@ void EventMachine_t::QueueHeartbeat(EventableDescriptor *ed)
 EventMachine_t::ClearHeartbeat
 ******************************/
 
-void EventMachine_t::ClearHeartbeat(uint64_t key)
+void EventMachine_t::ClearHeartbeat(uint64_t key, EventableDescriptor* ed)
 {
-	Heartbeats.erase(key);
+	multimap<uint64_t,EventableDescriptor*>::iterator it;
+	pair<multimap<uint64_t,EventableDescriptor*>::iterator,multimap<uint64_t,EventableDescriptor*>::iterator> ret;
+	ret = Heartbeats.equal_range (key);
+	for (it = ret.first; it != ret.second; ++it) {
+		if (it->second == ed) {
+			Heartbeats.erase (it);
+			break;
+		}
+	}
 }
 
 /*******************
