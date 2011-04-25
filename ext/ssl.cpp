@@ -115,6 +115,27 @@ static void InitializeDefaultCredentials()
 }
 
 
+#ifdef OPENSSL_NPN_NEGOTIATED
+
+/*******************
+AdvertiseNPNCallback
+********************/
+
+extern "C" int AdvertiseNPNCallback(SSL *ssl, const unsigned char **data, unsigned int *len, void *arg) {
+	*data = (const unsigned char*) arg;
+	*len = strlen((const char*) *data);
+	return SSL_TLSEXT_ERR_OK;
+}
+
+/**********************************
+SslContext_t::GetNegotiatedProtocol
+**********************************/
+
+void SslBox_t::GetNegotiatedProtocol(const unsigned char **data, unsigned *len) {
+  SSL_get0_next_proto_negotiated(pSSL, data, len);
+}
+#endif
+
 
 /**************************
 SslContext_t::SslContext_t
@@ -208,7 +229,11 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
+#ifdef OPENSSL_NPN_NEGOTIATED
+SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &nextprotos, bool verify_peer, const unsigned long binding):
+#else
 SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const unsigned long binding):
+#endif
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),
@@ -232,6 +257,10 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	pSSL = SSL_new (Context->pCtx);
 	assert (pSSL);
 	SSL_set_bio (pSSL, pbioRead, pbioWrite);
+
+	#ifdef OPENSSL_NPN_NEGOTIATED
+	SSL_CTX_set_next_protos_advertised_cb(Context->pCtx, AdvertiseNPNCallback, (void *)nextprotos.c_str());
+	#endif
 
 	// Store a pointer to the binding signature in the SSL object so we can retrieve it later
 	SSL_set_ex_data(pSSL, 0, (void*) binding);

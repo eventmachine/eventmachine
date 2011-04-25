@@ -1071,7 +1071,11 @@ void ConnectionDescriptor::StartTls()
 	if (SslBox)
 		throw std::runtime_error ("SSL/TLS already running on connection");
 
+	#ifdef OPENSSL_NPN_NEGOTIATED
+	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, NegotiableProtocols, bSslVerifyPeer, GetBinding());
+	#else
 	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, GetBinding());
+	#endif
 	_DispatchCiphertext();
 	#endif
 
@@ -1102,6 +1106,29 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 	#endif
 }
 
+/*******************************************
+ConnectionDescriptor::SetNegotiableProtocols
+********************************************/
+
+#ifdef OPENSSL_NPN_NEGOTIATED
+void ConnectionDescriptor::SetNegotiableProtocols (const char *protocols)
+{
+	if (SslBox)
+		throw std::runtime_error ("call SetNegotiableProtocols before calling StartTls");
+	if (protocols && *protocols)
+		NegotiableProtocols = protocols;
+}
+
+/******************************************
+ConnectionDescriptor::GetNegotiatedProtocol
+*******************************************/
+void ConnectionDescriptor::GetNegotiatedProtocol(const unsigned char **data, unsigned *len)
+{
+	if (!SslBox)
+		throw std::runtime_error ("SSL/TLS not running on this connection");
+	return SslBox->GetNegotiatedProtocol(data, len);
+}
+#endif
 
 /*********************************
 ConnectionDescriptor::GetPeerCert

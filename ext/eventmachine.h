@@ -67,6 +67,11 @@ extern "C" {
 	void evma_set_tls_parms (const unsigned long binding, const char *privatekey_filename, const char *certchain_filenane, int verify_peer);
 	void evma_start_tls (const unsigned long binding);
 
+	#ifdef OPENSSL_NPN_NEGOTIATED
+	void evma_set_negotiable_protocols (const unsigned long binding, const char *protocols);
+        void evma_get_negotiated_protocol (const unsigned long binding, const unsigned char **data, unsigned *len);
+	#endif
+
 	#ifdef WITH_SSL
 	X509 *evma_get_peer_cert (const unsigned long binding);
 	void evma_accept_ssl_peer (const unsigned long binding);

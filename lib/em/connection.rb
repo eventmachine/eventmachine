@@ -388,6 +388,32 @@ module EventMachine
       EventMachine::get_peer_cert @signature
     end
 
+    # set_negotiable_protocols is used to set the protocols supported when using the
+    # TLS NPN extension
+    # This needs to be called before start_tls
+    def set_negotiable_protocols(protocols)
+      protocols = ["http/1.1", "http/1.0"] if(protocols.nil? || protocols.length == 0)
+
+      proto_arr = []
+      proto_str = ""
+      protocols.each do |proto|
+        proto_arr << proto.length << proto
+        proto_str = proto_str + "CA" + proto.length.to_s
+      end
+
+      EventMachine::set_negotiable_protocols @signature, proto_arr.pack(proto_str)
+    end
+
+
+    # get_negotiated_protocol is used to get protocol that was selected by the
+    # TLS NPN extension from the list of protocols specified by a call to
+    # set_negotiable_protocols
+    # The most likely place to put this is in a ssl_handshake_completed
+    # callback
+    def get_negotiated_protocol
+      EventMachine::get_negotiated_protocol @signature
+    end
+
 
     # send_datagram is for sending UDP messages.
     # This method may be called from any Connection object that refers

@@ -68,6 +68,11 @@ class EventableDescriptor: public Bindable_t
 		virtual bool GetSockname (struct sockaddr*, socklen_t*) {return false;}
 		virtual bool GetSubprocessPid (pid_t*) {return false;}
 
+		#ifdef OPENSSL_NPN_NEGOTIATED
+		virtual void SetNegotiableProtocols (const char *protocols) {}
+		virtual void GetNegotiatedProtocol (const unsigned char **data, unsigned *len) {}
+		#endif
+
 		virtual void StartTls() {}
 		virtual void SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer) {}
 
@@ -190,6 +195,11 @@ class ConnectionDescriptor: public EventableDescriptor
 		virtual void StartTls();
 		virtual void SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer);
 
+		#ifdef OPENSSL_NPN_NEGOTIATED
+		virtual void SetNegotiableProtocols (const char *protocols);
+		virtual void GetNegotiatedProtocol (const unsigned char **data, unsigned *len);
+		#endif
+
 		#ifdef WITH_SSL
 		virtual X509 *GetPeerCert();
 		virtual bool VerifySslPeer(const char*);
@@ -236,6 +246,10 @@ class ConnectionDescriptor: public EventableDescriptor
 		bool bHandshakeSignaled;
 		bool bSslVerifyPeer;
 		bool bSslPeerAccepted;
+		#endif
+
+		#ifdef OPENSSL_NPN_NEGOTIATED
+		std::string NegotiableProtocols;
 		#endif
 
 		#ifdef HAVE_KQUEUE

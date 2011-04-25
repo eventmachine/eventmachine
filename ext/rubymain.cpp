@@ -311,6 +311,41 @@ static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE privkeyfile, VA
 	return Qnil;
 }
 
+/*************************
+t_set_negotiable_protocols
+**************************/
+
+static VALUE t_set_negotiable_protocols (VALUE self, VALUE signature, VALUE protocols)
+{
+	#ifdef OPENSSL_NPN_NEGOTIATED
+	evma_set_negotiable_protocols (NUM2ULONG (signature), StringValuePtr (protocols));
+	#endif
+	return Qnil;
+}
+
+/************************
+t_get_negotiated_protocol
+*************************/
+
+static VALUE t_get_negotiated_protocol (VALUE self, VALUE signature)
+{
+	VALUE ret = Qnil;
+
+	#ifdef OPENSSL_NPN_NEGOTIATED
+
+	const unsigned char *npn_proto;
+	unsigned int npn_proto_len;
+
+	evma_get_negotiated_protocol (NUM2ULONG (signature), &npn_proto, &npn_proto_len);
+	if (npn_proto_len != 0) {
+		ret = rb_str_new((const char *)npn_proto, npn_proto_len);
+	}
+
+	#endif
+
+	return ret;
+}
+
 /***************
 t_get_peer_cert
 ***************/
@@ -1121,6 +1156,10 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "start_unix_server", (VALUE(*)(...))t_start_unix_server, 1);
 	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 4);
 	rb_define_module_function (EmModule, "start_tls", (VALUE(*)(...))t_start_tls, 1);
+	#ifdef OPENSSL_NPN_NEGOTIATED
+	rb_define_module_function (EmModule, "set_negotiable_protocols", (VALUE(*)(...))t_set_negotiable_protocols, 2);
+	rb_define_module_function (EmModule, "get_negotiated_protocol", (VALUE(*)(...))t_get_negotiated_protocol, 1);
+	#endif 
 	rb_define_module_function (EmModule, "get_peer_cert", (VALUE(*)(...))t_get_peer_cert, 1);
 	rb_define_module_function (EmModule, "send_data", (VALUE(*)(...))t_send_data, 3);
 	rb_define_module_function (EmModule, "send_datagram", (VALUE(*)(...))t_send_datagram, 5);
