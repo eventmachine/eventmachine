@@ -116,7 +116,7 @@ module EventMachine
         # Allow an override for the host header if it's not the connect-string.
         host = args[:host_header] || args[:host] || "_"
         # For now, ALWAYS tuck in the port string, although we may want to omit it if it's the default.
-        port = args[:port]
+        port = args[:port].to_i != 80 ? ":#{args[:port]}" : ""
 
         # POST items.
         postcontenttype = args[:contenttype] || "application/octet-stream"
@@ -127,7 +127,7 @@ module EventMachine
         # TODO: We ASSUME the caller wants to send a 1.1 request. May not be a good assumption.
         req = [
           "#{verb} #{request}#{qs} HTTP/#{version}",
-          "Host: #{host}:#{port}",
+          "Host: #{host}#{port}",
           "User-agent: Ruby EventMachine",
         ]
 
