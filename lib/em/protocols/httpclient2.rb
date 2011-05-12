@@ -26,6 +26,8 @@
 module EventMachine
   module Protocols
 
+    # <b>Note:</b> This class is deprecated and will be removed. Please use EM-HTTP-Request instead.
+    #
     # === Usage
     #
     #  EM.run{
@@ -42,6 +44,8 @@ module EventMachine
       include LineText2
       
       def initialize
+        STDERR.puts "HttpClient2 is deprecated and will be removed. EM-Http-Request should be used instead."
+
         @authorization = nil
         @closed = nil
         @requests = nil
