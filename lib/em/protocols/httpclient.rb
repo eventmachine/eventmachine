@@ -28,6 +28,8 @@
 module EventMachine
   module Protocols
 
+    # <b>Note:</b> This class is deprecated and will be removed. Please use EM-HTTP-Request instead.
+    #
     # === Usage
     #
     #  EventMachine.run {
@@ -61,6 +63,10 @@ module EventMachine
       include EventMachine::Deferrable
 
       MaxPostContentLength = 20 * 1024 * 1024
+
+      def initialize
+        STDERR.puts "HttpClient is deprecated and will be removed. EM-Http-Request should be used instead."
+      end
 
       # === Arg list
       # :host => 'ip/dns', :port => fixnum, :verb => 'GET', :request => 'path',
