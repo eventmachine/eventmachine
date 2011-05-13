@@ -65,7 +65,7 @@ class EventMachine_t
 		EventMachine_t (EMCallback);
 		virtual ~EventMachine_t();
 
-		void Run();
+		int  Run();
 		void ScheduleHalt();
 		void SignalLoopBreaker();
 		const unsigned long InstallOneshotTimer (int);
@@ -130,6 +130,10 @@ class EventMachine_t
 
 		uint64_t GetRealTime();
 
+		bool SetOneShotOnly(bool val) {
+			OneShotOnly = val;
+		}
+
 	private:
 		bool _RunOnce();
 		bool _RunTimers();
@@ -187,6 +191,8 @@ class EventMachine_t
 		unsigned TickCountTickover;
 		unsigned LastTickCount;
 		#endif
+
+		bool OneShotOnly;
 
 	private:
 		bool bTerminateSignalReceived;

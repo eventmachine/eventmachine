@@ -220,8 +220,7 @@ t_run_machine_without_threads
 
 static VALUE t_run_machine_without_threads (VALUE self)
 {
-	evma_run_machine();
-	return Qnil;
+	return evma_run_machine() ? Qtrue : Qfalse;
 }
 
 
@@ -917,6 +916,12 @@ static VALUE t__kqueue_set (VALUE self, VALUE val)
 	return val;
 }
 
+static VALUE t_set_one_shot_only (VALUE self, VALUE val)
+{
+  evma_set_one_shot_only(RTEST(val));
+  return val;
+}
+
 
 /********
 t__ssl_p
@@ -1186,6 +1191,8 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "kqueue", (VALUE(*)(...))t__kqueue, 0);
 	rb_define_module_function (EmModule, "kqueue=", (VALUE(*)(...))t__kqueue_set, 1);
 	rb_define_module_function (EmModule, "kqueue?", (VALUE(*)(...))t__kqueue_p, 0);
+
+	rb_define_module_function (EmModule, "one_shot_only=", (VALUE(*)(...))t_set_one_shot_only, 1);
 
 	rb_define_module_function (EmModule, "ssl?", (VALUE(*)(...))t__ssl_p, 0);
 

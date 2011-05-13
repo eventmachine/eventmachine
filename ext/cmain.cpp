@@ -82,10 +82,10 @@ extern "C" void evma_release_library()
 evma_run_machine
 ****************/
 
-extern "C" void evma_run_machine()
+extern "C" int evma_run_machine()
 {
 	ensure_eventmachine("evma_run_machine");
-	EventMachine->Run();
+	return EventMachine->Run();
 }
 
 
@@ -835,4 +835,10 @@ extern "C" uint64_t evma_get_current_loop_time()
 {
 	ensure_eventmachine("evma_get_current_loop_time");
 	return EventMachine->GetCurrentLoopTime();
+}
+
+extern "C" void evma_set_one_shot_only(int val)
+{
+	ensure_eventmachine("evma_set_one_shot_only");
+	EventMachine->SetOneShotOnly(val == 1);
 }

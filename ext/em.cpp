@@ -73,6 +73,7 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	NextHeartbeatTime (0),
 	LoopBreakerReader (-1),
 	LoopBreakerWriter (-1),
+	OneShotOnly(false),
 	bTerminateSignalReceived (false),
 	bEpoll (false),
 	epfd (-1),
@@ -432,7 +433,7 @@ void EventMachine_t::ClearHeartbeat(uint64_t key, EventableDescriptor* ed)
 EventMachine_t::Run
 *******************/
 
-void EventMachine_t::Run()
+int EventMachine_t::Run()
 {
 	#ifdef HAVE_EPOLL
 	if (bEpoll) {
@@ -487,7 +488,11 @@ void EventMachine_t::Run()
 			break;
 		if (bTerminateSignalReceived)
 			break;
+		if (OneShotOnly)
+			return 0;
 	}
+
+	return 1;
 }
 
 
