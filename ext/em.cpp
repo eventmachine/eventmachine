@@ -523,7 +523,6 @@ bool EventMachine_t::_RunEpollOnce()
 
 	timeval tv = _TimeTilNextEvent();
 
-	#ifdef BUILD_FOR_RUBY
 	int ret = 0;
 	fd_set fdreads;
 
@@ -541,12 +540,6 @@ bool EventMachine_t::_RunEpollOnce()
 	TRAP_BEG;
 	s = epoll_wait (epfd, epoll_events, MaxEvents, 0);
 	TRAP_END;
-	#else
-	int duration = 0;
-	duration = duration + (tv.tv_sec * 1000);
-	duration = duration + (tv.tv_usec / 1000);
-	s = epoll_wait (epfd, epoll_events, MaxEvents, duration);
-	#endif
 
 	if (s > 0) {
 		for (int i=0; i < s; i++) {
@@ -597,7 +590,6 @@ bool EventMachine_t::_RunKqueueOnce()
 	ts.tv_sec = tv.tv_sec;
 	ts.tv_nsec = tv.tv_usec * 1000;
 
-	#ifdef BUILD_FOR_RUBY
 	int ret = 0;
 	fd_set fdreads;
 
@@ -616,9 +608,6 @@ bool EventMachine_t::_RunKqueueOnce()
 	ts.tv_sec = ts.tv_nsec = 0;
 	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, &ts);
 	TRAP_END;
-	#else
-	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, &ts);
-	#endif
 
 	struct kevent *ke = Karray;
 	while (k > 0) {
@@ -655,11 +644,9 @@ bool EventMachine_t::_RunKqueueOnce()
 	}
 
 	// TODO, replace this with rb_thread_blocking_region for 1.9 builds.
-	#ifdef BUILD_FOR_RUBY
 	if (!rb_thread_alone()) {
 		rb_thread_schedule();
 	}
-	#endif
 
 	return true;
 	#else
@@ -791,7 +778,6 @@ SelectData_t::SelectData_t()
 }
 
 
-#ifdef BUILD_FOR_RUBY
 /*****************
 _SelectDataSelect
 *****************/
@@ -820,9 +806,6 @@ int SelectData_t::_Select()
 	return EmSelect (maxsocket+1, &fdreads, &fdwrites, &fderrors, &tv);
 	#endif
 }
-#endif
-
-
 
 /******************************
 EventMachine_t::_RunSelectOnce

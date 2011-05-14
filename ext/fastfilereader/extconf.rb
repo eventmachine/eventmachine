@@ -12,8 +12,6 @@ def add_define(name)
   $defs.push("-D#{name}")
 end
 
-add_define 'BUILD_FOR_RUBY'
-
 # Minor platform details between *nix and Windows:
 
 if RUBY_PLATFORM =~ /(mswin|mingw|bccwin)/

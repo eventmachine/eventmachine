@@ -23,7 +23,7 @@ See the file COPYING for complete licensing information.
    We need to undef the stat to fix a build failure in evma_send_file_data_to_connection.
    See http://groups.google.com/group/eventmachine/browse_thread/thread/fc60d9bb738ffc71
 */
-#if defined(BUILD_FOR_RUBY) && defined(OS_WIN32)
+#if defined(OS_WIN32)
 #undef stat
 #undef fstat
 #endif
@@ -38,11 +38,7 @@ extern "C" void ensure_eventmachine (const char *caller = "unknown caller")
 		const int err_size = 128;
 		char err_string[err_size];
 		snprintf (err_string, err_size, "eventmachine not initialized: %s", caller);
-		#ifdef BUILD_FOR_RUBY
-			rb_raise(rb_eRuntimeError, "%s", err_string);
-		#else
-			throw std::runtime_error (err_string);
-		#endif
+		rb_raise(rb_eRuntimeError, "%s", err_string);
 	}
 }
 
@@ -53,11 +49,8 @@ evma_initialize_library
 extern "C" void evma_initialize_library (EMCallback cb)
 {
 	if (EventMachine)
-		#ifdef BUILD_FOR_RUBY
-			rb_raise(rb_eRuntimeError, "eventmachine already initialized: evma_initialize_library");
-		#else
-			throw std::runtime_error ("eventmachine already initialized: evma_initialize_library");
-		#endif
+		rb_raise(rb_eRuntimeError, "eventmachine already initialized: evma_initialize_library");
+
 	EventMachine = new EventMachine_t (cb);
 	if (bUseEpoll)
 		EventMachine->_UseEpoll();
@@ -141,12 +134,9 @@ extern "C" int evma_detach_fd (const unsigned long binding)
 	if (ed)
 		return EventMachine->DetachFD (ed);
 	else
-		#ifdef BUILD_FOR_RUBY
-			rb_raise(rb_eRuntimeError, "invalid binding to detach");
-		#else
-			throw std::runtime_error ("invalid binding to detach");
-		#endif
-			return -1;
+		rb_raise(rb_eRuntimeError, "invalid binding to detach");
+
+	return -1;
 }
 
 /************************
@@ -160,12 +150,9 @@ extern "C" int evma_get_file_descriptor (const unsigned long binding)
 	if (ed)
 		return ed->GetSocket();
 	else
-		#ifdef BUILD_FOR_RUBY
-			rb_raise(rb_eRuntimeError, "invalid binding to get_fd");
-		#else
-			throw std::runtime_error ("invalid binding to get_fd");
-		#endif
-			return -1;
+		rb_raise(rb_eRuntimeError, "invalid binding to get_fd");
+
+	return -1;
 }
 
 /***********************
@@ -643,11 +630,8 @@ extern "C" void evma_set_max_timer_count (int ct)
 	// This may only be called if the reactor is not running.
 
 	if (EventMachine)
-		#ifdef BUILD_FOR_RUBY
-			rb_raise(rb_eRuntimeError, "eventmachine already initialized: evma_set_max_timer_count");
-		#else
-			throw std::runtime_error ("eventmachine already initialized: evma_set_max_timer_count");
-		#endif
+		rb_raise(rb_eRuntimeError, "eventmachine already initialized: evma_set_max_timer_count");
+
 	EventMachine_t::SetMaxTimerCount (ct);
 }
 
