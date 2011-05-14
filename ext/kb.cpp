@@ -53,7 +53,7 @@ KeyboardDescriptor::Write
 void KeyboardDescriptor::Write()
 {
 	// Why are we here?
-	throw std::runtime_error ("bad code path in keyboard handler");
+	rb_raise(rb_eRuntimeError, "bad code path in keyboard handler");
 }
 
 

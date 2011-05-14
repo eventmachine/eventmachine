@@ -123,7 +123,7 @@ PipeDescriptor::~PipeDescriptor()
 	}
 
 	// still not dead, give up!
-	throw std::runtime_error ("unable to reap subprocess");
+	rb_raise(rb_eRuntimeError, "unable to reap subprocess");
 }
 
 
@@ -236,7 +236,8 @@ void PipeDescriptor::Write()
 			int len = nbytes - bytes_written;
 			char *buffer = (char*) malloc (len + 1);
 			if (!buffer)
-				throw std::runtime_error ("bad alloc throwing back data");
+				rb_raise(rb_eRuntimeError, "bad alloc throwing back data");
+
 			memcpy (buffer, output_buffer + bytes_written, len);
 			buffer [len] = 0;
 			OutboundPages.push_front (OutboundPage (buffer, len));
@@ -312,10 +313,12 @@ int PipeDescriptor::SendOutboundData (const char *data, int length)
 		return 0;
 
 	if (!data && (length > 0))
-		throw std::runtime_error ("bad outbound data");
+		rb_raise(rb_eRuntimeError, "bad outbound data");
+
 	char *buffer = (char *) malloc (length + 1);
 	if (!buffer)
-		throw std::runtime_error ("no allocation for outbound data");
+		rb_raise(rb_eRuntimeError, "no allocation for outbound data");
+
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
 	OutboundPages.push_back (OutboundPage (buffer, length));

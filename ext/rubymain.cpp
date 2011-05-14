@@ -507,7 +507,7 @@ static VALUE t_connect_server (VALUE self, VALUE server, VALUE port)
 			rb_raise (EM_eConnectionError, "no connection");
 		return ULONG2NUM (f);
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eConnectionError, e.what());
+		rb_raise (EM_eConnectionError, "%s", e.what());
 	}
 	return Qnil;
 }
@@ -528,7 +528,7 @@ static VALUE t_bind_connect_server (VALUE self, VALUE bind_addr, VALUE bind_port
 			rb_raise (EM_eConnectionError, "no connection");
 		return ULONG2NUM (f);
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eConnectionError, e.what());
+		rb_raise (EM_eConnectionError, "%s", e.what());
 	}
 	return Qnil;
 }
@@ -801,7 +801,7 @@ static VALUE t_watch_filename (VALUE self, VALUE fname)
 	try {
 		return ULONG2NUM(evma_watch_filename(StringValuePtr(fname)));
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eUnsupported, e.what());
+		rb_raise (EM_eUnsupported, "%s", e.what());
 	}
 	return Qnil;
 }
@@ -827,7 +827,7 @@ static VALUE t_watch_pid (VALUE self, VALUE pid)
 	try {
 		return ULONG2NUM(evma_watch_pid(NUM2INT(pid)));
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eUnsupported, e.what());
+		rb_raise (EM_eUnsupported, "%s", e.what());
 	}
 	return Qnil;
 }
@@ -952,11 +952,7 @@ static VALUE t_send_file_data (VALUE self, VALUE signature, VALUE filename)
 		rb_raise(rb_eRuntimeError, "File too large.  send_file_data() supports files under 32k.");
 	if (b > 0) {
 		char *err = strerror (b);
-		char buf[1024];
-		memset (buf, 0, sizeof(buf));
-		snprintf (buf, sizeof(buf)-1, ": %s %s", StringValuePtr(filename),(err?err:"???"));
-
-		rb_raise (rb_eIOError, "%s", buf);
+		rb_raise (rb_eIOError, "%s %s", StringValuePtr(filename), (err ? err : "???"));
 	}
 
 	return INT2NUM (0);
@@ -1027,7 +1023,7 @@ static VALUE t_start_proxy (VALUE self, VALUE from, VALUE to, VALUE bufsize, VAL
 	try {
 		evma_start_proxy(NUM2ULONG (from), NUM2ULONG (to), NUM2ULONG(bufsize), NUM2ULONG(length));
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eConnectionError, e.what());
+		rb_raise (EM_eConnectionError, "%s", e.what());
 	}
 	return Qnil;
 }
@@ -1042,7 +1038,7 @@ static VALUE t_stop_proxy (VALUE self, VALUE from)
 	try{
 		evma_stop_proxy(NUM2ULONG (from));
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eConnectionError, e.what());
+		rb_raise (EM_eConnectionError, "%s", e.what());
 	}
 	return Qnil;
 }
