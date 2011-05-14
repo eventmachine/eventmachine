@@ -95,7 +95,8 @@ void PageList::Push (const char *buf, int size)
 	if (buf && (size > 0)) {
 		char *copy = (char*) malloc (size);
 		if (!copy)
-			throw runtime_error ("no memory in pagelist");
+			rb_raise(rb_eRuntimeError, "no memory in pagelist");
+
 		memcpy (copy, buf, size);
 		Pages.push_back (Page (copy, size));
 	}

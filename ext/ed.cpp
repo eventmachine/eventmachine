@@ -33,15 +33,10 @@ bool SetSocketNonblocking (SOCKET sd)
 	#endif
 	
 	#ifdef OS_WIN32
-	#ifdef BUILD_FOR_RUBY
 	// 14Jun09 Ruby provides its own wrappers for ioctlsocket. On 1.8 this is a simple wrapper,
 	// however, 1.9 keeps its own state about the socket.
 	// NOTE: F_GETFL is not supported
 	return (fcntl (sd, F_SETFL, O_NONBLOCK) == 0) ? true : false;
-	#else
-	unsigned long one = 1;
-	return (ioctlsocket (sd, FIONBIO, &one) == 0) ? true : false;
-	#endif
 	#endif
 }
 
@@ -87,9 +82,11 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	 */
 
 	if (sd == INVALID_SOCKET)
-		throw std::runtime_error ("bad eventable descriptor");
+		rb_raise(rb_eRuntimeError, "bad eventable descriptor");
+
 	if (MyEventMachine == NULL)
-		throw std::runtime_error ("bad em in eventable descriptor");
+		rb_raise(rb_eRuntimeError, "bad em in eventable descriptor");
+
 	CreatedAt = MyEventMachine->GetCurrentLoopTime();
 
 	#ifdef HAVE_EPOLL
@@ -202,7 +199,7 @@ void EventableDescriptor::StartProxy(const unsigned long to, const unsigned long
 		ed->SetProxiedFrom(this, bufsize);
 		return;
 	}
-	throw std::runtime_error ("Tried to proxy to an invalid descriptor");
+	rb_raise(rb_eRuntimeError, "Tried to proxy to an invalid descriptor");
 }
 
 
@@ -226,7 +223,7 @@ EventableDescriptor::SetProxiedFrom
 void EventableDescriptor::SetProxiedFrom(EventableDescriptor *from, const unsigned long bufsize)
 {
 	if (from != NULL && ProxiedFrom != NULL)
-		throw std::runtime_error ("Tried to proxy to a busy target");
+		rb_raise(rb_eRuntimeError, "Tried to proxy to a busy target");
 
 	ProxiedFrom = from;
 	MaxOutboundBufSize = bufsize;
@@ -453,7 +450,7 @@ ConnectionDescriptor::ScheduleClose
 void ConnectionDescriptor::ScheduleClose (bool after_writing)
 {
 	if (bWatchOnly)
-		throw std::runtime_error ("cannot close 'watch only' connections");
+		rb_raise(rb_eRuntimeError, "cannot close 'watch only' connections");
 
 	EventableDescriptor::ScheduleClose(after_writing);
 }
@@ -466,7 +463,7 @@ ConnectionDescriptor::SetNotifyReadable
 void ConnectionDescriptor::SetNotifyReadable(bool readable)
 {
 	if (!bWatchOnly)
-		throw std::runtime_error ("notify_readable must be on 'watch only' connections");
+		rb_raise(rb_eRuntimeError, "notify_readable must be on 'watch only' connections");
 
 	bNotifyReadable = readable;
 	_UpdateEvents(true, false);
@@ -480,7 +477,7 @@ ConnectionDescriptor::SetNotifyWritable
 void ConnectionDescriptor::SetNotifyWritable(bool writable)
 {
 	if (!bWatchOnly)
-		throw std::runtime_error ("notify_writable must be on 'watch only' connections");
+		rb_raise(rb_eRuntimeError, "notify_writable must be on 'watch only' connections");
 
 	bNotifyWritable = writable;
 	_UpdateEvents(false, true);
@@ -494,7 +491,7 @@ ConnectionDescriptor::SendOutboundData
 int ConnectionDescriptor::SendOutboundData (const char *data, int length)
 {
 	if (bWatchOnly)
-		throw std::runtime_error ("cannot send data on a 'watch only' connection");
+		rb_raise(rb_eRuntimeError, "cannot send data on a 'watch only' connection");
 
 	if (ProxiedFrom && MaxOutboundBufSize && (unsigned int)(GetOutboundDataSize() + length) > MaxOutboundBufSize)
 		ProxiedFrom->Pause();
@@ -545,10 +542,11 @@ int ConnectionDescriptor::_SendRawOutboundData (const char *data, int length)
 		return 0;
 
 	if (!data && (length > 0))
-		throw std::runtime_error ("bad outbound data");
+		rb_raise(rb_eRuntimeError, "bad outbound data");
+
 	char *buffer = (char *) malloc (length + 1);
 	if (!buffer)
-		throw std::runtime_error ("no allocation for outbound data");
+		rb_raise(rb_eRuntimeError, "no allocation for outbound data");
 
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
@@ -622,7 +620,7 @@ ConnectionDescriptor::Pause
 bool ConnectionDescriptor::Pause()
 {
 	if (bWatchOnly)
-		throw std::runtime_error ("cannot pause/resume 'watch only' connections, set notify readable/writable instead");
+		rb_raise(rb_eRuntimeError, "cannot pause/resume 'watch only' connections, set notify readable/writable instead");
 
 	bool old = bPaused;
 	bPaused = true;
@@ -637,7 +635,7 @@ ConnectionDescriptor::Resume
 bool ConnectionDescriptor::Resume()
 {
 	if (bWatchOnly)
-		throw std::runtime_error ("cannot pause/resume 'watch only' connections, set notify readable/writable instead");
+		rb_raise(rb_eRuntimeError, "cannot pause/resume 'watch only' connections, set notify readable/writable instead");
 
 	bool old = bPaused;
 	bPaused = false;
@@ -1010,7 +1008,8 @@ void ConnectionDescriptor::_WriteOutboundData()
 		int len = nbytes - bytes_written;
 		char *buffer = (char*) malloc (len + 1);
 		if (!buffer)
-			throw std::runtime_error ("bad alloc throwing back data");
+			rb_raise(rb_eRuntimeError, "bad alloc throwing back data");
+
 		memcpy (buffer, output_buffer + bytes_written, len);
 		buffer [len] = 0;
 		OutboundPages.push_front (OutboundPage (buffer, len));
@@ -1069,14 +1068,14 @@ void ConnectionDescriptor::StartTls()
 {
 	#ifdef WITH_SSL
 	if (SslBox)
-		throw std::runtime_error ("SSL/TLS already running on connection");
+		rb_raise(rb_eRuntimeError, "SSL/TLS already running on connection");
 
 	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, GetBinding());
 	_DispatchCiphertext();
 	#endif
 
 	#ifdef WITHOUT_SSL
-	throw std::runtime_error ("Encryption not available on this event-machine");
+	rb_raise(rb_eRuntimeError, "Encryption not available on this event-machine");
 	#endif
 }
 
@@ -1089,7 +1088,8 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 {
 	#ifdef WITH_SSL
 	if (SslBox)
-		throw std::runtime_error ("call SetTlsParms before calling StartTls");
+		rb_raise(rb_eRuntimeError, "call SetTlsParms before calling StartTls");
+
 	if (privkey_filename && *privkey_filename)
 		PrivateKeyFilename = privkey_filename;
 	if (certchain_filename && *certchain_filename)
@@ -1098,7 +1098,7 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 	#endif
 
 	#ifdef WITHOUT_SSL
-	throw std::runtime_error ("Encryption not available on this event-machine");
+	rb_raise(rb_eRuntimeError, "Encryption not available on this event-machine");
 	#endif
 }
 
@@ -1111,7 +1111,8 @@ ConnectionDescriptor::GetPeerCert
 X509 *ConnectionDescriptor::GetPeerCert()
 {
 	if (!SslBox)
-		throw std::runtime_error ("SSL/TLS not running on this connection");
+		rb_raise(rb_eRuntimeError, "SSL/TLS not running on this connection");
+
 	return SslBox->GetPeerCert();
 }
 #endif
@@ -1283,8 +1284,8 @@ LoopbreakDescriptor::Write
 
 void LoopbreakDescriptor::Write()
 {
-  // Why are we here?
-  throw std::runtime_error ("bad code path in loopbreak");
+	// Why are we here?
+	rb_raise(rb_eRuntimeError, "bad code path in loopbreak");
 }
 
 /**************************************
@@ -1322,7 +1323,7 @@ void AcceptorDescriptor::StopAcceptor (const unsigned long binding)
 	if (ad)
 		ad->ScheduleClose (false);
 	else
-		throw std::runtime_error ("failed to close nonexistent acceptor");
+		rb_raise(rb_eRuntimeError, "failed to close nonexistent acceptor");
 }
 
 
@@ -1378,7 +1379,8 @@ void AcceptorDescriptor::Read()
 
 		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, MyEventMachine);
 		if (!cd)
-			throw std::runtime_error ("no newly accepted connection");
+			rb_raise(rb_eRuntimeError, "no newly accepted connection");
+
 		cd->SetServerMode();
 		if (EventCallback) {
 			(*EventCallback) (GetBinding(), EM_CONNECTION_ACCEPTED, NULL, cd->GetBinding());
@@ -1404,8 +1406,8 @@ AcceptorDescriptor::Write
 
 void AcceptorDescriptor::Write()
 {
-  // Why are we here?
-  throw std::runtime_error ("bad code path in acceptor");
+	// Why are we here?
+	rb_raise(rb_eRuntimeError, "bad code path in acceptor");
 }
 
 
@@ -1662,10 +1664,12 @@ int DatagramDescriptor::SendOutboundData (const char *data, int length)
 		return 0;
 
 	if (!data && (length > 0))
-		throw std::runtime_error ("bad outbound data");
+		rb_raise(rb_eRuntimeError, "bad outbound data");
+
 	char *buffer = (char *) malloc (length + 1);
 	if (!buffer)
-		throw std::runtime_error ("no allocation for outbound data");
+		rb_raise(rb_eRuntimeError, "no allocation for outbound data");
+
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
 	OutboundPages.push_back (OutboundPage (buffer, length, ReturnAddress));
@@ -1720,10 +1724,12 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 
 
 	if (!data && (length > 0))
-		throw std::runtime_error ("bad outbound data");
+		rb_raise(rb_eRuntimeError, "bad outbound data");
+
 	char *buffer = (char *) malloc (length + 1);
 	if (!buffer)
-		throw std::runtime_error ("no allocation for outbound data");
+		rb_raise(rb_eRuntimeError, "no allocation for outbound data");
+
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
 	OutboundPages.push_back (OutboundPage (buffer, length, pin));
@@ -1861,15 +1867,12 @@ InotifyDescriptor::InotifyDescriptor (EventMachine_t *em):
 	bCallbackUnbind = false;
 
 	#ifndef HAVE_INOTIFY
-	throw std::runtime_error("no inotify support on this system");
+	rb_raise(rb_eRuntimeError, "no inotify support on this system");
 	#else
 
 	int fd = inotify_init();
-	if (fd == -1) {
-		char buf[200];
-		snprintf (buf, sizeof(buf)-1, "unable to create inotify descriptor: %s", strerror(errno));
-		throw std::runtime_error (buf);
-	}
+	if (fd == -1)
+		rb_raise(rb_eRuntimeError, "unable to create inotify descriptor: %s", strerror(errno));
 
 	MySocket = fd;
 	SetSocketNonblocking(MySocket);
@@ -1908,5 +1911,5 @@ InotifyDescriptor::Write
 
 void InotifyDescriptor::Write()
 {
-	throw std::runtime_error("bad code path in inotify");
+	rb_raise(rb_eRuntimeError, "bad code path in inotify");
 }

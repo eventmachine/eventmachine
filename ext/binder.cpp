@@ -32,7 +32,7 @@ STATIC Bindable_t::CreateBinding
 unsigned long Bindable_t::CreateBinding()
 {
 	static unsigned long num = 0;
-	while(BindingBag[++num]);
+	while(BindingBag[++num]) ;
 	return num;
 }
 
@@ -46,12 +46,12 @@ string Bindable_t::CreateBinding()
 		#ifdef OS_UNIX
 		int fd = open (DEV_URANDOM, O_RDONLY);
 		if (fd < 0)
-			throw std::runtime_error ("No entropy device");
+			rb_raise(rb_eRuntimeError, "No entropy device");
 
 		unsigned char u[16];
 		size_t r = read (fd, u, sizeof(u));
 		if (r < sizeof(u))
-			throw std::runtime_error ("Unable to read entropy device");
+			rb_raise(rb_eRuntimeError, "Unable to read entropy device");
 
 		unsigned char *u1 = (unsigned char*)u;
 		char u2 [sizeof(u) * 2 + 1];
@@ -69,7 +69,7 @@ string Bindable_t::CreateBinding()
 		unsigned char *uuidstring = NULL;
 		UuidToString (&uuid, &uuidstring);
 		if (!uuidstring)
-			throw std::runtime_error ("Unable to read uuid");
+			rb_raise(rb_eRuntimeError, "Unable to read uuid");
 		seed = string ((const char*)uuidstring);
 
 		RpcStringFree (&uuidstring);

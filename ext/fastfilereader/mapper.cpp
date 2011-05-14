@@ -36,6 +36,8 @@ See the file COPYING for complete licensing information.
 #include <string>
 #include <cstring>
 #include <stdexcept>
+#include <ruby.h>
+
 using namespace std;
 
 #include "mapper.h"
@@ -52,11 +54,12 @@ Mapper_t::Mapper_t (const string &filename)
 
 	Fd = open (filename.c_str(), O_RDONLY);
 	if (Fd < 0)
-		throw runtime_error (strerror (errno));
+		rb_raise(rb_eRuntimeError, "%s", strerror (errno));
 
 	struct stat st;
 	if (fstat (Fd, &st))
-		throw runtime_error (strerror (errno));
+		rb_raise(rb_eRuntimeError, "%s", strerror (errno));
+
 	FileSize = st.st_size;
 
 	#ifdef OS_WIN32
@@ -65,7 +68,7 @@ Mapper_t::Mapper_t (const string &filename)
 	MapPoint = (const char*) mmap (0, FileSize, PROT_READ, MAP_SHARED, Fd, 0);
 	#endif
 	if (MapPoint == MAP_FAILED)
-		throw runtime_error (strerror (errno));
+		rb_raise(rb_eRuntimeError, "%s", strerror (errno));
 }
 
 
@@ -148,7 +151,7 @@ Mapper_t::Mapper_t (const string &filename)
 	hFile = CreateFile (filename.c_str(), GENERIC_READ|GENERIC_WRITE, FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
 	if (hFile == INVALID_HANDLE_VALUE)
-		throw runtime_error ("File not found");
+		rb_raise(rb_eRuntimeError, "File not found");
 
 	BY_HANDLE_FILE_INFORMATION i;
 	if (GetFileInformationByHandle (hFile, &i))
@@ -156,7 +159,7 @@ Mapper_t::Mapper_t (const string &filename)
 
 	hMapping = CreateFileMapping (hFile, NULL, PAGE_READWRITE, 0, 0, NULL);
 	if (!hMapping)
-		throw runtime_error ("File not mapped");
+		rb_raise(rb_eRuntimeError, "File not mapped");
 
 	#ifdef OS_WIN32
 	MapPoint = (char*) MapViewOfFile (hMapping, FILE_MAP_WRITE, 0, 0, 0);
@@ -164,7 +167,7 @@ Mapper_t::Mapper_t (const string &filename)
 	MapPoint = (const char*) MapViewOfFile (hMapping, FILE_MAP_WRITE, 0, 0, 0);
 	#endif
 	if (!MapPoint)
-		throw runtime_error ("Mappoint not read");
+		rb_raise(rb_eRuntimeError, "Mappoint not read");
 }
 
 
