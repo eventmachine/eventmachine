@@ -51,12 +51,15 @@ Mapper_t::Mapper_t (const string &filename)
 	 */
 
 	Fd = open (filename.c_str(), O_RDONLY);
-	if (Fd < 0)
+	if (Fd < 0) {
 		throw runtime_error (strerror (errno));
+	}
 
 	struct stat st;
-	if (fstat (Fd, &st))
+	if (fstat (Fd, &st)) {
 		throw runtime_error (strerror (errno));
+	}
+
 	FileSize = st.st_size;
 
 	#ifdef OS_WIN32
@@ -64,8 +67,9 @@ Mapper_t::Mapper_t (const string &filename)
 	#else
 	MapPoint = (const char*) mmap (0, FileSize, PROT_READ, MAP_SHARED, Fd, 0);
 	#endif
-	if (MapPoint == MAP_FAILED)
+	if (MapPoint == MAP_FAILED) {
 		throw runtime_error (strerror (errno));
+	}
 }
 
 
@@ -95,6 +99,7 @@ void Mapper_t::Close()
 		#endif
 		MapPoint = NULL;
 	}
+
 	if (Fd >= 0) {
 		close (Fd);
 		Fd = -1;
@@ -147,24 +152,28 @@ Mapper_t::Mapper_t (const string &filename)
 
 	hFile = CreateFile (filename.c_str(), GENERIC_READ|GENERIC_WRITE, FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-	if (hFile == INVALID_HANDLE_VALUE)
+	if (hFile == INVALID_HANDLE_VALUE) {
 		throw runtime_error ("File not found");
+	}
 
 	BY_HANDLE_FILE_INFORMATION i;
-	if (GetFileInformationByHandle (hFile, &i))
+	if (GetFileInformationByHandle (hFile, &i)) {
 		FileSize = i.nFileSizeLow;
+	}
 
 	hMapping = CreateFileMapping (hFile, NULL, PAGE_READWRITE, 0, 0, NULL);
-	if (!hMapping)
+	if (!hMapping) {
 		throw runtime_error ("File not mapped");
+	}
 
 	#ifdef OS_WIN32
 	MapPoint = (char*) MapViewOfFile (hMapping, FILE_MAP_WRITE, 0, 0, 0);
 	#else
 	MapPoint = (const char*) MapViewOfFile (hMapping, FILE_MAP_WRITE, 0, 0, 0);
 	#endif
-	if (!MapPoint)
+	if (!MapPoint) {
 		throw runtime_error ("Mappoint not read");
+	}
 }
 
 

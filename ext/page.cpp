@@ -36,8 +36,9 @@ PageList::~PageList
 
 PageList::~PageList()
 {
-	while (HasPages())
+	while (HasPages()) {
 		PopFront();
+	}
 }
 
 
@@ -70,8 +71,9 @@ void PageList::PopFront()
 	if (HasPages()) {
 		Page p = Pages.front();
 		Pages.pop_front();
-		if (p.Buffer)
+		if (p.Buffer) {
 			free ((void*)p.Buffer);
+		}
 	}
 }
 
@@ -94,8 +96,10 @@ void PageList::Push (const char *buf, int size)
 {
 	if (buf && (size > 0)) {
 		char *copy = (char*) malloc (size);
-		if (!copy)
+		if (!copy) {
 			throw runtime_error ("no memory in pagelist");
+		}
+
 		memcpy (copy, buf, size);
 		Pages.push_back (Page (copy, size));
 	}

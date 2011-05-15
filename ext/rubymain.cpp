@@ -68,8 +68,10 @@ struct em_event {
 static inline VALUE ensure_conn(const unsigned long signature)
 {
 	VALUE conn = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
-	if (conn == Qnil)
+	if (conn == Qnil) {
 		rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
+	}
+
 	return conn;
 }
 
@@ -89,8 +91,10 @@ static inline void event_callback (struct em_event* e)
 		case EM_CONNECTION_READ:
 		{
 			VALUE conn = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
-			if (conn == Qnil)
+			if (conn == Qnil) {
 				rb_raise (EM_eConnectionNotBound, "received %lu bytes of data for unknown signature: %lu", data_num, signature);
+			}
+
 			rb_funcall (conn, Intern_receive_data, 1, rb_str_new (data_str, data_num));
 			return;
 		}
@@ -132,9 +136,11 @@ static inline void event_callback (struct em_event* e)
 			VALUE timer = rb_funcall (EmTimersHash, Intern_delete, 1, ULONG2NUM (data_num));
 			if (timer == Qnil) {
 				rb_raise (EM_eUnknownTimerFired, "no such timer: %lu", data_num);
-			} else if (timer == Qfalse) {
+			}
+			else if (timer == Qfalse) {
 				/* Timer Canceled */
-			} else {
+			}
+			else {
 				rb_funcall (timer, Intern_call, 0);
 			}
 			return;
@@ -150,8 +156,9 @@ static inline void event_callback (struct em_event* e)
 		{
 			VALUE conn = ensure_conn(signature);
 			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
-			if (RTEST(should_accept))
+			if (RTEST(should_accept)) {
 				evma_accept_ssl_peer (signature);
+			}
 			return;
 		}
 		#endif
@@ -192,10 +199,12 @@ static void event_callback_wrapper (const unsigned long signature, int event, co
 	e.data_str = data_str;
 	e.data_num = data_num;
 
-	if (!rb_ivar_defined(EmModule, Intern_at_error_handler))
+	if (!rb_ivar_defined(EmModule, Intern_at_error_handler)) {
 		event_callback(&e);
-	else
+	}
+	else {
 		rb_rescue((VALUE (*)(ANYARGS))event_callback, (VALUE)&e, (VALUE (*)(ANYARGS))event_error_handler, Qnil);
+	}
 }
 
 /**************************
@@ -232,8 +241,10 @@ t_add_oneshot_timer
 static VALUE t_add_oneshot_timer (VALUE self, VALUE interval)
 {
 	const unsigned long f = evma_install_oneshot_timer (FIX2INT (interval));
-	if (!f)
+	if (!f) {
 		rb_raise (rb_eRuntimeError, "ran out of timers; use #set_max_timers to increase limit");
+	}
+ 
 	return ULONG2NUM (f);
 }
 
@@ -245,8 +256,10 @@ t_start_server
 static VALUE t_start_server (VALUE self, VALUE server, VALUE port)
 {
 	const unsigned long f = evma_create_tcp_server (StringValuePtr(server), FIX2INT(port));
-	if (!f)
+	if (!f) {
 		rb_raise (rb_eRuntimeError, "no acceptor (port is in use or requires root privileges)");
+	}
+
 	return ULONG2NUM (f);
 }
 
@@ -268,8 +281,10 @@ t_start_unix_server
 static VALUE t_start_unix_server (VALUE self, VALUE filename)
 {
 	const unsigned long f = evma_create_unix_domain_server (StringValuePtr(filename));
-	if (!f)
+	if (!f) {
 		rb_raise (rb_eRuntimeError, "no unix-domain acceptor");
+	}
+
 	return ULONG2NUM (f);
 }
 
@@ -503,8 +518,10 @@ static VALUE t_connect_server (VALUE self, VALUE server, VALUE port)
 
 	try {
 		const unsigned long f = evma_connect_to_server (NULL, 0, StringValuePtr(server), NUM2INT(port));
-		if (!f)
+		if (!f) {
 			rb_raise (EM_eConnectionError, "no connection");
+		}
+
 		return ULONG2NUM (f);
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eConnectionError, e.what());
@@ -524,8 +541,10 @@ static VALUE t_bind_connect_server (VALUE self, VALUE bind_addr, VALUE bind_port
 
 	try {
 		const unsigned long f = evma_connect_to_server (StringValuePtr(bind_addr), NUM2INT(bind_port), StringValuePtr(server), NUM2INT(port));
-		if (!f)
+		if (!f) {
 			rb_raise (EM_eConnectionError, "no connection");
+		}
+
 		return ULONG2NUM (f);
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eConnectionError, e.what());
@@ -540,8 +559,10 @@ t_connect_unix_server
 static VALUE t_connect_unix_server (VALUE self, VALUE serversocket)
 {
 	const unsigned long f = evma_connect_to_unix_server (StringValuePtr(serversocket));
-	if (!f)
+	if (!f) {
 		rb_raise (rb_eRuntimeError, "no connection");
+	}
+
 	return ULONG2NUM (f);
 }
 
@@ -552,8 +573,10 @@ t_attach_fd
 static VALUE t_attach_fd (VALUE self, VALUE file_descriptor, VALUE watch_mode)
 {
 	const unsigned long f = evma_attach_fd (NUM2INT(file_descriptor), watch_mode == Qtrue);
-	if (!f)
+	if (!f) {
 		rb_raise (rb_eRuntimeError, "no connection");
+	}
+
 	return ULONG2NUM (f);
 }
 
@@ -577,8 +600,9 @@ static VALUE t_get_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optna
 	socklen_t len = 128;
 	char buf[128];
 
-	if (getsockopt(fd, level, option, buf, &len) < 0)
+	if (getsockopt(fd, level, option, buf, &len) < 0) {
 		rb_sys_fail("getsockopt");
+	}
 
 	return rb_str_new(buf, len);
 }
@@ -655,8 +679,10 @@ t_open_udp_socket
 static VALUE t_open_udp_socket (VALUE self, VALUE server, VALUE port)
 {
 	const unsigned long f = evma_open_datagram_socket (StringValuePtr(server), FIX2INT(port));
-	if (!f)
+	if (!f) {
 		rb_raise (rb_eRuntimeError, "no datagram socket");
+	}
+
 	return ULONG2NUM (f);
 }
 
@@ -710,8 +736,8 @@ t_set_timer_quantum
 
 static VALUE t_set_timer_quantum (VALUE self, VALUE interval)
 {
-  evma_set_timer_quantum (FIX2INT (interval));
-  return Qnil;
+	evma_set_timer_quantum (FIX2INT (interval));
+	return Qnil;
 }
 
 /********************
@@ -720,7 +746,7 @@ t_get_max_timer_count
 
 static VALUE t_get_max_timer_count (VALUE self)
 {
-  return INT2FIX (evma_get_max_timer_count());
+	return INT2FIX (evma_get_max_timer_count());
 }
 
 /********************
@@ -729,8 +755,8 @@ t_set_max_timer_count
 
 static VALUE t_set_max_timer_count (VALUE self, VALUE ct)
 {
-  evma_set_max_timer_count (FIX2INT (ct));
-  return Qnil;
+	evma_set_max_timer_count (FIX2INT (ct));
+	return Qnil;
 }
 
 /***************
@@ -739,8 +765,8 @@ t_setuid_string
 
 static VALUE t_setuid_string (VALUE self, VALUE username)
 {
-  evma_setuid_string (StringValuePtr (username));
-  return Qnil;
+	evma_setuid_string (StringValuePtr (username));
+	return Qnil;
 }
 
 
@@ -757,8 +783,10 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 	#else
 		int len = RARRAY (cmd)->len;
 	#endif
-	if (len >= 2048)
+	if (len >= 2048) {
 		rb_raise (rb_eRuntimeError, "too many arguments to popen");
+	}
+
 	char *strings [2048];
 	for (int i=0; i < len; i++) {
 		VALUE ix = INT2FIX (i);
@@ -786,8 +814,10 @@ t_read_keyboard
 static VALUE t_read_keyboard (VALUE self)
 {
 	const unsigned long f = evma_open_keyboard();
-	if (!f)
+	if (!f) {
 		rb_raise (rb_eRuntimeError, "no keyboard reader");
+	}
+
 	return ULONG2NUM (f);
 }
 
@@ -873,8 +903,9 @@ t__epoll_set
 
 static VALUE t__epoll_set (VALUE self, VALUE val)
 {
-	if (t__epoll_p(self) == Qfalse)
+	if (t__epoll_p(self) == Qfalse) {
 		rb_raise (EM_eUnsupported, "epoll is not supported on this platform");
+	}
 
 	evma_set_epoll (val == Qtrue ? 1 : 0);
 	return val;
@@ -910,8 +941,9 @@ t__kqueue_set
 
 static VALUE t__kqueue_set (VALUE self, VALUE val)
 {
-	if (t__kqueue_p(self) == Qfalse)
+	if (t__kqueue_p(self) == Qfalse) {
 		rb_raise (EM_eUnsupported, "kqueue is not supported on this platform");
+	}
 
 	evma_set_kqueue (val == Qtrue ? 1 : 0);
 	return val;
@@ -948,8 +980,9 @@ static VALUE t_send_file_data (VALUE self, VALUE signature, VALUE filename)
 	 */
 
 	int b = evma_send_file_data_to_connection (NUM2ULONG (signature), StringValuePtr(filename));
-	if (b == -1)
+	if (b == -1) {
 		rb_raise(rb_eRuntimeError, "File too large.  send_file_data() supports files under 32k.");
+	}
 
 	if (b > 0) {
 		char *err = strerror (b);
@@ -1066,8 +1099,10 @@ t_set_heartbeat_interval
 static VALUE t_set_heartbeat_interval (VALUE self, VALUE interval)
 {
 	float iv = RFLOAT_VALUE(interval);
-	if (evma_set_heartbeat_interval(iv))
+	if (evma_set_heartbeat_interval(iv)) {
 		return Qtrue;
+	}
+
 	return Qfalse;
 }
 

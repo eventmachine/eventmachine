@@ -42,11 +42,12 @@ STATIC: Bindable_t::GetObject
 
 Bindable_t *Bindable_t::GetObject (const unsigned long binding)
 {
-  map<unsigned long, Bindable_t*>::const_iterator i = BindingBag.find (binding);
-  if (i != BindingBag.end())
-    return i->second;
-  else
-    return NULL;
+	map<unsigned long, Bindable_t*>::const_iterator i = BindingBag.find (binding);
+	if (i != BindingBag.end()) {
+		return i->second;
+	}
+
+	return NULL;
 }
 
 
