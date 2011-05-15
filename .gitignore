@@ -14,3 +14,4 @@ Makefile
 *.dSYM
 java/src/.project
 *.rbc
+Gemfile.lock
