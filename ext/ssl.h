@@ -21,9 +21,6 @@ See the file COPYING for complete licensing information.
 #ifndef __SslBox__H_
 #define __SslBox__H_
 
-
-
-
 #ifdef WITH_SSL
 
 /******************

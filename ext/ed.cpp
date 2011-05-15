@@ -568,28 +568,28 @@ ConnectionDescriptor::SelectForRead
 
 bool ConnectionDescriptor::SelectForRead()
 {
-  /* A connection descriptor is always scheduled for read,
-   * UNLESS it's in a pending-connect state.
-   * On Linux, unlike Unix, a nonblocking socket on which
-   * connect has been called, does NOT necessarily select
-   * both readable and writable in case of error.
-   * The socket will select writable when the disposition
-   * of the connect is known. On the other hand, a socket
-   * which successfully connects and selects writable may
-   * indeed have some data available on it, so it will
-   * select readable in that case, violating expectations!
-   * So we will not poll for readability until the socket
-   * is known to be in a connected state.
-   */
+	/* A connection descriptor is always scheduled for read,
+	 * UNLESS it's in a pending-connect state.
+	 * On Linux, unlike Unix, a nonblocking socket on which
+	 * connect has been called, does NOT necessarily select
+	 * both readable and writable in case of error.
+	 * The socket will select writable when the disposition
+	 * of the connect is known. On the other hand, a socket
+	 * which successfully connects and selects writable may
+	 * indeed have some data available on it, so it will
+	 * select readable in that case, violating expectations!
+	 * So we will not poll for readability until the socket
+	 * is known to be in a connected state.
+	 */
 
-  if (bPaused)
-    return false;
-  else if (bConnectPending)
-    return false;
-  else if (bWatchOnly)
-    return bNotifyReadable ? true : false;
-  else
-    return true;
+	if (bPaused)
+		return false;
+	else if (bConnectPending)
+		return false;
+	else if (bWatchOnly)
+		return bNotifyReadable ? true : false;
+
+	return true;
 }
 
 
@@ -599,20 +599,20 @@ ConnectionDescriptor::SelectForWrite
 
 bool ConnectionDescriptor::SelectForWrite()
 {
-  /* Cf the notes under SelectForRead.
-   * In a pending-connect state, we ALWAYS select for writable.
-   * In a normal state, we only select for writable when we
-   * have outgoing data to send.
-   */
+	/* Cf the notes under SelectForRead.
+	* In a pending-connect state, we ALWAYS select for writable.
+	* In a normal state, we only select for writable when we
+	* have outgoing data to send.
+	*/
 
-  if (bPaused)
-    return false;
-  else if (bConnectPending)
-    return true;
-  else if (bWatchOnly)
-    return bNotifyWritable ? true : false;
-  else
-    return (GetOutboundDataSize() > 0);
+	if (bPaused)
+		return false;
+	else if (bConnectPending)
+		return true;
+	else if (bWatchOnly)
+		return bNotifyWritable ? true : false;
+
+	return (GetOutboundDataSize() > 0);
 }
 
 /***************************
@@ -675,7 +675,7 @@ void ConnectionDescriptor::Read()
 	 */
 
 	int sd = GetSocket();
-	//assert (sd != INVALID_SOCKET); (original, removed 22Aug06)
+
 	if (sd == INVALID_SOCKET) {
 		assert (!bReadAttemptedAfterClose);
 		bReadAttemptedAfterClose = true;
@@ -704,7 +704,6 @@ void ConnectionDescriptor::Read()
 
 		int r = read (sd, readbuffer, sizeof(readbuffer) - 1);
 		int e = errno;
-		//cerr << "<R:" << r << ">";
 
 		if (r > 0) {
 			total_bytes_read += r;
@@ -904,7 +903,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 	 */
 
 	int sd = GetSocket();
-	//assert (sd != INVALID_SOCKET);
+
 	if (sd == INVALID_SOCKET) {
 		assert (!bWriteAttemptedAfterClose);
 		bWriteAttemptedAfterClose = true;
@@ -1039,9 +1038,8 @@ ConnectionDescriptor::ReportErrorStatus
 
 int ConnectionDescriptor::ReportErrorStatus()
 {
-	if (MySocket == INVALID_SOCKET) {
+	if (MySocket == INVALID_SOCKET)
 		return -1;
-	}
 
 	int error;
 	socklen_t len;
@@ -1052,12 +1050,13 @@ int ConnectionDescriptor::ReportErrorStatus()
 	#ifdef OS_WIN32
 	int o = getsockopt (GetSocket(), SOL_SOCKET, SO_ERROR, (char*)&error, &len);
 	#endif
+
 	if ((o == 0) && (error == 0))
 		return 0;
 	else if (o == 0)
 		return error;
-	else
-		return -1;
+
+	return -1;
 }
 
 
@@ -1184,28 +1183,7 @@ void ConnectionDescriptor::_DispatchCiphertext()
 			else if (w < 0)
 				ScheduleClose (false);
 		} while (pump);
-
-		// try to put plaintext. INCOMPLETE, doesn't belong here?
-		// In SendOutboundData, we're spooling plaintext directly
-		// into SslBox. That may be wrong, we may need to buffer it
-		// up here! 
-		/*
-		const char *ptr;
-		int ptr_length;
-		while (OutboundPlaintext.GetPage (&ptr, &ptr_length)) {
-			assert (ptr && (ptr_length > 0));
-			int w = SslMachine.PutPlaintext (ptr, ptr_length);
-			if (w > 0) {
-				OutboundPlaintext.DiscardBytes (w);
-				did_work = true;
-			}
-			else
-				break;
-		}
-		*/
-
 	} while (did_work);
-
 }
 #endif
 
@@ -1227,15 +1205,13 @@ void ConnectionDescriptor::Heartbeat()
 		if ((MyEventMachine->GetCurrentLoopTime() - CreatedAt) >= PendingConnectTimeout) {
 			UnbindReasonCode = ETIMEDOUT;
 			ScheduleClose (false);
-			//bCloseNow = true;
-    }
+		}
 	}
 	else {
 		if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout)) {
 			UnbindReasonCode = ETIMEDOUT;
 			ScheduleClose (false);
-			//bCloseNow = true;
-    }
+		}
 	}
 }
 
@@ -1263,8 +1239,6 @@ LoopbreakDescriptor::LoopbreakDescriptor (int sd, EventMachine_t *parent_em):
 }
 
 
-
-
 /*************************
 LoopbreakDescriptor::Read
 *************************/
@@ -1283,8 +1257,8 @@ LoopbreakDescriptor::Write
 
 void LoopbreakDescriptor::Write()
 {
-  // Why are we here?
-  throw std::runtime_error ("bad code path in loopbreak");
+	// Why are we here?
+	throw std::runtime_error ("bad code path in loopbreak");
 }
 
 /**************************************
@@ -1345,7 +1319,6 @@ void AcceptorDescriptor::Read()
 	 * socket from the accept queue. If the accept queue is now empty, accept will block.
 	 */
 
-
 	struct sockaddr_in pin;
 	socklen_t addrlen = sizeof (pin);
 
@@ -1363,26 +1336,22 @@ void AcceptorDescriptor::Read()
 		// On Windows, this may fail because, weirdly, Windows inherits the non-blocking
 		// attribute that we applied to the acceptor socket into the accepted one.
 		if (!SetSocketNonblocking (sd)) {
-		//int val = fcntl (sd, F_GETFL, 0);
-		//if (fcntl (sd, F_SETFL, val | O_NONBLOCK) == -1) {
 			shutdown (sd, 1);
 			close (sd);
 			continue;
 		}
 
-
 		// Disable slow-start (Nagle algorithm). Eventually make this configurable.
 		int one = 1;
 		setsockopt (sd, IPPROTO_TCP, TCP_NODELAY, (char*) &one, sizeof(one));
-
 
 		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, MyEventMachine);
 		if (!cd)
 			throw std::runtime_error ("no newly accepted connection");
 		cd->SetServerMode();
-		if (EventCallback) {
+		if (EventCallback)
 			(*EventCallback) (GetBinding(), EM_CONNECTION_ACCEPTED, NULL, cd->GetBinding());
-		}
+
 		#ifdef HAVE_EPOLL
 		cd->GetEpollEvent()->events = EPOLLIN | (cd->SelectForWrite() ? EPOLLOUT : 0);
 		#endif
@@ -1404,8 +1373,8 @@ AcceptorDescriptor::Write
 
 void AcceptorDescriptor::Write()
 {
-  // Why are we here?
-  throw std::runtime_error ("bad code path in acceptor");
+	// Why are we here?
+	throw std::runtime_error ("bad code path in acceptor");
 }
 
 
@@ -1415,7 +1384,7 @@ AcceptorDescriptor::Heartbeat
 
 void AcceptorDescriptor::Heartbeat()
 {
-  // No-op
+	// No-op
 }
 
 
@@ -1498,7 +1467,6 @@ void DatagramDescriptor::Heartbeat()
 
 	if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout))
 		ScheduleClose (false);
-		//bCloseNow = true;
 }
 
 
@@ -1529,7 +1497,6 @@ void DatagramDescriptor::Read()
 		memset (&sin, 0, slen);
 
 		int r = recvfrom (sd, readbuffer, sizeof(readbuffer) - 1, 0, (struct sockaddr*)&sin, &slen);
-		//cerr << "<R:" << r << ">";
 
 		// In UDP, a zero-length packet is perfectly legal.
 		if (r >= 0) {
@@ -1561,10 +1528,7 @@ void DatagramDescriptor::Read()
 			// Basically a would-block, meaning we've read everything there is to read.
 			break;
 		}
-
 	}
-
-
 }
 
 
@@ -1643,7 +1607,6 @@ bool DatagramDescriptor::SelectForWrite()
 	 * Note that the superclass ShouldDelete method still checks for outbound data size,
 	 * which may be wrong.
 	 */
-	//return (GetOutboundDataSize() > 0); (Original)
 	return (OutboundPages.size() > 0);
 }
 
@@ -1695,7 +1658,6 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 	// TODO: Refactor this so there's no overlap with SendOutboundData.
 
 	if (IsCloseScheduled())
-	//if (bCloseNow || bCloseAfterWriting)
 		return 0;
 
 	if (!address || !*address || !port)

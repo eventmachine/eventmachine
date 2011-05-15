@@ -38,9 +38,5 @@ class Bindable_t
 		unsigned long Binding;
 };
 
-
-
-
-
 #endif // __ObjectBindings__H_
 

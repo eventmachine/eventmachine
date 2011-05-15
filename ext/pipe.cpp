@@ -158,7 +158,6 @@ void PipeDescriptor::Read()
 		
 
 		int r = read (sd, readbuffer, sizeof(readbuffer) - 1);
-		//cerr << "<R:" << r << ">";
 
 		if (r > 0) {
 			total_bytes_read += r;
@@ -187,7 +186,6 @@ void PipeDescriptor::Read()
 		// If we read no data on a socket that selected readable,
 		// it generally means the other end closed the connection gracefully.
 		ScheduleClose (false);
-		//bCloseNow = true;
 	}
 
 }
@@ -268,7 +266,6 @@ void PipeDescriptor::Heartbeat()
 	// If an inactivity timeout is defined, then check for it.
 	if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout))
 		ScheduleClose (false);
-		//bCloseNow = true;
 }
 
 
@@ -299,15 +296,12 @@ bool PipeDescriptor::SelectForWrite()
 }
 
 
-
-
 /********************************
 PipeDescriptor::SendOutboundData
 ********************************/
 
 int PipeDescriptor::SendOutboundData (const char *data, int length)
 {
-	//if (bCloseNow || bCloseAfterWriting)
 	if (IsCloseScheduled())
 		return 0;
 

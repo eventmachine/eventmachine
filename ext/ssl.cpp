@@ -25,8 +25,6 @@ See the file COPYING for complete licensing information.
 
 bool SslContext_t::bLibraryInitialized = false;
 
-
-
 static void InitializeDefaultCredentials();
 static EVP_PKEY *DefaultPrivateKey = NULL;
 static X509 *DefaultCertificate = NULL;
@@ -150,7 +148,6 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 		throw std::runtime_error ("no SSL context");
 
 	SSL_CTX_set_options (pCtx, SSL_OP_ALL);
-	//SSL_CTX_set_options (pCtx, (SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3));
 
 	if (is_server) {
 		// The SSL_CTX calls here do NOT allocate memory.
@@ -308,8 +305,6 @@ int SslBox_t::GetPlaintext (char *buf, int bufsize)
 		return 0;
 	}
 
-	//cerr << "CIPH: " << SSL_get_cipher (pSSL) << endl;
-
 	int n = SSL_read (pSSL, buf, bufsize);
 	if (n >= 0) {
 		return n;
@@ -408,8 +403,8 @@ int SslBox_t::PutPlaintext (const char *buf, int bufsize)
 		return 1;
 	else if (fatal)
 		return -1;
-	else
-		return 0;
+
+	return 0;
 }
 
 /**********************

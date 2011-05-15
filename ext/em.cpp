@@ -17,9 +17,6 @@ See the file COPYING for complete licensing information.
 
 *****************************************************************************/
 
-// THIS ENTIRE FILE WILL EVENTUALLY BE FOR UNIX BUILDS ONLY.
-//#ifdef OS_UNIX
-
 #include "project.h"
 
 /* The numer of max outstanding timers was once a const enum defined in em.h.
@@ -172,19 +169,19 @@ EventMachine_t::ScheduleHalt
 
 void EventMachine_t::ScheduleHalt()
 {
-  /* This is how we stop the machine.
-   * This can be called by clients. Signal handlers will probably
-   * set the global flag.
-   * For now this means there can only be one EventMachine ever running at a time.
-   *
-   * IMPORTANT: keep this light, fast, and async-safe. Don't do anything frisky in here,
-   * because it may be called from signal handlers invoked from code that we don't
-   * control. At this writing (20Sep06), EM does NOT install any signal handlers of
-   * its own.
-   *
-   * We need a FAQ. And one of the questions is: how do I stop EM when Ctrl-C happens?
-   * The answer is to call evma_stop_machine, which calls here, from a SIGINT handler.
-   */
+	/* This is how we stop the machine.
+	 * This can be called by clients. Signal handlers will probably
+	 * set the global flag.
+	 * For now this means there can only be one EventMachine ever running at a time.
+	 *
+	 * IMPORTANT: keep this light, fast, and async-safe. Don't do anything frisky in here,
+	 * because it may be called from signal handlers invoked from code that we don't
+	 * control. At this writing (20Sep06), EM does NOT install any signal handlers of
+	 * its own.
+	 *
+	 * We need a FAQ. And one of the questions is: how do I stop EM when Ctrl-C happens?
+	 * The answer is to call evma_stop_machine, which calls here, from a SIGINT handler.
+	 */
 	bTerminateSignalReceived = true;
 }
 
@@ -214,33 +211,31 @@ void EventMachine_t::SetTimerQuantum (int interval)
 
 void EventMachine_t::SetuidString (const char *username)
 {
-    /* This method takes a caller-supplied username and tries to setuid
-     * to that user. There is no meaningful implementation (and no error)
-     * on Windows. On Unix, a failure to setuid the caller-supplied string
-     * causes a fatal abort, because presumably the program is calling here
-     * in order to fulfill a security requirement. If we fail silently,
-     * the user may continue to run with too much privilege.
-     *
-     * TODO, we need to decide on and document a way of generating C++ level errors
-     * that can be wrapped in documented Ruby exceptions, so users can catch
-     * and handle them. And distinguish it from errors that we WON'T let the Ruby
-     * user catch (like security-violations and resource-overallocation).
-     * A setuid failure here would be in the latter category.
-     */
+	/* This method takes a caller-supplied username and tries to setuid
+	 * to that user. There is no meaningful implementation (and no error)
+	 * on Windows. On Unix, a failure to setuid the caller-supplied string
+	 * causes a fatal abort, because presumably the program is calling here
+	 * in order to fulfill a security requirement. If we fail silently,
+	 * the user may continue to run with too much privilege.
+	 *
+	 * TODO, we need to decide on and document a way of generating C++ level errors
+	 * that can be wrapped in documented Ruby exceptions, so users can catch
+	 * and handle them. And distinguish it from errors that we WON'T let the Ruby
+	 * user catch (like security-violations and resource-overallocation).
+	 * A setuid failure here would be in the latter category.
+	 */
 
-    #ifdef OS_UNIX
-    if (!username || !*username)
-	throw std::runtime_error ("setuid_string failed: no username specified");
+	#ifdef OS_UNIX
+	if (!username || !*username)
+		throw std::runtime_error ("setuid_string failed: no username specified");
 
-    struct passwd *p = getpwnam (username);
-    if (!p)
-	throw std::runtime_error ("setuid_string failed: unknown username");
+	struct passwd *p = getpwnam (username);
+	if (!p)
+		throw std::runtime_error ("setuid_string failed: unknown username");
 
-    if (setuid (p->pw_uid) != 0)
-	throw std::runtime_error ("setuid_string failed: no setuid");
-
-    // Success.
-    #endif
+	if (setuid (p->pw_uid) != 0)
+		throw std::runtime_error ("setuid_string failed: no setuid");
+	#endif
 }
 
 
@@ -840,33 +835,7 @@ bool EventMachine_t::_RunSelectOnce()
 	// however it has the same problem interoperating with Ruby
 	// threads that select does.
 
-	//cerr << "X";
-
-	/* This protection is now obsolete, because we will ALWAYS
-	 * have at least one descriptor (the loop-breaker) to read.
-	 */
-	/*
-	if (Descriptors.size() == 0) {
-		#ifdef OS_UNIX
-		timeval tv = {0, 200 * 1000};
-		EmSelect (0, NULL, NULL, NULL, &tv);
-		return true;
-		#endif
-		#ifdef OS_WIN32
-		Sleep (200);
-		return true;
-		#endif
-	}
-	*/
-
 	SelectData_t SelectData;
-	/*
-	fd_set fdreads, fdwrites;
-	FD_ZERO (&fdreads);
-	FD_ZERO (&fdwrites);
-
-	int maxsocket = 0;
-	*/
 
 	// Always read the loop-breaker reader.
 	// Changed 23Aug06, provisionally implemented for Windows with a UDP socket
@@ -905,13 +874,9 @@ bool EventMachine_t::_RunSelectOnce()
 
 
 	{ // read and write the sockets
-		//timeval tv = {1, 0}; // Solaris fails if the microseconds member is >= 1000000.
-		//timeval tv = Quantum;
 		SelectData.tv = _TimeTilNextEvent();
 		int s = SelectData._Select();
-		//rb_thread_blocking_region(xxx,(void*)&SelectData,RUBY_UBF_IO,0);
-		//int s = EmSelect (SelectData.maxsocket+1, &(SelectData.fdreads), &(SelectData.fdwrites), NULL, &(SelectData.tv));
-		//int s = SelectData.nSockets;
+
 		if (s > 0) {
 			/* Changed 01Jun07. We used to handle the Loop-breaker right here.
 			 * Now we do it AFTER all the regular descriptors. There's an
@@ -1133,7 +1098,6 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	int e = 0;
 
 	#ifdef OS_UNIX
-	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
 	if (connect (sd, &bind_as, bind_size) == 0) {
 		// This is a connect success, which Linux appears
 		// never to give when the socket is nonblocking,
@@ -1213,7 +1177,6 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	#endif
 
 	#ifdef OS_WIN32
-	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
 	if (connect (sd, &bind_as, bind_size) == 0) {
 		// This is a connect success, which Windows appears
 		// never to give when the socket is nonblocking,
@@ -1497,15 +1460,12 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	 * to indicate accepted connections.
 	 */
 
-
 	int family, bind_size;
 	struct sockaddr *bind_here = name2address (server, port, &family, &bind_size);
 	if (!bind_here)
 		return 0;
 
 	unsigned long output_binding = 0;
-
-	//struct sockaddr_in sin;
 
 	int sd_accept = socket (family, SOCK_STREAM, 0);
 	if (sd_accept == INVALID_SOCKET) {
@@ -1515,7 +1475,6 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	{ // set reuseaddr to improve performance on restarts.
 		int oval = 1;
 		if (setsockopt (sd_accept, SOL_SOCKET, SO_REUSEADDR, (char*)&oval, sizeof(oval)) < 0) {
-			//__warning ("setsockopt failed while creating listener","");
 			goto fail;
 		}
 	}
@@ -1530,25 +1489,17 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	}
 
 
-	//if (bind (sd_accept, (struct sockaddr*)&sin, sizeof(sin))) {
-	if (bind (sd_accept, bind_here, bind_size)) {
-		//__warning ("binding failed");
+	if (bind (sd_accept, bind_here, bind_size))
 		goto fail;
-	}
 
-	if (listen (sd_accept, 100)) {
-		//__warning ("listen failed");
+	if (listen (sd_accept, 100))
 		goto fail;
-	}
 
 	{
 		// Set the acceptor non-blocking.
 		// THIS IS CRUCIALLY IMPORTANT because we read it in a select loop.
-		if (!SetSocketNonblocking (sd_accept)) {
-		//int val = fcntl (sd_accept, F_GETFL, 0);
-		//if (fcntl (sd_accept, F_SETFL, val | O_NONBLOCK) == -1) {
+		if (!SetSocketNonblocking (sd_accept))
 			goto fail;
-		}
 	}
 
 	{ // Looking good.
@@ -1581,12 +1532,10 @@ const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int
 		goto fail;
 	// from here on, early returns must close the socket!
 
-
 	struct sockaddr_in sin;
 	memset (&sin, 0, sizeof(sin));
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons (port);
-
 
 	if (address && *address) {
 		sin.sin_addr.s_addr = inet_addr (address);
@@ -1604,8 +1553,6 @@ const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int
 	// Set the new socket nonblocking.
 	{
 		if (!SetSocketNonblocking (sd))
-		//int val = fcntl (sd, F_GETFL, 0);
-		//if (fcntl (sd, F_SETFL, val | O_NONBLOCK) == -1)
 			goto fail;
 	}
 
@@ -1721,19 +1668,6 @@ void EventMachine_t::_AddNewDescriptors()
 		}
 		#endif
 
-		#if HAVE_KQUEUE
-		/*
-		if (bKqueue) {
-			// INCOMPLETE. Some descriptors don't want to be readable.
-			assert (kqfd != -1);
-			struct kevent k;
-			EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_ADD, 0, 0, ed);
-			int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
-			assert (t == 0);
-		}
-		*/
-		#endif
-
 		QueueHeartbeat(ed);
 		Descriptors.push_back (ed);
 	}
@@ -1838,24 +1772,17 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 		#endif
 	}
 
-	if (bind (sd_accept, (struct sockaddr*)&s_sun, sizeof(s_sun))) {
-		//__warning ("binding failed");
+	if (bind (sd_accept, (struct sockaddr*)&s_sun, sizeof(s_sun)))
 		goto fail;
-	}
 
-	if (listen (sd_accept, 100)) {
-		//__warning ("listen failed");
+	if (listen (sd_accept, 100))
 		goto fail;
-	}
 
 	{
 		// Set the acceptor non-blocking.
 		// THIS IS CRUCIALLY IMPORTANT because we read it in a select loop.
-		if (!SetSocketNonblocking (sd_accept)) {
-		//int val = fcntl (sd_accept, F_GETFL, 0);
-		//if (fcntl (sd_accept, F_SETFL, val | O_NONBLOCK) == -1) {
+		if (!SetSocketNonblocking (sd_accept))
 			goto fail;
-		}
 	}
 
 	{ // Looking good.
@@ -2053,8 +1980,7 @@ void EventMachine_t::UnwatchPid (int pid)
 	struct kevent k;
 
 	EV_SET(&k, pid, EVFILT_PROC, EV_DELETE, 0, 0, 0);
-	/*int t =*/ kevent (kqfd, &k, 1, NULL, 0, NULL);
-	// t==-1 if the process already exited; ignore this for now
+	kevent (kqfd, &k, 1, NULL, 0, NULL);
 	#endif
 
 	if (EventCallback)
@@ -2301,5 +2227,3 @@ int EventMachine_t::SetHeartbeatInterval(float interval)
 	}
 	return 0;
 }
-//#endif // OS_UNIX
-

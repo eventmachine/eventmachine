@@ -209,6 +209,4 @@ const char *Mapper_t::GetChunk (unsigned start)
 	return MapPoint + start;
 }
 
-
-
 #endif // OS_WINDOWS

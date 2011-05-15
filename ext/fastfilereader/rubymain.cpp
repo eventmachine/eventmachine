@@ -30,8 +30,6 @@ static VALUE EmModule;
 static VALUE FastFileReader;
 static VALUE Mapper;
 
-
-
 /*********
 mapper_dt
 *********/

@@ -36,56 +36,6 @@ unsigned long Bindable_t::CreateBinding()
 	return num;
 }
 
-#if 0
-string Bindable_t::CreateBinding()
-{
-	static int index = 0;
-	static string seed;
-
-	if ((index >= 1000000) || (seed.length() == 0)) {
-		#ifdef OS_UNIX
-		int fd = open (DEV_URANDOM, O_RDONLY);
-		if (fd < 0)
-			throw std::runtime_error ("No entropy device");
-
-		unsigned char u[16];
-		size_t r = read (fd, u, sizeof(u));
-		if (r < sizeof(u))
-			throw std::runtime_error ("Unable to read entropy device");
-
-		unsigned char *u1 = (unsigned char*)u;
-		char u2 [sizeof(u) * 2 + 1];
-
-		for (size_t i=0; i < sizeof(u); i++)
-			sprintf (u2 + (i * 2), "%02x", u1[i]);
-
-		seed = string (u2);
-		#endif
-
-
-		#ifdef OS_WIN32
-		UUID uuid;
-		UuidCreate (&uuid);
-		unsigned char *uuidstring = NULL;
-		UuidToString (&uuid, &uuidstring);
-		if (!uuidstring)
-			throw std::runtime_error ("Unable to read uuid");
-		seed = string ((const char*)uuidstring);
-
-		RpcStringFree (&uuidstring);
-		#endif
-
-		index = 0;
-
-
-	}
-
-	stringstream ss;
-	ss << seed << (++index);
-	return ss.str();
-}
-#endif
-
 /*****************************
 STATIC: Bindable_t::GetObject
 *****************************/
@@ -109,7 +59,6 @@ Bindable_t::Bindable_t()
 	Binding = Bindable_t::CreateBinding();
 	BindingBag [Binding] = this;
 }
-
 
 
 /***********************

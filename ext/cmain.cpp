@@ -146,7 +146,8 @@ extern "C" int evma_detach_fd (const unsigned long binding)
 		#else
 			throw std::runtime_error ("invalid binding to detach");
 		#endif
-			return -1;
+
+	return -1;
 }
 
 /************************
@@ -165,7 +166,8 @@ extern "C" int evma_get_file_descriptor (const unsigned long binding)
 		#else
 			throw std::runtime_error ("invalid binding to get_fd");
 		#endif
-			return -1;
+
+	return -1;
 }
 
 /***********************
@@ -468,11 +470,9 @@ extern "C" int evma_get_peername (const unsigned long binding, struct sockaddr *
 {
 	ensure_eventmachine("evma_get_peername");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
-	if (ed) {
+	if (ed)
 		return ed->GetPeername (sa, len) ? 1 : 0;
-	}
-	else
-		return 0;
+	return 0;
 }
 
 /*****************
@@ -483,11 +483,9 @@ extern "C" int evma_get_sockname (const unsigned long binding, struct sockaddr *
 {
 	ensure_eventmachine("evma_get_sockname");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
-	if (ed) {
+	if (ed)
 		return ed->GetSockname (sa, len) ? 1 : 0;
-	}
-	else
-		return 0;
+	return 0;
 }
 
 /***********************
@@ -506,11 +504,9 @@ extern "C" int evma_get_subprocess_pid (const unsigned long binding, pid_t *pid)
 		*pid = EventMachine->SubprocessPid;
 		return 1;
 	}
-	else
-		return 0;
-	#else
-	return 0;
 	#endif
+
+	return 0;
 }
 
 /**************************
@@ -524,8 +520,8 @@ extern "C" int evma_get_subprocess_status (const unsigned long binding, int *sta
 		*status = EventMachine->SubprocessExitStatus;
 		return 1;
 	}
-	else
-		return 0;
+
+	return 0;
 }
 
 /*************************
@@ -558,11 +554,10 @@ extern "C" float evma_get_comm_inactivity_timeout (const unsigned long binding)
 {
 	ensure_eventmachine("evma_get_comm_inactivity_timeout");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
-	if (ed) {
+	if (ed)
 		return ((float)ed->GetCommInactivityTimeout() / 1000);
-	}
-	else
-		return 0.0; //Perhaps this should be an exception. Access to an unknown binding.
+
+	return 0.0; //Perhaps this should be an exception. Access to an unknown binding.
 }
 
 /********************************
@@ -573,11 +568,10 @@ extern "C" int evma_set_comm_inactivity_timeout (const unsigned long binding, fl
 {
 	ensure_eventmachine("evma_set_comm_inactivity_timeout");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
-	if (ed) {
+	if (ed)
 		return ed->SetCommInactivityTimeout ((uint64_t)(value * 1000));
-	}
-	else
-		return 0; //Perhaps this should be an exception. Access to an unknown binding.
+
+	return 0; //Perhaps this should be an exception. Access to an unknown binding.
 }
 
 
@@ -589,11 +583,10 @@ extern "C" float evma_get_pending_connect_timeout (const unsigned long binding)
 {
 	ensure_eventmachine("evma_get_pending_connect_timeout");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
-	if (ed) {
+	if (ed)
 		return ((float)ed->GetPendingConnectTimeout() / 1000);
-	}
-	else
-		return 0.0;
+
+	return 0.0;
 }
 
 
@@ -605,11 +598,10 @@ extern "C" int evma_set_pending_connect_timeout (const unsigned long binding, fl
 {
 	ensure_eventmachine("evma_set_pending_connect_timeout");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
-	if (ed) {
+	if (ed)
 		return ed->SetPendingConnectTimeout ((uint64_t)(value * 1000));
-	}
-	else
-		return 0;
+
+	return 0;
 }
 
 
@@ -648,6 +640,7 @@ extern "C" void evma_set_max_timer_count (int ct)
 		#else
 			throw std::runtime_error ("eventmachine already initialized: evma_set_max_timer_count");
 		#endif
+
 	EventMachine_t::SetMaxTimerCount (ct);
 }
 
