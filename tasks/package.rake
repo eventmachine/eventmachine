@@ -1,6 +1,16 @@
 require 'rake/gempackagetask'
-require 'rake/extensiontask'
-require 'rake/javaextensiontask'
+begin
+  require 'rake/extensiontask'
+  require 'rake/javaextensiontask'
+rescue LoadError => e
+  puts <<-MSG
+rake-compiler gem seems to be missing. Please install it with
+
+  gem install rake-compiler
+
+(add sudo if necessary).
+  MSG
+end
 
 Rake::GemPackageTask.new(GEMSPEC) do |pkg|
 end
