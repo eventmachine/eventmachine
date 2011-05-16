@@ -62,7 +62,7 @@ class TestSendFile < Test::Unit::TestCase
 
       data = ''
 
-      assert_raises(RuntimeError) {
+      assert_raises(EM::Error) {
         EM.run {
           EM.start_server "127.0.0.1", @port, TestModule, @filename
           setup_timeout

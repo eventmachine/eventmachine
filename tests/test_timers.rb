@@ -106,7 +106,7 @@ class TestTimers < Test::Unit::TestCase
         EM.stop
       end
 
-      assert_raises(RuntimeError) do
+      assert_raises(EM::Error) do
         EM.run( &one_hundred_one_timers )
       end
 

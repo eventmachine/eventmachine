@@ -34,6 +34,7 @@ static VALUE EmConnection;
 static VALUE EmConnsHash;
 static VALUE EmTimersHash;
 
+VALUE EM_eError;
 static VALUE EM_eConnectionError;
 static VALUE EM_eUnknownTimerFired;
 static VALUE EM_eConnectionNotBound;
@@ -233,7 +234,7 @@ static VALUE t_add_oneshot_timer (VALUE self, VALUE interval)
 {
 	const unsigned long f = evma_install_oneshot_timer (FIX2INT (interval));
 	if (!f)
-		rb_raise (rb_eRuntimeError, "ran out of timers; use #set_max_timers to increase limit");
+		rb_raise (EM_eError, "ran out of timers; use #set_max_timers to increase limit");
 	return ULONG2NUM (f);
 }
 
@@ -246,7 +247,7 @@ static VALUE t_start_server (VALUE self, VALUE server, VALUE port)
 {
 	const unsigned long f = evma_create_tcp_server (StringValuePtr(server), FIX2INT(port));
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no acceptor (port is in use or requires root privileges)");
+		rb_raise (EM_eError, "no acceptor (port is in use or requires root privileges)");
 	return ULONG2NUM (f);
 }
 
@@ -269,7 +270,7 @@ static VALUE t_start_unix_server (VALUE self, VALUE filename)
 {
 	const unsigned long f = evma_create_unix_domain_server (StringValuePtr(filename));
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no unix-domain acceptor");
+		rb_raise (EM_eError, "no unix-domain acceptor");
 	return ULONG2NUM (f);
 }
 
@@ -541,7 +542,7 @@ static VALUE t_connect_unix_server (VALUE self, VALUE serversocket)
 {
 	const unsigned long f = evma_connect_to_unix_server (StringValuePtr(serversocket));
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no connection");
+		rb_raise (EM_eError, "no connection");
 	return ULONG2NUM (f);
 }
 
@@ -553,7 +554,7 @@ static VALUE t_attach_fd (VALUE self, VALUE file_descriptor, VALUE watch_mode)
 {
 	const unsigned long f = evma_attach_fd (NUM2INT(file_descriptor), watch_mode == Qtrue);
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no connection");
+		rb_raise (EM_eError, "no connection");
 	return ULONG2NUM (f);
 }
 
@@ -656,7 +657,7 @@ static VALUE t_open_udp_socket (VALUE self, VALUE server, VALUE port)
 {
 	const unsigned long f = evma_open_datagram_socket (StringValuePtr(server), FIX2INT(port));
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no datagram socket");
+		rb_raise (EM_eError, "no datagram socket");
 	return ULONG2NUM (f);
 }
 
@@ -758,7 +759,7 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 		int len = RARRAY (cmd)->len;
 	#endif
 	if (len >= 2048)
-		rb_raise (rb_eRuntimeError, "too many arguments to popen");
+		rb_raise (EM_eError, "too many arguments to popen");
 	char *strings [2048];
 	for (int i=0; i < len; i++) {
 		VALUE ix = INT2FIX (i);
@@ -773,7 +774,7 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 		char buf[100];
 		memset (buf, 0, sizeof(buf));
 		snprintf (buf, sizeof(buf)-1, "no popen: %s", (err?err:"???"));
-		rb_raise (rb_eRuntimeError, "%s", buf);
+		rb_raise (EM_eError, "%s", buf);
 	}
 	return ULONG2NUM (f);
 }
@@ -787,7 +788,7 @@ static VALUE t_read_keyboard (VALUE self)
 {
 	const unsigned long f = evma_open_keyboard();
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no keyboard reader");
+		rb_raise (EM_eError, "no keyboard reader");
 	return ULONG2NUM (f);
 }
 
@@ -949,7 +950,7 @@ static VALUE t_send_file_data (VALUE self, VALUE signature, VALUE filename)
 
 	int b = evma_send_file_data_to_connection (NUM2ULONG (signature), StringValuePtr(filename));
 	if (b == -1)
-		rb_raise(rb_eRuntimeError, "File too large.  send_file_data() supports files under 32k.");
+		rb_raise(EM_eError, "File too large.  send_file_data() supports files under 32k.");
 	if (b > 0) {
 		char *err = strerror (b);
 		rb_raise (rb_eIOError, "%s %s", StringValuePtr(filename), (err ? err : "???"));
@@ -1102,11 +1103,13 @@ extern "C" void Init_rubyeventmachine()
 	EmModule = rb_define_module ("EventMachine");
 	EmConnection = rb_define_class_under (EmModule, "Connection", rb_cObject);
 
-	rb_define_class_under (EmModule, "NoHandlerForAcceptedConnection", rb_eRuntimeError);
-	EM_eConnectionError = rb_define_class_under (EmModule, "ConnectionError", rb_eRuntimeError);
-	EM_eConnectionNotBound = rb_define_class_under (EmModule, "ConnectionNotBound", rb_eRuntimeError);
-	EM_eUnknownTimerFired = rb_define_class_under (EmModule, "UnknownTimerFired", rb_eRuntimeError);
-	EM_eUnsupported = rb_define_class_under (EmModule, "Unsupported", rb_eRuntimeError);
+	EM_eError = rb_define_class_under (EmModule, "Error", rb_eRuntimeError);
+	EM_eConnectionError = rb_define_class_under (EmModule, "ConnectionError", EM_eError);
+	EM_eConnectionNotBound = rb_define_class_under (EmModule, "ConnectionNotBound", EM_eError);
+	EM_eUnknownTimerFired = rb_define_class_under (EmModule, "UnknownTimerFired", EM_eError);
+	EM_eUnsupported = rb_define_class_under (EmModule, "Unsupported", EM_eError);
+
+	rb_define_class_under (EmModule, "NoHandlerForAcceptedConnection", EM_eError);
 
 	rb_define_module_function (EmModule, "initialize_event_machine", (VALUE(*)(...))t_initialize_event_machine, 0);
 	rb_define_module_function (EmModule, "run_machine", (VALUE(*)(...))t_run_machine_without_threads, 0);

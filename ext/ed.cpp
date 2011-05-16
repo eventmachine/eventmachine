@@ -82,10 +82,10 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	 */
 
 	if (sd == INVALID_SOCKET)
-		rb_raise(rb_eRuntimeError, "bad eventable descriptor");
+		rb_raise(EM_eError, "bad eventable descriptor");
 
 	if (MyEventMachine == NULL)
-		rb_raise(rb_eRuntimeError, "bad em in eventable descriptor");
+		rb_raise(EM_eError, "bad em in eventable descriptor");
 
 	CreatedAt = MyEventMachine->GetCurrentLoopTime();
 
@@ -199,7 +199,7 @@ void EventableDescriptor::StartProxy(const unsigned long to, const unsigned long
 		ed->SetProxiedFrom(this, bufsize);
 		return;
 	}
-	rb_raise(rb_eRuntimeError, "Tried to proxy to an invalid descriptor");
+	rb_raise(EM_eError, "Tried to proxy to an invalid descriptor");
 }
 
 
@@ -223,7 +223,7 @@ EventableDescriptor::SetProxiedFrom
 void EventableDescriptor::SetProxiedFrom(EventableDescriptor *from, const unsigned long bufsize)
 {
 	if (from != NULL && ProxiedFrom != NULL)
-		rb_raise(rb_eRuntimeError, "Tried to proxy to a busy target");
+		rb_raise(EM_eError, "Tried to proxy to a busy target");
 
 	ProxiedFrom = from;
 	MaxOutboundBufSize = bufsize;
@@ -450,7 +450,7 @@ ConnectionDescriptor::ScheduleClose
 void ConnectionDescriptor::ScheduleClose (bool after_writing)
 {
 	if (bWatchOnly)
-		rb_raise(rb_eRuntimeError, "cannot close 'watch only' connections");
+		rb_raise(EM_eError, "cannot close 'watch only' connections");
 
 	EventableDescriptor::ScheduleClose(after_writing);
 }
@@ -463,7 +463,7 @@ ConnectionDescriptor::SetNotifyReadable
 void ConnectionDescriptor::SetNotifyReadable(bool readable)
 {
 	if (!bWatchOnly)
-		rb_raise(rb_eRuntimeError, "notify_readable must be on 'watch only' connections");
+		rb_raise(EM_eError, "notify_readable must be on 'watch only' connections");
 
 	bNotifyReadable = readable;
 	_UpdateEvents(true, false);
@@ -477,7 +477,7 @@ ConnectionDescriptor::SetNotifyWritable
 void ConnectionDescriptor::SetNotifyWritable(bool writable)
 {
 	if (!bWatchOnly)
-		rb_raise(rb_eRuntimeError, "notify_writable must be on 'watch only' connections");
+		rb_raise(EM_eError, "notify_writable must be on 'watch only' connections");
 
 	bNotifyWritable = writable;
 	_UpdateEvents(false, true);
@@ -491,7 +491,7 @@ ConnectionDescriptor::SendOutboundData
 int ConnectionDescriptor::SendOutboundData (const char *data, int length)
 {
 	if (bWatchOnly)
-		rb_raise(rb_eRuntimeError, "cannot send data on a 'watch only' connection");
+		rb_raise(EM_eError, "cannot send data on a 'watch only' connection");
 
 	if (ProxiedFrom && MaxOutboundBufSize && (unsigned int)(GetOutboundDataSize() + length) > MaxOutboundBufSize)
 		ProxiedFrom->Pause();
@@ -542,11 +542,11 @@ int ConnectionDescriptor::_SendRawOutboundData (const char *data, int length)
 		return 0;
 
 	if (!data && (length > 0))
-		rb_raise(rb_eRuntimeError, "bad outbound data");
+		rb_raise(EM_eError, "bad outbound data");
 
 	char *buffer = (char *) malloc (length + 1);
 	if (!buffer)
-		rb_raise(rb_eRuntimeError, "no allocation for outbound data");
+		rb_raise(EM_eError, "no allocation for outbound data");
 
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
@@ -620,7 +620,7 @@ ConnectionDescriptor::Pause
 bool ConnectionDescriptor::Pause()
 {
 	if (bWatchOnly)
-		rb_raise(rb_eRuntimeError, "cannot pause/resume 'watch only' connections, set notify readable/writable instead");
+		rb_raise(EM_eError, "cannot pause/resume 'watch only' connections, set notify readable/writable instead");
 
 	bool old = bPaused;
 	bPaused = true;
@@ -635,7 +635,7 @@ ConnectionDescriptor::Resume
 bool ConnectionDescriptor::Resume()
 {
 	if (bWatchOnly)
-		rb_raise(rb_eRuntimeError, "cannot pause/resume 'watch only' connections, set notify readable/writable instead");
+		rb_raise(EM_eError, "cannot pause/resume 'watch only' connections, set notify readable/writable instead");
 
 	bool old = bPaused;
 	bPaused = false;
@@ -1008,7 +1008,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 		int len = nbytes - bytes_written;
 		char *buffer = (char*) malloc (len + 1);
 		if (!buffer)
-			rb_raise(rb_eRuntimeError, "bad alloc throwing back data");
+			rb_raise(EM_eError, "bad alloc throwing back data");
 
 		memcpy (buffer, output_buffer + bytes_written, len);
 		buffer [len] = 0;
@@ -1068,14 +1068,14 @@ void ConnectionDescriptor::StartTls()
 {
 	#ifdef WITH_SSL
 	if (SslBox)
-		rb_raise(rb_eRuntimeError, "SSL/TLS already running on connection");
+		rb_raise(EM_eError, "SSL/TLS already running on connection");
 
 	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, GetBinding());
 	_DispatchCiphertext();
 	#endif
 
 	#ifdef WITHOUT_SSL
-	rb_raise(rb_eRuntimeError, "Encryption not available on this event-machine");
+	rb_raise(EM_eError, "Encryption not available on this event-machine");
 	#endif
 }
 
@@ -1088,7 +1088,7 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 {
 	#ifdef WITH_SSL
 	if (SslBox)
-		rb_raise(rb_eRuntimeError, "call SetTlsParms before calling StartTls");
+		rb_raise(EM_eError, "call SetTlsParms before calling StartTls");
 
 	if (privkey_filename && *privkey_filename)
 		PrivateKeyFilename = privkey_filename;
@@ -1098,7 +1098,7 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 	#endif
 
 	#ifdef WITHOUT_SSL
-	rb_raise(rb_eRuntimeError, "Encryption not available on this event-machine");
+	rb_raise(EM_eError, "Encryption not available on this event-machine");
 	#endif
 }
 
@@ -1111,7 +1111,7 @@ ConnectionDescriptor::GetPeerCert
 X509 *ConnectionDescriptor::GetPeerCert()
 {
 	if (!SslBox)
-		rb_raise(rb_eRuntimeError, "SSL/TLS not running on this connection");
+		rb_raise(EM_eError, "SSL/TLS not running on this connection");
 
 	return SslBox->GetPeerCert();
 }
@@ -1285,7 +1285,7 @@ LoopbreakDescriptor::Write
 void LoopbreakDescriptor::Write()
 {
 	// Why are we here?
-	rb_raise(rb_eRuntimeError, "bad code path in loopbreak");
+	rb_raise(EM_eError, "bad code path in loopbreak");
 }
 
 /**************************************
@@ -1323,7 +1323,7 @@ void AcceptorDescriptor::StopAcceptor (const unsigned long binding)
 	if (ad)
 		ad->ScheduleClose (false);
 	else
-		rb_raise(rb_eRuntimeError, "failed to close nonexistent acceptor");
+		rb_raise(EM_eError, "failed to close nonexistent acceptor");
 }
 
 
@@ -1379,7 +1379,7 @@ void AcceptorDescriptor::Read()
 
 		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, MyEventMachine);
 		if (!cd)
-			rb_raise(rb_eRuntimeError, "no newly accepted connection");
+			rb_raise(EM_eError, "no newly accepted connection");
 
 		cd->SetServerMode();
 		if (EventCallback) {
@@ -1407,7 +1407,7 @@ AcceptorDescriptor::Write
 void AcceptorDescriptor::Write()
 {
 	// Why are we here?
-	rb_raise(rb_eRuntimeError, "bad code path in acceptor");
+	rb_raise(EM_eError, "bad code path in acceptor");
 }
 
 
@@ -1664,11 +1664,11 @@ int DatagramDescriptor::SendOutboundData (const char *data, int length)
 		return 0;
 
 	if (!data && (length > 0))
-		rb_raise(rb_eRuntimeError, "bad outbound data");
+		rb_raise(EM_eError, "bad outbound data");
 
 	char *buffer = (char *) malloc (length + 1);
 	if (!buffer)
-		rb_raise(rb_eRuntimeError, "no allocation for outbound data");
+		rb_raise(EM_eError, "no allocation for outbound data");
 
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
@@ -1724,11 +1724,11 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 
 
 	if (!data && (length > 0))
-		rb_raise(rb_eRuntimeError, "bad outbound data");
+		rb_raise(EM_eError, "bad outbound data");
 
 	char *buffer = (char *) malloc (length + 1);
 	if (!buffer)
-		rb_raise(rb_eRuntimeError, "no allocation for outbound data");
+		rb_raise(EM_eError, "no allocation for outbound data");
 
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
@@ -1867,12 +1867,12 @@ InotifyDescriptor::InotifyDescriptor (EventMachine_t *em):
 	bCallbackUnbind = false;
 
 	#ifndef HAVE_INOTIFY
-	rb_raise(rb_eRuntimeError, "no inotify support on this system");
+	rb_raise(EM_eError, "no inotify support on this system");
 	#else
 
 	int fd = inotify_init();
 	if (fd == -1)
-		rb_raise(rb_eRuntimeError, "unable to create inotify descriptor: %s", strerror(errno));
+		rb_raise(EM_eError, "unable to create inotify descriptor: %s", strerror(errno));
 
 	MySocket = fd;
 	SetSocketNonblocking(MySocket);
@@ -1911,5 +1911,5 @@ InotifyDescriptor::Write
 
 void InotifyDescriptor::Write()
 {
-	rb_raise(rb_eRuntimeError, "bad code path in inotify");
+	rb_raise(EM_eError, "bad code path in inotify");
 }

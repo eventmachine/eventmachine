@@ -201,7 +201,7 @@ void EventMachine_t::SetTimerQuantum (int interval)
 	 */
 
 	if ((interval < 5) || (interval > 2500))
-		rb_raise(rb_eRuntimeError, "invalid timer-quantum");
+		rb_raise(EM_eError, "invalid timer-quantum");
 
 	Quantum.tv_sec = interval / 1000;
 	Quantum.tv_usec = (interval % 1000) * 1000;
@@ -230,14 +230,14 @@ void EventMachine_t::SetuidString (const char *username)
 
     #ifdef OS_UNIX
     if (!username || !*username)
-		rb_raise(rb_eRuntimeError, "setuid_string failed: no username specified");
+		rb_raise(EM_eError, "setuid_string failed: no username specified");
 
     struct passwd *p = getpwnam (username);
     if (!p)
-		rb_raise(rb_eRuntimeError, "setuid_string failed: unknown username");
+		rb_raise(EM_eError, "setuid_string failed: unknown username");
 
     if (setuid (p->pw_uid) != 0)
-		rb_raise(rb_eRuntimeError, "setuid_string failed: no setuid");
+		rb_raise(EM_eError, "setuid_string failed: no setuid");
 
     // Success.
     #endif
@@ -304,7 +304,7 @@ void EventMachine_t::_InitializeLoopBreaker()
 	#ifdef OS_UNIX
 	int fd[2];
 	if (pipe (fd))
-		rb_raise(rb_eRuntimeError, "%s", strerror(errno));
+		rb_raise(EM_eError, "%s", strerror(errno));
 
 	LoopBreakerWriter = fd[1];
 	LoopBreakerReader = fd[0];
@@ -317,7 +317,7 @@ void EventMachine_t::_InitializeLoopBreaker()
 	#ifdef OS_WIN32
 	int sd = socket (AF_INET, SOCK_DGRAM, 0);
 	if (sd == INVALID_SOCKET)
-		rb_raise(rb_eRuntimeError, "no loop breaker socket");
+		rb_raise(EM_eError, "no loop breaker socket");
 
 	SetSocketNonblocking (sd);
 
@@ -335,7 +335,7 @@ void EventMachine_t::_InitializeLoopBreaker()
 	}
 
 	if (i == 100)
-		rb_raise(rb_eRuntimeError, "no loop breaker");
+		rb_raise(EM_eError, "no loop breaker");
 
 	LoopBreakerReader = sd;
 	#endif
@@ -440,7 +440,7 @@ void EventMachine_t::Run()
 	if (bEpoll) {
 		epfd = epoll_create (MaxEpollDescriptors);
 		if (epfd == -1)
-			rb_raise(rb_eRuntimeError, "unable to create epoll descriptor: %s", strerror(errno));
+			rb_raise(EM_eError, "unable to create epoll descriptor: %s", strerror(errno));
 
 		int cloexec = fcntl (epfd, F_GETFD, 0);
 		assert (cloexec >= 0);
@@ -458,7 +458,7 @@ void EventMachine_t::Run()
 	if (bKqueue) {
 		kqfd = kqueue();
 		if (kqfd == -1)
-			rb_raise(rb_eRuntimeError, "unable to create kqueue descriptor: %s", strerror(errno));
+			rb_raise(EM_eError, "unable to create kqueue descriptor: %s", strerror(errno));
 
 		// cloexec not needed. By definition, kqueues are not carried across forks.
 
@@ -567,7 +567,7 @@ bool EventMachine_t::_RunEpollOnce()
 
 	return true;
 	#else
-	rb_raise(rb_eRuntimeError, "epoll is not implemented on this platform");
+	rb_raise(EM_eError, "epoll is not implemented on this platform");
 	#endif
 }
 
@@ -648,7 +648,7 @@ bool EventMachine_t::_RunKqueueOnce()
 
 	return true;
 	#else
-	rb_raise(rb_eRuntimeError, "kqueue is not implemented on this platform");
+	rb_raise(EM_eError, "kqueue is not implemented on this platform");
 	#endif
 }
 
@@ -723,7 +723,7 @@ void EventMachine_t::_CleanupSockets()
 					int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
 					// ENOENT or EBADF are not errors because the socket may be already closed when we get here.
 					if (e && (errno != ENOENT) && (errno != EBADF) && (errno != EPERM))
-						rb_raise(rb_eRuntimeError, "unable to delete epoll event: %s", strerror(errno));
+						rb_raise(EM_eError, "unable to delete epoll event: %s", strerror(errno));
 				}
 				ModifiedDescriptors.erase(ed);
 			}
@@ -750,7 +750,7 @@ void EventMachine_t::_ModifyEpollEvent (EventableDescriptor *ed)
 		assert (ed->GetSocket() != INVALID_SOCKET);
 		int e = epoll_ctl (epfd, EPOLL_CTL_MOD, ed->GetSocket(), ed->GetEpollEvent());
 		if (e)
-			rb_raise(rb_eRuntimeError, "unable to modify epoll event: %s", strerror(errno));
+			rb_raise(EM_eError, "unable to modify epoll event: %s", strerror(errno));
 	}
 	#endif
 }
@@ -923,7 +923,7 @@ bool EventMachine_t::_RunSelectOnce()
 					_CleanBadDescriptors();
 					break;
 				case EINVAL:
-					rb_raise(rb_eRuntimeError, "Somehow EM passed an invalid nfds or invalid timeout to select(2), please report this!");
+					rb_raise(EM_eError, "Somehow EM passed an invalid nfds or invalid timeout to select(2), please report this!");
 					break;
 				default:
 					// select can fail on error in a handful of ways.
@@ -1064,24 +1064,24 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	 */
 
 	if (!server || !*server || !port)
-		rb_raise(rb_eRuntimeError, "invalid server or port");
+		rb_raise(EM_eError, "invalid server or port");
 
 	int family, bind_size;
 	struct sockaddr bind_as, *bind_as_ptr = name2address (server, port, &family, &bind_size);
 	if (!bind_as_ptr)
-		rb_raise(rb_eRuntimeError, "unable to restore server address");
+		rb_raise(EM_eError, "unable to restore server address");
 
 	bind_as = *bind_as_ptr; // copy because name2address points to a static
 
 	int sd = socket (family, SOCK_STREAM, 0);
 	if (sd == INVALID_SOCKET)
-		rb_raise(rb_eRuntimeError, "unable to create new socket: %s", strerror(errno));
+		rb_raise(EM_eError, "unable to create new socket: %s", strerror(errno));
 
 	// From here on, ALL error returns must close the socket.
 	// Set the new socket nonblocking.
 	if (!SetSocketNonblocking (sd)) {
 		close (sd);
-		rb_raise(rb_eRuntimeError, "unable to set socket as non-blocking");
+		rb_raise(EM_eError, "unable to set socket as non-blocking");
 	}
 	// Disable slow-start (Nagle algorithm).
 	int one = 1;
@@ -1094,11 +1094,11 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		struct sockaddr *bind_to = name2address (bind_addr, bind_port, &bind_to_family, &bind_to_size);
 		if (!bind_to) {
 			close (sd);
-			rb_raise(rb_eRuntimeError, "invalid bind address");
+			rb_raise(EM_eError, "invalid bind address");
 		}
 		if (bind (sd, bind_to, bind_to_size) < 0) {
 			close (sd);
-			rb_raise(rb_eRuntimeError, "couldn't bind to address");
+			rb_raise(EM_eError, "couldn't bind to address");
 		}
 	}
 
@@ -1129,7 +1129,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		 */
 		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, this);
 		if (!cd)
-			rb_raise(rb_eRuntimeError, "no connection allocated");
+			rb_raise(EM_eError, "no connection allocated");
 
 		cd->SetConnectPending (true);
 		Add (cd);
@@ -1148,7 +1148,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 			// or time out.
 			ConnectionDescriptor *cd = new ConnectionDescriptor (sd, this);
 			if (!cd)
-				rb_raise(rb_eRuntimeError, "no connection allocated");
+				rb_raise(EM_eError, "no connection allocated");
 
 			cd->SetConnectPending (true);
 			Add (cd);
@@ -1179,7 +1179,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		 */
 		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, this);
 		if (!cd)
-			rb_raise(rb_eRuntimeError, "no connection allocated");
+			rb_raise(EM_eError, "no connection allocated");
 
 		cd->SetUnbindReasonCode(e);
 		cd->ScheduleClose (false);
@@ -1195,7 +1195,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		// never to give when the socket is nonblocking,
 		// even if the connection is intramachine or to
 		// localhost.
-		rb_raise(rb_eRuntimeError("unimplemented"));
+		rb_raise(EM_eError("unimplemented"));
 	}
 	else if (WSAGetLastError() == WSAEWOULDBLOCK) {
 		// Here, there's no disposition.
@@ -1205,7 +1205,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		// or time out.
 		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, this);
 		if (!cd)
-			rb_raise(rb_eRuntimeError, "no connection allocated");
+			rb_raise(EM_eError, "no connection allocated");
 
 		cd->SetConnectPending (true);
 		Add (cd);
@@ -1236,7 +1236,7 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 	 */
 
 	#ifdef OS_WIN32
-	rb_raise(rb_eRuntimeError, "unix-domain connection unavailable on this platform");
+	rb_raise(EM_eError, "unix-domain connection unavailable on this platform");
 	return NULL;
 	#endif
 
@@ -1255,7 +1255,7 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 	// You ordinarily expect the server name field to be at least 1024 bytes long,
 	// but on Linux it can be MUCH shorter.
 	if (strlen(server) >= sizeof(pun.sun_path))
-		rb_raise(rb_eRuntimeError, "unix-domain server name is too long");
+		rb_raise(EM_eError, "unix-domain server name is too long");
 
 	strcpy (pun.sun_path, server);
 
@@ -1282,7 +1282,7 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 	// place.
 	ConnectionDescriptor *cd = new ConnectionDescriptor (fd, this);
 	if (!cd)
-		rb_raise(rb_eRuntimeError, "no connection allocated");
+		rb_raise(EM_eError, "no connection allocated");
 
 	cd->SetConnectPending (true);
 	Add (cd);
@@ -1303,13 +1303,13 @@ const unsigned long EventMachine_t::AttachFD (int fd, bool watch_mode)
 {
 	#ifdef OS_UNIX
 	if (fcntl(fd, F_GETFL, 0) < 0)
-		rb_raise(rb_eRuntimeError, "invalid file descriptor");
+		rb_raise(EM_eError, "invalid file descriptor");
 	#endif
 
 	#ifdef OS_WIN32
 	// TODO: add better check for invalid file descriptors (see ioctlsocket or getsockopt)
 	if (fd == INVALID_SOCKET)
-		rb_raise(rb_eRuntimeError, "invalid file descriptor");
+		rb_raise(EM_eError, "invalid file descriptor");
 	#endif
 
 	{// Check for duplicate descriptors
@@ -1318,14 +1318,14 @@ const unsigned long EventMachine_t::AttachFD (int fd, bool watch_mode)
 			EventableDescriptor *ed = Descriptors[i];
 			assert (ed);
 			if (ed->GetSocket() == fd)
-				rb_raise(rb_eRuntimeError, "adding exsiting descriptor");
+				rb_raise(EM_eError, "adding exsiting descriptor");
 		}
 
 		for (i = 0; i < NewDescriptors.size(); i++) {
 			EventableDescriptor *ed = NewDescriptors[i];
 			assert (ed);
 			if (ed->GetSocket() == fd)
-				rb_raise(rb_eRuntimeError, "adding existing new descriptor");
+				rb_raise(EM_eError, "adding existing new descriptor");
 		}
 	}
 
@@ -1334,7 +1334,7 @@ const unsigned long EventMachine_t::AttachFD (int fd, bool watch_mode)
 
 	ConnectionDescriptor *cd = new ConnectionDescriptor (fd, this);
 	if (!cd)
-		rb_raise(rb_eRuntimeError, "no connection allocated");
+		rb_raise(EM_eError, "no connection allocated");
 
 	cd->SetWatchOnly(watch_mode);
 	cd->SetConnectPending (false);
@@ -1352,7 +1352,7 @@ EventMachine_t::DetachFD
 int EventMachine_t::DetachFD (EventableDescriptor *ed)
 {
 	if (!ed)
-		rb_raise(rb_eRuntimeError, "detaching bad descriptor");
+		rb_raise(EM_eError, "detaching bad descriptor");
 
 	int fd = ed->GetSocket();
 
@@ -1363,7 +1363,7 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 			int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
 			// ENOENT or EBADF are not errors because the socket may be already closed when we get here.
 			if (e && (errno != ENOENT) && (errno != EBADF))
-				rb_raise(rb_eRuntimeError, "unable to delete epoll event: %s", strerror(errno));
+				rb_raise(EM_eError, "unable to delete epoll event: %s", strerror(errno));
 		}
 	}
 	#endif
@@ -1375,7 +1375,7 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 		EV_SET (&k, ed->GetSocket(), EVFILT_READ | EVFILT_WRITE, EV_DELETE, 0, 0, ed);
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
 		if (t < 0 && (errno != ENOENT) && (errno != EBADF))
-			rb_raise(rb_eRuntimeError, "unable to delete kqueue event: %s", strerror(errno));
+			rb_raise(EM_eError, "unable to delete kqueue event: %s", strerror(errno));
 	}
 	#endif
 
@@ -1525,7 +1525,7 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	{ // Looking good.
 		AcceptorDescriptor *ad = new AcceptorDescriptor (sd_accept, this);
 		if (!ad)
-			rb_raise(rb_eRuntimeError, "unable to allocate acceptor");
+			rb_raise(EM_eError, "unable to allocate acceptor");
 
 		Add (ad);
 		output_binding = ad->GetBinding();
@@ -1587,7 +1587,7 @@ const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int
 	{ // Looking good.
 		DatagramDescriptor *ds = new DatagramDescriptor (sd, this);
 		if (!ds)
-			rb_raise(rb_eRuntimeError, "unable to allocate datagram-socket");
+			rb_raise(EM_eError, "unable to allocate datagram-socket");
 
 		Add (ds);
 		output_binding = ds->GetBinding();
@@ -1610,7 +1610,7 @@ EventMachine_t::Add
 void EventMachine_t::Add (EventableDescriptor *ed)
 {
 	if (!ed)
-		rb_raise(rb_eRuntimeError, "added bad descriptor");
+		rb_raise(EM_eError, "added bad descriptor");
 
 	ed->SetEventCallback (EventCallback);
 	NewDescriptors.push_back (ed);
@@ -1626,13 +1626,13 @@ void EventMachine_t::ArmKqueueWriter (EventableDescriptor *ed)
 	#ifdef HAVE_KQUEUE
 	if (bKqueue) {
 		if (!ed)
-			rb_raise(rb_eRuntimeError, "added bad descriptor");
+			rb_raise(EM_eError, "added bad descriptor");
 
 		struct kevent k;
 		EV_SET (&k, ed->GetSocket(), EVFILT_WRITE, EV_ADD | EV_ONESHOT, 0, 0, ed);
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
 		if (t < 0)
-			rb_raise(rb_eRuntimeError, "arm kqueue writer failed on %d: %s", ed->GetSocket(), strerror(errno));
+			rb_raise(EM_eError, "arm kqueue writer failed on %d: %s", ed->GetSocket(), strerror(errno));
 	}
 	#endif
 }
@@ -1646,13 +1646,13 @@ void EventMachine_t::ArmKqueueReader (EventableDescriptor *ed)
 	#ifdef HAVE_KQUEUE
 	if (bKqueue) {
 		if (!ed)
-			rb_raise(rb_eRuntimeError, "added bad descriptor");
+			rb_raise(EM_eError, "added bad descriptor");
 
 		struct kevent k;
 		EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_ADD, 0, 0, ed);
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
 		if (t < 0)
-			rb_raise(rb_eRuntimeError, "arm kqueue reader failed on %d: %s", ed->GetSocket(), strerror(errno));
+			rb_raise(EM_eError, "arm kqueue reader failed on %d: %s", ed->GetSocket(), strerror(errno));
 	}
 	#endif
 }
@@ -1677,14 +1677,14 @@ void EventMachine_t::_AddNewDescriptors()
 	for (size_t i = 0; i < NewDescriptors.size(); i++) {
 		EventableDescriptor *ed = NewDescriptors[i];
 		if (ed == NULL)
-			rb_raise(rb_eRuntimeError, "adding bad descriptor");
+			rb_raise(EM_eError, "adding bad descriptor");
 
 		#if HAVE_EPOLL
 		if (bEpoll) {
 			assert (epfd != -1);
 			int e = epoll_ctl (epfd, EPOLL_CTL_ADD, ed->GetSocket(), ed->GetEpollEvent());
 			if (e)
-				rb_raise(rb_eRuntimeError, "unable to add new descriptor: %s", strerror(errno));
+				rb_raise(EM_eError, "unable to add new descriptor: %s", strerror(errno));
 		}
 		#endif
 
@@ -1753,7 +1753,7 @@ EventMachine_t::Modify
 void EventMachine_t::Modify (EventableDescriptor *ed)
 {
 	if (!ed)
-		rb_raise(rb_eRuntimeError, "modified bad descriptor");
+		rb_raise(EM_eError, "modified bad descriptor");
 
 	ModifiedDescriptors.insert (ed);
 }
@@ -1773,7 +1773,7 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 	 */
 
 	#ifdef OS_WIN32
-	rb_raise(rb_eRuntimeError, "unix-domain server unavailable on this platform");
+	rb_raise(EM_eError, "unix-domain server unavailable on this platform");
 	#endif
 
 	// The whole rest of this function is only compiled on Unix systems.
@@ -1829,7 +1829,7 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 	{ // Looking good.
 		AcceptorDescriptor *ad = new AcceptorDescriptor (sd_accept, this);
 		if (!ad)
-			rb_raise(rb_eRuntimeError, "unable to allocate acceptor");
+			rb_raise(EM_eError, "unable to allocate acceptor");
 
 		Add (ad);
 		output_binding = ad->GetBinding();
@@ -1852,7 +1852,7 @@ EventMachine_t::Popen
 const char *EventMachine_t::Popen (const char *cmd, const char *mode)
 {
 	#ifdef OS_WIN32
-	rb_raise(rb_eRuntimeError, "popen is currently unavailable on this platform");
+	rb_raise(EM_eError, "popen is currently unavailable on this platform");
 	#endif
 
 	// The whole rest of this function is only compiled on Unix systems.
@@ -1876,7 +1876,7 @@ const char *EventMachine_t::Popen (const char *cmd, const char *mode)
 	{ // Looking good.
 		PipeDescriptor *pd = new PipeDescriptor (fp, this);
 		if (!pd)
-			rb_raise(rb_eRuntimeError, "unable to allocate pipe");
+			rb_raise(EM_eError, "unable to allocate pipe");
 
 		Add (pd);
 		output_binding = pd->GetBinding();
@@ -1894,7 +1894,7 @@ EventMachine_t::Socketpair
 const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
 {
 	#ifdef OS_WIN32
-	rb_raise(rb_eRuntimeError, "socketpair is currently unavailable on this platform");
+	rb_raise(EM_eError, "socketpair is currently unavailable on this platform");
 	#endif
 
 	// The whole rest of this function is only compiled on Unix systems.
@@ -1931,7 +1931,7 @@ const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
 		close (sv[1]);
 		PipeDescriptor *pd = new PipeDescriptor (sv[0], f, this);
 		if (!pd)
-			rb_raise(rb_eRuntimeError, "unable to allocate pipe");
+			rb_raise(EM_eError, "unable to allocate pipe");
 
 		Add (pd);
 		output_binding = pd->GetBinding();
@@ -1945,7 +1945,7 @@ const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
 		exit (-1); // end the child process if the exec doesn't work.
 	}
 	else
-		rb_raise(rb_eRuntimeError, "no fork");
+		rb_raise(EM_eError, "no fork");
 
 	return output_binding;
 	#endif
@@ -1960,7 +1960,7 @@ const unsigned long EventMachine_t::OpenKeyboard()
 {
 	KeyboardDescriptor *kd = new KeyboardDescriptor (this);
 	if (!kd)
-		rb_raise(rb_eRuntimeError, "no keyboard-object allocated");
+		rb_raise(EM_eError, "no keyboard-object allocated");
 
 	Add (kd);
 	return kd->GetBinding();
@@ -1985,7 +1985,7 @@ const unsigned long EventMachine_t::WatchPid (int pid)
 {
 	#ifdef HAVE_KQUEUE
 	if (!bKqueue)
-		rb_raise(rb_eRuntimeError, "must enable kqueue (EM.kqueue=true) for pid watching support");
+		rb_raise(EM_eError, "must enable kqueue (EM.kqueue=true) for pid watching support");
 
 	struct kevent event;
 	int kqres;
@@ -1995,7 +1995,7 @@ const unsigned long EventMachine_t::WatchPid (int pid)
 	// Attempt to register the event
 	kqres = kevent(kqfd, &event, 1, NULL, 0, NULL);
 	if (kqres == -1)
-		rb_raise(rb_eRuntimeError, "failed to register file watch descriptor with kqueue: %s", strerror(errno));
+		rb_raise(EM_eError, "failed to register file watch descriptor with kqueue: %s", strerror(errno));
 
 	Bindable_t* b = new Bindable_t();
 	Pids.insert(make_pair (pid, b));
@@ -2003,7 +2003,7 @@ const unsigned long EventMachine_t::WatchPid (int pid)
 	return b->GetBinding();
 	#endif
 
-	rb_raise(rb_eRuntimeError, "no pid watching support on this system");
+	rb_raise(EM_eError, "no pid watching support on this system");
 }
 
 /**************************
@@ -2040,7 +2040,7 @@ void EventMachine_t::UnwatchPid (const unsigned long sig)
 		}
 	}
 
-	rb_raise(rb_eRuntimeError, "attempted to remove invalid pid signature");
+	rb_raise(EM_eError, "attempted to remove invalid pid signature");
 }
 
 
@@ -2057,7 +2057,7 @@ const unsigned long EventMachine_t::WatchFile (const char *fpath)
 	sres = stat(fpath, &sb);
 
 	if (sres == -1)
-		rb_raise(rb_eRuntimeError, "error registering file %s for watching: %s", fpath, strerror(errno));
+		rb_raise(EM_eError, "error registering file %s for watching: %s", fpath, strerror(errno));
 
 	#ifdef HAVE_INOTIFY
 	if (!inotify) {
@@ -2069,17 +2069,17 @@ const unsigned long EventMachine_t::WatchFile (const char *fpath)
 	wd = inotify_add_watch(inotify->GetSocket(), fpath,
 			       IN_MODIFY | IN_DELETE_SELF | IN_MOVE_SELF | IN_CREATE | IN_DELETE | IN_MOVE) ;
 	if (wd == -1)
-		rb_raise(rb_eRuntimeError, "failed to open file %s for registering with inotify: %s", fpath, strerror(errno));
+		rb_raise(EM_eError, "failed to open file %s for registering with inotify: %s", fpath, strerror(errno));
 	#endif
 
 	#ifdef HAVE_KQUEUE
 	if (!bKqueue)
-		rb_raise(rb_eRuntimeError, "must enable kqueue (EM.kqueue=true) for file watching support");
+		rb_raise(EM_eError, "must enable kqueue (EM.kqueue=true) for file watching support");
 
 	// With kqueue we have to open the file first and use the resulting fd to register for events
 	wd = open(fpath, O_RDONLY);
 	if (wd == -1)
-		rb_raise(rb_eRuntimeError, "failed to open file %s for registering with kqueue: %s", fpath, strerror(errno));
+		rb_raise(EM_eError, "failed to open file %s for registering with kqueue: %s", fpath, strerror(errno));
 
 	_RegisterKqueueFileEvent(wd);
 	#endif
@@ -2091,7 +2091,7 @@ const unsigned long EventMachine_t::WatchFile (const char *fpath)
 		return b->GetBinding();
 	}
 
-	rb_raise(rb_eRuntimeError, "no file watching support on this system"); // is this the right thing to do?
+	rb_raise(EM_eError, "no file watching support on this system"); // is this the right thing to do?
 }
 
 
@@ -2127,7 +2127,7 @@ void EventMachine_t::UnwatchFile (const unsigned long sig)
 			return;
 		}
 	}
-	rb_raise(rb_eRuntimeError, "attempted to remove invalid watch signature");
+	rb_raise(EM_eError, "attempted to remove invalid watch signature");
 }
 
 
@@ -2229,7 +2229,7 @@ void EventMachine_t::_RegisterKqueueFileEvent(int fd)
 	kqres = kevent(kqfd, &newevent, 1, NULL, 0, NULL);
 	if (kqres == -1) {
 		close(fd);
-		rb_raise(rb_eRuntimeError, "failed to register file watch descriptor with kqueue: %s", strerror(errno));
+		rb_raise(EM_eError, "failed to register file watch descriptor with kqueue: %s", strerror(errno));
 	}
 }
 #endif

@@ -38,7 +38,7 @@ extern "C" void ensure_eventmachine (const char *caller = "unknown caller")
 		const int err_size = 128;
 		char err_string[err_size];
 		snprintf (err_string, err_size, "eventmachine not initialized: %s", caller);
-		rb_raise(rb_eRuntimeError, "%s", err_string);
+		rb_raise(EM_eError, "%s", err_string);
 	}
 }
 
@@ -49,7 +49,7 @@ evma_initialize_library
 extern "C" void evma_initialize_library (EMCallback cb)
 {
 	if (EventMachine)
-		rb_raise(rb_eRuntimeError, "eventmachine already initialized: evma_initialize_library");
+		rb_raise(EM_eError, "eventmachine already initialized: evma_initialize_library");
 
 	EventMachine = new EventMachine_t (cb);
 	if (bUseEpoll)
@@ -134,7 +134,7 @@ extern "C" int evma_detach_fd (const unsigned long binding)
 	if (ed)
 		return EventMachine->DetachFD (ed);
 	else
-		rb_raise(rb_eRuntimeError, "invalid binding to detach");
+		rb_raise(EM_eError, "invalid binding to detach");
 
 	return -1;
 }
@@ -150,7 +150,7 @@ extern "C" int evma_get_file_descriptor (const unsigned long binding)
 	if (ed)
 		return ed->GetSocket();
 	else
-		rb_raise(rb_eRuntimeError, "invalid binding to get_fd");
+		rb_raise(EM_eError, "invalid binding to get_fd");
 
 	return -1;
 }
@@ -630,7 +630,7 @@ extern "C" void evma_set_max_timer_count (int ct)
 	// This may only be called if the reactor is not running.
 
 	if (EventMachine)
-		rb_raise(rb_eRuntimeError, "eventmachine already initialized: evma_set_max_timer_count");
+		rb_raise(EM_eError, "eventmachine already initialized: evma_set_max_timer_count");
 
 	EventMachine_t::SetMaxTimerCount (ct);
 }

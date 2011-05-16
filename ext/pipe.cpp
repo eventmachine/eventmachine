@@ -123,7 +123,7 @@ PipeDescriptor::~PipeDescriptor()
 	}
 
 	// still not dead, give up!
-	rb_raise(rb_eRuntimeError, "unable to reap subprocess");
+	rb_raise(EM_eError, "unable to reap subprocess");
 }
 
 
@@ -236,7 +236,7 @@ void PipeDescriptor::Write()
 			int len = nbytes - bytes_written;
 			char *buffer = (char*) malloc (len + 1);
 			if (!buffer)
-				rb_raise(rb_eRuntimeError, "bad alloc throwing back data");
+				rb_raise(EM_eError, "bad alloc throwing back data");
 
 			memcpy (buffer, output_buffer + bytes_written, len);
 			buffer [len] = 0;
@@ -313,11 +313,11 @@ int PipeDescriptor::SendOutboundData (const char *data, int length)
 		return 0;
 
 	if (!data && (length > 0))
-		rb_raise(rb_eRuntimeError, "bad outbound data");
+		rb_raise(EM_eError, "bad outbound data");
 
 	char *buffer = (char *) malloc (length + 1);
 	if (!buffer)
-		rb_raise(rb_eRuntimeError, "no allocation for outbound data");
+		rb_raise(EM_eError, "no allocation for outbound data");
 
 	memcpy (buffer, data, length);
 	buffer [length] = 0;

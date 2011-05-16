@@ -23,6 +23,7 @@ See the file COPYING for complete licensing information.
 #if __cplusplus
 extern "C" {
 #endif
+	extern VALUE EM_eError;
 
 	enum { // Event names
 		EM_TIMER_FIRED = 100,
