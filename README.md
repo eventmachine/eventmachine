@@ -3,17 +3,20 @@
 
 ## What is EventMachine ##
 
-EventMachine is an event-driven I/O and lightweight concurrency library for Ruby, C++, and Java programs.
-It provides event-driven I/O using the [Reactor pattern](http://en.wikipedia.org/wiki/Reactor_pattern), much like [JBoss Netty](http://www.jboss.org/netty) and
-[Apache MINA](http://mina.apache.org/), Python's [Twisted](http://twistedmatrix.com), [Node.js](http://nodejs.org), libevent and libev.
+EventMachine is an event-driven I/O and lightweight concurrency library for Ruby, C++, and
+Java programs. It provides event-driven I/O using the [Reactor pattern](http://en.wikipedia.org/wiki/Reactor_pattern),
+much like [JBoss Netty](http://www.jboss.org/netty) and [Apache MINA](http://mina.apache.org/),
+Python's [Twisted](http://twistedmatrix.com), [Node.js](http://nodejs.org), libevent and libev.
 
 EventMachine is designed to simultaneously meet two key needs:
 
- * Extremely high scalability, performance and stability for the most demanding production environments; and
- * An API that eliminates the complexities of high-performance threaded network programming, allowing engineers to concentrate on their application logic.
+ * Extremely high scalability, performance and stability for the most demanding production environments
+ * An API that eliminates the complexities of high-performance threaded network programming,
+	 allowing engineers to concentrate on their application logic.
 
-This unique combination makes EventMachine a premier choice for designers of critical networked applications, including web servers and proxies,
-email and IM production systems, authentication/authorization processors, and many more.
+This unique combination makes EventMachine a premier choice for designers of critical networked
+applications, including Web servers and proxies, email and IM production systems, authentication/authorization
+processors, and many more.
 
 EventMachine has been around since yearly 2000s and is a mature and battle tested library.
 
@@ -29,7 +32,8 @@ EventMachine has been around since yearly 2000s and is a mature and battle teste
 
 ## What platforms are supported by EventMachine? ##
 
-EventMachine supports Ruby 1.8.7, 1.9.2, REE, JRuby and **works well on Windows** as well as many operating systems from the Unix family (Linux, Mac OS X, BSD flavors).
+EventMachine supports Ruby 1.8.7, 1.9.2, REE, JRuby and **works well on Windows** as well
+as many operating systems from the Unix family (Linux, Mac OS X, BSD flavors).
 
 
 
@@ -98,4 +102,5 @@ Copyright: (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
 
 ## Alternatives ##
 
- * If you are unhappy with EventMachine and want to use Ruby, check out [Cool.io](http://coolio.github.com/). One caveat: by May 2011, it did not support JRuby and Windows.
+If you are unhappy with EventMachine and want to use Ruby, check out [Cool.io](http://coolio.github.com/).
+One caveat: by May 2011, it did not support JRuby and Windows.
