@@ -5,7 +5,7 @@
 
 This guide is a quick tutorial that helps you to get started with EventMachine for writing event-driven
 servers, clients and using it as a lightweight concurrency library.
-It should take about 20 minutes to read and study provided code examples. This guide covers
+It should take about 20 minutes to read and study the provided code examples. This guide covers
 
  * Installing EventMachine via [Rubygems](http://rubygems.org) and [Bundler](http://gembundler.com).
  * Building an Echo server, "Hello, world"-like code example of network servers.
@@ -52,14 +52,14 @@ Lets verify your installation with this quick irb session:
     irb -rubygems
 
     ruby-1.9.2-p180 :001 > require "eventmachine"
-     => true 
+     => true
     ruby-1.9.2-p180 :002 > EventMachine::VERSION
      => "1.0.0.beta.3"
 
 
 ## An echo server example ##
 
-Lets begin with a classic Hello, world example. First, here's the code:
+Lets begin with a classic "Hello, world" example. First, here's the code:
 
 TBD
 
@@ -75,13 +75,13 @@ This tutorial ends here. Congratulations! You have learned quite a bit about Eve
 
 ## What to read next ##
 
-Documentation is organized as a {file:docs/DocumentationGuidesIndex.md Number of guides}, covering all kinds of
+The documentation is organized as a {file:docs/DocumentationGuidesIndex.md number of guides}, covering all kinds of
 topics. TBD
 
 
 ## Tell us what you think! ##
 
-Please take a moment and tell us what you think about this guide on [EventMachine mailing list](http://bit.ly/jW3cR3)
-or in #eventmachine channel on irc.freenode.net: what was unclear? what wasn't covered?
-maybe you don't like guide style or grammar and spelling are incorrect? Readers feedback is
+Please take a moment and tell us what you think about this guide on the [EventMachine mailing list](http://bit.ly/jW3cR3)
+or in the #eventmachine channel on irc.freenode.net: what was unclear? What wasn't covered?
+Maybe you don't like the guide style or the grammar and spelling are incorrect? Reader feedback is
 key to making documentation better.

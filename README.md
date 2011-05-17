@@ -3,16 +3,16 @@
 
 ## What is EventMachine ##
 
-EventMachine is an event-driven I/O and lightweight concurrency library for Ruby, C++, and
-Java programs. It provides event-driven I/O using the [Reactor pattern](http://en.wikipedia.org/wiki/Reactor_pattern),
-much like [JBoss Netty](http://www.jboss.org/netty) and [Apache MINA](http://mina.apache.org/),
+EventMachine is an event-driven I/O and lightweight concurrency library for Ruby.
+It provides event-driven I/O using the [Reactor pattern](http://en.wikipedia.org/wiki/Reactor_pattern),
+much like [JBoss Netty](http://www.jboss.org/netty), [Apache MINA](http://mina.apache.org/),
 Python's [Twisted](http://twistedmatrix.com), [Node.js](http://nodejs.org), libevent and libev.
 
 EventMachine is designed to simultaneously meet two key needs:
 
- * Extremely high scalability, performance and stability for the most demanding production environments
+ * Extremely high scalability, performance and stability for the most demanding production environments.
  * An API that eliminates the complexities of high-performance threaded network programming,
-	 allowing engineers to concentrate on their application logic.
+   allowing engineers to concentrate on their application logic.
 
 This unique combination makes EventMachine a premier choice for designers of critical networked
 applications, including Web servers and proxies, email and IM production systems, authentication/authorization
@@ -23,9 +23,9 @@ EventMachine has been around since yearly 2000s and is a mature and battle teste
 
 ## What EventMachine is good for? ##
 
- * Scalable event-driven servers. Examples: [Thin](http://code.macournoyer.com/thin/) or [Goliath](https://github.com/postrank-labs/goliath/)
- * Scalable asynchronous clients for various protocols, RESTful APIs and so on. Examples: [em-http-request](https://github.com/igrigorik/em-http-request) or [amqp gem](https://github.com/ruby-amqp/amqp)
- * Efficient network proxies with custom logic. Examples: [Proxymachine](https://github.com/mojombo/proxymachine/)
+ * Scalable event-driven servers. Examples: [Thin](http://code.macournoyer.com/thin/) or [Goliath](https://github.com/postrank-labs/goliath/).
+ * Scalable asynchronous clients for various protocols, RESTful APIs and so on. Examples: [em-http-request](https://github.com/igrigorik/em-http-request) or [amqp gem](https://github.com/ruby-amqp/amqp).
+ * Efficient network proxies with custom logic. Examples: [Proxymachine](https://github.com/mojombo/proxymachine/).
  * File and network monitoring tools. Examples: [eventmachine-tail](https://github.com/jordansissel/eventmachine-tail) and [logstash](https://github.com/logstash/logstash).
 
 
@@ -51,7 +51,9 @@ or add this to your Gemfile if you use [Bundler](http://gembundler.com/):
 
 ## Getting started ##
 
-For introduction to EventMachine, check out [blog post about EventMachine by Ilya Grigorik](http://www.igvita.com/2008/05/27/ruby-eventmachine-the-speed-demon/).
+For an introduction to EventMachine, check out:
+ * [blog post about EventMachine by Ilya Grigorik](http://www.igvita.com/2008/05/27/ruby-eventmachine-the-speed-demon/).
+ * [EventMachine Introductions by dan sinclair](http://everburning.com/news/eventmachine-introductions/).
 
 
 ### Server example: Echo server ###
