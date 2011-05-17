@@ -52,8 +52,9 @@ or add this to your Gemfile if you use [Bundler](http://gembundler.com/):
 ## Getting started ##
 
 For an introduction to EventMachine, check out:
+
  * [blog post about EventMachine by Ilya Grigorik](http://www.igvita.com/2008/05/27/ruby-eventmachine-the-speed-demon/).
- * [EventMachine Introductions by dan sinclair](http://everburning.com/news/eventmachine-introductions/).
+ * [EventMachine Introductions by Dan Sinclair](http://everburning.com/news/eventmachine-introductions/).
 
 
 ### Server example: Echo server ###
