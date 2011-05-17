@@ -17,3 +17,5 @@ java/src/.project
 Gemfile.lock
 
 .yardoc/*
+doc/*
+

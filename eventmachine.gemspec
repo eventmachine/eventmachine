@@ -14,6 +14,7 @@ Gem::Specification.new do |s|
   s.extensions = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
 
   s.add_development_dependency 'rake-compiler', '0.7.6'
+  s.add_development_dependency 'yard'
 
   s.summary = 'Ruby/EventMachine library'
   s.description = "EventMachine implements a fast, single-threaded engine for arbitrary network
@@ -27,6 +28,6 @@ are provided with the package, primarily to serve as examples. The real goal
 of EventMachine is to enable programs to easily interface with other programs
 using TCP/IP, especially if custom protocols are required."
 
-  s.rdoc_options = ["--title", "EventMachine", "--main", "README", "-x", "lib/em/version", "-x", "lib/jeventmachine"]
-  s.extra_rdoc_files = ["README"] + `git ls-files -- docs/*`.split("\n")
+  s.rdoc_options = ["--title", "EventMachine", "--main", "README.md", "-x", "lib/em/version", "-x", "lib/jeventmachine"]
+  s.extra_rdoc_files = ["README.md"] + `git ls-files -- docs/*`.split("\n")
 end

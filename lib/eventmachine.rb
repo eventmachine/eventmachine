@@ -332,6 +332,7 @@ module EventMachine
   # course, since no network clients or servers are defined. Stop the program
   # with Ctrl-C.
   #
+  # @example
   #  EventMachine::run {
   #    puts "Starting the run now: #{Time.now}"
   #    EventMachine::add_timer 5, proc { puts "Executing timer event: #{Time.now}" }
@@ -501,6 +502,7 @@ module EventMachine
   # Also, to use this example, be sure to change the server and port parameters
   # to the start_server call to values appropriate for your environment.
   #
+  # @example
   #  require 'rubygems'
   #  require 'eventmachine'
   #
