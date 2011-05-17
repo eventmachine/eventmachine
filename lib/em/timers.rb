@@ -20,6 +20,7 @@ module EventMachine
 
   # Creates a periodic timer
   #
+  # @example
   #  n = 0
   #  timer = EventMachine::PeriodicTimer.new(5) do
   #    puts "the time is #{Time.now}"
