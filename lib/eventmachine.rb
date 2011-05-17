@@ -1153,9 +1153,6 @@ module EventMachine
   # the block passed to that method. If EventMachine#reactor_running? returns true, just
   # execute your event-aware code.
   #
-  # This method is necessary because calling EventMachine#run inside of another call to
-  # EventMachine#run generates a fatal error.
-  #
   def self.reactor_running?
     (@reactor_running || false)
   end
