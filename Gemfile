@@ -3,6 +3,6 @@ gemspec
 
 
 group :development do
-  gem "yard"
+  gem "yard", ">= 0.7.0"
   gem "bluecloth"
 end
