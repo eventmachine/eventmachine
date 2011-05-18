@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
   s.extensions = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
 
   s.add_development_dependency 'rake-compiler', '0.7.6'
-  s.add_development_dependency 'yard'
+  s.add_development_dependency 'yard', ">= 0.7.0"
 
   s.summary = 'Ruby/EventMachine library'
   s.description = "EventMachine implements a fast, single-threaded engine for arbitrary network
