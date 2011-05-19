@@ -12,8 +12,8 @@ servers, clients and using it as a lightweight concurrency library.
 It should take about 20 minutes to read and study the provided code examples. This guide covers
 
  * Installing EventMachine via [Rubygems](http://rubygems.org) and [Bundler](http://gembundler.com).
- * Building an Echo server, "Hello, world"-like code example of network servers.
- * Building a simple chat, both server and client parts of it.
+ * Building an Echo server, the "Hello, world"-like code example of network servers.
+ * Building a simple chat, both server and client.
  * Building a very small asynchronous Websockets client.
 
 
@@ -32,7 +32,7 @@ we recommend you to use [JRuby](http://jruby.org) when running these examples.
 
 ### Make sure you have Ruby installed ###
 
-This guides assumes you have one of the supported Ruby implementations installed:
+This guide assumes you have one of the supported Ruby implementations installed:
 
  * Ruby 1.8.7
  * Ruby 1.9.2
@@ -45,7 +45,7 @@ EventMachine works on Microsoft Windows™.
 
 ### With Rubygems ###
 
-To install EventMachine gem do
+To install the EventMachine gem do
 
     gem install eventmachine
 
@@ -57,7 +57,7 @@ To install EventMachine gem do
 
 ### Verifying your installation ###
 
-Lets verify your installation with this quick irb session:
+Lets verify your installation with this quick IRB session:
 
     irb -rubygems
 
@@ -67,38 +67,29 @@ Lets verify your installation with this quick irb session:
      => "1.0.0.beta.3"
 
 
-## An echo server example ##
+## An Echo Server Example ##
 
-Lets begin with a classic "Hello, world"-like example, an echo server. Echo server sends back whatever it receives
-from clients and does nothing else. First, here's the code:
+Lets begin with the classic "Hello, world"-like example, an echo server. The echo server responds clients with the
+same data that was provided. First, here's the code:
 
 {include:file:examples/guides/getting\_started/01\_eventmachine\_echo_server.rb}
 
 
-When this code example is run, server binds to port 10000. Lets connect there using Telnet and see if it works:
-run this example in one shell and in another shell run
+When run, the server binds to port 10000. We can connect using Telnet and verify it's working:
 
     telnet localhost 10000
 
-to connect to our echo server. On my machine, it looks like this:
+On my machine the output looks like:
 
     ~ telnet localhost 10000
-    Trying ::1...
-    telnet: connect to address ::1: Connection refused
-    Trying fe80::1...
-    telnet: connect to address fe80::1: Connection refused
     Trying 127.0.0.1...
     Connected to localhost.
     Escape character is '^]'.
 
-Lets send something to our server. Type in "Hello, EventMachine" and hit Enter. Server will reply with exactly what we've
-sent it:
+Let's send something to our server. Type in "Hello, EventMachine" and hit Enter. The server will respond with
+the same string:
 
     ~ telnet localhost 10000
-    Trying ::1...
-    telnet: connect to address ::1: Connection refused
-    Trying fe80::1...
-    telnet: connect to address fe80::1: Connection refused
     Trying 127.0.0.1...
     Connected to localhost.
     Escape character is '^]'.
@@ -110,13 +101,14 @@ sent it:
 It works! Congratulations, you now can tell your Node.js-loving friends that you "have done some event-driven programming, too".
 Oh, and to stop Telnet, hit Control + Shift + ] and then Control + C.
 
-Lets walk this example line by line and learn what is going on there. These lines
+Lets walk this example line by line and see what's going on. These lines
 
     require 'rubygems' # or use Bundler.setup
     require 'eventmachine'
 
 probably look familiar: you use [RubyGems](http://rubygems.org) (or [Bundler](http://gembundler.com/)) for dependencies and then require EventMachine gem. Boring.
-This piece of code
+
+Next:
 
     class EchoServer < EventMachine::Connection
       def receive_data(data)
@@ -124,12 +116,13 @@ This piece of code
       end
     end
 
-is the whole implementation of our echo server. We define a class that inherits from {EventMachine::Connection}
-and defines a handler (aka callback) for one event: when we receive some data from a client.
+Is the implementation of our echo server. We define a class that inherits from {EventMachine::Connection}
+and a handler (aka callback) for one event: when we receive data from a client.
 
-EventMachine handles connection setup for us, fetches data for us and passes it to the handler we define, {EventMachine::Connection#receive_data}.
-Then we implement our protocol logic, which in case of Echo protocol is pretty trivial: we send back whatever we receive.
-To do so, we use {EventMachine::Connection#send_data} method.
+EventMachine handles the connection setup, receiving data and passing it to our handler, {EventMachine::Connection#receive_data}.
+
+Then we implement our protocol logic, which in the case of Echo is pretty trivial: we send back whatever we receive.
+To do so, we're using {EventMachine::Connection#send_data}.
 
 
 
