@@ -15,6 +15,7 @@ Gem::Specification.new do |s|
 
   s.add_development_dependency 'rake-compiler', '0.7.6'
   s.add_development_dependency 'yard', ">= 0.7.0"
+  s.add_development_dependency 'bluecloth'
 
   s.summary = 'Ruby/EventMachine library'
   s.description = "EventMachine implements a fast, single-threaded engine for arbitrary network
