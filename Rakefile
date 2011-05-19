@@ -13,7 +13,7 @@ task :default => [:compile, :test]
 
 desc 'Generate documentation'
 YARD::Rake::YardocTask.new do |t|
-  t.files   = ['lib/**/*.rb', '-', 'docs/*']
+  t.files   = ['lib/**/*.rb', '-', 'docs/*.md']
   t.options = ['--main', 'README.md', '--no-private']
   t.options = ['--exclude', 'lib/jeventmachine', '--exclude', 'lib/pr_eventmachine']
 end
