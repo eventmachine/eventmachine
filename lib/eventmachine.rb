@@ -35,99 +35,26 @@ require 'shellwords'
 require 'thread'
 require 'resolv'
 
-# == Introduction
-# EventMachine provides a fast, lightweight framework for implementing
-# Ruby programs that can use the network to communicate with other
-# processes. Using EventMachine, Ruby programmers can easily connect
-# to remote servers and act as servers themselves. EventMachine does not
-# supplant the Ruby IP libraries. It does provide an alternate technique
-# for those applications requiring better performance, scalability,
-# and discipline over the behavior of network sockets, than is easily
-# obtainable using the built-in libraries, especially in applications
-# which are structurally well-suited for the event-driven programming model.
+# Top-level EventMachine namespace. If you are looking for EventMachine examples, see {file:docs/GettingStarted.md EventMachine tutorial}.
 #
-# EventMachine provides a perpetual event-loop which your programs can
-# start and stop. Within the event loop, TCP network connections are
-# initiated and accepted, based on EventMachine methods called by your
-# program. You also define callback methods which are called by EventMachine
-# when events of interest occur within the event-loop.
+# Key methods are:
 #
-# User programs will be called back when the following events occur:
-# * When the event loop accepts network connections from remote peers
-# * When data is received from network connections
-# * When connections are closed, either by the local or the remote side
-# * When user-defined timers expire
-#
-# == Usage example
-#
-# Here's a fully-functional echo server implemented in EventMachine:
-#
-#  require 'eventmachine'
-#
-#  module EchoServer
-#    def post_init
-#      puts "-- someone connected to the echo server!"
-#    end
-#
-#    def receive_data data
-#      send_data ">>>you sent: #{data}"
-#      close_connection if data =~ /quit/i
-#    end
-#
-#    def unbind
-#      puts "-- someone disconnected from the echo server!"
-#    end
-#  end
-#
-#  EventMachine::run {
-#    EventMachine::start_server "127.0.0.1", 8081, EchoServer
-#  }
-#
-# What's going on here? Well, we have defined the module EchoServer to
-# implement the semantics of the echo protocol (more about that shortly).
-# The last three lines invoke the event-machine itself, which runs forever
-# unless one of your callbacks terminates it. The block that you supply
-# to EventMachine::run contains code that runs immediately after the event
-# machine is initialized and before it starts looping. This is the place
-# to open up a TCP server by specifying the address and port it will listen
-# on, together with the module that will process the data.
-#
-# Our EchoServer is extremely simple as the echo protocol doesn't require
-# much work. Basically you want to send back to the remote peer whatever
-# data it sends you. We'll dress it up with a little extra text to make it
-# interesting. Also, we'll close the connection in case the received data
-# contains the word "quit."
-#
-# So what about this module EchoServer? Well, whenever a network connection
-# (either a client or a server) starts up, EventMachine instantiates an anonymous
-# class, that your module has been mixed into. Exactly one of these class
-# instances is created for each connection. Whenever an event occurs on a
-# given connection, its corresponding object automatically calls specific
-# instance methods which your module may redefine. The code in your module
-# always runs in the context of a class instance, so you can create instance
-# variables as you wish and they will be carried over to other callbacks
-# made on that same connection.
-#
-# Looking back up at EchoServer, you can see that we've defined the method
-# receive_data which (big surprise) is called whenever data has been received
-# from the remote end of the connection. Very simple. We get the data
-# (a String object) and can do whatever we wish with it. In this case,
-# we use the method send_data to return the received data to the caller,
-# with some extra text added in. And if the user sends the word "quit,"
-# we'll close the connection with (naturally) close_connection.
-# (Notice that closing the connection doesn't terminate the processing loop,
-# or change the fact that your echo server is still accepting connections!)
-#
-# == Questions and Futures
-# Would it be useful for EventMachine to incorporate the Observer pattern
-# and make use of the corresponding Ruby <tt>observer</tt> package?
-# Interesting thought.
-#
+# * {EventMachine.run}
+# * {EventMachine.stop_event_loop}
+# * {EventMachine.connect}
+# * {EventMachine.start_server}
+# * {EventMachine.add_timer}
+# * {EventMachine.add_periodic_timer}
+# * {EventMachine.next_tick}
+# * {EventMachine.defer}
+# * {EventMachine.enable_proxy}
 module EventMachine
   class << self
     # Exposed to allow joining on the thread, when run in a multithreaded
     # environment. Performing other actions on the thread has undefined
-    # semantics.
+    # semantics (read: a dangerous endevor).
+    #
+    # @return [Thread]
     attr_reader :reactor_thread
   end
   @next_tick_mutex = Mutex.new
@@ -137,27 +64,28 @@ module EventMachine
   @threadpool = nil
 
   # System errnos
+  # @private
   ERRNOS = Errno::constants.grep(/^E/).inject(Hash.new(:unknown)) { |hash, name|
-    errno = Errno.send(:const_get, name)
+    errno = Errno.__send__(:const_get, name)
     hash[errno::Errno] = errno
     hash
   }
 
-  # EventMachine::run initializes and runs an event loop.
-  # This method only returns if user-callback code calls stop_event_loop.
+  # Initializes and runs an event loop.
+  # This method only returns if user-callback code calls {EventMachine.stop_event_loop}.
   # Use the supplied block to define your clients and servers.
   # The block is called by EventMachine::run immediately after initializing
-  # its internal event loop but <i>before</i> running the loop.
+  # its internal event loop but *before* running the loop.
   # Therefore this block is the right place to call start_server if you
   # want to accept connections from remote clients.
   #
   # For programs that are structured as servers, it's usually appropriate
-  # to start an event loop by calling EventMachine::run, and let it
-  # run forever. It's also possible to use EventMachine::run to make a single
+  # to start an event loop by calling {EventMachine.run}, and let it
+  # run forever. It's also possible to use {EventMachine.run} to make a single
   # client-connection to a remote server, process the data flow from that
   # single connection, and then call stop_event_loop to force EventMachine::run
   # to return. Your program will then continue from the point immediately
-  # following the call to EventMachine::run.
+  # following the call to {EventMachine.run}.
   #
   # You can of course do both client and servers simultaneously in the same program.
   # One of the strengths of the event-driven programming model is that the
@@ -165,25 +93,51 @@ module EventMachine
   # and scheduled according to the actual events themselves. This maximizes
   # efficiency.
   #
-  # === Server usage example
+  # @example Starting EventMachine event loop in the current thread to run the "Hello, world"-like Echo server example
   #
-  # See EventMachine.start_server
+  #   #!/usr/bin/env ruby
   #
-  # === Client usage example
+  #   require 'rubygems' # or use Bundler.setup
+  #   require 'eventmachine'
   #
-  # See EventMachine.connect
+  #   class EchoServer < EM::Connection
+  #     def receive_data(data)
+  #       send_data(data)
+  #     end
+  #   end
   #
-  #--
-  # Obsoleted the use_threads mechanism.
-  # 25Nov06: Added the begin/ensure block. We need to be sure that release_machine
-  # gets called even if an exception gets thrown within any of the user code
-  # that the event loop runs. The best way to see this is to run a unit
-  # test with two functions, each of which calls EventMachine#run and each of
-  # which throws something inside of #run. Without the ensure, the second test
-  # will start without release_machine being called and will immediately throw
-  # a C++ runtime error.
+  #   EventMachine.run do
+  #     # hit Control + C to stop
+  #     Signal.trap("INT")  { EventMachine.stop }
+  #     Signal.trap("TERM") { EventMachine.stop }
   #
+  #     EventMachine.start_server("0.0.0.0", 10000, EchoServer)
+  #   end
+  #
+  #
+  # @example Starting EventMachine event loop in a separate thread
+  #
+  #   # doesn't block current thread, can be used with Ruby on Rails, Sinatra, Merb, Rack
+  #   # and any other application server that occupies main Ruby thread.
+  #   Thread.new { EventMachine.run }
+  #
+  #
+  # @note This method blocks calling thread. If you need to start EventMachine event loop from a Web app
+  #       running on a non event-driven server, do it in a separate thread.
+  # @see file:docs/GettingStarted.md Getting started with EventMachine
+  # @see EventMachine.stop_event_loop
   def self.run blk=nil, tail=nil, &block
+    # Obsoleted the use_threads mechanism.
+    # 25Nov06: Added the begin/ensure block. We need to be sure that release_machine
+    # gets called even if an exception gets thrown within any of the user code
+    # that the event loop runs. The best way to see this is to run a unit
+    # test with two functions, each of which calls EventMachine#run and each of
+    # which throws something inside of #run. Without the ensure, the second test
+    # will start without release_machine being called and will immediately throw
+
+    #
+
+
     tail and @tails.unshift(tail)
 
     if reactor_running?
@@ -242,8 +196,8 @@ module EventMachine
 
   # Sugars a common use case. Will pass the given block to #run, but will terminate
   # the reactor loop and exit the function as soon as the code in the block completes.
-  # (Normally, #run keeps running indefinitely, even after the block supplied to it
-  # finishes running, until user code calls #stop.)
+  # (Normally, {EventMachine.run} keeps running indefinitely, even after the block supplied to it
+  # finishes running, until user code calls {EventMachine.stop})
   #
   def self.run_block &block
     pr = proc {
@@ -253,13 +207,13 @@ module EventMachine
     run(&pr)
   end
 
-  # Returns true if the calling thread is the same thread as the reactor.
+  # @return [Boolean] true if the calling thread is the same thread as the reactor.
   def self.reactor_thread?
     Thread.current == @reactor_thread
   end
 
   # Runs the given callback on the reactor thread, or immediately if called
-  # from the reactor thread. Accepts the same arguments as EM::Callback
+  # from the reactor thread. Accepts the same arguments as {EventMachine::Callback}
   def self.schedule(*a, &b)
     cb = Callback(*a, &b)
     if reactor_running? && reactor_thread?
@@ -269,13 +223,12 @@ module EventMachine
     end
   end
 
-  # fork_reactor forks a new process and calls EM#run inside of it, passing your block.
-  #--
-  # This implementation is subject to change, especially if we clean up the relationship
-  # of EM#run to @reactor_running.
-  # Original patch by Aman Gupta.
-  #
+  # Forks a new process, properly stops the reactor and then calls {EventMachine.run} inside of it again, passing your block.
   def self.fork_reactor &block
+    # This implementation is subject to change, especially if we clean up the relationship
+    # of EM#run to @reactor_running.
+    # Original patch by Aman Gupta.
+    #
     Kernel.fork do
       if self.reactor_running?
         self.stop_event_loop
@@ -286,64 +239,58 @@ module EventMachine
     end
   end
 
-  # add_shutdown_hook adds a block to call as the reactor is shutting down.
+  # Adds a block to call as the reactor is shutting down.
   #
   # These callbacks are called in the _reverse_ order to which they are added.
   #
-  # === Usage example
+  # @example Scheduling operations to be run when EventMachine event loop is stopped
   #
-  # EM.run do
-  #   EM.add_shutdown_hook { puts "b" }
-  #   EM.add_shutdown_hook { puts "a" }
-  #   EM.stop
-  # end
+  #   EventMachine.run do
+  #     EventMachine.add_shutdown_hook { puts "b" }
+  #     EventMachine.add_shutdown_hook { puts "a" }
+  #     EventMachine.stop
+  #   end
   #
-  # Outputs:
-  #   a
-  #   b
+  #   # Outputs:
+  #   #   a
+  #   #   b
   #
   def self.add_shutdown_hook &block
     @tails << block
   end
 
-  # EventMachine#add_timer adds a one-shot timer to the event loop.
+  # Adds a one-shot timer to the event loop.
   # Call it with one or two parameters. The first parameters is a delay-time
-  # expressed in <i>seconds</i> (not milliseconds). The second parameter, if
-  # present, must be a proc object. If a proc object is not given, then you
+  # expressed in *seconds* (not milliseconds). The second parameter, if
+  # present, must be an object that responds to :call. If 2nd parameter is not given, then you
   # can also simply pass a block to the method call.
   #
-  # EventMachine#add_timer may be called from the block passed to EventMachine#run
+  # This method may be called from the block passed to {EventMachine.run}
   # or from any callback method. It schedules execution of the proc or block
-  # passed to add_timer, after the passage of an interval of time equal to
-  # <i>at least</i> the number of seconds specified in the first parameter to
+  # passed to it, after the passage of an interval of time equal to
+  # *at least* the number of seconds specified in the first parameter to
   # the call.
   #
-  # EventMachine#add_timer is a <i>non-blocking</i> call. Callbacks can and will
+  # {EventMachine.add_timer} is a *non-blocking* call. Callbacks can and will
   # be called during the interval of time that the timer is in effect.
   # There is no built-in limit to the number of timers that can be outstanding at
   # any given time.
   #
-  # === Usage example
+  # @example Setting a one-shot timer with EventMachine
   #
-  # This example shows how easy timers are to use. Observe that two timers are
-  # initiated simultaneously. Also, notice that the event loop will continue
-  # to run even after the second timer event is processed, since there was
-  # no call to EventMachine#stop_event_loop. There will be no activity, of
-  # course, since no network clients or servers are defined. Stop the program
-  # with Ctrl-C.
+  #  EventMachine.run {
+  #    # hit Control + C to stop
+  #    Signal.trap("INT")  { EventMachine.stop }
+  #    Signal.trap("TERM") { EventMachine.stop }
   #
-  # @example
-  #  EventMachine::run {
   #    puts "Starting the run now: #{Time.now}"
-  #    EventMachine::add_timer 5, proc { puts "Executing timer event: #{Time.now}" }
-  #    EventMachine::add_timer( 10 ) { puts "Executing timer event: #{Time.now}" }
+  #    EventMachine.add_timer 5, proc { puts "Executing timer event: #{Time.now}" }
+  #    EventMachine.add_timer(10) { puts "Executing timer event: #{Time.now}" }
   #  }
   #
-  #
-  # Also see EventMachine::Timer
-  #--
-  # Changed 04Oct06: We now pass the interval as an integer number of milliseconds.
-  #
+  # @param [Integer] delay Delay in seconds
+  # @see EventMachine::Timer
+  # @see EventMachine.add_periodic_timer
   def self.add_timer *args, &block
     interval = args.shift
     code = args.shift || block
@@ -355,24 +302,25 @@ module EventMachine
     end
   end
 
-  # EventMachine#add_periodic_timer adds a periodic timer to the event loop.
-  # It takes the same parameters as the one-shot timer method, EventMachine#add_timer.
+  # Adds a periodic timer to the event loop.
+  # It takes the same parameters as the one-shot timer method, {EventMachine.add_timer}.
   # This method schedules execution of the given block repeatedly, at intervals
-  # of time <i>at least</i> as great as the number of seconds given in the first
+  # of time *at least* as great as the number of seconds given in the first
   # parameter to the call.
   #
-  # === Usage example
+  # @example Write a dollar-sign to stderr every five seconds, without blocking
   #
-  # The following sample program will write a dollar-sign to stderr every five seconds.
-  # (Of course if the program defined network clients and/or servers, they would
-  # be doing their work while the periodic timer is counting off.)
+  #  EventMachine.run {
+  #    # hit Control + C to stop
+  #    Signal.trap("INT")  { EventMachine.stop }
+  #    Signal.trap("TERM") { EventMachine.stop }
   #
-  #  EventMachine::run {
-  #    EventMachine::add_periodic_timer( 5 ) { $stderr.write "$" }
+  #    EventMachine.add_periodic_timer( 5 ) { $stderr.write "$" }
   #  }
   #
   #
-  # Also see EventMachine::PeriodicTimer
+  # @see EventMachine::PeriodicTimer
+  # @see EventMachine.add_timer
   #
   def self.add_periodic_timer *args, &block
     interval = args.shift
@@ -381,8 +329,11 @@ module EventMachine
     EventMachine::PeriodicTimer.new(interval, code)
   end
 
-  # Cancel a timer using its signature. You can also use EventMachine::Timer#cancel
+
+  # Cancel a timer (can be a callback or an {EventMachine::Timer} instance).
   #
+  # @param [#cancel, #call] timer_or_sig A timer to cancel
+  # @see EventMachine::Timer#cancel
   def self.cancel_timer timer_or_sig
     if timer_or_sig.respond_to? :cancel
       timer_or_sig.cancel
@@ -392,19 +343,13 @@ module EventMachine
   end
 
 
-  # stop_event_loop may called from within a callback method
-  # while EventMachine's processing loop is running.
-  # It causes the processing loop to stop executing, which
-  # will cause all open connections and accepting servers
-  # to be run down and closed. <i>Callbacks for connection-termination
-  # will be called</i> as part of the processing of stop_event_loop.
-  # (There currently is no option to panic-stop the loop without
-  # closing connections.) When all of this processing is complete,
-  # the call to EventMachine::run which started the processing loop
-  # will return and program flow will resume from the statement
-  # following EventMachine::run call.
+  # Causes the processing loop to stop executing, which will cause all open connections and accepting servers
+  # to be run down and closed. Callbacks for connection-termination will be called* as part of running this method.
   #
-  # === Usage example
+  # When all of this processing is complete, the call to {EventMachine.run} which started the processing loop
+  # will return and program flow will resume from the statement following {EventMachine.run} call.
+  #
+  # @example Stopping a running EventMachine event loop
   #
   #  require 'rubygems'
   #  require 'eventmachine'
@@ -427,27 +372,31 @@ module EventMachine
   #  end
   #
   #  puts "We're starting the event loop now."
-  #  EventMachine::run {
-  #    EventMachine::connect "www.microsoft.com", 80, Redmond
+  #  EventMachine.run {
+  #    # hit Control + C to stop
+  #    Signal.trap("INT")  { EventMachine.stop }
+  #    Signal.trap("TERM") { EventMachine.stop }
+  #
+  #    EventMachine.connect "www.microsoft.com", 80, Redmond
   #  }
   #  puts "The event loop has stopped."
   #
-  # This program will produce approximately the following output:
-  #
-  #  We're starting the event loop now.
-  #  We're sending a dumb HTTP request to the remote peer.
-  #  We received 1440 bytes from the remote peer.
-  #  We're going to stop the event loop now.
-  #  A connection has terminated.
-  #  The event loop has stopped.
+  #  # This program will produce approximately the following output:
+  #  #
+  #  # We're starting the event loop now.
+  #  # We're sending a dumb HTTP request to the remote peer.
+  #  # We received 1440 bytes from the remote peer.
+  #  # We're going to stop the event loop now.
+  #  # A connection has terminated.
+  #  # The event loop has stopped.
   #
   #
   def self.stop_event_loop
     EventMachine::stop
   end
 
-  # EventMachine::start_server initiates a TCP server (socket
-  # acceptor) on the specified IP address and port.
+  # Initiates a TCP server (socket acceptor) on the specified IP address and port.
+  #
   # The IP address must be valid on the machine where the program
   # runs, and the process must be privileged enough to listen
   # on the specified port (on Unix-like systems, superuser privileges
@@ -461,17 +410,17 @@ module EventMachine
   # and these connections generate callback events that are processed
   # by the code specified in the handler parameter to start_server.
   #
-  # The optional handler which is passed to start_server is the key
+  # The optional handler which is passed to this method is the key
   # to EventMachine's ability to handle particular network protocols.
   # The handler parameter passed to start_server must be a Ruby Module
   # that you must define. When the network server that is started by
   # start_server accepts a new connection, it instantiates a new
   # object of an anonymous class that is inherited from EventMachine::Connection,
-  # <i>into which the methods from your handler have been mixed.</i>
+  # *into which the methods from your handler have been mixed.*
   # Your handler module may redefine any of the methods in EventMachine::Connection
   # in order to implement the specific behavior of the network protocol.
   #
-  # Callbacks invoked in response to network events <i>always</i> take place
+  # Callbacks invoked in response to network events *always* take place
   # within the execution context of the object derived from EventMachine::Connection
   # extended by your handler module. There is one object per connection, and
   # all of the callbacks invoked for a particular connection take the form
@@ -480,10 +429,10 @@ module EventMachine
   # wish, in order to contain the per-connection state required by the network protocol you are
   # implementing.
   #
-  # start_server is often called inside the block passed to EventMachine::run,
-  # but it can be called from any EventMachine callback. start_server will fail
+  # {EventMachine.start_server} is often called inside the block passed to {EventMachine.run},
+  # but it can be called from any EventMachine callback. {EventMachine.start_server} will fail
   # unless the EventMachine event loop is currently running (which is why
-  # it's often called in the block suppled to EventMachine::run).
+  # it's often called in the block suppled to {EventMachine.run}).
   #
   # You may call start_server any number of times to start up network
   # listeners on different address/port combinations. The servers will
@@ -491,21 +440,20 @@ module EventMachine
   # can specify a different handler module and thus implement a different
   # network protocol from all the others.
   #
-  # === Usage example
-  # Here is an example of a server that counts lines of input from the remote
-  # peer and sends back the total number of lines received, after each line.
-  # Try the example with more than one client connection opened via telnet,
-  # and you will see that the line count increments independently on each
-  # of the client connections. Also very important to note, is that the
-  # handler for the receive_data function, which our handler redefines, may
-  # not assume that the data it receives observes any kind of message boundaries.
-  # Also, to use this example, be sure to change the server and port parameters
-  # to the start_server call to values appropriate for your environment.
-  #
   # @example
+  #
   #  require 'rubygems'
   #  require 'eventmachine'
   #
+  #  # Here is an example of a server that counts lines of input from the remote
+  #  # peer and sends back the total number of lines received, after each line.
+  #  # Try the example with more than one client connection opened via telnet,
+  #  # and you will see that the line count increments independently on each
+  #  # of the client connections. Also very important to note, is that the
+  #  # handler for the receive_data function, which our handler redefines, may
+  #  # not assume that the data it receives observes any kind of message boundaries.
+  #  # Also, to use this example, be sure to change the server and port parameters
+  #  # to the start_server call to values appropriate for your environment.
   #  module LineCounter
   #    MaxLinesPerConnection = 10
   #
@@ -532,7 +480,8 @@ module EventMachine
   #    EventMachine::add_periodic_timer( 10 ) { $stderr.write "*" }
   #  }
   #
-  #
+  # @see file:docs/GettingStarted.md EventMachine tutorial
+  # @see EventMachine.stop_server
   def self.start_server server, port=nil, handler=nil, *args, &block
     begin
       port = Integer(port)
@@ -556,19 +505,18 @@ module EventMachine
   end
 
 
-  # Stop a TCP server socket that was started with EventMachine#start_server.
-  #--
-  # Requested by Kirk Haines. TODO, this isn't OOP enough. We ought somehow
-  # to have #start_server return an object that has a close or a stop method on it.
-  #
+  # Stop a TCP server socket that was started with {EventMachine.start_server}.
+  # @see EventMachine.start_server
   def self.stop_server signature
     EventMachine::stop_tcp_server signature
   end
 
-  # Start a Unix-domain server
+  # Start a Unix-domain server.
   #
-  # Note that this is an alias for EventMachine::start_server, which can be used to start both
-  # TCP and Unix-domain servers
+  # Note that this is an alias for {EventMachine.start_server}, which can be used to start both
+  # TCP and Unix-domain servers.
+  #
+  # @see EventMachine.start_server
   def self.start_unix_domain_server filename, *args, &block
     start_server filename, *args, &block
   end
@@ -588,13 +536,12 @@ module EventMachine
   # of the handler Module. All of the details given in that description
   # apply for connections created with EventMachine#connect.
   #
-  # === Usage Example
+  # @example
   #
-  # Here's a program which connects to a web server, sends a naive
-  # request, parses the HTTP header of the response, and then
-  # (antisocially) ends the event loop, which automatically drops the connection
-  # (and incidentally calls the connection's unbind method).
-  #
+  #  # Here's a program which connects to a web server, sends a naive
+  #  # request, parses the HTTP header of the response, and then
+  #  # (antisocially) ends the event loop, which automatically drops the connection
+  #  # (and incidentally calls the connection's unbind method).
   #  module DumbHttpClient
   #    def post_init
   #      send_data "GET / HTTP/1.1\r\nHost: _\r\n\r\n"
@@ -619,14 +566,17 @@ module EventMachine
   #    end
   #  end
   #
-  #  EventMachine::run {
-  #    EventMachine::connect "www.bayshorenetworks.com", 80, DumbHttpClient
+  #  EventMachine.run {
+  #    # hit Control + C to stop
+  #    Signal.trap("INT")  { EventMachine.stop }
+  #    Signal.trap("TERM") { EventMachine.stop }
+  #
+  #    EventMachine.connect "www.bayshorenetworks.com", 80, DumbHttpClient
   #  }
   #  puts "The event loop has ended"
   #
   #
-  # There are times when it's more convenient to define a protocol handler
-  # as a Class rather than a Module. Here's how to do this:
+  # @example Defining protocol handler as a class
   #
   #  class MyProtocolHandler < EventMachine::Connection
   #    def initialize *args
@@ -634,44 +584,46 @@ module EventMachine
   #      # whatever else you want to do here
   #    end
   #
-  #    #.......your other class code
+  #    # ...
   #  end
   #
   # If you do this, then an instance of your class will be instantiated to handle
   # every network connection created by your code or accepted by servers that you
-  # create. If you redefine #post_init in your protocol-handler class, your
+  # create. If you redefine {EventMachine::Connection#post_init} in your protocol-handler class, your
   # #post_init method will be called _inside_ the call to #super that you will
   # make in your #initialize method (if you provide one).
   #
-  #--
-  # EventMachine::connect initiates a TCP connection to a remote
-  # server and sets up event-handling for the connection.
-  # It internally creates an object that should not be handled
-  # by the caller. HOWEVER, it's often convenient to get the
-  # object to set up interfacing to other objects in the system.
-  # We return the newly-created anonymous-class object to the caller.
-  # It's expected that a considerable amount of code will depend
-  # on this behavior, so don't change it.
-  #
-  # Ok, added support for a user-defined block, 13Apr06.
-  # This leads us to an interesting choice because of the
-  # presence of the post_init call, which happens in the
-  # initialize method of the new object. We call the user's
-  # block and pass the new object to it. This is a great
-  # way to do protocol-specific initiation. It happens
-  # AFTER post_init has been called on the object, which I
-  # certainly hope is the right choice.
-  # Don't change this lightly, because accepted connections
-  # are different from connected ones and we don't want
-  # to have them behave differently with respect to post_init
-  # if at all possible.
-  #
+  # @see file:docs/GettingStarted.md EventMachine tutorial
   def self.connect server, port=nil, handler=nil, *args, &blk
+    # EventMachine::connect initiates a TCP connection to a remote
+    # server and sets up event-handling for the connection.
+    # It internally creates an object that should not be handled
+    # by the caller. HOWEVER, it's often convenient to get the
+    # object to set up interfacing to other objects in the system.
+    # We return the newly-created anonymous-class object to the caller.
+    # It's expected that a considerable amount of code will depend
+    # on this behavior, so don't change it.
+    #
+    # Ok, added support for a user-defined block, 13Apr06.
+    # This leads us to an interesting choice because of the
+    # presence of the post_init call, which happens in the
+    # initialize method of the new object. We call the user's
+    # block and pass the new object to it. This is a great
+    # way to do protocol-specific initiation. It happens
+    # AFTER post_init has been called on the object, which I
+    # certainly hope is the right choice.
+    # Don't change this lightly, because accepted connections
+    # are different from connected ones and we don't want
+    # to have them behave differently with respect to post_init
+    # if at all possible.
+
     bind_connect nil, nil, server, port, handler, *args, &blk
   end
 
-  # EventMachine::bind_connect is like EventMachine::connect, but allows for a local address/port
+  # This method is like {EventMachine.connect}, but allows for a local address/port
   # to bind the connection to.
+  #
+  # @see EventMachine.connect
   def self.bind_connect bind_addr, bind_port, server, port=nil, handler=nil, *args
     begin
       port = Integer(port)
@@ -701,18 +653,18 @@ module EventMachine
     c
   end
 
-  # EventMachine::watch registers a given file descriptor or IO object with the eventloop. The
+  # {EventMachine.watch} registers a given file descriptor or IO object with the eventloop. The
   # file descriptor will not be modified (it will remain blocking or non-blocking).
   #
   # The eventloop can be used to process readable and writable events on the file descriptor, using
-  # EventMachine::Connection#notify_readable= and EventMachine::Connection#notify_writable=
+  # {EventMachine::Connection#notify_readable=} and {EventMachine::Connection#notify_writable=}
   #
-  # EventMachine::Connection#notify_readable? and EventMachine::Connection#notify_writable? can be used
+  # {EventMachine::Connection#notify_readable?} and {EventMachine::Connection#notify_writable?} can be used
   # to check what events are enabled on the connection.
   #
-  # To detach the file descriptor, use EventMachine::Connection#detach
+  # To detach the file descriptor, use {EventMachine::Connection#detach}
   #
-  # === Usage Example
+  # @example
   #
   #  module SimpleHttpClient
   #    def notify_readable
@@ -734,15 +686,18 @@ module EventMachine
   #    end
   #  end
   #
-  #  EM.run{
-  #    $sock = TCPSocket.new('site.com', 80)
-  #    $sock.write("GET / HTTP/1.0\r\n\r\n")
-  #    conn = EM.watch $sock, SimpleHttpClient
+  #  EventMachine.run {
+  #    # hit Control + C to stop
+  #    Signal.trap("INT")  { EventMachine.stop }
+  #    Signal.trap("TERM") { EventMachine.stop }
+  #
+  #    sock = TCPSocket.new('site.com', 80)
+  #    sock.write("GET / HTTP/1.0\r\n\r\n")
+  #    conn = EventMachine.watch(sock, SimpleHttpClient)
   #    conn.notify_readable = true
   #  }
   #
-  #--
-  # Thanks to Riham Aldakkak (eSpace Technologies) for the initial patch
+  # @author Riham Aldakkak (eSpace Technologies)
   def EventMachine::watch io, handler=nil, *args, &blk
     attach_io io, true, handler, *args, &blk
   end
@@ -751,7 +706,7 @@ module EventMachine
   # The file descriptor will be set as non-blocking, and EventMachine will process
   # receive_data and send_data events on it as it would for any other connection.
   #
-  # To watch a fd instead, use EventMachine::watch, which will not alter the state of the socket
+  # To watch a fd instead, use {EventMachine.watch}, which will not alter the state of the socket
   # and fire notify_readable and notify_writable events instead.
   def EventMachine::attach io, handler=nil, *args, &blk
     attach_io io, false, handler, *args, &blk
@@ -782,8 +737,10 @@ module EventMachine
   end
 
 
-  # Connect to a given host/port and re-use the provided EventMachine::Connection instance
-  #--
+  # Connect to a given host/port and re-use the provided {EventMachine::Connection} instance
+  #
+  # @see EventMachine::Connection#reconnect
+  def self.reconnect server, port, handler # :nodoc:
   # Observe, the test for already-connected FAILS if we call a reconnect inside post_init,
   # because we haven't set up the connection in @conns by that point.
   # RESIST THE TEMPTATION to "fix" this problem by redefining the behavior of post_init.
@@ -791,8 +748,7 @@ module EventMachine
   # Changed 22Nov06: if called on an already-connected handler, just return the
   # handler and do nothing more. Originally this condition raised an exception.
   # We may want to change it yet again and call the block, if any.
-  #
-  def self.reconnect server, port, handler # :nodoc:
+
     raise "invalid handler" unless handler.respond_to?(:connection_completed)
     #raise "still connected" if @conns.has_key?(handler.signature)
     return handler if @conns.has_key?(handler.signature)
@@ -816,17 +772,12 @@ module EventMachine
   #
   # Note that this method is simply an alias for #connect, which can connect to both TCP
   # and Unix-domain sockets
-  #--
-  # For making connections to Unix-domain sockets.
-  # Eventually this has to get properly documented and unified with the TCP-connect methods.
-  # Note how nearly identical this is to EventMachine#connect
   def self.connect_unix_domain socketname, *args, &blk
     connect socketname, *args, &blk
   end
 
 
-  # EventMachine#open_datagram_socket is for support of UDP-based
-  # protocols. Its usage is similar to that of EventMachine#start_server.
+  # Used for UDP-based protocols. Its usage is similar to that of {EventMachine.start_server}.
   # It takes three parameters: an IP address (which must be valid
   # on the machine which executes the method), a port number,
   # and an optional Module name which will handle the data.
@@ -836,59 +787,53 @@ module EventMachine
   # be called as events of interest occur on the newly-created
   # socket, but there are some differences in how they behave.
   #
-  # Connection#receive_data will be called when a datagram packet
+  # {Connection#receive_data} will be called when a datagram packet
   # is received on the socket, but unlike TCP sockets, the message
   # boundaries of the received data will be respected. In other words,
   # if the remote peer sent you a datagram of a particular size,
-  # you may rely on Connection#receive_data to give you the
+  # you may rely on {Connection#receive_data} to give you the
   # exact data in the packet, with the original data length.
   # Also observe that Connection#receive_data may be called with a
-  # <i>zero-length</i> data payload, since empty datagrams are permitted
-  # in UDP.
+  # *zero-length* data payload, since empty datagrams are permitted in UDP.
   #
-  # Connection#send_data is available with UDP packets as with TCP,
+  # {Connection#send_data} is available with UDP packets as with TCP,
   # but there is an important difference. Because UDP communications
-  # are <i>connectionless,</i> there is no implicit recipient for the packets you
+  # are *connectionless*, there is no implicit recipient for the packets you
   # send. Ordinarily you must specify the recipient for each packet you send.
-  # However, EventMachine
-  # provides for the typical pattern of receiving a UDP datagram
+  # However, EventMachine provides for the typical pattern of receiving a UDP datagram
   # from a remote peer, performing some operation, and then sending
   # one or more packets in response to the same remote peer.
-  # To support this model easily, just use Connection#send_data
-  # in the code that you supply for Connection:receive_data.
-  # EventMachine will
-  # provide an implicit return address for any messages sent to
-  # Connection#send_data within the context of a Connection#receive_data callback,
-  # and your response will automatically go to the correct remote peer.
-  # (TODO: Example-code needed!)
+  # To support this model easily, just use {Connection#send_data}
+  # in the code that you supply for {Connection#receive_data}.
   #
-  # Observe that the port number that you supply to EventMachine#open_datagram_socket
+  # EventMachine will provide an implicit return address for any messages sent to
+  # {Connection#send_data} within the context of a {Connection#receive_data} callback,
+  # and your response will automatically go to the correct remote peer.
+  #
+  # Observe that the port number that you supply to {EventMachine.open_datagram_socket}
   # may be zero. In this case, EventMachine will create a UDP socket
-  # that is bound to an <i>ephemeral</i> (not well-known) port.
+  # that is bound to an [ephemeral port](http://en.wikipedia.org/wiki/Ephemeral_port).
   # This is not appropriate for servers that must publish a well-known
   # port to which remote peers may send datagrams. But it can be useful
   # for clients that send datagrams to other servers.
   # If you do this, you will receive any responses from the remote
-  # servers through the normal Connection#receive_data callback.
+  # servers through the normal {Connection#receive_data} callback.
   # Observe that you will probably have issues with firewalls blocking
   # the ephemeral port numbers, so this technique is most appropriate for LANs.
-  # (TODO: Need an example!)
   #
   # If you wish to send datagrams to arbitrary remote peers (not
   # necessarily ones that have sent data to which you are responding),
-  # then see Connection#send_datagram.
+  # then see {Connection#send_datagram}.
   #
-  # DO NOT call send_data from a datagram socket
-  # outside of a #receive_data method. Use #send_datagram. If you do use #send_data
-  # outside of a #receive_data method, you'll get a confusing error
-  # because there is no "peer," as #send_data requires. (Inside of #receive_data,
-  # #send_data "fakes" the peer as described above.)
-  #
-  #--
-  # Replaced the implementation on 01Oct06. Thanks to Tobias Gustafsson for pointing
-  # out that this originally did not take a class but only a module.
-  #
+  # DO NOT call send_data from a datagram socket outside of a {Connection#receive_data} method. Use {Connection#send_datagram}.
+  # If you do use {Connection#send_data} outside of a {Connection#receive_data} method, you'll get a confusing error
+  # because there is no "peer," as #send_data requires (inside of {EventMachine::Connection#receive_data},
+  # {EventMachine::Connection#send_data} "fakes" the peer as described above).
   def self.open_datagram_socket address, port, handler=nil, *args
+    # Replaced the implementation on 01Oct06. Thanks to Tobias Gustafsson for pointing
+    # out that this originally did not take a class but only a module.
+
+
     klass = klass_from_handler(Connection, handler, *args)
     s = open_udp_socket address, port.to_i
     c = klass.new s, *args
@@ -900,7 +845,7 @@ module EventMachine
 
   # For advanced users. This function sets the default timer granularity, which by default is
   # slightly smaller than 100 milliseconds. Call this function to set a higher or lower granularity.
-  # The function affects the behavior of #add_timer and #add_periodic_timer. Most applications
+  # The function affects the behavior of {EventMachine.add_timer} and {EventMachine.add_periodic_timer}. Most applications
   # will not need to call this function.
   #
   # The argument is a number of milliseconds. Avoid setting the quantum to very low values because
@@ -908,7 +853,7 @@ module EventMachine
   # lower than 10.
   #
   # You may only call this function while an EventMachine loop is running (that is, after a call to
-  # EventMachine#run and before a subsequent call to EventMachine#stop).
+  # {EventMachine.run} and before a subsequent call to {EventMachine.stop}).
   #
   def self.set_quantum mills
     set_timer_quantum mills.to_i
@@ -933,19 +878,33 @@ module EventMachine
   # Note that a tick must pass after the 'initiation' of a connection for this number to increment.
   # It's usually accurate, but don't rely on the exact precision of this number unless you really know EM internals.
   #
-  # For example, $count will be 0 in this case:
+  # @example
   #
-  #  EM.run {
-  #    EM.connect("rubyeventmachine.com", 80)
-  #    $count = EM.connection_count
+  #  EventMachine.run {
+  #    # hit Control + C to stop
+  #    Signal.trap("INT")  { EventMachine.stop }
+  #    Signal.trap("TERM") { EventMachine.stop }
+  #
+  #    EventMachine.connect("rubyeventmachine.com", 80)
+  #    # count will be 0 in this case, because connection is not
+  #    # established yet
+  #    count = EventMachine.connection_count
   #  }
   #
-  # In this example, $count will be 1 since the connection has been established in the next loop of the reactor.
   #
-  #  EM.run {
-  #    EM.connect("rubyeventmachine.com", 80)
-  #    EM.next_tick {
-  #      $count = EM.connection_count
+  # @example
+  #
+  #  EventMachine.run {
+  #    # hit Control + C to stop
+  #    Signal.trap("INT")  { EventMachine.stop }
+  #    Signal.trap("TERM") { EventMachine.stop }
+  #
+  #    EventMachine.connect("rubyeventmachine.com", 80)
+  #
+  #    EventMachine.next_tick {
+  #      # In this example, count will be 1 since the connection has been established in
+  #      # the next loop of the reactor.
+  #      count = EventMachine.connection_count
   #    }
   #  }
   #
@@ -953,7 +912,6 @@ module EventMachine
     self.get_connection_count
   end
 
-  #--
   # The is the responder for the loopback-signalled event.
   # It can be fired either by code running on a separate thread (EM#defer) or on
   # the main thread (EM#next_tick).
@@ -961,7 +919,8 @@ module EventMachine
   # consume a copy of the tick queue so that tick events scheduled by tick events
   # have to wait for the next pass through the reactor core.
   #
-  def self.run_deferred_callbacks # :nodoc:
+  # @private
+  def self.run_deferred_callbacks
     until (@resultqueue ||= []).empty?
       result,cback = @resultqueue.pop
       cback.call result if cback
@@ -974,8 +933,10 @@ module EventMachine
   end
 
 
-  # #defer is for integrating blocking operations into EventMachine's control flow.
-  # Call #defer with one or two blocks, as shown below (the second block is <i>optional</i>):
+  # EventMachine.defer is used for integrating blocking operations into EventMachine's control flow.
+  # Call it with one or two blocks, as shown below (the second block is optional):
+  #
+  # @example
   #
   #  operation = proc {
   #    # perform a long-running operation here, such as a database query.
@@ -996,28 +957,27 @@ module EventMachine
   # to the callback. You may omit the callback parameter if you don't need to execute any code
   # after the operation completes.
   #
-  # == Caveats
+  # ## Caveats ##
+  #
   # Note carefully that the code in your deferred operation will be executed on a separate
   # thread from the main EventMachine processing and all other Ruby threads that may exist in
   # your program. Also, multiple deferred operations may be running at once! Therefore, you
-  # are responsible for ensuring that your operation code is threadsafe. [Need more explanation
-  # and examples.]
+  # are responsible for ensuring that your operation code is threadsafe.
+  #
   # Don't write a deferred operation that will block forever. If so, the current implementation will
   # not detect the problem, and the thread will never be returned to the pool. EventMachine limits
   # the number of threads in its pool, so if you do this enough times, your subsequent deferred
-  # operations won't get a chance to run. [We might put in a timer to detect this problem.]
-  #
-  #--
-  # OBSERVE that #next_tick hacks into this mechanism, so don't make any changes here
-  # without syncing there.
-  #
-  # Running with $VERBOSE set to true gives a warning unless all ivars are defined when
-  # they appear in rvalues. But we DON'T ever want to initialize @threadqueue unless we
-  # need it, because the Ruby threads are so heavyweight. We end up with this bizarre
-  # way of initializing @threadqueue because EventMachine is a Module, not a Class, and
-  # has no constructor.
-  #
+  # operations won't get a chance to run.
   def self.defer op = nil, callback = nil, &blk
+    # OBSERVE that #next_tick hacks into this mechanism, so don't make any changes here
+    # without syncing there.
+    #
+    # Running with $VERBOSE set to true gives a warning unless all ivars are defined when
+    # they appear in rvalues. But we DON'T ever want to initialize @threadqueue unless we
+    # need it, because the Ruby threads are so heavyweight. We end up with this bizarre
+    # way of initializing @threadqueue because EventMachine is a Module, not a Class, and
+    # has no constructor.
+
     unless @threadpool
       require 'thread'
       @threadpool = []
@@ -1045,9 +1005,11 @@ module EventMachine
   end
 
   class << self
-    attr_reader :threadpool # :nodoc:
+    # @private
+    attr_reader :threadpool
 
     # Size of the EventMachine.defer threadpool (defaults to 20)
+    # @return [Number]
     attr_accessor :threadpool_size
     EventMachine.threadpool_size = 20
   end
@@ -1055,19 +1017,20 @@ module EventMachine
   # Schedules a proc for execution immediately after the next "turn" through the reactor
   # core. An advanced technique, this can be useful for improving memory management and/or
   # application responsiveness, especially when scheduling large amounts of data for
-  # writing to a network connection. TODO, we need a FAQ entry on this subject.
+  # writing to a network connection.
   #
-  # #next_tick takes either a single argument (which must be a Proc) or a block.
-  #--
-  # This works by adding to the @resultqueue that's used for #defer.
-  # The general idea is that next_tick is used when we want to give the reactor a chance
-  # to let other operations run, either to balance the load out more evenly, or to let
-  # outbound network buffers drain, or both. So we probably do NOT want to block, and
-  # we probably do NOT want to be spinning any threads. A program that uses next_tick
-  # but not #defer shouldn't suffer the penalty of having Ruby threads running. They're
-  # extremely expensive even if they're just sleeping.
+  # This method takes either a single argument (which must be a callable object) or a block.
   #
+  # @param [#call] pr A callable object to run
   def self.next_tick pr=nil, &block
+    # This works by adding to the @resultqueue that's used for #defer.
+    # The general idea is that next_tick is used when we want to give the reactor a chance
+    # to let other operations run, either to balance the load out more evenly, or to let
+    # outbound network buffers drain, or both. So we probably do NOT want to block, and
+    # we probably do NOT want to be spinning any threads. A program that uses next_tick
+    # but not #defer shouldn't suffer the penalty of having Ruby threads running. They're
+    # extremely expensive even if they're just sleeping.
+
     raise ArgumentError, "no proc or block given" unless ((pr && pr.respond_to?(:call)) or block)
     @next_tick_mutex.synchronize do
       @next_tick_queue << ( pr || block )
@@ -1112,7 +1075,9 @@ module EventMachine
 
 
 
-  # Run an external process. This does not currently work on Windows.
+  # Run an external process.
+  #
+  # @example
   #
   #  module RubyCounter
   #    def post_init
@@ -1127,16 +1092,21 @@ module EventMachine
   #    end
   #  end
   #
-  #  EM.run{
-  #    EM.popen("ruby -e' $stdout.sync = true; gets.to_i.times{ |i| puts i+1; sleep 1 } '", RubyCounter)
+  #  EventMachine.run {
+  #    # hit Control + C to stop
+  #    Signal.trap("INT")  { EventMachine.stop }
+  #    Signal.trap("TERM") { EventMachine.stop }
+  #
+  #    EventMachine.popen("ruby -e' $stdout.sync = true; gets.to_i.times{ |i| puts i+1; sleep 1 } '", RubyCounter)
   #  }
   #
-  # Also see EventMachine::DeferrableChildProcess and EventMachine.system
-  #--
-  # At this moment, it's only available on Unix.
-  # Perhaps misnamed since the underlying function uses socketpair and is full-duplex.
-  #
+  # @note This method is not supported on Microsoft Windows
+  # @see EventMachine::DeferrableChildProcess
+  # @see EventMachine.system
   def self.popen cmd, handler=nil, *args
+    # At this moment, it's only available on Unix.
+    # Perhaps misnamed since the underlying function uses socketpair and is full-duplex.
+
     klass = klass_from_handler(Connection, handler, *args)
     w = Shellwords::shellwords( cmd )
     w.unshift( w.first ) if w.first
@@ -1201,10 +1171,10 @@ module EventMachine
   # The corresponding system-level Errno will be raised when attempting to monitor non-existent files,
   # files with wrong permissions, or if an error occurs dealing with inotify/kqueue.
   #
-  # === Usage example:
+  # @example
   #
-  #  Make sure we have a file to monitor:
-  #  $ echo "bar" > /tmp/foo
+  #  # Before running this example, make sure we have a file to monitor:
+  #  # $ echo "bar" > /tmp/foo
   #
   #  module Handler
   #    def file_modified
@@ -1224,20 +1194,23 @@ module EventMachine
   #    end
   #  end
   #
-  #  EM.kqueue = true if EM.kqueue? # file watching requires kqueue on OSX
+  #  # for efficient file watching, use kqueue on Mac OS X
+  #  EventMachine.kqueue = true if EventMachine.kqueue?
   #
-  #  EM.run {
-  #    EM.watch_file("/tmp/foo", Handler)
+  #  EventMachine.run {
+  #    # hit Control + C to stop
+  #    Signal.trap("INT")  { EventMachine.stop }
+  #    Signal.trap("TERM") { EventMachine.stop }
+  #
+  #    EventMachine.watch_file("/tmp/foo", Handler)
   #  }
   #
-  #  $ echo "baz" >> /tmp/foo    =>    "/tmp/foo modified"
-  #  $ mv /tmp/foo /tmp/oof      =>    "/tmp/foo moved"
-  #  $ rm /tmp/oof               =>    "/tmp/foo deleted"
-  #                              =>    "/tmp/foo monitoring ceased"
+  #  # $ echo "baz" >> /tmp/foo    =>    "/tmp/foo modified"
+  #  # $ mv /tmp/foo /tmp/oof      =>    "/tmp/foo moved"
+  #  # $ rm /tmp/oof               =>    "/tmp/foo deleted"
   #
-  # Note that we have not implemented the ability to pick up on the new filename after a rename.
-  # Calling #path will always return the filename you originally used.
-  #
+  # @note The ability to pick up on the new filename after a rename is not yet supported.
+  #       Calling #path will always return the filename you originally used.
   def self.watch_file(filename, handler=nil, *args)
     klass = klass_from_handler(FileWatch, handler, *args)
 
@@ -1250,9 +1223,9 @@ module EventMachine
     c
   end
 
-  # EventMachine's process monitoring API. Currently supported using kqueue for OSX/BSD.
+  # EventMachine's process monitoring API. On Mac OS X and *BSD this method is implemented using kqueue.
   #
-  # === Usage example:
+  # @example
   #
   #  module ProcessWatcher
   #    def process_exited
@@ -1262,9 +1235,13 @@ module EventMachine
   #
   #  pid = fork{ sleep }
   #
-  #  EM.run{
-  #    EM.watch_process(pid, ProcessWatcher)
-  #    EM.add_timer(1){ Process.kill('TERM', pid) }
+  #  EventMachine.run {
+  #    # hit Control + C to stop
+  #    Signal.trap("INT")  { EventMachine.stop }
+  #    Signal.trap("TERM") { EventMachine.stop }
+  #
+  #    EventMachine.watch_process(pid, ProcessWatcher)
+  #    EventMachine.add_timer(1){ Process.kill('TERM', pid) }
   #  }
   #
   def self.watch_process(pid, handler=nil, *args)
@@ -1283,10 +1260,11 @@ module EventMachine
 
   # Catch-all for errors raised during event loop callbacks.
   #
-  #  EM.error_handler{ |e|
-  #    puts "Error raised during event loop: #{e.message}"
-  #  }
+  # @example
   #
+  #   EventMachine.error_handler{ |e|
+  #     puts "Error raised during event loop: #{e.message}"
+  #   }
   def self.error_handler cb = nil, &blk
     if cb or blk
       @error_handler = cb || blk
@@ -1295,7 +1273,7 @@ module EventMachine
     end
   end
 
-  # enable_proxy allows for direct writing of incoming data back out to another descriptor, at the C++ level in the reactor.
+  # This method allows for direct writing of incoming data back out to another descriptor, at the C++ level in the reactor.
   # This is especially useful for proxies where high performance is required. Propogating data from a server response
   # all the way up to Ruby, and then back down to the reactor to be sent back to the client, is often unnecessary and
   # incurs a significant performance decrease.
@@ -1311,7 +1289,7 @@ module EventMachine
   # Note also that this feature supports different types of descriptors - TCP, UDP, and pipes. You can relay
   # data from one kind to another.
   #
-  # Example:
+  # @example
   #
   #  module ProxyConnection
   #    def initialize(client, request)
@@ -1339,36 +1317,40 @@ module EventMachine
   #    def receive_data(data)
   #      (@buf ||= "") << data
   #      if @buf =~ /\r\n\r\n/ # all http headers received
-  #        EM.connect("10.0.0.15", 80, ProxyConnection, self, data)
+  #        EventMachine.connect("10.0.0.15", 80, ProxyConnection, self, data)
   #      end
   #    end
   #  end
   #
-  #  EM.run {
-  #    EM.start_server("127.0.0.1", 8080, ProxyServer)
+  #  EventMachine.run {
+  #    # hit Control + C to stop
+  #    Signal.trap("INT")  { EventMachine.stop }
+  #    Signal.trap("TERM") { EventMachine.stop }
+  #
+  #    EventMachine.start_server("127.0.0.1", 8080, ProxyServer)
   #  }
   def self.enable_proxy(from, to, bufsize=0, length=0)
     EM::start_proxy(from.signature, to.signature, bufsize, length)
   end
 
-  # disable_proxy takes just one argument, a Connection that has proxying enabled via enable_proxy.
+  # Takes just one argument, a {Connection} that has proxying enabled via {Connection#enable_proxy}.
   # Calling this method will remove that functionality and your connection will begin receiving
-  # data via receive_data again.
+  # data via {Connection#receive_data} again.
   def self.disable_proxy(from)
     EM::stop_proxy(from.signature)
   end
 
   # Retrieve the heartbeat interval. This is how often EventMachine will check for dead connections
-  # that have had an InactivityTimeout set via Connection#set_comm_inactivity_timeout.
+  # that have had an inactivity timeout set via {Connection#set_comm_inactivity_timeout}.
   # Default is 2 seconds.
   def self.heartbeat_interval
     EM::get_heartbeat_interval
   end
 
   # Set the heartbeat interval. This is how often EventMachine will check for dead connections
-  # that have had an InactivityTimeout set via Connection#set_comm_inactivity_timeout.
+  # that have had an inactivity timeout set via {Connection#set_comm_inactivity_timeout}.
   # Takes a Numeric number of seconds. Default is 2.
-  def self.heartbeat_interval= (time)
+  def self.heartbeat_interval=(time)
     EM::set_heartbeat_interval time.to_f
   end
 
@@ -1418,9 +1400,9 @@ module EventMachine
       @conns[data] = c
       blk and blk.call(c)
       c # (needed?)
-    ##
-    # The remaining code is a fallback for the pure ruby and java reactors.
-    # In the C++ reactor, these events are handled in the C event_callback() in rubymain.cpp
+      ##
+      # The remaining code is a fallback for the pure ruby and java reactors.
+      # In the C++ reactor, these events are handled in the C event_callback() in rubymain.cpp
     elsif opcode == ConnectionCompleted
       c = @conns[conn_binding] or raise ConnectionNotBound, "received ConnectionCompleted for unknown signature: #{conn_binding}"
       c.connection_completed
@@ -1443,7 +1425,7 @@ module EventMachine
     end
   end
 
-  #--
+  #
   # The original event_callback below handled runtime errors in ruby and degraded performance significantly.
   # An optional C-based error handler is now available via EM::error_handler
   #
@@ -1539,10 +1521,12 @@ module EventMachine
   # def EventMachine::set_runtime_error_hook &blk
   #   @runtime_error_hook = blk
   # end
-
+  #
   #--
   # This is a provisional implementation of a stream-oriented file access object.
   # We also experiment with wrapping up some better exception reporting.
+  #
+  # @private
   def self._open_file_for_writing filename, handler=nil # :nodoc:
     klass = klass_from_handler(Connection, handler)
 
@@ -1556,17 +1540,17 @@ module EventMachine
   private
   def self.klass_from_handler(klass = Connection, handler = nil, *args)
     klass = if handler and handler.is_a?(Class)
-      raise ArgumentError, "must provide module or subclass of #{klass.name}" unless klass >= handler
-      handler
-    elsif handler
-      begin
-        handler::EM_CONNECTION_CLASS
-      rescue NameError
-        handler::const_set(:EM_CONNECTION_CLASS, Class.new(klass) {include handler})
-      end
-    else
-      klass
-    end
+              raise ArgumentError, "must provide module or subclass of #{klass.name}" unless klass >= handler
+              handler
+            elsif handler
+              begin
+                handler::EM_CONNECTION_CLASS
+              rescue NameError
+                handler::const_set(:EM_CONNECTION_CLASS, Class.new(klass) {include handler})
+              end
+            else
+              klass
+            end
 
     arity = klass.instance_method(:initialize).arity
     expected = arity >= 0 ? arity : -(arity + 1)

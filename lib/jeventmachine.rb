@@ -59,14 +59,23 @@ SocketChannel.send :include, JavaFields
 module EventMachine
   # TODO: These event numbers are defined in way too many places.
   # DRY them up.
+  # @private
   TimerFired = 100
+  # @private
   ConnectionData = 101
+  # @private
   ConnectionUnbound = 102
+  # @private
   ConnectionAccepted = 103
+  # @private
   ConnectionCompleted = 104
+  # @private
   LoopbreakSignalled = 105
+  # @private
   ConnectionNotifyReadable = 106
+  # @private
   ConnectionNotifyWritable = 107
+  # @private
   SslHandshakeCompleted = 108
 
   # Exceptions that are defined in rubymain.cpp
