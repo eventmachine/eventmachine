@@ -6,7 +6,7 @@ require 'eventmachine'
 class SimpleChatServer < EM::Connection
 
   @@connected_clients = Array.new
-  DM_REGEXP           = /^@([a-zA-Z0-9]+)\s*:?\s*(.+)/.freeze
+  DM_REGEXP           = /^@([a-zA-Z0-9]+)\s*:?\s+(.+)/.freeze
 
   attr_reader :username
 
@@ -123,10 +123,6 @@ class SimpleChatServer < EM::Connection
     @@connected_clients.each { |c| c.send_line("#{prefix} #{msg}") } unless msg.empty?
   end # announce(msg)
 
-  def number_of_connected_clients
-    @@connected_clients.size
-  end # number_of_connected_clients
-
   def other_peers
     @@connected_clients.reject { |c| self == c }
   end # other_peers
@@ -134,10 +130,6 @@ class SimpleChatServer < EM::Connection
   def send_line(line)
     self.send_data("#{line}\n")
   end # send_line(line)
-
-  def usernames
-    @@connected_clients.map { |c| c.username }
-  end # usernames
 end
 
 EventMachine.run do

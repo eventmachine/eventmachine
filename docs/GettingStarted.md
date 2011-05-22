@@ -160,14 +160,322 @@ client application that will serve as a proxy between telnet and the chat server
 we will instead begin with a very simple version that only keeps track of connected clients and then add features
 as we go.
 
+To set some expectations about our example:
+
+ * It will keep track of connected clients
+ * It will support a couple of commands, à la IRC
+ * It will support direct messages using Twitter-like @usernames
+ * It won't use MongoDB, fibers or distributed map/reduce for anything but will be totally [Web Scale™](http://bit.ly/webscaletm) nonetheless. Maybe even [ROFLscale](http://bit.ly/roflscalevideo).
+
+### Step one: detecting connections and disconnectons ###
+
+First step looks like this:
+
+{include:file:examples/guides/getting\_started/04\_simple\_chat\_server\_step\_one.rb}
+
+We see familiar {EventMachine.run} and {EventMachine.start_server}, but also {EventMachine::Connection#post_init} and {EventMachine::Connection#unbind} we haven't
+met yet. We don't use them in this code, so when are they run? Like {EventMachine::Connection#receive_data}, these methods are callbacks. EventMachine calls them
+when certain events happen:
+
+ * {EventMachine#post_init} is called by the event loop immediately after the network connection has been established.
+   In the chat server example case, this is when a new client connects.
+ * {EventMachine#unbind} is called when client disconnects, connection is closed or is lost (because of a network issue, for example).
+
+All our chat server does so far is logging connections or disconnections. What we want it to do next is to keep track of connected clients.
+
+
+### Step two: keep track of connected clients ###
+
+Next iteration of the code looks like this:
+
+{include:file:examples/guides/getting\_started/05\_simple\_chat\_server\_step\_two.rb}
+
+While the code we added is very straightforward, we have to clarify one this first: subclasses of {EventMachine::Connection} are instantiated by
+EventMachine for every new connected peer. So for 10 connected chat clients, there will be 10 separate `SimpleChatServer` instances in our
+server process. Like any other objects, they can be stored in a collection, can provide public API other objects use, can instantiate or inject
+dependencies and in general live a happy life all Ruby objects live until garbage collection happens.
+
+In the example above we use a @@class_variable to keep track of connected clients. In Ruby, @@class variables are accessible from instance
+methods so we can add new connections to the list from `SimpleChatServer#post_init` and remove them in `SimpleChatServer#unbind`. We can also
+filter connections by some criteria, as `SimpleChatServer#other_peers demonstrates`.
+
+So, we keep track of connections but how do we identify them? For a chat app, it's pretty common to use usernames for that. Lets ask our clients
+to enter usernames when they connect.
+
+
+### Step three: adding usernames ##
+
+To add usernames, we need to add a few things:
+
+ * We need to invite newly connected clients to enter their username.
+ * A reader (getter) method on our {EventMachine::Connection} subclass.
+ * An idea of connection state (keeping track of whether a particular participant had entered username before).
+
+Here is one way to do it:
+
+{include:file:examples/guides/getting\_started/06\_simple\_chat\_server\_step\_three.rb}
+
+This is quite an update so lets take a look at each method individually. First, `SimpleChatServer#post_init`:
+
+    def post_init
+      @username = nil
+      puts "A client has connected..."
+      ask_username
+    end
+
+To keep track of username we ask chat participants for, we add @username instance variable to our connection class. Connection
+instances are just Ruby objects associated with a particular connected peer, so using @ivars is very natural. To make username
+value accessible to other objects, we added a reader method that was not shown on the snippet above.
+
+Lets dig into `SimpleChatServer#ask_username`:
+
+    def ask_username
+      self.send_line("[info] Enter your username:")
+    end # ask_username
+
+    # ...
+
+    def send_line(line)
+      self.send_data("#{line}\n")
+    end # send_line(line)
+
+Nothing new here, we are using {EventMachine::Connection#send_data} which we have seen before.
+
+
+In `SimpleChatServer#receive_data` we now have to check if the username was entered or we need
+to ask for it:
+
+    def receive_data(data)
+      if entered_username?
+        handle_chat_message(data.strip)
+      else
+        handle_username(data.strip)
+      end
+    end
+
+    # ...
+
+    def entered_username?
+      !@username.nil? && !@username.empty?
+    end # entered_username?
+
+Finally, handler of chat messages is not yet implemented:
+
+    def handle_chat_message(msg)
+      raise NotImplementedError
+    end
+
+Lets try this example out using Telnet:
+
+    ~ telnet localhost 10000
+    Trying 127.0.0.1...
+    Connected to localhost.
+    Escape character is '^]'.
+    [info] Enter your username:
+    antares_
+    [info] Ohai, antares_
+
+and the server output:
+
+    A client has connected...
+    antares_ has joined
+
+This version requires you to remember how to terminate your Telnet session (Ctrl + Shift + ], then Ctrl + C).
+It is annoying, so why don't we add the same `exit` command to our chat server?
+
+
+### Step four: adding exit command and delivering chat messages ####
+
+{include:file:examples/guides/getting\_started/07\_simple\_chat\_server\_step\_four.rb}
+
 TBD
 
+Lets test-drive this version. Client A:
+
+    ~ telnet localhost 10000
+    Trying 127.0.0.1...
+    Connected to localhost.
+    Escape character is '^]'.
+    [info] Enter your username:
+    michael
+    [info] Ohai, michael
+    Hi everyone
+    michael: Hi everyone
+    joe has joined the room
+    # here ^^^ client B connects, lets greet him
+    hi joe
+    michael: hi joe
+    joe: hey michael
+    # ^^^ client B replies
+    exit
+    # ^^^ out command in action
+    Connection closed by foreign host.
+
+Client B:
+
+    ~ telnet localhost 10000
+    Trying 127.0.0.1...
+    Connected to localhost.
+    Escape character is '^]'.
+    [info] Enter your username:
+    joe
+    [info] Ohai, joe
+    michael: hi joe
+    # ^^^ client A greets us, lets reply
+    hey michael
+    joe: hey michael
+    exit
+    # ^^^ out command in action
+    Connection closed by foreign host.
+
+And finally, the server output:
+
+    A client has connected...
+    michael has joined
+    A client has connected...
+    _antares has joined
+    [info] _antares has left
+    [info] michael has left
+
+Our little char server now supports usernames, sending messages and the `exit` command. Next up, private (aka direct) messages.
 
 
-The final version looks like this:
+### Step five: adding direct messages and one more command ###
+
+To add direct messages, we come up with a simple convention: private messages begin with @username and may have optional colon before
+message text, like this:
+
+    @joe: hey, how do you like eventmachine?
+
+This convention makes parsing of messages simple so that we can concentrate on delivering them to a particular client connection.
+Remember when we added `username` reader on our connection class? That tiny change makes this step possible: when a new direct
+message comes in, we extract username and message text and then find then connection for @username in question:
+
+    #
+    # Message handling
+    #
+  
+    def handle_chat_message(msg)
+      if command?(msg)
+        self.handle_command(msg)
+      else
+        if direct_message?(msg)
+          self.handle_direct_message(msg)
+        else
+          self.announce(msg, "#{@username}:")
+        end
+      end
+    end # handle_chat_message(msg)
+  
+    def direct_message?(input)
+      input =~ DM_REGEXP
+    end # direct_message?(input)
+  
+    def handle_direct_message(input)
+      username, message = parse_direct_message(input)
+  
+      if connection = @@connected_clients.find { |c| c.username == username }
+        puts "[dm] @#{@username} => @#{username}"
+        connection.send_line("[dm] @#{@username}: #{message}")
+      else
+        send_line "@#{username} is not in the room. Here's who is: #{usernames.join(', ')}"
+      end
+    end # handle_direct_message(input)
+  
+    def parse_direct_message(input)
+      return [$1, $2] if input =~ DM_REGEXP
+    end # parse_direct_message(input)
+
+This snippet demonstrates how one connection instance can obtain another connection instance and send data to it.
+This is a very powerful feature, consider just a few use cases:
+
+ * Peer-to-peer protocols
+ * Content-aware routing
+ * Efficient streaming with optional filtering
+
+Less common use cases include extending C++ core of EventMachine to provide access to  hardware that streams events that
+can be re-broadcasted to any interested parties connected via TCP, UDP or something like AMQP or WebSockets. With this,
+sky is the limit. Actually, EventMachine has several features for efficient proxying data between connections.
+We will not cover them in this guide.
+
+One last feature that we are going to add to our chat server is the `status` command that tells you current server time and how many people
+are there in the chat room:
+
+    #
+    # Commands handling
+    #
+  
+    def command?(input)
+      input =~ /(exit|status)$/i
+    end # command?(input)
+  
+    def handle_command(cmd)
+      case cmd
+      when /exit$/i   then self.close_connection
+      when /status$/i then self.send_line("[chat server] It's #{Time.now.strftime('%H:%M')} and there are #{self.number_of_connected_clients} people in the room")
+      end
+    end # handle_command(cmd)
+
+Hopefully this piece of code is easy to follow. Try adding a few more commands, for example, the `whoishere` command that lists people
+currently in the chat room.
+
+In the end, our chat server looks like this:
+
+{include:file:examples/guides/getting\_started/08\_simple\_chat\_server\_step\_five.rb}
+
+We are almost done with the server but there are some closing thoughts.
+
+
+### Step six: final version and possible future directions ###
+
+The chat server is just about 150 lines of Ruby including empty lines and comments, but it has a few features most of chat server
+examples never add. We did not implement many other features, however, that popular IRC clients like [Colloquy](http://colloquy.info) have:
+
+ * Chat moderators
+ * Multiple rooms
+ * Connection timeout detection
+
+How would one go about implementing them? We thought it is worth discussing what else EventMachine has to offer and what ecosystem projects
+one can use to build a really feature-rich Web-based IRC chat client.
+
+With multiple rooms it's more or less straightforward, just add one more hash and a bunch of commands and use the information about which rooms participant
+is in when you are delivering messages. There is nothing in EventMachine itself that can make the job much easier for developer.
+
+To implement chat moderation feature you may want to do a few things:
+
+ * Work with client IP addresses. Maybe we want to consider everyone who connects from certain IPs a moderator.
+ * Access persistent data about usernames of moderators and their credentials.
+
+Does EventMachine have anything to offer here? I does. To obtain peer IP address, take a look at {EventMachine::Connection#get_peername}. The name of this method is
+a little bit misleading and originates from low-level socket programming APIs. To work with data stores you can use several database drivers that
+ship with EventMachine itself, however, quite often there are some 3rd party projects in the EventMachine ecosystem that have more features, are faster
+or just better maintained. So we figured it will be helpful to provide a few pointers to some of those projects:
+
+ * For MySQL, check out [em-mysql](https://github.com/eventmachine/em-mysql) project.
+ * For PostgreSQL, have a look at Mike Perham's [EventMachine-based PostgreSQL driver](https://github.com/mperham/em_postgresql).
+ * For Redis, there is a young but already popular [em-hiredis](https://github.com/mloughran/em-hiredis) library that combines EventMachine's non-blocking I/O with
+   extreme performance of the official Redis C client, [hiredis](https://github.com/antirez/hiredis).
+ * For MongoDB, see [em-mongo](https://github.com/bcg/em-mongo)
+ * For Cassandra, Mike Perham [added transport agnosticism feature](http://www.mikeperham.com/2010/02/09/cassandra-and-eventmachine/) to the [cassandra gem](https://rubygems.org/gems/cassandra).
+
+[Riak](http://www.basho.com/products_riak_overview.php) and CouchDB talk HTTP so it's possible to use [em-http-request](https://github.com/igrigorik/em-http-request),
+an excellent choice should your extended chat server need a way to talk to HTTP servers. If you are aware
+of EventMachine-based non-blocking drivers for these databases, as well as HBase, let us know on the [EventMachine mailing list](http://groups.google.com/group/eventmachine).
+Also, EventMachine supports TLS (aka SSL) and works well on JRuby and Windows.
+
+Finally, connection loss detection. When our chat participant closes her laptop lid, how do we know that she is no longer active? The answer is, when EventMachine
+detects TCP connectin closure, it calls {EventMachine::Connection#unbind}. Version 1.0.beta3 and later also pass an optional argument to that method. The argument
+indicates what error (if any) caused the connection to be closed.
+
+Just in case, here is the final version of the chat server code we have built:
 
 {include:file:examples/guides/getting\_started/03\_simple\_chat\_server.rb}
 
+
+
+## A (Proxying) Chat Client Example ##
+
+TBD
 
 
 ## Wrapping up ##

@@ -6,7 +6,7 @@ require 'eventmachine'
 class SimpleChatServer < EM::Connection
 
   @@connected_clients = Array.new
-  DM_REGEXP           = /^@([a-zA-Z0-9]+)\s*:?\s*(.+)/.freeze
+
 
   attr_reader :username
 
@@ -36,6 +36,8 @@ class SimpleChatServer < EM::Connection
   end
 
 
+
+
   #
   # Username handling
   #
@@ -63,6 +65,7 @@ class SimpleChatServer < EM::Connection
   end # ask_username
 
 
+
   #
   # Message handling
   #
@@ -71,32 +74,9 @@ class SimpleChatServer < EM::Connection
     if command?(msg)
       self.handle_command(msg)
     else
-      if direct_message?(msg)
-        self.handle_direct_message(msg)
-      else
-        self.announce(msg, "#{@username}:")
-      end
+      self.announce(msg, "#{@username}:")
     end
-  end # handle_chat_message(msg)
-
-  def direct_message?(input)
-    input =~ DM_REGEXP
-  end # direct_message?(input)
-
-  def handle_direct_message(input)
-    username, message = parse_direct_message(input)
-
-    if connection = @@connected_clients.find { |c| c.username == username }
-      puts "[dm] @#{@username} => @#{username}"
-      connection.send_line("[dm] @#{@username}: #{message}")
-    else
-      send_line "@#{username} is not in the room. Here's who is: #{usernames.join(', ')}"
-    end
-  end # handle_direct_message(input)
-
-  def parse_direct_message(input)
-    return [$1, $2] if input =~ DM_REGEXP
-  end # parse_direct_message(input)
+  end
 
 
   #
@@ -104,15 +84,15 @@ class SimpleChatServer < EM::Connection
   #
 
   def command?(input)
-    input =~ /(exit|status)$/i
+    input =~ /exit$/i
   end # command?(input)
 
   def handle_command(cmd)
     case cmd
     when /exit$/i   then self.close_connection
-    when /status$/i then self.send_line("[chat server] It's #{Time.now.strftime('%H:%M')} and there are #{self.number_of_connected_clients} people in the room")
     end
   end # handle_command(cmd)
+
 
 
   #
@@ -123,10 +103,6 @@ class SimpleChatServer < EM::Connection
     @@connected_clients.each { |c| c.send_line("#{prefix} #{msg}") } unless msg.empty?
   end # announce(msg)
 
-  def number_of_connected_clients
-    @@connected_clients.size
-  end # number_of_connected_clients
-
   def other_peers
     @@connected_clients.reject { |c| self == c }
   end # other_peers
@@ -134,10 +110,6 @@ class SimpleChatServer < EM::Connection
   def send_line(line)
     self.send_data("#{line}\n")
   end # send_line(line)
-
-  def usernames
-    @@connected_clients.map { |c| c.username }
-  end # usernames
 end
 
 EventMachine.run do
