@@ -71,27 +71,28 @@ module EventMachine
     hash
   }
 
-  # Initializes and runs an event loop.
-  # This method only returns if user-callback code calls {EventMachine.stop_event_loop}.
-  # Use the supplied block to define your clients and servers.
-  # The block is called by EventMachine::run immediately after initializing
-  # its internal event loop but *before* running the loop.
-  # Therefore this block is the right place to call start_server if you
-  # want to accept connections from remote clients.
+  # Initializes and runs an event loop. This method only returns if user-callback code calls {EventMachine.stop_event_loop}.
+  # The supplied block is executed after initializing its internal event loop but *before* running the loop,
+  # therefore this block is the right place to call any code that needs event loop to run, for example, {EventMachine.start_server},
+  # {EventMachine.connect} or similar methods of libraries that use EventMachine under the hood
+  # (like EventMachine::HttpRequest.new or AMQP.start).
   #
-  # For programs that are structured as servers, it's usually appropriate
-  # to start an event loop by calling {EventMachine.run}, and let it
-  # run forever. It's also possible to use {EventMachine.run} to make a single
-  # client-connection to a remote server, process the data flow from that
-  # single connection, and then call stop_event_loop to force EventMachine::run
-  # to return. Your program will then continue from the point immediately
-  # following the call to {EventMachine.run}.
+  # Programs that are run for long periods of time (e.g. servers) usually start event loop by calling {EventMachine.run}, and let it
+  # run "forever". It's also possible to use {EventMachine.run} to make a single client-connection to a remote server,
+  # process the data flow from that single connection, and then call {EventMachine.stop_event_loop} to stop, in other words,
+  # to run event loop for a short period of time (necessary to complete some operation) and then shut it down.
   #
-  # You can of course do both client and servers simultaneously in the same program.
-  # One of the strengths of the event-driven programming model is that the
-  # handling of network events on many different connections will be interleaved,
-  # and scheduled according to the actual events themselves. This maximizes
-  # efficiency.
+  # Once event loop is running, it is perfectly possible to start multiple servers and clients simultaneously: content-aware
+  # proxies like [Proxymachine](https://github.com/mojombo/proxymachine) do just that.
+  #
+  # ## Using EventMachine with Ruby on Rails and other Web application frameworks ##
+  #
+  # Standalone applications often run event loop on the main thread, thus blocking for their entire lifespan. In case of Web applications,
+  # if you are running an EventMachine-based app server such as [Thin](http://code.macournoyer.com/thin/) or [Goliath](https://github.com/postrank-labs/goliath/),
+  # they start event loop for you. Servers like Unicorn, Apache Passenger or Mongrel occupy main Ruby thread to serve HTTP(S) requests. This means
+  # that calling {EventMachine.run} on the same thread is not an option (it will result in Web server never binding to the socket).
+  # In that case, start event loop in a separate thread as demonstrated below.
+  #
   #
   # @example Starting EventMachine event loop in the current thread to run the "Hello, world"-like Echo server example
   #
@@ -123,7 +124,8 @@ module EventMachine
   #
   #
   # @note This method blocks calling thread. If you need to start EventMachine event loop from a Web app
-  #       running on a non event-driven server, do it in a separate thread.
+  #       running on a non event-driven server (Unicorn, Apache Passenger, Mongrel), do it in a separate thread like demonstrated
+  #       in one of the examples.
   # @see file:docs/GettingStarted.md Getting started with EventMachine
   # @see EventMachine.stop_event_loop
   def self.run blk=nil, tail=nil, &block
