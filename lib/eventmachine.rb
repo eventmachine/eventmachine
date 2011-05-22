@@ -1286,11 +1286,11 @@ module EventMachine
   end
 
   # This method allows for direct writing of incoming data back out to another descriptor, at the C++ level in the reactor.
-  # This is especially useful for proxies where high performance is required. Propogating data from a server response
+  # This is very efficient and especially useful for proxies where high performance is required. Propogating data from a server response
   # all the way up to Ruby, and then back down to the reactor to be sent back to the client, is often unnecessary and
   # incurs a significant performance decrease.
   #
-  # The two arguments are Connections, 'from' and 'to'. 'from' is the connection whose inbound data you want
+  # The two arguments are instance of {EventMachine::Connection} subclasses, 'from' and 'to'. 'from' is the connection whose inbound data you want
   # relayed back out. 'to' is the connection to write it to.
   #
   # Once you call this method, the 'from' connection will no longer get receive_data callbacks from the reactor,
@@ -1298,8 +1298,8 @@ module EventMachine
   # in the example, that proxy_target_unbound will be called when this occurs. After that, further incoming
   # data will be passed into receive_data as normal.
   #
-  # Note also that this feature supports different types of descriptors - TCP, UDP, and pipes. You can relay
-  # data from one kind to another.
+  # Note also that this feature supports different types of descriptors: TCP, UDP, and pipes. You can relay
+  # data from one kind to another, for example, feed a pipe from a UDP stream.
   #
   # @example
   #
@@ -1341,6 +1341,13 @@ module EventMachine
   #
   #    EventMachine.start_server("127.0.0.1", 8080, ProxyServer)
   #  }
+  #
+  # @param [EventMachine::Connection] from    Source of data to be proxies/streamed.
+  # @param [EventMachine::Connection] to      Destination of data to be proxies/streamed.
+  # @param [Integer]                  bufsize Buffer size to use
+  # @param [Integer]                  length  Maximum number of bytes to proxy.
+  #
+  # @see EventMachine.disable_proxy
   def self.enable_proxy(from, to, bufsize=0, length=0)
     EM::start_proxy(from.signature, to.signature, bufsize, length)
   end
@@ -1348,6 +1355,8 @@ module EventMachine
   # Takes just one argument, a {Connection} that has proxying enabled via {Connection#enable_proxy}.
   # Calling this method will remove that functionality and your connection will begin receiving
   # data via {Connection#receive_data} again.
+  #
+  # @see EventMachine.enable_proxy
   def self.disable_proxy(from)
     EM::stop_proxy(from.signature)
   end
