@@ -426,12 +426,19 @@ In the end, our chat server looks like this:
 We are almost done with the server but there are some closing thoughts.
 
 
-### Step six: final version and possible future directions ###
+### Step six: final version ###
 
-The chat server is just about 150 lines of Ruby including empty lines and comments, but it has a few features most of chat server
-examples never add. We did not implement many other features, however, that popular IRC clients like [Colloquy](http://colloquy.info) have:
+Just in case, here is the final version of the chat server code we have built:
 
- * Chat moderators
+{include:file:examples/guides/getting\_started/03\_simple\_chat\_server.rb}
+
+
+### Step seven: future directions and some closing thoughts ###
+
+The chat server is just about 150 lines of Ruby including empty lines and comments, yet it has a few features most of chat server
+examples never add. We did not, however, implement many other features that popular IRC clients like [Colloquy](http://colloquy.info) have:
+
+ * Chat moderation
  * Multiple rooms
  * Connection timeout detection
 
@@ -447,9 +454,13 @@ To implement chat moderation feature you may want to do a few things:
  * Access persistent data about usernames of moderators and their credentials.
 
 Does EventMachine have anything to offer here? It does. To obtain peer IP address, take a look at {EventMachine::Connection#get_peername}. The name of this method is
-a little bit misleading and originates from low-level socket programming APIs. To work with data stores you can use several database drivers that
-ship with EventMachine itself, however, quite often there are some 3rd party projects in the EventMachine ecosystem that have more features, are faster
-or just better maintained. So we figured it will be helpful to provide a few pointers to some of those projects:
+a little bit misleading and originates from low-level socket programming APIs.
+
+#### A whirlwind tour of the EventMachine ecosystem ####
+
+To work with data stores you can use several database drivers that ship with EventMachine itself, however, quite often there are some 3rd party projects in
+the EventMachine ecosystem that have more features, are faster or just better maintained. So we figured it will be helpful to provide a few pointers
+to some of those projects:
 
  * For MySQL, check out [em-mysql](https://github.com/eventmachine/em-mysql) project.
  * For PostgreSQL, have a look at Mike Perham's [EventMachine-based PostgreSQL driver](https://github.com/mperham/em_postgresql).
@@ -463,13 +474,27 @@ an excellent choice should your extended chat server need a way to talk to HTTP 
 of EventMachine-based non-blocking drivers for these databases, as well as HBase, let us know on the [EventMachine mailing list](http://groups.google.com/group/eventmachine).
 Also, EventMachine supports TLS (aka SSL) and works well on JRuby and Windows.
 
+Learn more in our {file:docs/Ecosystem.md EventMachine ecosystem} guide.
+
+
+#### Connection loss detection ####
+
 Finally, connection loss detection. When our chat participant closes her laptop lid, how do we know that she is no longer active? The answer is, when EventMachine
 detects TCP connectin closure, it calls {EventMachine::Connection#unbind}. Version 1.0.beta3 and later also pass an optional argument to that method. The argument
 indicates what error (if any) caused the connection to be closed.
 
-Just in case, here is the final version of the chat server code we have built:
+Learn more in our {file:docs/ConnectionFailureAndRecovery.md Connection Failure and Recovery} guide.
 
-{include:file:examples/guides/getting\_started/03\_simple\_chat\_server.rb}
+
+#### What the Chat Server Example doesn't demonstrate ####
+
+This chat server also leaves out something production quality clients and servers must take care of: buffering. We intentionally did not include any buffering in
+our chat server example: it would only distract you from learning what you really came here to learn: how to use EventMachine to build blazing fast asynchronous
+networking programs quickly. However, {EventMachine::Connection#receive_data} does not offer any guarantees that you will be receiving "whole messages" all the time,
+largely because the underlying transport (UDP or TCP) does not offer such guarantees. Many protocols, for example, AMQP, mandate that large content chunks are
+split into smaller _frames_ of certain size. This means that [amq-client](https://github.com/ruby-amqp/amq-client) library, for instance, that has EventMachine-based driver,
+has to deal with figuring out when exactly we received "the whole message". To do so, it uses buffering and employs various checks to detect _frame boundaries_.
+So **don't be deceived by the simplicity of this chat example**: it intentionally leaves framing out, but real world protocols usually require it.
 
 
 
