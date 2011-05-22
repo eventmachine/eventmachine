@@ -1352,7 +1352,7 @@ module EventMachine
     EM::start_proxy(from.signature, to.signature, bufsize, length)
   end
 
-  # Takes just one argument, a {Connection} that has proxying enabled via {Connection#enable_proxy}.
+  # Takes just one argument, a {Connection} that has proxying enabled via {EventMachine.enable_proxy}.
   # Calling this method will remove that functionality and your connection will begin receiving
   # data via {Connection#receive_data} again.
   #
