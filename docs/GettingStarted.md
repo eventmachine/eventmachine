@@ -152,6 +152,23 @@ Lets move on to a slightly more sophisticated example that will introduce severa
 EventMachine has to offer.
 
 
+## A Simple Chat Server Example ##
+
+Next we will write a simple chat. Initially clients will still use telnet to connect, but then we will add little
+client application that will serve as a proxy between telnet and the chat server. This example is certainly longer
+(~ 150 lines with whitespace and comments) so instead of looking at the final version and going through it line by line,
+we will instead begin with a very simple version that only keeps track of connected clients and then add features
+as we go.
+
+TBD
+
+
+
+The final version looks like this:
+
+{include:file:examples/guides/getting\_started/03\_simple\_chat\_server.rb}
+
+
 
 ## Wrapping up ##
 
