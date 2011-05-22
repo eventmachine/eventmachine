@@ -320,6 +320,7 @@ module EventMachine
   #    EventMachine.add_periodic_timer( 5 ) { $stderr.write "$" }
   #  }
   #
+  # @param [Integer] delay Delay in seconds
   #
   # @see EventMachine::PeriodicTimer
   # @see EventMachine.add_timer
