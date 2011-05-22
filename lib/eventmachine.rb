@@ -407,32 +407,34 @@ module EventMachine
   # Only one listener may be running on any given address/port
   # combination. start_server will fail if the given address and port
   # are already listening on the machine, either because of a prior call
-  # to start_server or some unrelated process running on the machine.
-  # If start_server succeeds, the new network listener becomes active
+  # to {.start_server} or some unrelated process running on the machine.
+  # If {.start_server} succeeds, the new network listener becomes active
   # immediately and starts accepting connections from remote peers,
   # and these connections generate callback events that are processed
-  # by the code specified in the handler parameter to start_server.
+  # by the code specified in the handler parameter to {.start_server}.
   #
   # The optional handler which is passed to this method is the key
   # to EventMachine's ability to handle particular network protocols.
   # The handler parameter passed to start_server must be a Ruby Module
   # that you must define. When the network server that is started by
   # start_server accepts a new connection, it instantiates a new
-  # object of an anonymous class that is inherited from EventMachine::Connection,
-  # *into which the methods from your handler have been mixed.*
-  # Your handler module may redefine any of the methods in EventMachine::Connection
-  # in order to implement the specific behavior of the network protocol.
+  # object of an anonymous class that is inherited from {EventMachine::Connection},
+  # *into which your handler module have been included*.
+  #
+  # Your handler module may override any of the methods in {EventMachine::Connection},
+  # such as {EventMachine::Connection#received_data}, in order to implement the specific behavior
+  # of the network protocol.
   #
   # Callbacks invoked in response to network events *always* take place
-  # within the execution context of the object derived from EventMachine::Connection
+  # within the execution context of the object derived from {EventMachine::Connection}
   # extended by your handler module. There is one object per connection, and
   # all of the callbacks invoked for a particular connection take the form
-  # of instance methods called against the corresponding EventMachine::Connection
+  # of instance methods called against the corresponding {EventMachine::Connection}
   # object. Therefore, you are free to define whatever instance variables you
   # wish, in order to contain the per-connection state required by the network protocol you are
   # implementing.
   #
-  # {EventMachine.start_server} is often called inside the block passed to {EventMachine.run},
+  # {EventMachine.start_server} is usually called inside the block passed to {EventMachine.run},
   # but it can be called from any EventMachine callback. {EventMachine.start_server} will fail
   # unless the EventMachine event loop is currently running (which is why
   # it's often called in the block suppled to {EventMachine.run}).
@@ -476,12 +478,22 @@ module EventMachine
   #    end
   #  end
   #
-  #  EventMachine::run {
-  #    host,port = "192.168.0.100", 8090
-  #    EventMachine::start_server host, port, LineCounter
+  #  EventMachine.run {
+  #    # hit Control + C to stop
+  #    Signal.trap("INT")  { EventMachine.stop }
+  #    Signal.trap("TERM") { EventMachine.stop }
+  #
+  #    host, port = "192.168.0.100", 8090
+  #    EventMachine.start_server host, port, LineCounter
   #    puts "Now accepting connections on address #{host}, port #{port}..."
-  #    EventMachine::add_periodic_timer( 10 ) { $stderr.write "*" }
+  #    EventMachine.add_periodic_timer(10) { $stderr.write "*" }
   #  }
+  #
+  # @param [String] server         Host to bind to.
+  # @param [Integer] port          Port to bind to.
+  # @param [Module, Class] handler A module or class that implements connection callbacks
+  #
+  # @note Don't forget that in order to bind to ports < 1024 on Linux, *BSD and Mac OS X your process must have superuser privileges.
   #
   # @see file:docs/GettingStarted.md EventMachine tutorial
   # @see EventMachine.stop_server
