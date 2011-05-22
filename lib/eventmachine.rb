@@ -346,7 +346,8 @@ module EventMachine
 
 
   # Causes the processing loop to stop executing, which will cause all open connections and accepting servers
-  # to be run down and closed. Callbacks for connection-termination will be called* as part of running this method.
+  # to be run down and closed. Connection termination callbacks added using {EventMachine.add_shutdown_hook}
+  # will be called as part of running this method.
   #
   # When all of this processing is complete, the call to {EventMachine.run} which started the processing loop
   # will return and program flow will resume from the statement following {EventMachine.run} call.
