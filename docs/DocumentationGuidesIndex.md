@@ -9,6 +9,8 @@ and so on).
  * {file:docs/GettingStarted.md Getting started with EventMachine}
  * {file:docs/EventDrivenServers.md Writing event-driven servers}
  * {file:docs/EventDrivenClients.md Writing event-driven clients}
+ * {file:docs/ConnectionFailureAndRecovery.md Connection Failure and Recovery}
+ * {file:docs/TLS.md TLS (aka SSL)}
  * {file:docs/Ecosystem.md EventMachine ecosystem}: Thin, Goliath, em-http-request, em-websockets, Proxymachine and beyond
  * {file:docs/BlockingEventLoop.md On blocking the event loop: why it is harmful for performance and how to avoid it}
  * {file:docs/LightweightConcurrency.md Lightweight concurrency with EventMachine}
