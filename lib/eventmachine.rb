@@ -273,7 +273,7 @@ module EventMachine
   # *at least* the number of seconds specified in the first parameter to
   # the call.
   #
-  # {EventMachine.add_timer} is a *non-blocking* call. Callbacks can and will
+  # {EventMachine.add_timer} is a non-blocking method. Callbacks can and will
   # be called during the interval of time that the timer is in effect.
   # There is no built-in limit to the number of timers that can be outstanding at
   # any given time.
