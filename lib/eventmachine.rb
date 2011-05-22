@@ -423,7 +423,7 @@ module EventMachine
   # *into which your handler module have been included*.
   #
   # Your handler module may override any of the methods in {EventMachine::Connection},
-  # such as {EventMachine::Connection#received_data}, in order to implement the specific behavior
+  # such as {EventMachine::Connection#receive_data}, in order to implement the specific behavior
   # of the network protocol.
   #
   # Callbacks invoked in response to network events *always* take place
