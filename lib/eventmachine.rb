@@ -947,28 +947,13 @@ module EventMachine
 
 
   # EventMachine.defer is used for integrating blocking operations into EventMachine's control flow.
-  # Call it with one or two blocks, as shown below (the second block is optional):
-  #
-  # @example
-  #
-  #  operation = proc {
-  #    # perform a long-running operation here, such as a database query.
-  #    "result" # as usual, the last expression evaluated in the block will be the return value.
-  #  }
-  #  callback = proc {|result|
-  #    # do something with result here, such as send it back to a network client.
-  #  }
-  #
-  #  EventMachine.defer( operation, callback )
-  #
-  # The action of #defer is to take the block specified in the first parameter (the "operation")
+  # The action of {.defer} is to take the block specified in the first parameter (the "operation")
   # and schedule it for asynchronous execution on an internal thread pool maintained by EventMachine.
   # When the operation completes, it will pass the result computed by the block (if any)
   # back to the EventMachine reactor. Then, EventMachine calls the block specified in the
-  # second parameter to #defer (the "callback"), as part of its normal, synchronous
-  # event handling loop. The result computed by the operation block is passed as a parameter
-  # to the callback. You may omit the callback parameter if you don't need to execute any code
-  # after the operation completes.
+  # second parameter to {.defer} (the "callback"), as part of its normal event handling loop.
+  # The result computed by the operation block is passed as a parameter to the callback.
+  # You may omit the callback parameter if you don't need to execute any code after the operation completes.
   #
   # ## Caveats ##
   #
@@ -981,6 +966,20 @@ module EventMachine
   # not detect the problem, and the thread will never be returned to the pool. EventMachine limits
   # the number of threads in its pool, so if you do this enough times, your subsequent deferred
   # operations won't get a chance to run.
+  #
+  # @example
+  #
+  #  operation = proc {
+  #    # perform a long-running operation here, such as a database query.
+  #    "result" # as usual, the last expression evaluated in the block will be the return value.
+  #  }
+  #  callback = proc {|result|
+  #    # do something with result here, such as send it back to a network client.
+  #  }
+  #
+  #  EventMachine.defer(operation, callback)
+  #
+  # @see EventMachine.threadpool_size
   def self.defer op = nil, callback = nil, &blk
     # OBSERVE that #next_tick hacks into this mechanism, so don't make any changes here
     # without syncing there.
