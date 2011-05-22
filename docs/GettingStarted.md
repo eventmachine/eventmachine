@@ -446,7 +446,7 @@ To implement chat moderation feature you may want to do a few things:
  * Work with client IP addresses. Maybe we want to consider everyone who connects from certain IPs a moderator.
  * Access persistent data about usernames of moderators and their credentials.
 
-Does EventMachine have anything to offer here? I does. To obtain peer IP address, take a look at {EventMachine::Connection#get_peername}. The name of this method is
+Does EventMachine have anything to offer here? It does. To obtain peer IP address, take a look at {EventMachine::Connection#get_peername}. The name of this method is
 a little bit misleading and originates from low-level socket programming APIs. To work with data stores you can use several database drivers that
 ship with EventMachine itself, however, quite often there are some 3rd party projects in the EventMachine ecosystem that have more features, are faster
 or just better maintained. So we figured it will be helpful to provide a few pointers to some of those projects:
