@@ -1159,7 +1159,7 @@ module EventMachine
   end
 
   # EventMachine's file monitoring API. Currently supported are the following events
-  # on individual files, using inotify on Linux systems, and kqueue for OSX/BSD:
+  # on individual files, using inotify on Linux systems, and kqueue for *BSD and Mac OS X:
   #
   # * File modified (written to)
   # * File moved/renamed
