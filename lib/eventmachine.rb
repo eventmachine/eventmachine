@@ -524,20 +524,17 @@ module EventMachine
     start_server filename, *args, &block
   end
 
-  # EventMachine#connect initiates a TCP connection to a remote
-  # server and sets up event-handling for the connection.
-  # You can call EventMachine#connect in the block supplied
-  # to EventMachine#run or in any callback method.
+  # Initiates a TCP connection to a remote server and sets up event handling for the connection.
+  # {EventMachine.connect} requires event loop to be running (see {EventMachine.run}).
   #
-  # EventMachine#connect takes the IP address (or hostname) and
+  # {EventMachine.connect} takes the IP address (or hostname) and
   # port of the remote server you want to connect to.
-  # It also takes an optional handler Module which you must define, that
-  # contains the callbacks that will be invoked by the event loop
-  # on behalf of the connection.
+  # It also takes an optional handler (a module or a subclass of {EventMachine::Connection}) which you must define, that
+  # contains the callbacks that will be invoked by the event loop on behalf of the connection.
   #
-  # See the description of EventMachine#start_server for a discussion
-  # of the handler Module. All of the details given in that description
-  # apply for connections created with EventMachine#connect.
+  # Learn more about connection lifecycle callbacks in the {file:docs/GettingStarted.md EventMachine tutorial} and
+  # {file:docs/ConnectionLifecycleCallbacks.md Connection lifecycle guide}.
+  #
   #
   # @example
   #
@@ -590,12 +587,12 @@ module EventMachine
   #    # ...
   #  end
   #
-  # If you do this, then an instance of your class will be instantiated to handle
-  # every network connection created by your code or accepted by servers that you
-  # create. If you redefine {EventMachine::Connection#post_init} in your protocol-handler class, your
-  # #post_init method will be called _inside_ the call to #super that you will
-  # make in your #initialize method (if you provide one).
   #
+  # @param [String] server         Host to connect to
+  # @param [Integer] port          Port to connect to
+  # @param [Module, Class] handler A module or class that implements connection lifecycle callbacks
+  #
+  # @see EventMachine.start_server
   # @see file:docs/GettingStarted.md EventMachine tutorial
   def self.connect server, port=nil, handler=nil, *args, &blk
     # EventMachine::connect initiates a TCP connection to a remote
