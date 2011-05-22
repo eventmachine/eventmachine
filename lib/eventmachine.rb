@@ -133,7 +133,7 @@ module EventMachine
     # 25Nov06: Added the begin/ensure block. We need to be sure that release_machine
     # gets called even if an exception gets thrown within any of the user code
     # that the event loop runs. The best way to see this is to run a unit
-    # test with two functions, each of which calls EventMachine#run and each of
+    # test with two functions, each of which calls {EventMachine.run} and each of
     # which throws something inside of #run. Without the ensure, the second test
     # will start without release_machine being called and will immediately throw
 
@@ -873,9 +873,9 @@ module EventMachine
   end
 
   # Sets the maximum number of timers and periodic timers that may be outstanding at any
-  # given time. You only need to call #set_max_timers if you need more than the default
+  # given time. You only need to call {.set_max_timers} if you need more than the default
   # number of timers, which on most platforms is 1000.
-  # Call this method before calling EventMachine#run.
+  # Call this method before calling {EventMachine.run}.
   #
   def self.set_max_timers ct
     set_max_timer_count ct
@@ -1133,12 +1133,12 @@ module EventMachine
   # Tells you whether the EventMachine reactor loop is currently running. Returns true or
   # false. Useful when writing libraries that want to run event-driven code, but may
   # be running in programs that are already event-driven. In such cases, if EventMachine#reactor_running?
-  # returns false, your code can invoke EventMachine#run and run your application code inside
+  # returns false, your code can invoke {EventMachine.run} and run your application code inside
   # the block passed to that method. If EventMachine#reactor_running? returns true, just
   # execute your event-aware code.
   #
-  # This method is necessary because calling EventMachine#run inside of another call to
-  # EventMachine#run generates a fatal error.
+  # This method is necessary because calling {EventMachine.run} inside of another call to
+  # {EventMachine.run} generates a fatal error.
   #
   def self.reactor_running?
     (@reactor_running || false)
