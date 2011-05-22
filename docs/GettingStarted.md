@@ -471,7 +471,7 @@ to some of those projects:
 
 [Riak](http://www.basho.com/products_riak_overview.php) and CouchDB talk HTTP so it's possible to use [em-http-request](https://github.com/igrigorik/em-http-request).
 If you are aware of EventMachine-based non-blocking drivers for these databases, as well as for HBase, let us know on the [EventMachine mailing list](http://groups.google.com/group/eventmachine).
-Also, EventMachine supports TLS (aka SSL) and works well on JRuby and Windows.
+Also, EventMachine supports TLS (aka SSL) and works well on [JRuby](http://jruby.org) and Windows.
 
 Learn more in our {file:docs/Ecosystem.md EventMachine ecosystem} guide.
 
