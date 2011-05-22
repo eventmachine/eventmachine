@@ -469,9 +469,8 @@ to some of those projects:
  * For MongoDB, see [em-mongo](https://github.com/bcg/em-mongo)
  * For Cassandra, Mike Perham [added transport agnosticism feature](http://www.mikeperham.com/2010/02/09/cassandra-and-eventmachine/) to the [cassandra gem](https://rubygems.org/gems/cassandra).
 
-[Riak](http://www.basho.com/products_riak_overview.php) and CouchDB talk HTTP so it's possible to use [em-http-request](https://github.com/igrigorik/em-http-request),
-an excellent choice should your extended chat server need a way to talk to HTTP servers. If you are aware
-of EventMachine-based non-blocking drivers for these databases, as well as HBase, let us know on the [EventMachine mailing list](http://groups.google.com/group/eventmachine).
+[Riak](http://www.basho.com/products_riak_overview.php) and CouchDB talk HTTP so it's possible to use [em-http-request](https://github.com/igrigorik/em-http-request).
+If you are aware of EventMachine-based non-blocking drivers for these databases, as well as for HBase, let us know on the [EventMachine mailing list](http://groups.google.com/group/eventmachine).
 Also, EventMachine supports TLS (aka SSL) and works well on JRuby and Windows.
 
 Learn more in our {file:docs/Ecosystem.md EventMachine ecosystem} guide.
