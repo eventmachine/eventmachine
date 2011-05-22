@@ -124,11 +124,33 @@ EventMachine handles the connection setup, receiving data and passing it to our 
 Then we implement our protocol logic, which in the case of Echo is pretty trivial: we send back whatever we receive.
 To do so, we're using {EventMachine::Connection#send_data}.
 
+Lets modify the example to recognize `exit` command:
 
+{include:file:examples/guides/getting\_started/02\_eventmachine\_echo_server\_that\_recognizes\_exit\_command.rb}
 
+Our `receive\_data` changed slightly and now looks like this:
 
+    def receive_data(data)
+      if data.strip =~ /exit$/i
+        EventMachine.stop_event_loop
+      else
+        send_data(data)
+      end
+    end
 
-TBD
+Because incoming data has trailing newline character, we strip it off before matching it against a simple regular
+expression. If the data ends in `exit`, we stop EventMachine event loop with {EventMachine.stop_event_loop}. This unblocks
+main thread and it finishes execution, and our little program exits as the result.
+
+To summarize this first example:
+
+ * Subclass {EventMachine::Connection} and override {EventMachine::Connection#send_data} to handle incoming data.
+ * Use {EventMachine.run} to start EventMachine event loop and then bind echo server with {EventMachine.start_server}.
+ * To stop the event loop, use {EventMachine.stop_event_loop} (aliased as {EventMachine.stop})
+
+Lets move on to a slightly more sophisticated example that will introduce several more features and methods
+EventMachine has to offer.
+
 
 
 ## Wrapping up ##
