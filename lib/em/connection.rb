@@ -1,5 +1,5 @@
 module EventMachine
-  class FileNotFoundException < Exception # :nodoc:
+  class FileNotFoundException < Exception
   end
 
   # EventMachine::Connection is a class that is instantiated
@@ -25,7 +25,6 @@ module EventMachine
   # which may be called by the event loop are: post_init, receive_data,
   # and unbind. All of the other instance methods defined here are called
   # only by user code.
-  #
   class Connection
     # @private
     attr_accessor :signature
