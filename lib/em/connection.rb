@@ -8,7 +8,7 @@ module EventMachine
   # to a remote server or accepted locally from a remote client.)
   # When a Connection object is instantiated, it <i>mixes in</i>
   # the functionality contained in the user-defined module
-  # specified in calls to EventMachine#connect or EventMachine#start_server.
+  # specified in calls to {EventMachine.connect} or {EventMachine.start_server}.
   # User-defined handler modules may redefine any or all of the standard
   # methods defined here, as well as add arbitrary additional code
   # that will also be mixed in.
@@ -22,9 +22,18 @@ module EventMachine
   #
   # This class is never instantiated by user code, and does not publish an
   # initialize method. The instance methods of EventMachine::Connection
-  # which may be called by the event loop are: post_init, receive_data,
-  # and unbind. All of the other instance methods defined here are called
-  # only by user code.
+  # which may be called by the event loop are:
+  #
+  # * {#post_init}
+  # * {#connection_completed}
+  # * {#receive_data}
+  # * {#unbind}
+  # * {#ssl_verify_peer} (if TLS is used)
+  # * {#ssl_handshake_completed}
+  #
+  # All of the other instance methods defined here are called  only by user code.
+  #
+  # @see file:docs/GettingStarted.md EventMachine tutorial
   class Connection
     # @private
     attr_accessor :signature
@@ -84,14 +93,15 @@ module EventMachine
     # in your redefined implementation of receive_data. For a better understanding
     # of this, read through the examples of specific protocol handlers in EventMachine::Protocols
     #
-    # The base-class implementation of receive_data (which will be invoked if
-    # you don't redefine it) simply prints the size of each incoming data packet
-    # to stdout.
+    # The base-class implementation (which will be invoked only if you didn't override it in your protocol handler)
+    # simply prints incoming data packet size to stdout.
     #
     # @param [String] data Opaque incoming data.
     # @note Depending on the protocol, buffer sizes and OS networking stack configuration, incoming data may or may not be "a complete message".
     #       It is up to this handler to detect content boundaries to determine whether all the content (for example, full HTTP request)
     #       has been received and can be processed.
+    #
+    # @see file:docs/GettingStarted.md EventMachine tutorial
     def receive_data data
       puts "............>>>#{data.length}"
     end
@@ -108,10 +118,48 @@ module EventMachine
 
     # Called by EventMachine when :verify_peer => true has been passed to {#start_tls}.
     # It will be called with each certificate in the certificate chain provided by the remote peer.
+    #
     # The cert will be passed as a String in PEM format, the same as in {#get_peer_cert}. It is up to user defined
     # code to perform a check on the certificates. The return value from this callback is used to accept or deny the peer.
     # A return value that is not nil or false triggers acceptance. If the peer is not accepted, the connection
-    # will be subsequently closed. See 'tests/test_ssl_verify.rb' for a simple example.
+    # will be subsequently closed.
+    #
+    # @example This server always accepts all peers
+    #
+    #   module AcceptServer
+    #     def post_init
+    #       start_tls(:verify_peer => true)
+    #     end
+    #
+    #     def ssl_verify_peer(cert)
+    #       true
+    #     end
+    #
+    #     def ssl_handshake_completed
+    #       $server_handshake_completed = true
+    #     end
+    #   end
+    #
+    #
+    # @example This server never accepts any peers
+    #
+    #   module DenyServer
+    #     def post_init
+    #       start_tls(:verify_peer => true)
+    #     end
+    #
+    #     def ssl_verify_peer(cert)
+    #       # Do not accept the peer. This should now cause the connection to shut down
+    #       # without the SSL handshake being completed.
+    #       false
+    #     end
+    #
+    #     def ssl_handshake_completed
+    #       $server_handshake_completed = true
+    #     end
+    #   end
+    #
+    # @see #start_tls
     def ssl_verify_peer(cert)
     end
 
@@ -123,6 +171,33 @@ module EventMachine
     # you a chance to clean up associations your code may have made to the connection
     # object while it was open.
     #
+    # If you want to detect which peer has closed the connection, you can override {#close_connection} in your protocol handler
+    # and set an @ivar.
+    #
+    # @example Overriding Connection#close_connection to distinguish connections closed on our side
+    #
+    #   class MyProtocolHandler < EventMachine::Connection
+    #
+    #     # ...
+    #
+    #     def close_connection(*args)
+    #       @intentionally_closed_connection = true
+    #       super(*args)
+    #     end
+    #
+    #     def unbind
+    #       if @intentionally_closed_connection
+    #         # ...
+    #       end
+    #     end
+    #
+    #     # ...
+    #
+    #   end
+    #
+    # @see #post_init
+    # @see #connection_completed
+    # @see file:docs/GettingStarted.md EventMachine tutorial
     def unbind
     end
 
@@ -214,12 +289,16 @@ module EventMachine
     # within a callback function, the data will be sent to the same network connection
     # that generated the callback. Calling self.send_data is exactly equivalent.
     #
-    # You can also call send_data to write to a connection <i>other than the one
+    # You can also call {#send_data} to write to a connection <i>other than the one
     # whose callback you are calling send_data from.</i> This is done by recording
     # the value of the connection in any callback function (the value self), in any
     # variable visible to other callback invocations on the same or different
     # connection objects. (Need an example to make that clear.)
     #
+    #
+    # @param [String] data Data to send asynchronously
+    #
+    # @see file:docs/GettingStarted.md EventMachine tutorial
     def send_data data
       data = data.to_s
       size = data.bytesize if data.respond_to?(:bytesize)
@@ -249,39 +328,33 @@ module EventMachine
     # You can expect to get this notification after calls to {EventMachine#connect}. Remember that EventMachine makes remote connections
     # asynchronously, just as with any other kind of network event. This method
     # is intended primarily to assist with network diagnostics. For normal protocol
-    # handling, use #post_init to perform initial work on a new connection (such as
-    # send an initial set of data).
-    # #post_init will always be called. #connection_completed will only be called in case
-    # of a successful completion. A connection-attempt which fails will receive a call
-    # to #unbind after the failure.
+    # handling, use #post_init to perform initial work on a new connection (such as sending initial set of data).
+    # {Connection#post_init} will always be called. This method will only be called in case of a successful completion.
+    # A connection attempt which fails will result a call to {Connection#unbind} after the failure.
+    #
+    # @see Connection#post_init
+    # @see Connection#unbind
+    # @see file:docs/GettingStarted.md EventMachine tutorial
     def connection_completed
     end
 
     # Call {#start_tls} at any point to initiate TLS encryption on connected streams.
     # The method is smart enough to know whether it should perform a server-side
     # or a client-side handshake. An appropriate place to call {#start_tls} is in
-    # your redefined #post_init method, or in the {#connection_completed} handler for
+    # your redefined {#post_init} method, or in the {#connection_completed} handler for
     # an outbound connection.
     #
-    # {#start_tls} takes an optional parameter hash that allows you to specify certificate
-    # and other options to be used with this {EventMachine::Connection} object. Here are the currently-supported
-    # options:
     #
-    # * :cert_chain_file :
-    # takes a String, which is interpreted as the name of a readable file in the
-    # local filesystem. The file is expected to contain a chain of X509 certificates in
-    # PEM format, with the most-resolved certificate at the top of the file, successive
-    # intermediate certs in the middle, and the root (or CA) cert at the bottom.
+    # @option args [String] :cert_chain_file (nil) local path of a readable file that contants  a chain of X509 certificates in
+    #                                              the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail),
+    #                                              with the most-resolved certificate at the top of the file, successive intermediate
+    #                                              certs in the middle, and the root (or CA) cert at the bottom.
     #
-    # * :private_key_file :
-    # takes a String, which is interpreted as the name of a readable file in the
-    # local filesystem. The file must contain a private key in PEM format.
+    # @option args [String] :private_key_file (nil) local path of a readable file that must contain a private key in the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail).
     #
-    # * :verify_peer :
-    # takes either true or false. Default is false. This indicates whether a server should request a
-    # certificate from a peer, to be verified by user code. If true, the {#ssl_verify_peer} callback
-    # on the {EventMachine::Connection} object is called with each certificate in the certificate chain provided by
-    # the peer. See documentation on {#ssl_verify_peer} for how to use this.
+    # @option args [String] :verify_peer (false)    indicates whether a server should request a certificate from a peer, to be verified by user code.
+    #                                               If true, the {#ssl_verify_peer} callback on the {EventMachine::Connection} object is called with each certificate
+    #                                               in the certificate chain provided by the peer. See documentation on {#ssl_verify_peer} for how to use this.
     #
     # @example Using TLS with EventMachine
     #
@@ -294,14 +367,21 @@ module EventMachine
     #    end
     #  end
     #
-    #  EM.run {
+    #   EventMachine.run do
+    #     # hit Control + C to stop
+    #     Signal.trap("INT")  { EventMachine.stop }
+    #     Signal.trap("TERM") { EventMachine.stop }
+    #
     #    EM.start_server("127.0.0.1", 9999, Handler)
-    #  }
+    #  end
+    #
+    # @param [Hash] args
     #
     # @todo support passing an encryption parameter, which can be string or Proc, to get a passphrase
     # for encrypted private keys.
     # @todo support passing key material via raw strings or Procs that return strings instead of
     # just filenames.
+    #
     # @see #ssl_verify_peer
     def start_tls args={}
       priv_key, cert_chain, verify_peer = args.values_at(:private_key_file, :cert_chain_file, :verify_peer)
@@ -309,15 +389,15 @@ module EventMachine
       [priv_key, cert_chain].each do |file|
         next if file.nil? or file.empty?
         raise FileNotFoundException,
-          "Could not find #{file} for start_tls" unless File.exists? file
+        "Could not find #{file} for start_tls" unless File.exists? file
       end
 
       EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer)
       EventMachine::start_tls @signature
     end
 
-    # If SSL/TLS is active on the connection, #get_peer_cert returns the remote X509 certificate
-    # as a String, in the popular PEM format. This can then be used for arbitrary validation
+    # If [TLS](http://en.wikipedia.org/wiki/Transport_Layer_Security) is active on the connection, returns the remote [X509 certificate](http://en.wikipedia.org/wiki/X.509)
+    # as a string, in the popular [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail). This can then be used for arbitrary validation
     # of a peer's certificate in your code.
     #
     # This should be called in/after the {#ssl_handshake_completed} callback, which indicates
@@ -327,10 +407,11 @@ module EventMachine
     #
     # This method will return `nil` if:
     #
-    # * EventMachine is not built with OpenSSL support
-    # * SSL/TLS is not active on the connection
-    # * SSL/TLS handshake is not yet complete
+    # * EventMachine is not built with [OpenSSL](http://www.openssl.org) support
+    # * [TLS](http://en.wikipedia.org/wiki/Transport_Layer_Security) is not active on the connection
+    # * TLS handshake is not yet complete
     # * Remote peer for any other reason has not presented a certificate
+    #
     #
     # @example Getting peer TLS certificate information in EventMachine
     #
@@ -377,12 +458,19 @@ module EventMachine
     #
     # You can do whatever you want with the certificate String, such as load it
     # as a certificate object using the OpenSSL library, and check it's fields.
+    #
+    # @return [String] the remote [X509 certificate](http://en.wikipedia.org/wiki/X.509), in the popular [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail),
+    #                  if TLS is active on the connection
+    #
+    # @see Connection#start_tls
+    # @see Connection#ssl_handshake_completed
     def get_peer_cert
       EventMachine::get_peer_cert @signature
     end
 
 
-    # send_datagram is for sending UDP messages.
+    # Sends UDP messages.
+    #
     # This method may be called from any Connection object that refers
     # to an open datagram socket (see EventMachine#open_datagram_socket).
     # The method sends a UDP (datagram) packet containing the data you specify,
@@ -399,6 +487,10 @@ module EventMachine
     # but to be really safe, send messages smaller than the Ethernet-packet
     # size (typically about 1400 bytes). Some very restrictive WANs
     # will either drop or truncate packets larger than about 500 bytes.
+    #
+    # @param [String] data              Data to send asynchronously
+    # @param [String] recipient_address IP address of the recipient
+    # @param [String] recipient_port    Port of the recipient
     def send_datagram data, recipient_address, recipient_port
       data = data.to_s
       size = data.bytesize if data.respond_to?(:bytesize)
@@ -469,15 +561,15 @@ module EventMachine
     end
     alias set_comm_inactivity_timeout comm_inactivity_timeout=
 
-    # The duration after which a TCP connection in the connecting state will fail.
-    # It is important to distinguish this value from {EventMachine::Connection#comm_inactivity_timeout},
-    # which looks at how long since data was passed on an already established connection.
-    # The value is a float in seconds.
-    #
-    # @return [Float] The duration after which a TCP connection in the connecting state will fail, in seconds.
-    def pending_connect_timeout
-      EventMachine::get_pending_connect_timeout @signature
-    end
+      # The duration after which a TCP connection in the connecting state will fail.
+      # It is important to distinguish this value from {EventMachine::Connection#comm_inactivity_timeout},
+      # which looks at how long since data was passed on an already established connection.
+      # The value is a float in seconds.
+      #
+      # @return [Float] The duration after which a TCP connection in the connecting state will fail, in seconds.
+      def pending_connect_timeout
+        EventMachine::get_pending_connect_timeout @signature
+      end
 
     # Sets the duration after which a TCP connection in a
     # connecting state will fail. Takes a float in seconds.
@@ -486,10 +578,10 @@ module EventMachine
     end
     alias set_pending_connect_timeout pending_connect_timeout=
 
-    # Reconnect to a given host/port with the current instance
-    def reconnect server, port
-      EventMachine::reconnect server, port, self
-    end
+      # Reconnect to a given host/port with the current instance
+      def reconnect server, port
+        EventMachine::reconnect server, port, self
+      end
 
 
     # Like {EventMachine::Connection#send_data}, this sends data to the remote end of

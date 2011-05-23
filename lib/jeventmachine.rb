@@ -203,6 +203,7 @@ module EventMachine
       Socket.pack_sockaddr_in(*peer)
     end
   end
+  # @private
   def self.attach_fd fileno, watch_mode
     # 3Aug09: We could pass in the actual SocketChannel, but then it would be modified (set as non-blocking), and
     # we would need some logic to make sure detach_fd below didn't clobber it. For now, we just always make a new
