@@ -293,7 +293,7 @@ module EventMachine
     # Call this method to send data to the remote end of the network connection. It takes a single String argument,
     # which may contain binary data. Data is buffered to be sent at the end of this event loop tick (cycle).
     #
-    # When used in a method that is event handler (for example, {#post_init} or {#connection_successful}, it will send
+    # When used in a method that is event handler (for example, {#post_init} or {#connection_completed}, it will send
     # data to the other end of the connection that generated the event.
     # You can also call {#send_data} to write to other connections. For more information see The Chat Server Example in the
     # {file:docs/GettingStarted.md EventMachine tutorial}.
@@ -336,7 +336,7 @@ module EventMachine
     end
 
     # Called by the event loop when a remote TCP connection attempt completes successfully.
-    # You can expect to get this notification after calls to {EventMachine#connect}. Remember that EventMachine makes remote connections
+    # You can expect to get this notification after calls to {EventMachine.connect}. Remember that EventMachine makes remote connections
     # asynchronously, just as with any other kind of network event. This method
     # is intended primarily to assist with network diagnostics. For normal protocol
     # handling, use #post_init to perform initial work on a new connection (such as sending initial set of data).
@@ -537,7 +537,7 @@ module EventMachine
     # Used with stream-connections to obtain the identity
     # of the local side of the connection. If a local name is available, this method
     # returns a sockaddr structure. The method returns nil if no local name is available.
-    # You can use {Socket#unpack_sockaddr_in} and its variants to obtain the
+    # You can use {Socket.unpack_sockaddr_in} and its variants to obtain the
     # values contained in the local-name structure returned from this method.
     #
     # @example
