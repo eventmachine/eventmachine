@@ -620,7 +620,7 @@ module EventMachine
 
 
     # Like {EventMachine::Connection#send_data}, this sends data to the remote end of
-    # the network connection. {EventMachine::Connection@send_file_data} takes a
+    # the network connection. {EventMachine::Connection#send_file_data} takes a
     # filename as an argument, though, and sends the contents of the file, in one
     # chunk.
     #
