@@ -71,6 +71,10 @@ module EventMachine
     # This is a very good place to initialize instance variables that will
     # be used throughout the lifetime of the network connection.
     #
+    # @see #connection_completed
+    # @see #unbind
+    # @see #send_data
+    # @see #receive_data
     def post_init
     end
 
@@ -101,6 +105,10 @@ module EventMachine
     #       It is up to this handler to detect content boundaries to determine whether all the content (for example, full HTTP request)
     #       has been received and can be processed.
     #
+    # @see #post_init
+    # @see #connection_completed
+    # @see #unbind
+    # @see #send_data
     # @see file:docs/GettingStarted.md EventMachine tutorial
     def receive_data data
       puts "............>>>#{data.length}"
@@ -372,7 +380,7 @@ module EventMachine
     #     Signal.trap("INT")  { EventMachine.stop }
     #     Signal.trap("TERM") { EventMachine.stop }
     #
-    #    EM.start_server("127.0.0.1", 9999, Handler)
+    #    EventMachine.start_server("127.0.0.1", 9999, Handler)
     #  end
     #
     # @param [Hash] args
@@ -416,24 +424,28 @@ module EventMachine
     # @example Getting peer TLS certificate information in EventMachine
     #
     #  module Handler
-    #   def post_init
-    #     puts "Starting TLS"
-    #     start_tls
-    #   end
+    #    def post_init
+    #      puts "Starting TLS"
+    #      start_tls
+    #    end
     #
-    #   def ssl_handshake_completed
-    #     puts get_peer_cert
-    #     close_connection
-    #   end
+    #    def ssl_handshake_completed
+    #      puts get_peer_cert
+    #      close_connection
+    #    end
     #
-    #   def unbind
-    #     EventMachine::stop_event_loop
-    #   end
+    #    def unbind
+    #      EventMachine::stop_event_loop
+    #    end
     #  end
     #
-    #  EM.run {
-    #   EventMachine.connect "mail.google.com", 443, Handler
-    #  }
+    #   EventMachine.run do
+    #     # hit Control + C to stop
+    #     Signal.trap("INT")  { EventMachine.stop }
+    #     Signal.trap("TERM") { EventMachine.stop }
+    #
+    #     EventMachine.connect "mail.google.com", 443, Handler
+    #  end
     #
     #  # Will output:
     #  # -----BEGIN CERTIFICATE-----
@@ -508,6 +520,7 @@ module EventMachine
     # @example How to get peer IP address and port with EventMachine
     #
     #  require 'socket'
+    #
     #  module Handler
     #    def receive_data data
     #      port, ip = Socket.unpack_sockaddr_in(get_peername)
@@ -523,20 +536,34 @@ module EventMachine
     # returns a sockaddr structure. The method returns nil if no local name is available.
     # You can use {Socket#unpack_sockaddr_in} and its variants to obtain the
     # values contained in the local-name structure returned from this method.
+    #
+    # @example
+    #
+    #  require 'socket'
+    #
+    #  module Handler
+    #    def receive_data data
+    #      port, ip = Socket.unpack_sockaddr_in(get_sockname)
+    #      puts "got #{data.inspect}"
+    #    end
+    #  end
     def get_sockname
       EventMachine::get_sockname @signature
     end
 
     # Returns the PID (kernel process identifier) of a subprocess
-    # associated with this Connection object. For use with {EventMachine#popen}
+    # associated with this Connection object. For use with {EventMachine.popen}
     # and similar methods. Returns nil when there is no meaningful subprocess.
+    #
+    # @return [Integer]
     def get_pid
       EventMachine::get_subprocess_pid @signature
     end
 
-    # Returns a subprocess exit status. Only useful for {#popen}. Call it in your
+    # Returns a subprocess exit status. Only useful for {EventMachine.popen}. Call it in your
     # {#unbind} handler.
     #
+    # @return [Integer]
     def get_status
       EventMachine::get_subprocess_status @signature
     end
@@ -572,13 +599,18 @@ module EventMachine
       end
 
     # Sets the duration after which a TCP connection in a
-    # connecting state will fail. Takes a float in seconds.
+    # connecting state will fail.
+    #
+    # @param [Float, #to_f] value Connection timeout in seconds
     def pending_connect_timeout= value
       EventMachine::set_pending_connect_timeout @signature, value.to_f
     end
     alias set_pending_connect_timeout pending_connect_timeout=
 
       # Reconnect to a given host/port with the current instance
+      #
+      # @param [String] server Hostname or IP address
+      # @param [Integer] port  Port to reconnect to
       def reconnect server, port
         EventMachine::reconnect server, port, self
       end
@@ -589,27 +621,32 @@ module EventMachine
     # filename as an argument, though, and sends the contents of the file, in one
     # chunk.
     #
+    # @param [String] filename Local path of the file to send
+    #
+    # @see #send_data
     # @author Kirk Haines
     def send_file_data filename
       EventMachine::send_file_data @signature, filename
     end
 
     # Open a file on the filesystem and send it to the remote peer. This returns an
-    # object of type EventMachine::Deferrable. The object's callbacks will be executed
+    # object of type {EventMachine::Deferrable}. The object's callbacks will be executed
     # on the reactor main thread when the file has been completely scheduled for
-    # transmission to the remote peer. Its errbacks will be called in case of an error
-    # (such as file-not-found). #stream_file_data employs various strategems to achieve
-    # the fastest possible performance, balanced against minimum consumption of memory.
-    #
-    # You can control the behavior of #stream_file_data with the optional arguments parameter.
-    # Currently-supported arguments are:
-    # :http_chunks, a boolean flag which defaults false. If true, this flag streams the
-    # file data in a format compatible with the HTTP chunked-transfer encoding.
+    # transmission to the remote peer. Its errbacks will be called in case of an error (such as file-not-found).
+    # This method employs various strategies to achieve the fastest possible performance,
+    # balanced against minimum consumption of memory.
     #
     # Warning: this feature has an implicit dependency on an outboard extension,
-    # evma_fastfilereader. You must install this extension in order to use #stream_file_data
+    # evma_fastfilereader. You must install this extension in order to use {#stream_file_data}
     # with files larger than a certain size (currently 8192 bytes).
     #
+    # @option args [Boolean] :http_chunks (false) If true, this method will stream the file data in a format
+    #                                             compatible with the HTTP chunked-transfer encoding
+    #
+    # @param [String] filename Local path of the file to stream
+    # @param [Hash] args Options
+    #
+    # @return [EventMachine::Deferrable]
     def stream_file_data filename, args={}
       EventMachine::FileStreamer.new( self, filename, args )
     end
@@ -641,16 +678,20 @@ module EventMachine
     end
 
     # Pause a connection so that {#send_data} and {#receive_data} events are not fired until {#resume} is called.
+    # @see #resume
     def pause
       EventMachine::pause_connection @signature
     end
 
     # Resume a connection's {#send_data} and {#receive_data} events.
+    # @see #pause
     def resume
       EventMachine::resume_connection @signature
     end
 
     # @return [Boolean] true if the connect was paused using {EventMachine::Connection#pause}.
+    # @see #pause
+    # @see #resume
     def paused?
       EventMachine::connection_paused? @signature
     end
