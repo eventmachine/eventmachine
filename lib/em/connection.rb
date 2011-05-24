@@ -284,29 +284,30 @@ module EventMachine
     # at the moment when you called {#close_connection_after_writing}. Your protocol handler must
     # be prepared to properly deal with such data (probably by ignoring it).
     #
+    # @see #close_connection
+    # @see #send_data
     def close_connection_after_writing
       close_connection true
     end
 
-    # EventMachine::Connection#send_data is only called by user code, never by
-    # the event loop. You call this method to send data to the remote end of the
-    # network connection. send_data is called with a single String argument, which
-    # may of course contain binary data. You can call send_data any number of times.
-    # send_data is an instance method of an object derived from EventMachine::Connection
-    # and containing your mixed-in handler code), so if you call it without qualification
-    # within a callback function, the data will be sent to the same network connection
-    # that generated the callback. Calling self.send_data is exactly equivalent.
+    # Call this method to send data to the remote end of the network connection. It takes a single String argument,
+    # which may contain binary data. Data is buffered to be sent at the end of this event loop tick (cycle).
     #
-    # You can also call {#send_data} to write to a connection <i>other than the one
-    # whose callback you are calling send_data from.</i> This is done by recording
-    # the value of the connection in any callback function (the value self), in any
-    # variable visible to other callback invocations on the same or different
-    # connection objects. (Need an example to make that clear.)
+    # When used in a method that is event handler (for example, {#post_init} or {#connection_successful}, it will send
+    # data to the other end of the connection that generated the event.
+    # You can also call {#send_data} to write to other connections. For more information see The Chat Server Example in the
+    # {file:docs/GettingStarted.md EventMachine tutorial}.
+    #
+    # If you want to send some data and then immediately close the connection, make sure to use {#close_connection_after_writing}
+    # instead of {#close_connection}.
     #
     #
     # @param [String] data Data to send asynchronously
     #
     # @see file:docs/GettingStarted.md EventMachine tutorial
+    # @see Connection#receive_data
+    # @see Connection#post_init
+    # @see Connection#unbind
     def send_data data
       data = data.to_s
       size = data.bytesize if data.respond_to?(:bytesize)
@@ -315,11 +316,13 @@ module EventMachine
     end
 
     # Returns true if the connection is in an error state, false otherwise.
-    # In general, you can detect the occurrence of communication errors or unexpected
-    # disconnection by the remote peer by handing the #unbind method. In some cases, however,
-    # it's useful to check the status of the connection using #error? before attempting to send data.
-    # This function is synchronous: it will return immediately without blocking.
     #
+    # In general, you can detect the occurrence of communication errors or unexpected
+    # disconnection by the remote peer by handing the {#unbind} method. In some cases, however,
+    # it's useful to check the status of the connection using {#error?} before attempting to send data.
+    # This function is synchronous but it will return immediately without blocking.
+    #
+    # @return [Boolean] true if the connection is in an error state, false otherwise
     def error?
       errno = EventMachine::report_connection_error_status(@signature)
       case errno
