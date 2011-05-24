@@ -105,88 +105,88 @@ module EventMachine
         begin
           msg = Resolv::DNS::Message.decode data
         rescue
-          else
-            req = @requests[msg.id]
-            if req
-              @requests.delete(msg.id)
-              req.receive_answer(msg)
-            end
+        else
+          req = @requests[msg.id]
+          if req
+            @requests.delete(msg.id)
+            req.receive_answer(msg)
           end
         end
-      end
-
-      class Request
-        include Deferrable
-        attr_accessor :retry_interval, :max_tries
-
-        def initialize(socket, hostname)
-          @socket = socket
-          @hostname = hostname
-          @tries = 0
-          @last_send = Time.at(0)
-          @retry_interval = 3
-          @max_tries = 5
-
-          if addrs = Resolver.hosts[hostname]
-            succeed addrs
-          else
-            EM.next_tick { tick }
-          end
-        end
-
-        def tick
-          # Break early if nothing to do
-          return if @last_send + @retry_interval > Time.now
-          if @tries < @max_tries
-            send
-          else
-            fail 'retries exceeded'
-          end
-        end
-
-        def receive_answer(msg)
-          addrs = []
-          msg.each_answer do |name,ttl,data|
-            if data.kind_of?(Resolv::DNS::Resource::IN::A) ||
-                data.kind_of?(Resolv::DNS::Resource::IN::AAAA)
-              addrs << data.address.to_s
-            end
-          end
-
-          if addrs.empty?
-            fail "rcode=#{msg.rcode}"
-          else
-            succeed addrs
-          end
-        end
-
-        private
-
-          def send
-            @tries += 1
-            @last_send = Time.now
-            @socket.send_packet(packet.encode)
-          end
-
-          def id
-            begin
-              @id = rand(65535)
-              @socket.register_request(@id, self)
-            rescue RequestIdAlreadyUsed
-              retry
-            end unless defined?(@id)
-
-            @id
-          end
-
-          def packet
-            msg = Resolv::DNS::Message.new
-            msg.id = id
-            msg.rd = 1
-            msg.add_question @hostname, Resolv::DNS::Resource::IN::A
-            msg
-          end
-
       end
     end
+
+    class Request
+      include Deferrable
+      attr_accessor :retry_interval, :max_tries
+
+      def initialize(socket, hostname)
+        @socket = socket
+        @hostname = hostname
+        @tries = 0
+        @last_send = Time.at(0)
+        @retry_interval = 3
+        @max_tries = 5
+
+        if addrs = Resolver.hosts[hostname]
+          succeed addrs
+        else
+          EM.next_tick { tick }
+        end
+      end
+
+      def tick
+        # Break early if nothing to do
+        return if @last_send + @retry_interval > Time.now
+        if @tries < @max_tries
+          send
+        else
+          fail 'retries exceeded'
+        end
+      end
+
+      def receive_answer(msg)
+        addrs = []
+        msg.each_answer do |name,ttl,data|
+          if data.kind_of?(Resolv::DNS::Resource::IN::A) ||
+              data.kind_of?(Resolv::DNS::Resource::IN::AAAA)
+            addrs << data.address.to_s
+          end
+        end
+
+        if addrs.empty?
+          fail "rcode=#{msg.rcode}"
+        else
+          succeed addrs
+        end
+      end
+
+      private
+
+        def send
+          @tries += 1
+          @last_send = Time.now
+          @socket.send_packet(packet.encode)
+        end
+
+        def id
+          begin
+            @id = rand(65535)
+            @socket.register_request(@id, self)
+          rescue RequestIdAlreadyUsed
+            retry
+          end unless defined?(@id)
+
+          @id
+        end
+
+        def packet
+          msg = Resolv::DNS::Message.new
+          msg.id = id
+          msg.rd = 1
+          msg.add_question @hostname, Resolv::DNS::Resource::IN::A
+          msg
+        end
+
+    end
   end
+end
