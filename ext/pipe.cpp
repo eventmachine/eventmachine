@@ -49,8 +49,9 @@ PipeDescriptor::~PipeDescriptor
 PipeDescriptor::~PipeDescriptor()
 {
 	// Run down any stranded outbound data.
-	for (size_t i=0; i < OutboundPages.size(); i++)
+	for (size_t i=0; i < OutboundPages.size(); i++) {
 		OutboundPages[i].Free();
+	}
 
 	/* As a virtual destructor, we come here before the base-class
 	 * destructor that closes our file-descriptor.
@@ -104,7 +105,10 @@ PipeDescriptor::~PipeDescriptor()
 
 	// wait 0.5s for the process to die
 	for (n=0; n<10; n++) {
-		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) return;
+		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) {
+			return;
+		}
+
 		nanosleep (&req, NULL);
 	}
 
@@ -112,14 +116,18 @@ PipeDescriptor::~PipeDescriptor()
 	kill (SubprocessPid, SIGTERM);
 	for (n=0; n<20; n++) {
 		nanosleep (&req, NULL);
-		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) return;
+		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) {
+			return;
+		}
 	}
 
 	// send SIGKILL and wait another 5s
 	kill (SubprocessPid, SIGKILL);
 	for (n=0; n<100; n++) {
 		nanosleep (&req, NULL);
-		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) return;
+		if (waitpid (SubprocessPid, &(MyEventMachine->SubprocessExitStatus), WNOHANG) != 0) {
+			return;
+		}
 	}
 
 	// still not dead, give up!
@@ -158,7 +166,6 @@ void PipeDescriptor::Read()
 		
 
 		int r = read (sd, readbuffer, sizeof(readbuffer) - 1);
-		//cerr << "<R:" << r << ">";
 
 		if (r > 0) {
 			total_bytes_read += r;
@@ -171,7 +178,7 @@ void PipeDescriptor::Read()
 			// a security guard against buffer overflows.
 			readbuffer [r] = 0;
 			_GenericInboundDispatch(readbuffer, r);
-			}
+		}
 		else if (r == 0) {
 			break;
 		}
@@ -187,7 +194,6 @@ void PipeDescriptor::Read()
 		// If we read no data on a socket that selected readable,
 		// it generally means the other end closed the connection gracefully.
 		ScheduleClose (false);
-		//bCloseNow = true;
 	}
 
 }
@@ -235,8 +241,10 @@ void PipeDescriptor::Write()
 		if ((size_t)bytes_written < nbytes) {
 			int len = nbytes - bytes_written;
 			char *buffer = (char*) malloc (len + 1);
-			if (!buffer)
+			if (!buffer) {
 				throw std::runtime_error ("bad alloc throwing back data");
+			}
+
 			memcpy (buffer, output_buffer + bytes_written, len);
 			buffer [len] = 0;
 			OutboundPages.push_front (OutboundPage (buffer, len));
@@ -266,9 +274,9 @@ PipeDescriptor::Heartbeat
 void PipeDescriptor::Heartbeat()
 {
 	// If an inactivity timeout is defined, then check for it.
-	if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout))
+	if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout)) {
 		ScheduleClose (false);
-		//bCloseNow = true;
+	}
 }
 
 
@@ -299,23 +307,25 @@ bool PipeDescriptor::SelectForWrite()
 }
 
 
-
-
 /********************************
 PipeDescriptor::SendOutboundData
 ********************************/
 
 int PipeDescriptor::SendOutboundData (const char *data, int length)
 {
-	//if (bCloseNow || bCloseAfterWriting)
-	if (IsCloseScheduled())
+	if (IsCloseScheduled()) {
 		return 0;
+	}
 
-	if (!data && (length > 0))
+	if (!data && (length > 0)) {
 		throw std::runtime_error ("bad outbound data");
+	}
+
 	char *buffer = (char *) malloc (length + 1);
-	if (!buffer)
+	if (!buffer) {
 		throw std::runtime_error ("no allocation for outbound data");
+	}
+
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
 	OutboundPages.push_back (OutboundPage (buffer, length));

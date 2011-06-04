@@ -21,30 +21,30 @@ See the file COPYING for complete licensing information.
 #define __EventMachine__H_
 
 #ifdef BUILD_FOR_RUBY
-  #include <ruby.h>
-  #define EmSelect rb_thread_select
+	#include <ruby.h>
+	#define EmSelect rb_thread_select
 
-  #if defined(HAVE_RBTRAP)
-    #include <rubysig.h>
-  #elif defined(HAVE_RB_THREAD_CHECK_INTS)
-    extern "C" {
-      void rb_enable_interrupt(void);
-      void rb_disable_interrupt(void);
-    }
+	#if defined(HAVE_RBTRAP)
+		#include <rubysig.h>
+	#elif defined(HAVE_RB_THREAD_CHECK_INTS)
+		extern "C" {
+			void rb_enable_interrupt(void);
+			void rb_disable_interrupt(void);
+		}
 
-    #define TRAP_BEG rb_enable_interrupt()
-    #define TRAP_END do { rb_disable_interrupt(); rb_thread_check_ints(); } while(0)
-  #else
-    #define TRAP_BEG
-    #define TRAP_END
-  #endif
+		#define TRAP_BEG rb_enable_interrupt()
+		#define TRAP_END do { rb_disable_interrupt(); rb_thread_check_ints(); } while(0)
+	#else
+		#define TRAP_BEG
+		#define TRAP_END
+	#endif
 
-  // 1.9.0 compat
-  #ifndef RUBY_UBF_IO
-    #define RUBY_UBF_IO RB_UBF_DFL
-  #endif
+	// 1.9.0 compat
+	#ifndef RUBY_UBF_IO
+		#define RUBY_UBF_IO RB_UBF_DFL
+	#endif
 #else
-  #define EmSelect select
+	#define EmSelect select
 #endif
 
 class EventableDescriptor;
@@ -76,7 +76,7 @@ class EventMachine_t
 		const unsigned long OpenDatagramSocket (const char *, int);
 		const unsigned long CreateUnixDomainServer (const char*);
 		const unsigned long OpenKeyboard();
-		//const char *Popen (const char*, const char*);
+
 		const unsigned long Socketpair (char* const*);
 
 		void Add (EventableDescriptor*);

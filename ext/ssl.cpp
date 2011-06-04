@@ -25,8 +25,6 @@ See the file COPYING for complete licensing information.
 
 bool SslContext_t::bLibraryInitialized = false;
 
-
-
 static void InitializeDefaultCredentials();
 static EVP_PKEY *DefaultPrivateKey = NULL;
 static X509 *DefaultCertificate = NULL;
@@ -146,24 +144,29 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 
 	bIsServer = is_server;
 	pCtx = SSL_CTX_new (is_server ? SSLv23_server_method() : SSLv23_client_method());
-	if (!pCtx)
+	if (!pCtx) {
 		throw std::runtime_error ("no SSL context");
+	}
 
 	SSL_CTX_set_options (pCtx, SSL_OP_ALL);
-	//SSL_CTX_set_options (pCtx, (SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3));
 
 	if (is_server) {
 		// The SSL_CTX calls here do NOT allocate memory.
 		int e;
-		if (privkeyfile.length() > 0)
+		if (privkeyfile.length() > 0) {
 			e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
-		else
+		}
+		else {
 			e = SSL_CTX_use_PrivateKey (pCtx, DefaultPrivateKey);
+		}
 		assert (e > 0);
-		if (certchainfile.length() > 0)
+
+		if (certchainfile.length() > 0) {
 			e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
-		else
+		}
+		else {
 			e = SSL_CTX_use_certificate (pCtx, DefaultCertificate);
+		}
 		assert (e > 0);
 	}
 
@@ -194,12 +197,17 @@ SslContext_t::~SslContext_t
 
 SslContext_t::~SslContext_t()
 {
-	if (pCtx)
+	if (pCtx) {
 		SSL_CTX_free (pCtx);
-	if (PrivateKey)
+	}
+
+	if (PrivateKey) {
 		EVP_PKEY_free (PrivateKey);
-	if (Certificate)
+	}
+
+	if (Certificate) {
 		X509_free (Certificate);
+	}
 }
 
 
@@ -236,11 +244,13 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	// Store a pointer to the binding signature in the SSL object so we can retrieve it later
 	SSL_set_ex_data(pSSL, 0, (void*) binding);
 
-	if (bVerifyPeer)
+	if (bVerifyPeer) {
 		SSL_set_verify(pSSL, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, ssl_verify_wrapper);
+	}
 
-	if (!bIsServer)
+	if (!bIsServer) {
 		SSL_connect (pSSL);
+	}
 }
 
 
@@ -253,10 +263,12 @@ SslBox_t::~SslBox_t()
 {
 	// Freeing pSSL will also free the associated BIOs, so DON'T free them separately.
 	if (pSSL) {
-		if (SSL_get_shutdown (pSSL) & SSL_RECEIVED_SHUTDOWN)
+		if (SSL_get_shutdown (pSSL) & SSL_RECEIVED_SHUTDOWN) {
 			SSL_shutdown (pSSL);
-		else
+		}
+		else {
 			SSL_clear (pSSL);
+		}
 		SSL_free (pSSL);
 	}
 
@@ -294,8 +306,9 @@ int SslBox_t::GetPlaintext (char *buf, int bufsize)
 				// Return -1 for a nonfatal error, -2 for an error that should force the connection down.
 				return (er == SSL_ERROR_SSL) ? (-2) : (-1);
 			}
-			else
+			else {
 				return 0;
+			}
 		}
 		bHandshakeCompleted = true;
 		// If handshake finished, FALL THROUGH and return the available plaintext.
@@ -307,8 +320,6 @@ int SslBox_t::GetPlaintext (char *buf, int bufsize)
 		cerr << "<SSL_incomp>";
 		return 0;
 	}
-
-	//cerr << "CIPH: " << SSL_get_cipher (pSSL) << endl;
 
 	int n = SSL_read (pSSL, buf, bufsize);
 	if (n >= 0) {
@@ -379,8 +390,9 @@ int SslBox_t::PutPlaintext (const char *buf, int bufsize)
 
 	OutboundQ.Push (buf, bufsize);
 
-	if (!SSL_is_init_finished (pSSL))
+	if (!SSL_is_init_finished (pSSL)) {
 		return 0;
+	}
 
 	bool fatal = false;
 	bool did_work = false;
@@ -397,19 +409,23 @@ int SslBox_t::PutPlaintext (const char *buf, int bufsize)
 		}
 		else {
 			int er = SSL_get_error (pSSL, n);
-			if ((er != SSL_ERROR_WANT_READ) && (er != SSL_ERROR_WANT_WRITE))
+			if ((er != SSL_ERROR_WANT_READ) && (er != SSL_ERROR_WANT_WRITE)) {
 				fatal = true;
+			}
+
 			break;
 		}
 	}
 
 
-	if (did_work)
+	if (did_work) {
 		return 1;
-	else if (fatal)
+	}
+	else if (fatal) {
 		return -1;
-	else
-		return 0;
+	}
+
+	return 0;
 }
 
 /**********************
@@ -420,8 +436,9 @@ X509 *SslBox_t::GetPeerCert()
 {
 	X509 *cert = NULL;
 
-	if (pSSL)
+	if (pSSL) {
 		cert = SSL_get_peer_certificate(pSSL);
+	}
 
 	return cert;
 }

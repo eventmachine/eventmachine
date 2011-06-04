@@ -86,10 +86,14 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	 * effect of discarding outbound data.
 	 */
 
-	if (sd == INVALID_SOCKET)
+	if (sd == INVALID_SOCKET) {
 		throw std::runtime_error ("bad eventable descriptor");
-	if (MyEventMachine == NULL)
+	}
+
+	if (MyEventMachine == NULL) {
 		throw std::runtime_error ("bad em in eventable descriptor");
+	}
+
 	CreatedAt = MyEventMachine->GetCurrentLoopTime();
 
 	#ifdef HAVE_EPOLL
@@ -106,10 +110,14 @@ EventableDescriptor::~EventableDescriptor
 
 EventableDescriptor::~EventableDescriptor()
 {
-	if (NextHeartbeat)
+	if (NextHeartbeat) {
 		MyEventMachine->ClearHeartbeat(NextHeartbeat, this);
-	if (EventCallback && bCallbackUnbind)
+	}
+
+	if (EventCallback && bCallbackUnbind) {
 		(*EventCallback)(GetBinding(), EM_CONNECTION_UNBOUND, NULL, UnbindReasonCode);
+	}
+
 	if (ProxiedFrom) {
 		(*EventCallback)(ProxiedFrom->GetBinding(), EM_PROXY_TARGET_UNBOUND, NULL, 0);
 		ProxiedFrom->StopProxy();
@@ -170,10 +178,12 @@ EventableDescriptor::ScheduleClose
 void EventableDescriptor::ScheduleClose (bool after_writing)
 {
 	// KEEP THIS SYNCHRONIZED WITH ::IsCloseScheduled.
-	if (after_writing)
+	if (after_writing) {
 		bCloseAfterWriting = true;
-	else
+	}
+	else {
 		bCloseNow = true;
+	}
 }
 
 
@@ -225,8 +235,9 @@ EventableDescriptor::SetProxiedFrom
 
 void EventableDescriptor::SetProxiedFrom(EventableDescriptor *from, const unsigned long bufsize)
 {
-	if (from != NULL && ProxiedFrom != NULL)
+	if (from != NULL && ProxiedFrom != NULL) {
 		throw std::runtime_error ("Tried to proxy to a busy target");
+	}
 
 	ProxiedFrom = from;
 	MaxOutboundBufSize = bufsize;
@@ -293,19 +304,24 @@ EventableDescriptor::GetNextHeartbeat
 
 uint64_t EventableDescriptor::GetNextHeartbeat()
 {
-	if (NextHeartbeat)
+	if (NextHeartbeat) {
 		MyEventMachine->ClearHeartbeat(NextHeartbeat, this);
+	}
 
 	NextHeartbeat = 0;
 
 	if (!ShouldDelete()) {
 		uint64_t time_til_next = InactivityTimeout;
 		if (IsConnectPending()) {
-			if (time_til_next == 0 || PendingConnectTimeout < time_til_next)
+			if (time_til_next == 0 || PendingConnectTimeout < time_til_next) {
 				time_til_next = PendingConnectTimeout;
+			}
 		}
-		if (time_til_next == 0)
+
+		if (time_til_next == 0) {
 			return 0;
+		}
+
 		NextHeartbeat = time_til_next + MyEventMachine->GetRealTime();
 	}
 
@@ -349,12 +365,14 @@ ConnectionDescriptor::~ConnectionDescriptor
 ConnectionDescriptor::~ConnectionDescriptor()
 {
 	// Run down any stranded outbound data.
-	for (size_t i=0; i < OutboundPages.size(); i++)
+	for (size_t i=0; i < OutboundPages.size(); i++) {
 		OutboundPages[i].Free();
+	}
 
 	#ifdef WITH_SSL
-	if (SslBox)
+	if (SslBox) {
 		delete SslBox;
+	}
 	#endif
 }
 
@@ -370,35 +388,44 @@ void ConnectionDescriptor::_UpdateEvents()
 
 void ConnectionDescriptor::_UpdateEvents(bool read, bool write)
 {
-	if (MySocket == INVALID_SOCKET)
+	if (MySocket == INVALID_SOCKET) {
 		return;
+	}
 
 	#ifdef HAVE_EPOLL
 	unsigned int old = EpollEvent.events;
 
 	if (read) {
-		if (SelectForRead())
+		if (SelectForRead()) {
 			EpollEvent.events |= EPOLLIN;
-		else
+		}
+		else {
 			EpollEvent.events &= ~EPOLLIN;
+		}
 	}
 
 	if (write) {
-		if (SelectForWrite())
+		if (SelectForWrite()) {
 			EpollEvent.events |= EPOLLOUT;
-		else
+		}
+		else {
 			EpollEvent.events &= ~EPOLLOUT;
+		}
 	}
 
-	if (old != EpollEvent.events)
+	if (old != EpollEvent.events) {
 		MyEventMachine->Modify (this);
+	}
 	#endif
 
 	#ifdef HAVE_KQUEUE
-	if (read && SelectForRead())
+	if (read && SelectForRead()) {
 		MyEventMachine->ArmKqueueReader (this);
-	if (write && SelectForWrite())
+	}
+	
+	if (write && SelectForWrite()) {
 		MyEventMachine->ArmKqueueWriter (this);
+	}
 	#endif
 }
 
@@ -433,13 +460,20 @@ void ConnectionDescriptor::HandleError()
 	if (bWatchOnly) {
 		// An EPOLLHUP | EPOLLIN condition will call Read() before HandleError(), in which case the
 		// socket is already detached and invalid, so we don't need to do anything.
-		if (MySocket == INVALID_SOCKET) return;
+		if (MySocket == INVALID_SOCKET) {
+			return;
+		}
 
 		// HandleError() is called on WatchOnly descriptors by the epoll reactor
 		// when it gets a EPOLLERR | EPOLLHUP. Usually this would show up as a readable and
 		// writable event on other reactors, so we have to fire those events ourselves.
-		if (bNotifyReadable) Read();
-		if (bNotifyWritable) Write();
+		if (bNotifyReadable) {
+			Read();
+		}
+		
+		if (bNotifyWritable) {
+			Write();
+		}
 	} else {
 		ScheduleClose (false);
 	}
@@ -452,8 +486,9 @@ ConnectionDescriptor::ScheduleClose
 
 void ConnectionDescriptor::ScheduleClose (bool after_writing)
 {
-	if (bWatchOnly)
+	if (bWatchOnly) {
 		throw std::runtime_error ("cannot close 'watch only' connections");
+	}
 
 	EventableDescriptor::ScheduleClose(after_writing);
 }
@@ -465,8 +500,9 @@ ConnectionDescriptor::SetNotifyReadable
 
 void ConnectionDescriptor::SetNotifyReadable(bool readable)
 {
-	if (!bWatchOnly)
+	if (!bWatchOnly) {
 		throw std::runtime_error ("notify_readable must be on 'watch only' connections");
+	}
 
 	bNotifyReadable = readable;
 	_UpdateEvents(true, false);
@@ -479,8 +515,9 @@ ConnectionDescriptor::SetNotifyWritable
 
 void ConnectionDescriptor::SetNotifyWritable(bool writable)
 {
-	if (!bWatchOnly)
+	if (!bWatchOnly) {
 		throw std::runtime_error ("notify_writable must be on 'watch only' connections");
+	}
 
 	bNotifyWritable = writable;
 	_UpdateEvents(false, true);
@@ -493,27 +530,31 @@ ConnectionDescriptor::SendOutboundData
 
 int ConnectionDescriptor::SendOutboundData (const char *data, int length)
 {
-	if (bWatchOnly)
+	if (bWatchOnly) {
 		throw std::runtime_error ("cannot send data on a 'watch only' connection");
+	}
 
-	if (ProxiedFrom && MaxOutboundBufSize && (unsigned int)(GetOutboundDataSize() + length) > MaxOutboundBufSize)
+	if (ProxiedFrom && MaxOutboundBufSize && (unsigned int)(GetOutboundDataSize() + length) > MaxOutboundBufSize) {
 		ProxiedFrom->Pause();
+	}
 
 	#ifdef WITH_SSL
 	if (SslBox) {
 		if (length > 0) {
 			int w = SslBox->PutPlaintext (data, length);
-			if (w < 0)
+			if (w < 0) {
 				ScheduleClose (false);
-			else
+			}
+			else {
 				_DispatchCiphertext();
+			}
 		}
 		// TODO: What's the correct return value?
 		return 1; // That's a wild guess, almost certainly wrong.
 	}
-	else
 	#endif
-		return _SendRawOutboundData (data, length);
+
+	return _SendRawOutboundData (data, length);
 }
 
 
@@ -536,19 +577,24 @@ int ConnectionDescriptor::_SendRawOutboundData (const char *data, int length)
 	// and not the whole process), and no coalescing of small pages.
 	// (Well, not so bad, small pages are coalesced in ::Write)
 
-	if (IsCloseScheduled())
+	if (IsCloseScheduled()) {
 		return 0;
+	}
 
 	// 25Mar10: Ignore 0 length packets as they are not meaningful in TCP (as opposed to UDP)
 	// and can cause the assert(nbytes>0) to fail when OutboundPages has a bunch of 0 length pages.
-	if (length == 0)
+	if (length == 0) {
 		return 0;
+	}
 
-	if (!data && (length > 0))
+	if (!data && (length > 0)) {
 		throw std::runtime_error ("bad outbound data");
+	}
+
 	char *buffer = (char *) malloc (length + 1);
-	if (!buffer)
+	if (!buffer) {
 		throw std::runtime_error ("no allocation for outbound data");
+	}
 
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
@@ -568,28 +614,31 @@ ConnectionDescriptor::SelectForRead
 
 bool ConnectionDescriptor::SelectForRead()
 {
-  /* A connection descriptor is always scheduled for read,
-   * UNLESS it's in a pending-connect state.
-   * On Linux, unlike Unix, a nonblocking socket on which
-   * connect has been called, does NOT necessarily select
-   * both readable and writable in case of error.
-   * The socket will select writable when the disposition
-   * of the connect is known. On the other hand, a socket
-   * which successfully connects and selects writable may
-   * indeed have some data available on it, so it will
-   * select readable in that case, violating expectations!
-   * So we will not poll for readability until the socket
-   * is known to be in a connected state.
-   */
+	/* A connection descriptor is always scheduled for read,
+	 * UNLESS it's in a pending-connect state.
+	 * On Linux, unlike Unix, a nonblocking socket on which
+	 * connect has been called, does NOT necessarily select
+	 * both readable and writable in case of error.
+	 * The socket will select writable when the disposition
+	 * of the connect is known. On the other hand, a socket
+	 * which successfully connects and selects writable may
+	 * indeed have some data available on it, so it will
+	 * select readable in that case, violating expectations!
+	 * So we will not poll for readability until the socket
+	 * is known to be in a connected state.
+	 */
 
-  if (bPaused)
-    return false;
-  else if (bConnectPending)
-    return false;
-  else if (bWatchOnly)
-    return bNotifyReadable ? true : false;
-  else
-    return true;
+	if (bPaused) {
+		return false;
+	}
+	else if (bConnectPending) {
+		return false;
+	}
+	else if (bWatchOnly) {
+		return bNotifyReadable ? true : false;
+	}
+
+	return true;
 }
 
 
@@ -599,20 +648,23 @@ ConnectionDescriptor::SelectForWrite
 
 bool ConnectionDescriptor::SelectForWrite()
 {
-  /* Cf the notes under SelectForRead.
-   * In a pending-connect state, we ALWAYS select for writable.
-   * In a normal state, we only select for writable when we
-   * have outgoing data to send.
-   */
+	/* Cf the notes under SelectForRead.
+	* In a pending-connect state, we ALWAYS select for writable.
+	* In a normal state, we only select for writable when we
+	* have outgoing data to send.
+	*/
 
-  if (bPaused)
-    return false;
-  else if (bConnectPending)
-    return true;
-  else if (bWatchOnly)
-    return bNotifyWritable ? true : false;
-  else
-    return (GetOutboundDataSize() > 0);
+	if (bPaused) {
+		return false;
+	}
+	else if (bConnectPending) {
+		return true;
+	}
+	else if (bWatchOnly) {
+		return bNotifyWritable ? true : false;
+	}
+
+	return (GetOutboundDataSize() > 0);
 }
 
 /***************************
@@ -621,8 +673,9 @@ ConnectionDescriptor::Pause
 
 bool ConnectionDescriptor::Pause()
 {
-	if (bWatchOnly)
+	if (bWatchOnly) {
 		throw std::runtime_error ("cannot pause/resume 'watch only' connections, set notify readable/writable instead");
+	}
 
 	bool old = bPaused;
 	bPaused = true;
@@ -636,8 +689,9 @@ ConnectionDescriptor::Resume
 
 bool ConnectionDescriptor::Resume()
 {
-	if (bWatchOnly)
+	if (bWatchOnly) {
 		throw std::runtime_error ("cannot pause/resume 'watch only' connections, set notify readable/writable instead");
+	}
 
 	bool old = bPaused;
 	bPaused = false;
@@ -675,7 +729,7 @@ void ConnectionDescriptor::Read()
 	 */
 
 	int sd = GetSocket();
-	//assert (sd != INVALID_SOCKET); (original, removed 22Aug06)
+
 	if (sd == INVALID_SOCKET) {
 		assert (!bReadAttemptedAfterClose);
 		bReadAttemptedAfterClose = true;
@@ -683,8 +737,10 @@ void ConnectionDescriptor::Read()
 	}
 
 	if (bWatchOnly) {
-		if (bNotifyReadable && EventCallback)
+		if (bNotifyReadable && EventCallback) {
 			(*EventCallback)(GetBinding(), EM_CONNECTION_NOTIFY_READABLE, NULL, 0);
+		}
+
 		return;
 	}
 
@@ -704,7 +760,6 @@ void ConnectionDescriptor::Read()
 
 		int r = read (sd, readbuffer, sizeof(readbuffer) - 1);
 		int e = errno;
-		//cerr << "<R:" << r << ">";
 
 		if (r > 0) {
 			total_bytes_read += r;
@@ -746,7 +801,6 @@ void ConnectionDescriptor::Read()
 		// If we read no data on a socket that selected readable,
 		// it generally means the other end closed the connection gracefully.
 		ScheduleClose (false);
-		//bCloseNow = true;
 	}
 
 }
@@ -801,8 +855,9 @@ void ConnectionDescriptor::_CheckHandshakeStatus()
 	#ifdef WITH_SSL
 	if (SslBox && (!bHandshakeSignaled) && SslBox->IsHandshakeCompleted()) {
 		bHandshakeSignaled = true;
-		if (EventCallback)
+		if (EventCallback) {
 			(*EventCallback)(GetBinding(), EM_SSL_HANDSHAKE_COMPLETED, NULL, 0);
+		}
 	}
 	#endif
 }
@@ -838,25 +893,28 @@ void ConnectionDescriptor::Write()
 		int o = getsockopt (GetSocket(), SOL_SOCKET, SO_ERROR, (char*)&error, &len);
 		#endif
 		if ((o == 0) && (error == 0)) {
-			if (EventCallback)
+			if (EventCallback) {
 				(*EventCallback)(GetBinding(), EM_CONNECTION_COMPLETED, "", 0);
+			}
 
 			// 5May09: Moved epoll/kqueue read/write arming into SetConnectPending, so it can be called
 			// from EventMachine_t::AttachFD as well.
 			SetConnectPending (false);
 		}
 		else {
-			if (o == 0)
+			if (o == 0) {
 				UnbindReasonCode = error;
+			}
+
 			ScheduleClose (false);
-			//bCloseNow = true;
 		}
 	}
 	else {
 
 		if (bNotifyWritable) {
-			if (EventCallback)
+			if (EventCallback) {
 				(*EventCallback)(GetBinding(), EM_CONNECTION_NOTIFY_WRITABLE, NULL, 0);
+			}
 
 			_UpdateEvents(false, true);
 			return;
@@ -874,7 +932,8 @@ void ConnectionDescriptor::Write()
 			if (OutboundDataSize == 0 && !bGotExtraKqueueEvent) {
 				bGotExtraKqueueEvent = true;
 				return;
-			} else if (OutboundDataSize > 0) {
+			}
+			else if (OutboundDataSize > 0) {
 				bGotExtraKqueueEvent = false;
 			}
 		}
@@ -904,7 +963,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 	 */
 
 	int sd = GetSocket();
-	//assert (sd != INVALID_SOCKET);
+
 	if (sd == INVALID_SOCKET) {
 		assert (!bWriteAttemptedAfterClose);
 		bWriteAttemptedAfterClose = true;
@@ -925,7 +984,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 	struct iovec iov[ iovcnt ];
 	#endif
 
-	for(int i = 0; i < iovcnt; i++){
+	for (int i = 0; i < iovcnt; i++) {
 		OutboundPage *op = &(OutboundPages[i]);
 		#ifdef CC_SUNWspro
 		iov[i].iov_base = (char *)(op->Buffer + op->Offset);
@@ -979,8 +1038,9 @@ void ConnectionDescriptor::_WriteOutboundData()
 	assert (bytes_written >= 0);
 	OutboundDataSize -= bytes_written;
 
-	if (ProxiedFrom && MaxOutboundBufSize && (unsigned int)GetOutboundDataSize() < MaxOutboundBufSize && ProxiedFrom->IsPaused())
+	if (ProxiedFrom && MaxOutboundBufSize && (unsigned int)GetOutboundDataSize() < MaxOutboundBufSize && ProxiedFrom->IsPaused()) {
 		ProxiedFrom->Resume();
+	}
 
 	#ifdef HAVE_WRITEV
 	if (!err) {
@@ -994,7 +1054,8 @@ void ConnectionDescriptor::_WriteOutboundData()
 				OutboundPages.pop_front();
 
 				sent -= iov[i].iov_len;
-			} else {
+			}
+			else {
 				// Sent part (or none) of this page, increment offset to send the remainder
 				op->Offset += sent;
 				break;
@@ -1009,8 +1070,9 @@ void ConnectionDescriptor::_WriteOutboundData()
 	if ((size_t)bytes_written < nbytes) {
 		int len = nbytes - bytes_written;
 		char *buffer = (char*) malloc (len + 1);
-		if (!buffer)
+		if (!buffer) {
 			throw std::runtime_error ("bad alloc throwing back data");
+		}
 		memcpy (buffer, output_buffer + bytes_written, len);
 		buffer [len] = 0;
 		OutboundPages.push_front (OutboundPage (buffer, len));
@@ -1039,9 +1101,8 @@ ConnectionDescriptor::ReportErrorStatus
 
 int ConnectionDescriptor::ReportErrorStatus()
 {
-	if (MySocket == INVALID_SOCKET) {
+	if (MySocket == INVALID_SOCKET)
 		return -1;
-	}
 
 	int error;
 	socklen_t len;
@@ -1052,12 +1113,15 @@ int ConnectionDescriptor::ReportErrorStatus()
 	#ifdef OS_WIN32
 	int o = getsockopt (GetSocket(), SOL_SOCKET, SO_ERROR, (char*)&error, &len);
 	#endif
-	if ((o == 0) && (error == 0))
+
+	if ((o == 0) && (error == 0)) {
 		return 0;
-	else if (o == 0)
+	}
+	else if (o == 0) {
 		return error;
-	else
-		return -1;
+	}
+
+	return -1;
 }
 
 
@@ -1068,8 +1132,9 @@ ConnectionDescriptor::StartTls
 void ConnectionDescriptor::StartTls()
 {
 	#ifdef WITH_SSL
-	if (SslBox)
+	if (SslBox) {
 		throw std::runtime_error ("SSL/TLS already running on connection");
+	}
 
 	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, GetBinding());
 	_DispatchCiphertext();
@@ -1088,12 +1153,18 @@ ConnectionDescriptor::SetTlsParms
 void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer)
 {
 	#ifdef WITH_SSL
-	if (SslBox)
+	if (SslBox) {
 		throw std::runtime_error ("call SetTlsParms before calling StartTls");
-	if (privkey_filename && *privkey_filename)
+	}
+
+	if (privkey_filename && *privkey_filename) {
 		PrivateKeyFilename = privkey_filename;
-	if (certchain_filename && *certchain_filename)
+	}
+
+	if (certchain_filename && *certchain_filename) {
 		CertChainFilename = certchain_filename;
+	}
+
 	bSslVerifyPeer = verify_peer;
 	#endif
 
@@ -1110,8 +1181,10 @@ ConnectionDescriptor::GetPeerCert
 #ifdef WITH_SSL
 X509 *ConnectionDescriptor::GetPeerCert()
 {
-	if (!SslBox)
+	if (!SslBox) {
 		throw std::runtime_error ("SSL/TLS not running on this connection");
+	}
+
 	return SslBox->GetPeerCert();
 }
 #endif
@@ -1126,8 +1199,9 @@ bool ConnectionDescriptor::VerifySslPeer(const char *cert)
 {
 	bSslPeerAccepted = false;
 
-	if (EventCallback)
+	if (EventCallback) {
 		(*EventCallback)(GetBinding(), EM_SSL_VERIFY, cert, strlen(cert));
+	}
 
 	return bSslPeerAccepted;
 }
@@ -1181,31 +1255,11 @@ void ConnectionDescriptor::_DispatchCiphertext()
 				did_work = true;
 				pump = true;
 			}
-			else if (w < 0)
+			else if (w < 0) {
 				ScheduleClose (false);
-		} while (pump);
-
-		// try to put plaintext. INCOMPLETE, doesn't belong here?
-		// In SendOutboundData, we're spooling plaintext directly
-		// into SslBox. That may be wrong, we may need to buffer it
-		// up here! 
-		/*
-		const char *ptr;
-		int ptr_length;
-		while (OutboundPlaintext.GetPage (&ptr, &ptr_length)) {
-			assert (ptr && (ptr_length > 0));
-			int w = SslMachine.PutPlaintext (ptr, ptr_length);
-			if (w > 0) {
-				OutboundPlaintext.DiscardBytes (w);
-				did_work = true;
 			}
-			else
-				break;
-		}
-		*/
-
+		} while (pump);
 	} while (did_work);
-
 }
 #endif
 
@@ -1227,15 +1281,13 @@ void ConnectionDescriptor::Heartbeat()
 		if ((MyEventMachine->GetCurrentLoopTime() - CreatedAt) >= PendingConnectTimeout) {
 			UnbindReasonCode = ETIMEDOUT;
 			ScheduleClose (false);
-			//bCloseNow = true;
-    }
+		}
 	}
 	else {
 		if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout)) {
 			UnbindReasonCode = ETIMEDOUT;
 			ScheduleClose (false);
-			//bCloseNow = true;
-    }
+		}
 	}
 }
 
@@ -1263,8 +1315,6 @@ LoopbreakDescriptor::LoopbreakDescriptor (int sd, EventMachine_t *parent_em):
 }
 
 
-
-
 /*************************
 LoopbreakDescriptor::Read
 *************************/
@@ -1283,8 +1333,8 @@ LoopbreakDescriptor::Write
 
 void LoopbreakDescriptor::Write()
 {
-  // Why are we here?
-  throw std::runtime_error ("bad code path in loopbreak");
+	// Why are we here?
+	throw std::runtime_error ("bad code path in loopbreak");
 }
 
 /**************************************
@@ -1319,10 +1369,12 @@ void AcceptorDescriptor::StopAcceptor (const unsigned long binding)
 {
 	// TODO: This is something of a hack, or at least it's a static method of the wrong class.
 	AcceptorDescriptor *ad = dynamic_cast <AcceptorDescriptor*> (Bindable_t::GetObject (binding));
-	if (ad)
+	if (ad) {
 		ad->ScheduleClose (false);
-	else
+	}
+	else {
 		throw std::runtime_error ("failed to close nonexistent acceptor");
+	}
 }
 
 
@@ -1345,7 +1397,6 @@ void AcceptorDescriptor::Read()
 	 * socket from the accept queue. If the accept queue is now empty, accept will block.
 	 */
 
-
 	struct sockaddr_in pin;
 	socklen_t addrlen = sizeof (pin);
 
@@ -1363,34 +1414,35 @@ void AcceptorDescriptor::Read()
 		// On Windows, this may fail because, weirdly, Windows inherits the non-blocking
 		// attribute that we applied to the acceptor socket into the accepted one.
 		if (!SetSocketNonblocking (sd)) {
-		//int val = fcntl (sd, F_GETFL, 0);
-		//if (fcntl (sd, F_SETFL, val | O_NONBLOCK) == -1) {
 			shutdown (sd, 1);
 			close (sd);
 			continue;
 		}
 
-
 		// Disable slow-start (Nagle algorithm). Eventually make this configurable.
 		int one = 1;
 		setsockopt (sd, IPPROTO_TCP, TCP_NODELAY, (char*) &one, sizeof(one));
 
-
 		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, MyEventMachine);
-		if (!cd)
+		if (!cd) {
 			throw std::runtime_error ("no newly accepted connection");
+		}
+
 		cd->SetServerMode();
 		if (EventCallback) {
 			(*EventCallback) (GetBinding(), EM_CONNECTION_ACCEPTED, NULL, cd->GetBinding());
 		}
+
 		#ifdef HAVE_EPOLL
 		cd->GetEpollEvent()->events = EPOLLIN | (cd->SelectForWrite() ? EPOLLOUT : 0);
 		#endif
 		assert (MyEventMachine);
 		MyEventMachine->Add (cd);
 		#ifdef HAVE_KQUEUE
-		if (cd->SelectForWrite())
+		if (cd->SelectForWrite()) {
 			MyEventMachine->ArmKqueueWriter (cd);
+		}
+
 		MyEventMachine->ArmKqueueReader (cd);
 		#endif
 	}
@@ -1404,8 +1456,8 @@ AcceptorDescriptor::Write
 
 void AcceptorDescriptor::Write()
 {
-  // Why are we here?
-  throw std::runtime_error ("bad code path in acceptor");
+	// Why are we here?
+	throw std::runtime_error ("bad code path in acceptor");
 }
 
 
@@ -1415,7 +1467,7 @@ AcceptorDescriptor::Heartbeat
 
 void AcceptorDescriptor::Heartbeat()
 {
-  // No-op
+	// No-op
 }
 
 
@@ -1428,8 +1480,9 @@ bool AcceptorDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
 	bool ok = false;
 	if (s) {
 		int gp = getsockname (GetSocket(), s, len);
-		if (gp == 0)
+		if (gp == 0) {
 			ok = true;
+		}
 	}
 	return ok;
 }
@@ -1483,8 +1536,9 @@ DatagramDescriptor::~DatagramDescriptor
 DatagramDescriptor::~DatagramDescriptor()
 {
 	// Run down any stranded outbound data.
-	for (size_t i=0; i < OutboundPages.size(); i++)
+	for (size_t i=0; i < OutboundPages.size(); i++) {
 		OutboundPages[i].Free();
+	}
 }
 
 
@@ -1495,10 +1549,9 @@ DatagramDescriptor::Heartbeat
 void DatagramDescriptor::Heartbeat()
 {
 	// Close it if its inactivity timer has expired.
-
-	if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout))
+	if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout)) {
 		ScheduleClose (false);
-		//bCloseNow = true;
+	}
 }
 
 
@@ -1529,7 +1582,6 @@ void DatagramDescriptor::Read()
 		memset (&sin, 0, slen);
 
 		int r = recvfrom (sd, readbuffer, sizeof(readbuffer) - 1, 0, (struct sockaddr*)&sin, &slen);
-		//cerr << "<R:" << r << ">";
 
 		// In UDP, a zero-length packet is perfectly legal.
 		if (r >= 0) {
@@ -1561,10 +1613,7 @@ void DatagramDescriptor::Read()
 			// Basically a would-block, meaning we've read everything there is to read.
 			break;
 		}
-
 	}
-
-
 }
 
 
@@ -1593,8 +1642,10 @@ void DatagramDescriptor::Write()
 
 	// Send out up to 10 packets, then cycle the machine.
 	for (int i = 0; i < 10; i++) {
-		if (OutboundPages.size() <= 0)
+		if (OutboundPages.size() <= 0) {
 			break;
+		}
+
 		OutboundPage *op = &(OutboundPages[0]);
 
 		// The nasty cast to (char*) is needed because Windows is brain-dead.
@@ -1625,8 +1676,9 @@ void DatagramDescriptor::Write()
 	MyEventMachine->Modify (this);
 	#endif
 	#ifdef HAVE_KQUEUE
-	if (SelectForWrite())
+	if (SelectForWrite()) {
 		MyEventMachine->ArmKqueueWriter (this);
+	}
 	#endif
 }
 
@@ -1643,7 +1695,6 @@ bool DatagramDescriptor::SelectForWrite()
 	 * Note that the superclass ShouldDelete method still checks for outbound data size,
 	 * which may be wrong.
 	 */
-	//return (GetOutboundDataSize() > 0); (Original)
 	return (OutboundPages.size() > 0);
 }
 
@@ -1658,14 +1709,19 @@ int DatagramDescriptor::SendOutboundData (const char *data, int length)
 	// That means most of it could be factored to a common ancestor. Note that
 	// empty datagrams are meaningful, which isn't the case for TCP streams.
 
-	if (IsCloseScheduled())
+	if (IsCloseScheduled()) {
 		return 0;
+	}
 
-	if (!data && (length > 0))
+	if (!data && (length > 0)) {
 		throw std::runtime_error ("bad outbound data");
+	}
+
 	char *buffer = (char *) malloc (length + 1);
-	if (!buffer)
+	if (!buffer) {
 		throw std::runtime_error ("no allocation for outbound data");
+	}
+
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
 	OutboundPages.push_back (OutboundPage (buffer, length, ReturnAddress));
@@ -1694,12 +1750,13 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 	// That means it needs to move to a common ancestor.
 	// TODO: Refactor this so there's no overlap with SendOutboundData.
 
-	if (IsCloseScheduled())
-	//if (bCloseNow || bCloseAfterWriting)
+	if (IsCloseScheduled()) {
 		return 0;
+	}
 
-	if (!address || !*address || !port)
+	if (!address || !*address || !port) {
 		return 0;
+	}
 
 	sockaddr_in pin;
 	unsigned long HostAddr;
@@ -1708,8 +1765,10 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 	if (HostAddr == INADDR_NONE) {
 		// The nasty cast to (char*) is because Windows is brain-dead.
 		hostent *hp = gethostbyname ((char*)address);
-		if (!hp)
+		if (!hp) {
 			return 0;
+		}
+
 		HostAddr = ((in_addr*)(hp->h_addr))->s_addr;
 	}
 
@@ -1719,11 +1778,15 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 	pin.sin_port = htons (port);
 
 
-	if (!data && (length > 0))
+	if (!data && (length > 0)) {
 		throw std::runtime_error ("bad outbound data");
+	}
+
 	char *buffer = (char *) malloc (length + 1);
-	if (!buffer)
+	if (!buffer) {
 		throw std::runtime_error ("no allocation for outbound data");
+	}
+
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
 	OutboundPages.push_back (OutboundPage (buffer, length, pin));
@@ -1751,8 +1814,9 @@ bool ConnectionDescriptor::GetPeername (struct sockaddr *s, socklen_t *len)
 	bool ok = false;
 	if (s) {
 		int gp = getpeername (GetSocket(), s, len);
-		if (gp == 0)
+		if (gp == 0) {
 			ok = true;
+		}
 	}
 	return ok;
 }
@@ -1766,8 +1830,9 @@ bool ConnectionDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
 	bool ok = false;
 	if (s) {
 		int gp = getsockname (GetSocket(), s, len);
-		if (gp == 0)
+		if (gp == 0) {
 			ok = true;
+		}
 	}
 	return ok;
 }
@@ -1819,8 +1884,9 @@ bool DatagramDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
 	bool ok = false;
 	if (s) {
 		int gp = getsockname (GetSocket(), s, len);
-		if (gp == 0)
+		if (gp == 0) {
 			ok = true;
+		}
 	}
 	return ok;
 }

@@ -17,9 +17,6 @@ See the file COPYING for complete licensing information.
 
 *****************************************************************************/
 
-// THIS ENTIRE FILE WILL EVENTUALLY BE FOR UNIX BUILDS ONLY.
-//#ifdef OS_UNIX
-
 #include "project.h"
 
 /* The numer of max outstanding timers was once a const enum defined in em.h.
@@ -56,8 +53,10 @@ void EventMachine_t::SetMaxTimerCount (int count)
 	 * The actual timer mechanism is very efficient so it's hard to know what
 	 * the practical max, but 100,000 shouldn't be too problematical.
 	 */
-	if (count < 100)
+	if (count < 100) {
 		count = 100;
+	}
+
 	MaxOutstandingTimers = count;
 }
 
@@ -111,10 +110,13 @@ EventMachine_t::~EventMachine_t()
 {
 	// Run down descriptors
 	size_t i;
-	for (i = 0; i < NewDescriptors.size(); i++)
+	for (i = 0; i < NewDescriptors.size(); i++) {
 		delete NewDescriptors[i];
-	for (i = 0; i < Descriptors.size(); i++)
+	}
+
+	for (i = 0; i < Descriptors.size(); i++) {
 		delete Descriptors[i];
+	}
 
 	close (LoopBreakerReader);
 	close (LoopBreakerWriter);
@@ -125,10 +127,13 @@ EventMachine_t::~EventMachine_t()
 		UnwatchFile (f->first);
 	}
 
-	if (epfd != -1)
+	if (epfd != -1) {
 		close (epfd);
-	if (kqfd != -1)
+	}
+
+	if (kqfd != -1) {
 		close (kqfd);
+	}
 }
 
 
@@ -172,19 +177,19 @@ EventMachine_t::ScheduleHalt
 
 void EventMachine_t::ScheduleHalt()
 {
-  /* This is how we stop the machine.
-   * This can be called by clients. Signal handlers will probably
-   * set the global flag.
-   * For now this means there can only be one EventMachine ever running at a time.
-   *
-   * IMPORTANT: keep this light, fast, and async-safe. Don't do anything frisky in here,
-   * because it may be called from signal handlers invoked from code that we don't
-   * control. At this writing (20Sep06), EM does NOT install any signal handlers of
-   * its own.
-   *
-   * We need a FAQ. And one of the questions is: how do I stop EM when Ctrl-C happens?
-   * The answer is to call evma_stop_machine, which calls here, from a SIGINT handler.
-   */
+	/* This is how we stop the machine.
+	 * This can be called by clients. Signal handlers will probably
+	 * set the global flag.
+	 * For now this means there can only be one EventMachine ever running at a time.
+	 *
+	 * IMPORTANT: keep this light, fast, and async-safe. Don't do anything frisky in here,
+	 * because it may be called from signal handlers invoked from code that we don't
+	 * control. At this writing (20Sep06), EM does NOT install any signal handlers of
+	 * its own.
+	 *
+	 * We need a FAQ. And one of the questions is: how do I stop EM when Ctrl-C happens?
+	 * The answer is to call evma_stop_machine, which calls here, from a SIGINT handler.
+	 */
 	bTerminateSignalReceived = true;
 }
 
@@ -200,8 +205,9 @@ void EventMachine_t::SetTimerQuantum (int interval)
 	 * Don't set a quantum smaller than 5 or larger than 2500.
 	 */
 
-	if ((interval < 5) || (interval > 2500))
+	if ((interval < 5) || (interval > 2500)) {
 		throw std::runtime_error ("invalid timer-quantum");
+	}
 
 	Quantum.tv_sec = interval / 1000;
 	Quantum.tv_usec = (interval % 1000) * 1000;
@@ -214,33 +220,34 @@ void EventMachine_t::SetTimerQuantum (int interval)
 
 void EventMachine_t::SetuidString (const char *username)
 {
-    /* This method takes a caller-supplied username and tries to setuid
-     * to that user. There is no meaningful implementation (and no error)
-     * on Windows. On Unix, a failure to setuid the caller-supplied string
-     * causes a fatal abort, because presumably the program is calling here
-     * in order to fulfill a security requirement. If we fail silently,
-     * the user may continue to run with too much privilege.
-     *
-     * TODO, we need to decide on and document a way of generating C++ level errors
-     * that can be wrapped in documented Ruby exceptions, so users can catch
-     * and handle them. And distinguish it from errors that we WON'T let the Ruby
-     * user catch (like security-violations and resource-overallocation).
-     * A setuid failure here would be in the latter category.
-     */
+	/* This method takes a caller-supplied username and tries to setuid
+	 * to that user. There is no meaningful implementation (and no error)
+	 * on Windows. On Unix, a failure to setuid the caller-supplied string
+	 * causes a fatal abort, because presumably the program is calling here
+	 * in order to fulfill a security requirement. If we fail silently,
+	 * the user may continue to run with too much privilege.
+	 *
+	 * TODO, we need to decide on and document a way of generating C++ level errors
+	 * that can be wrapped in documented Ruby exceptions, so users can catch
+	 * and handle them. And distinguish it from errors that we WON'T let the Ruby
+	 * user catch (like security-violations and resource-overallocation).
+	 * A setuid failure here would be in the latter category.
+	 */
 
-    #ifdef OS_UNIX
-    if (!username || !*username)
-	throw std::runtime_error ("setuid_string failed: no username specified");
+	#ifdef OS_UNIX
+	if (!username || !*username) {
+		throw std::runtime_error ("setuid_string failed: no username specified");
+	}
 
-    struct passwd *p = getpwnam (username);
-    if (!p)
-	throw std::runtime_error ("setuid_string failed: unknown username");
+	struct passwd *p = getpwnam (username);
+	if (!p) {
+		throw std::runtime_error ("setuid_string failed: unknown username");
+	}
 
-    if (setuid (p->pw_uid) != 0)
-	throw std::runtime_error ("setuid_string failed: no setuid");
-
-    // Success.
-    #endif
+	if (setuid (p->pw_uid) != 0) {
+		throw std::runtime_error ("setuid_string failed: no setuid");
+	}
+	#endif
 }
 
 
@@ -255,8 +262,10 @@ int EventMachine_t::SetRlimitNofile (int nofiles)
 	getrlimit (RLIMIT_NOFILE, &rlim);
 	if (nofiles >= 0) {
 		rlim.rlim_cur = nofiles;
-		if ((unsigned int)nofiles > rlim.rlim_max)
+		if ((unsigned int)nofiles > rlim.rlim_max) {
 			rlim.rlim_max = nofiles;
+		}
+
 		setrlimit (RLIMIT_NOFILE, &rlim);
 		// ignore the error return, for now at least.
 		// TODO, emit an error message someday when we have proper debug levels.
@@ -279,7 +288,8 @@ EventMachine_t::SignalLoopBreaker
 void EventMachine_t::SignalLoopBreaker()
 {
 	#ifdef OS_UNIX
-	write (LoopBreakerWriter, "", 1);
+	write (LoopBreakerWriter, "", 1) ;
+
 	#endif
 	#ifdef OS_WIN32
 	sendto (LoopBreakerReader, "", 0, 0, (struct sockaddr*)&(LoopBreakerTarget), sizeof(LoopBreakerTarget));
@@ -303,8 +313,9 @@ void EventMachine_t::_InitializeLoopBreaker()
 
 	#ifdef OS_UNIX
 	int fd[2];
-	if (pipe (fd))
+	if (pipe (fd)) {
 		throw std::runtime_error (strerror(errno));
+	}
 
 	LoopBreakerWriter = fd[1];
 	LoopBreakerReader = fd[0];
@@ -316,8 +327,10 @@ void EventMachine_t::_InitializeLoopBreaker()
 
 	#ifdef OS_WIN32
 	int sd = socket (AF_INET, SOCK_DGRAM, 0);
-	if (sd == INVALID_SOCKET)
+	if (sd == INVALID_SOCKET) {
 		throw std::runtime_error ("no loop breaker socket");
+	}
+
 	SetSocketNonblocking (sd);
 
 	memset (&LoopBreakerTarget, 0, sizeof(LoopBreakerTarget));
@@ -329,12 +342,15 @@ void EventMachine_t::_InitializeLoopBreaker()
 	for (i=0; i < 100; i++) {
 		int r = (rand() % 10000) + 20000;
 		LoopBreakerTarget.sin_port = htons (r);
-		if (bind (sd, (struct sockaddr*)&LoopBreakerTarget, sizeof(LoopBreakerTarget)) == 0)
+		if (bind (sd, (struct sockaddr*)&LoopBreakerTarget, sizeof(LoopBreakerTarget)) == 0) {
 			break;
+		}
 	}
 
-	if (i == 100)
+	if (i == 100) {
 		throw std::runtime_error ("no loop breaker");
+	}
+
 	LoopBreakerReader = sd;
 	#endif
 }
@@ -363,8 +379,10 @@ uint64_t EventMachine_t::GetRealTime()
 
 	#elif defined(OS_WIN32)
 	unsigned tick = GetTickCount();
-	if (tick < LastTickCount)
+	if (tick < LastTickCount) {
 		TickCountTickover += 1;
+	}
+
 	LastTickCount = tick;
 	current_time = ((uint64_t)TickCountTickover << 32) + (uint64_t)tick;
 	current_time *= 1000; // convert to microseconds
@@ -384,10 +402,14 @@ void EventMachine_t::_DispatchHeartbeats()
 {
 	while (true) {
 		multimap<uint64_t,EventableDescriptor*>::iterator i = Heartbeats.begin();
-		if (i == Heartbeats.end())
+		if (i == Heartbeats.end()) {
 			break;
-		if (i->first > MyCurrentLoopTime)
+		}
+
+		if (i->first > MyCurrentLoopTime) {
 			break;
+		}
+
 		EventableDescriptor *ed = i->second;
 		ed->Heartbeat();
 		QueueHeartbeat(ed);
@@ -473,8 +495,9 @@ void EventMachine_t::Run()
 
 	while (true) {
 		_UpdateTime();
-		if (!_RunTimers())
+		if (!_RunTimers()) {
 			break;
+		}
 
 		/* _Add must precede _Modify because the same descriptor might
 		 * be on both lists during the same pass through the machine,
@@ -483,10 +506,13 @@ void EventMachine_t::Run()
 		_AddNewDescriptors();
 		_ModifyDescriptors();
 
-		if (!_RunOnce())
+		if (!_RunOnce()) {
 			break;
-		if (bTerminateSignalReceived)
+		}
+
+		if (bTerminateSignalReceived) {
 			break;
+		}
 	}
 }
 
@@ -498,12 +524,16 @@ EventMachine_t::_RunOnce
 bool EventMachine_t::_RunOnce()
 {
 	bool ret;
-	if (bEpoll)
+	if (bEpoll) {
 		ret = _RunEpollOnce();
-	else if (bKqueue)
+	}
+	else if (bKqueue) {
 		ret = _RunKqueueOnce();
-	else
+	}
+	else {
 		ret = _RunSelectOnce();
+	}
+
 	_DispatchHeartbeats();
 	_CleanupSockets();
 	return ret;
@@ -552,17 +582,23 @@ bool EventMachine_t::_RunEpollOnce()
 		for (int i=0; i < s; i++) {
 			EventableDescriptor *ed = (EventableDescriptor*) epoll_events[i].data.ptr;
 
-			if (ed->IsWatchOnly() && ed->GetSocket() == INVALID_SOCKET)
+			if (ed->IsWatchOnly() && ed->GetSocket() == INVALID_SOCKET) {
 				continue;
+			}
 
 			assert(ed->GetSocket() != INVALID_SOCKET);
 
-			if (epoll_events[i].events & EPOLLIN)
+			if (epoll_events[i].events & EPOLLIN) {
 				ed->Read();
-			if (epoll_events[i].events & EPOLLOUT)
+			}
+
+			if (epoll_events[i].events & EPOLLOUT) {
 				ed->Write();
-			if (epoll_events[i].events & (EPOLLERR | EPOLLHUP))
+			}
+
+			if (epoll_events[i].events & (EPOLLERR | EPOLLHUP)) {
 				ed->HandleError();
+			}
 		}
 	}
 	else if (s < 0) {
@@ -622,8 +658,7 @@ bool EventMachine_t::_RunKqueueOnce()
 
 	struct kevent *ke = Karray;
 	while (k > 0) {
-		switch (ke->filter)
-		{
+		switch (ke->filter) {
 			case EVFILT_VNODE:
 				_HandleKqueueFileEvent (ke);
 				break;
@@ -637,15 +672,19 @@ bool EventMachine_t::_RunKqueueOnce()
 				EventableDescriptor *ed = (EventableDescriptor*) (ke->udata);
 				assert (ed);
 
-				if (ed->IsWatchOnly() && ed->GetSocket() == INVALID_SOCKET)
+				if (ed->IsWatchOnly() && ed->GetSocket() == INVALID_SOCKET) {
 					break;
+				}
 
-				if (ke->filter == EVFILT_READ)
+				if (ke->filter == EVFILT_READ) {
 					ed->Read();
-				else if (ke->filter == EVFILT_WRITE)
+				}
+				else if (ke->filter == EVFILT_WRITE) {
 					ed->Write();
-				else
+				}
+				else {
 					cerr << "Discarding unknown kqueue event " << ke->filter << endl;
+				}
 
 				break;
 		}
@@ -683,8 +722,9 @@ timeval EventMachine_t::_TimeTilNextEvent()
 
 	if (!Timers.empty()) {
 		multimap<uint64_t,Timer_t>::iterator timers = Timers.begin();
-		if (next_event == 0 || timers->first < next_event)
+		if (next_event == 0 || timers->first < next_event) {
 			next_event = timers->first;
+		}
 	}
 
 	if (!NewDescriptors.empty() || !ModifiedDescriptors.empty()) {
@@ -695,12 +735,14 @@ timeval EventMachine_t::_TimeTilNextEvent()
 
 	if (next_event == 0) {
 		tv = Quantum;
-	} else {
+	}
+	else {
 		if (next_event > MyCurrentLoopTime) {
 			uint64_t duration = next_event - MyCurrentLoopTime;
 			tv.tv_sec = duration / 1000000;
 			tv.tv_usec = duration % 1000000;
-		} else {
+		}
+		else {
 			tv.tv_sec = tv.tv_usec = 0;
 		}
 	}
@@ -748,11 +790,14 @@ void EventMachine_t::_CleanupSockets()
 		#endif
 			delete ed;
 		}
-		else
+		else {
 			Descriptors [j++] = ed;
+		}
 	}
-	while ((size_t)j < Descriptors.size())
+
+	while ((size_t)j < Descriptors.size()) {
 		Descriptors.pop_back();
+	}
 }
 
 /*********************************
@@ -840,33 +885,7 @@ bool EventMachine_t::_RunSelectOnce()
 	// however it has the same problem interoperating with Ruby
 	// threads that select does.
 
-	//cerr << "X";
-
-	/* This protection is now obsolete, because we will ALWAYS
-	 * have at least one descriptor (the loop-breaker) to read.
-	 */
-	/*
-	if (Descriptors.size() == 0) {
-		#ifdef OS_UNIX
-		timeval tv = {0, 200 * 1000};
-		EmSelect (0, NULL, NULL, NULL, &tv);
-		return true;
-		#endif
-		#ifdef OS_WIN32
-		Sleep (200);
-		return true;
-		#endif
-	}
-	*/
-
 	SelectData_t SelectData;
-	/*
-	fd_set fdreads, fdwrites;
-	FD_ZERO (&fdreads);
-	FD_ZERO (&fdwrites);
-
-	int maxsocket = 0;
-	*/
 
 	// Always read the loop-breaker reader.
 	// Changed 23Aug06, provisionally implemented for Windows with a UDP socket
@@ -874,8 +893,9 @@ bool EventMachine_t::_RunSelectOnce()
 	// Windows has a version of the Unix pipe() library function, but it doesn't
 	// give you back descriptors that are selectable.
 	FD_SET (LoopBreakerReader, &(SelectData.fdreads));
-	if (SelectData.maxsocket < LoopBreakerReader)
+	if (SelectData.maxsocket < LoopBreakerReader) {
 		SelectData.maxsocket = LoopBreakerReader;
+	}
 
 	// prepare the sockets for reading and writing
 	size_t i;
@@ -883,14 +903,19 @@ bool EventMachine_t::_RunSelectOnce()
 		EventableDescriptor *ed = Descriptors[i];
 		assert (ed);
 		int sd = ed->GetSocket();
-		if (ed->IsWatchOnly() && sd == INVALID_SOCKET)
+		if (ed->IsWatchOnly() && sd == INVALID_SOCKET) {
 			continue;
+		}
+
 		assert (sd != INVALID_SOCKET);
 
-		if (ed->SelectForRead())
+		if (ed->SelectForRead()) {
 			FD_SET (sd, &(SelectData.fdreads));
-		if (ed->SelectForWrite())
+		}
+
+		if (ed->SelectForWrite()) {
 			FD_SET (sd, &(SelectData.fdwrites));
+		}
 
 		#ifdef OS_WIN32
 		/* 21Sep09: on windows, a non-blocking connect() that fails does not come up as writable.
@@ -899,19 +924,16 @@ bool EventMachine_t::_RunSelectOnce()
 		FD_SET (sd, &(SelectData.fderrors));
 		#endif
 
-		if (SelectData.maxsocket < sd)
+		if (SelectData.maxsocket < sd) {
 			SelectData.maxsocket = sd;
+		}
 	}
 
 
 	{ // read and write the sockets
-		//timeval tv = {1, 0}; // Solaris fails if the microseconds member is >= 1000000.
-		//timeval tv = Quantum;
 		SelectData.tv = _TimeTilNextEvent();
 		int s = SelectData._Select();
-		//rb_thread_blocking_region(xxx,(void*)&SelectData,RUBY_UBF_IO,0);
-		//int s = EmSelect (SelectData.maxsocket+1, &(SelectData.fdreads), &(SelectData.fdwrites), NULL, &(SelectData.tv));
-		//int s = SelectData.nSockets;
+
 		if (s > 0) {
 			/* Changed 01Jun07. We used to handle the Loop-breaker right here.
 			 * Now we do it AFTER all the regular descriptors. There's an
@@ -927,20 +949,28 @@ bool EventMachine_t::_RunSelectOnce()
 				EventableDescriptor *ed = Descriptors[i];
 				assert (ed);
 				int sd = ed->GetSocket();
-				if (ed->IsWatchOnly() && sd == INVALID_SOCKET)
+				if (ed->IsWatchOnly() && sd == INVALID_SOCKET) {
 					continue;
+				}
+
 				assert (sd != INVALID_SOCKET);
 
-				if (FD_ISSET (sd, &(SelectData.fdwrites)))
+				if (FD_ISSET (sd, &(SelectData.fdwrites))) {
 					ed->Write();
-				if (FD_ISSET (sd, &(SelectData.fdreads)))
+				}
+
+				if (FD_ISSET (sd, &(SelectData.fdreads))) {
 					ed->Read();
-				if (FD_ISSET (sd, &(SelectData.fderrors)))
+				}
+
+				if (FD_ISSET (sd, &(SelectData.fderrors))) {
 					ed->HandleError();
+				}
 			}
 
-			if (FD_ISSET (LoopBreakerReader, &(SelectData.fdreads)))
+			if (FD_ISSET (LoopBreakerReader, &(SelectData.fdreads))) {
 				_ReadLoopBreaker();
+			}
 		}
 		else if (s < 0) {
 			switch (errno) {
@@ -970,8 +1000,9 @@ void EventMachine_t::_CleanBadDescriptors()
 
 	for (i = 0; i < Descriptors.size(); i++) {
 		EventableDescriptor *ed = Descriptors[i];
-		if (ed->ShouldDelete())
+		if (ed->ShouldDelete()) {
 			continue;
+		}
 
 		int sd = ed->GetSocket();
 
@@ -986,8 +1017,9 @@ void EventMachine_t::_CleanBadDescriptors()
 		int ret = select(sd + 1, &fds, NULL, NULL, &tv);
 
 		if (ret == -1) {
-			if (errno == EBADF)
+			if (errno == EBADF) {
 				ed->ScheduleClose(false);
+			}
 		}
 	}
 }
@@ -1004,8 +1036,9 @@ void EventMachine_t::_ReadLoopBreaker()
 	 */
 	char buffer [1024];
 	read (LoopBreakerReader, buffer, sizeof(buffer));
-	if (EventCallback)
+	if (EventCallback) {
 		(*EventCallback)(0, EM_LOOPBREAK_SIGNAL, "", 0);
+	}
 }
 
 
@@ -1024,12 +1057,18 @@ bool EventMachine_t::_RunTimers()
 
 	while (true) {
 		multimap<uint64_t,Timer_t>::iterator i = Timers.begin();
-		if (i == Timers.end())
+		if (i == Timers.end()) {
 			break;
-		if (i->first > MyCurrentLoopTime)
+		}
+
+		if (i->first > MyCurrentLoopTime) {
 			break;
-		if (EventCallback)
+		}
+
+		if (EventCallback) {
 			(*EventCallback) (0, EM_TIMER_FIRED, NULL, i->second.GetBinding());
+		}
+
 		Timers.erase (i);
 	}
 	return true;
@@ -1043,8 +1082,9 @@ EventMachine_t::InstallOneshotTimer
 
 const unsigned long EventMachine_t::InstallOneshotTimer (int milliseconds)
 {
-	if (Timers.size() > MaxOutstandingTimers)
+	if (Timers.size() > MaxOutstandingTimers) {
 		return false;
+	}
 
 	uint64_t fire_at = GetRealTime();
 	fire_at += ((uint64_t)milliseconds) * 1000LL;
@@ -1055,6 +1095,7 @@ const unsigned long EventMachine_t::InstallOneshotTimer (int milliseconds)
 	#else
 	multimap<uint64_t,Timer_t>::iterator i = Timers.insert (make_pair (fire_at, t));
 	#endif
+
 	return i->second.GetBinding();
 }
 
@@ -1088,13 +1129,16 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	 * or NULL if there was a problem.
 	 */
 
-	if (!server || !*server || !port)
+	if (!server || !*server || !port) {
 		throw std::runtime_error ("invalid server or port");
+	}
 
 	int family, bind_size;
 	struct sockaddr bind_as, *bind_as_ptr = name2address (server, port, &family, &bind_size);
-	if (!bind_as_ptr)
+	if (!bind_as_ptr) {
 		throw std::runtime_error ("unable to resolve server address");
+	}
+
 	bind_as = *bind_as_ptr; // copy because name2address points to a static
 
 	int sd = socket (family, SOCK_STREAM, 0);
@@ -1110,6 +1154,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		close (sd);
 		throw std::runtime_error ("unable to set socket as non-blocking");
 	}
+
 	// Disable slow-start (Nagle algorithm).
 	int one = 1;
 	setsockopt (sd, IPPROTO_TCP, TCP_NODELAY, (char*) &one, sizeof(one));
@@ -1123,6 +1168,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 			close (sd);
 			throw std::runtime_error ("invalid bind address");
 		}
+
 		if (bind (sd, bind_to, bind_to_size) < 0) {
 			close (sd);
 			throw std::runtime_error ("couldn't bind to address");
@@ -1133,7 +1179,6 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	int e = 0;
 
 	#ifdef OS_UNIX
-	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
 	if (connect (sd, &bind_as, bind_size) == 0) {
 		// This is a connect success, which Linux appears
 		// never to give when the socket is nonblocking,
@@ -1155,8 +1200,10 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		 * (To wit, the ConnectionCompleted event gets sent to the client.)
 		 */
 		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, this);
-		if (!cd)
+		if (!cd) {
 			throw std::runtime_error ("no connection allocated");
+		}
+
 		cd->SetConnectPending (true);
 		Add (cd);
 		out = cd->GetBinding();
@@ -1173,12 +1220,15 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 			// Put the connection on the stack and wait for it to complete
 			// or time out.
 			ConnectionDescriptor *cd = new ConnectionDescriptor (sd, this);
-			if (!cd)
+			if (!cd) {
 				throw std::runtime_error ("no connection allocated");
+			}
+
 			cd->SetConnectPending (true);
 			Add (cd);
 			out = cd->GetBinding();
-		} else {
+		}
+		else {
 			// Fall through to the !out case below.
 			e = error;
 		}
@@ -1203,8 +1253,10 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		 * for people to know that a failure occurred.
 		 */
 		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, this);
-		if (!cd)
+		if (!cd) {
 			throw std::runtime_error ("no connection allocated");
+		}
+
 		cd->SetUnbindReasonCode(e);
 		cd->ScheduleClose (false);
 		Add (cd);
@@ -1213,7 +1265,6 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	#endif
 
 	#ifdef OS_WIN32
-	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
 	if (connect (sd, &bind_as, bind_size) == 0) {
 		// This is a connect success, which Windows appears
 		// never to give when the socket is nonblocking,
@@ -1228,8 +1279,10 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		// Put the connection on the stack and wait for it to complete
 		// or time out.
 		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, this);
-		if (!cd)
+		if (!cd) {
 			throw std::runtime_error ("no connection allocated");
+		}
+
 		cd->SetConnectPending (true);
 		Add (cd);
 		out = cd->GetBinding();
@@ -1240,8 +1293,10 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 
 	#endif
 
-	if (!out)
+	if (!out) {
 		close (sd);
+	}
+
 	return out;
 }
 
@@ -1268,8 +1323,9 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 
 	unsigned long out = 0;
 
-	if (!server || !*server)
+	if (!server || !*server) {
 		return 0;
+	}
 
 	sockaddr_un pun;
 	memset (&pun, 0, sizeof(pun));
@@ -1277,15 +1333,16 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 
 	// You ordinarily expect the server name field to be at least 1024 bytes long,
 	// but on Linux it can be MUCH shorter.
-	if (strlen(server) >= sizeof(pun.sun_path))
+	if (strlen(server) >= sizeof(pun.sun_path)) {
 		throw std::runtime_error ("unix-domain server name is too long");
-
+	}
 
 	strcpy (pun.sun_path, server);
 
 	int fd = socket (AF_LOCAL, SOCK_STREAM, 0);
-	if (fd == INVALID_SOCKET)
+	if (fd == INVALID_SOCKET) {
 		return 0;
+	}
 
 	// From here on, ALL error returns must close the socket.
 	// NOTE: At this point, the socket is still a blocking socket.
@@ -1305,14 +1362,17 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 	// we still set the "pending" flag, so some needed initializations take
 	// place.
 	ConnectionDescriptor *cd = new ConnectionDescriptor (fd, this);
-	if (!cd)
+	if (!cd) {
 		throw std::runtime_error ("no connection allocated");
+	}
+
 	cd->SetConnectPending (true);
 	Add (cd);
 	out = cd->GetBinding();
 
-	if (!out)
+	if (!out) {
 		close (fd);
+	}
 
 	return out;
 	#endif
@@ -1325,14 +1385,16 @@ EventMachine_t::AttachFD
 const unsigned long EventMachine_t::AttachFD (int fd, bool watch_mode)
 {
 	#ifdef OS_UNIX
-	if (fcntl(fd, F_GETFL, 0) < 0)
+	if (fcntl(fd, F_GETFL, 0) < 0) {
 		throw std::runtime_error ("invalid file descriptor");
+	}
 	#endif
 
 	#ifdef OS_WIN32
 	// TODO: add better check for invalid file descriptors (see ioctlsocket or getsockopt)
-	if (fd == INVALID_SOCKET)
+	if (fd == INVALID_SOCKET) {
 		throw std::runtime_error ("invalid file descriptor");
+	}
 	#endif
 
 	{// Check for duplicate descriptors
@@ -1340,24 +1402,28 @@ const unsigned long EventMachine_t::AttachFD (int fd, bool watch_mode)
 		for (i = 0; i < Descriptors.size(); i++) {
 			EventableDescriptor *ed = Descriptors[i];
 			assert (ed);
-			if (ed->GetSocket() == fd)
+			if (ed->GetSocket() == fd) {
 				throw std::runtime_error ("adding existing descriptor");
+			}
 		}
 
 		for (i = 0; i < NewDescriptors.size(); i++) {
 			EventableDescriptor *ed = NewDescriptors[i];
 			assert (ed);
-			if (ed->GetSocket() == fd)
+			if (ed->GetSocket() == fd) {
 				throw std::runtime_error ("adding existing new descriptor");
+			}
 		}
 	}
 
-	if (!watch_mode)
+	if (!watch_mode) {
 		SetSocketNonblocking(fd);
+	}
 
 	ConnectionDescriptor *cd = new ConnectionDescriptor (fd, this);
-	if (!cd)
+	if (!cd) {
 		throw std::runtime_error ("no connection allocated");
+	}
 
 	cd->SetWatchOnly(watch_mode);
 	cd->SetConnectPending (false);
@@ -1374,8 +1440,9 @@ EventMachine_t::DetachFD
 
 int EventMachine_t::DetachFD (EventableDescriptor *ed)
 {
-	if (!ed)
+	if (!ed) {
 		throw std::runtime_error ("detaching bad descriptor");
+	}
 
 	int fd = ed->GetSocket();
 
@@ -1434,15 +1501,20 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	#endif
 	struct hostent *hp;
 
-	if (!server || !*server)
+	if (!server || !*server) {
 		server = "0.0.0.0";
+	}
 
 	memset (&in4, 0, sizeof(in4));
 	if ( (in4.sin_addr.s_addr = inet_addr (server)) != INADDR_NONE) {
-		if (family)
+		if (family) {
 			*family = AF_INET;
-		if (bind_size)
+		}
+
+		if (bind_size) {
 			*bind_size = sizeof(in4);
+		}
+
 		in4.sin_family = AF_INET;
 		in4.sin_port = htons (port);
 		return (struct sockaddr*)&in4;
@@ -1451,10 +1523,14 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	#if defined(OS_UNIX) && !defined(__CYGWIN__)
 	memset (&in6, 0, sizeof(in6));
 	if (inet_pton (AF_INET6, server, in6.sin6_addr.s6_addr) > 0) {
-		if (family)
+		if (family) {
 			*family = AF_INET6;
-		if (bind_size)
+		}
+
+		if (bind_size) {
 			*bind_size = sizeof(in6);
+		}
+
 		in6.sin6_family = AF_INET6;
 		in6.sin6_port = htons (port);
 		return (struct sockaddr*)&in6;
@@ -1472,10 +1548,14 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	hp = gethostbyname ((char*)server); // Windows requires the cast.
 	if (hp) {
 		in4.sin_addr.s_addr = ((in_addr*)(hp->h_addr))->s_addr;
-		if (family)
+		if (family) {
 			*family = AF_INET;
-		if (bind_size)
+		}
+
+		if (bind_size) {
 			*bind_size = sizeof(in4);
+		}
+
 		in4.sin_family = AF_INET;
 		in4.sin_port = htons (port);
 		return (struct sockaddr*)&in4;
@@ -1497,15 +1577,13 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	 * to indicate accepted connections.
 	 */
 
-
 	int family, bind_size;
 	struct sockaddr *bind_here = name2address (server, port, &family, &bind_size);
-	if (!bind_here)
+	if (!bind_here) {
 		return 0;
+	}
 
 	unsigned long output_binding = 0;
-
-	//struct sockaddr_in sin;
 
 	int sd_accept = socket (family, SOCK_STREAM, 0);
 	if (sd_accept == INVALID_SOCKET) {
@@ -1515,7 +1593,6 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	{ // set reuseaddr to improve performance on restarts.
 		int oval = 1;
 		if (setsockopt (sd_accept, SOL_SOCKET, SO_REUSEADDR, (char*)&oval, sizeof(oval)) < 0) {
-			//__warning ("setsockopt failed while creating listener","");
 			goto fail;
 		}
 	}
@@ -1530,14 +1607,11 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	}
 
 
-	//if (bind (sd_accept, (struct sockaddr*)&sin, sizeof(sin))) {
 	if (bind (sd_accept, bind_here, bind_size)) {
-		//__warning ("binding failed");
 		goto fail;
 	}
 
 	if (listen (sd_accept, 100)) {
-		//__warning ("listen failed");
 		goto fail;
 	}
 
@@ -1545,16 +1619,16 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 		// Set the acceptor non-blocking.
 		// THIS IS CRUCIALLY IMPORTANT because we read it in a select loop.
 		if (!SetSocketNonblocking (sd_accept)) {
-		//int val = fcntl (sd_accept, F_GETFL, 0);
-		//if (fcntl (sd_accept, F_SETFL, val | O_NONBLOCK) == -1) {
 			goto fail;
 		}
 	}
 
 	{ // Looking good.
 		AcceptorDescriptor *ad = new AcceptorDescriptor (sd_accept, this);
-		if (!ad)
+		if (!ad) {
 			throw std::runtime_error ("unable to allocate acceptor");
+		}
+
 		Add (ad);
 		output_binding = ad->GetBinding();
 	}
@@ -1562,8 +1636,10 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	return output_binding;
 
 	fail:
-	if (sd_accept != INVALID_SOCKET)
+	if (sd_accept != INVALID_SOCKET) {
 		close (sd_accept);
+	}
+
 	return 0;
 }
 
@@ -1577,45 +1653,49 @@ const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int
 	unsigned long output_binding = 0;
 
 	int sd = socket (AF_INET, SOCK_DGRAM, 0);
-	if (sd == INVALID_SOCKET)
+	if (sd == INVALID_SOCKET) {
 		goto fail;
+	}
 	// from here on, early returns must close the socket!
-
 
 	struct sockaddr_in sin;
 	memset (&sin, 0, sizeof(sin));
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons (port);
 
-
 	if (address && *address) {
 		sin.sin_addr.s_addr = inet_addr (address);
 		if (sin.sin_addr.s_addr == INADDR_NONE) {
 			hostent *hp = gethostbyname ((char*)address); // Windows requires the cast.
-			if (hp == NULL)
+			if (hp == NULL) {
 				goto fail;
+			}
+
 			sin.sin_addr.s_addr = ((in_addr*)(hp->h_addr))->s_addr;
 		}
 	}
-	else
+	else {
 		sin.sin_addr.s_addr = htonl (INADDR_ANY);
+	}
 
 
 	// Set the new socket nonblocking.
 	{
-		if (!SetSocketNonblocking (sd))
-		//int val = fcntl (sd, F_GETFL, 0);
-		//if (fcntl (sd, F_SETFL, val | O_NONBLOCK) == -1)
+		if (!SetSocketNonblocking (sd)) {
 			goto fail;
+		}
 	}
 
-	if (bind (sd, (struct sockaddr*)&sin, sizeof(sin)) != 0)
+	if (bind (sd, (struct sockaddr*)&sin, sizeof(sin)) != 0) {
 		goto fail;
+	}
 
 	{ // Looking good.
 		DatagramDescriptor *ds = new DatagramDescriptor (sd, this);
-		if (!ds)
+		if (!ds) {
 			throw std::runtime_error ("unable to allocate datagram-socket");
+		}
+
 		Add (ds);
 		output_binding = ds->GetBinding();
 	}
@@ -1623,8 +1703,10 @@ const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int
 	return output_binding;
 
 	fail:
-	if (sd != INVALID_SOCKET)
+	if (sd != INVALID_SOCKET) {
 		close (sd);
+	}
+
 	return 0;
 }
 
@@ -1636,8 +1718,10 @@ EventMachine_t::Add
 
 void EventMachine_t::Add (EventableDescriptor *ed)
 {
-	if (!ed)
+	if (!ed) {
 		throw std::runtime_error ("added bad descriptor");
+	}
+
 	ed->SetEventCallback (EventCallback);
 	NewDescriptors.push_back (ed);
 }
@@ -1651,8 +1735,10 @@ void EventMachine_t::ArmKqueueWriter (EventableDescriptor *ed)
 {
 	#ifdef HAVE_KQUEUE
 	if (bKqueue) {
-		if (!ed)
+		if (!ed) {
 			throw std::runtime_error ("added bad descriptor");
+		}
+
 		struct kevent k;
 		EV_SET (&k, ed->GetSocket(), EVFILT_WRITE, EV_ADD | EV_ONESHOT, 0, 0, ed);
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
@@ -1673,8 +1759,10 @@ void EventMachine_t::ArmKqueueReader (EventableDescriptor *ed)
 {
 	#ifdef HAVE_KQUEUE
 	if (bKqueue) {
-		if (!ed)
+		if (!ed) {
 			throw std::runtime_error ("added bad descriptor");
+		}
+
 		struct kevent k;
 		EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_ADD, 0, 0, ed);
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
@@ -1706,8 +1794,9 @@ void EventMachine_t::_AddNewDescriptors()
 
 	for (size_t i = 0; i < NewDescriptors.size(); i++) {
 		EventableDescriptor *ed = NewDescriptors[i];
-		if (ed == NULL)
+		if (ed == NULL) {
 			throw std::runtime_error ("adding bad descriptor");
+		}
 
 		#if HAVE_EPOLL
 		if (bEpoll) {
@@ -1719,19 +1808,6 @@ void EventMachine_t::_AddNewDescriptors()
 				throw std::runtime_error (buf);
 			}
 		}
-		#endif
-
-		#if HAVE_KQUEUE
-		/*
-		if (bKqueue) {
-			// INCOMPLETE. Some descriptors don't want to be readable.
-			assert (kqfd != -1);
-			struct kevent k;
-			EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_ADD, 0, 0, ed);
-			int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
-			assert (t == 0);
-		}
-		*/
 		#endif
 
 		QueueHeartbeat(ed);
@@ -1785,8 +1861,10 @@ EventMachine_t::Modify
 
 void EventMachine_t::Modify (EventableDescriptor *ed)
 {
-	if (!ed)
+	if (!ed) {
 		throw std::runtime_error ("modified bad descriptor");
+	}
+
 	ModifiedDescriptors.insert (ed);
 }
 
@@ -1819,8 +1897,10 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 		goto fail;
 	}
 
-	if (!filename || !*filename)
+	if (!filename || !*filename) {
 		goto fail;
+	}
+
 	unlink (filename);
 
 	bzero (&s_sun, sizeof(s_sun));
@@ -1839,12 +1919,10 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 	}
 
 	if (bind (sd_accept, (struct sockaddr*)&s_sun, sizeof(s_sun))) {
-		//__warning ("binding failed");
 		goto fail;
 	}
 
 	if (listen (sd_accept, 100)) {
-		//__warning ("listen failed");
 		goto fail;
 	}
 
@@ -1852,16 +1930,16 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 		// Set the acceptor non-blocking.
 		// THIS IS CRUCIALLY IMPORTANT because we read it in a select loop.
 		if (!SetSocketNonblocking (sd_accept)) {
-		//int val = fcntl (sd_accept, F_GETFL, 0);
-		//if (fcntl (sd_accept, F_SETFL, val | O_NONBLOCK) == -1) {
 			goto fail;
 		}
 	}
 
 	{ // Looking good.
 		AcceptorDescriptor *ad = new AcceptorDescriptor (sd_accept, this);
-		if (!ad)
+		if (!ad) {
 			throw std::runtime_error ("unable to allocate acceptor");
+		}
+
 		Add (ad);
 		output_binding = ad->GetBinding();
 	}
@@ -1869,8 +1947,10 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 	return output_binding;
 
 	fail:
-	if (sd_accept != INVALID_SOCKET)
+	if (sd_accept != INVALID_SOCKET) {
 		close (sd_accept);
+	}
+
 	return 0;
 	#endif // OS_UNIX
 }
@@ -1892,8 +1972,9 @@ const char *EventMachine_t::Popen (const char *cmd, const char *mode)
 	const char *output_binding = NULL;
 
 	FILE *fp = popen (cmd, mode);
-	if (!fp)
+	if (!fp) {
 		return NULL;
+	}
 
 	// From here, all early returns must pclose the stream.
 
@@ -1906,8 +1987,10 @@ const char *EventMachine_t::Popen (const char *cmd, const char *mode)
 
 	{ // Looking good.
 		PipeDescriptor *pd = new PipeDescriptor (fp, this);
-		if (!pd)
+		if (!pd) {
 			throw std::runtime_error ("unable to allocate pipe");
+		}
+
 		Add (pd);
 		output_binding = pd->GetBinding();
 	}
@@ -1931,19 +2014,25 @@ const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
 	// Eventually we need this functionality (or a full-duplex equivalent) on Windows.
 	#ifdef OS_UNIX
 	// Make sure the incoming array of command strings is sane.
-	if (!cmd_strings)
+	if (!cmd_strings) {
 		return 0;
+	}
+
 	int j;
-	for (j=0; j < 2048 && cmd_strings[j]; j++)
-		;
-	if ((j==0) || (j==2048))
+	for (j=0; j < 2048 && cmd_strings[j]; j++) {
+	}
+
+	if ((j==0) || (j==2048)) {
 		return 0;
+	}
 
 	unsigned long output_binding = 0;
 
 	int sv[2];
-	if (socketpair (AF_LOCAL, SOCK_STREAM, 0, sv) < 0)
+	if (socketpair (AF_LOCAL, SOCK_STREAM, 0, sv) < 0) {
 		return 0;
+	}
+
 	// from here, all early returns must close the pair of sockets.
 
 	// Set the parent side of the socketpair nonblocking.
@@ -1960,8 +2049,10 @@ const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
 	if (f > 0) {
 		close (sv[1]);
 		PipeDescriptor *pd = new PipeDescriptor (sv[0], f, this);
-		if (!pd)
+		if (!pd) {
 			throw std::runtime_error ("unable to allocate pipe");
+		}
+
 		Add (pd);
 		output_binding = pd->GetBinding();
 	}
@@ -1973,8 +2064,9 @@ const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
 		execvp (cmd_strings[0], cmd_strings+1);
 		exit (-1); // end the child process if the exec doesn't work.
 	}
-	else
+	else {
 		throw std::runtime_error ("no fork");
+	}
 
 	return output_binding;
 	#endif
@@ -1988,8 +2080,10 @@ EventMachine_t::OpenKeyboard
 const unsigned long EventMachine_t::OpenKeyboard()
 {
 	KeyboardDescriptor *kd = new KeyboardDescriptor (this);
-	if (!kd)
+	if (!kd) {
 		throw std::runtime_error ("no keyboard-object allocated");
+	}
+
 	Add (kd);
 	return kd->GetBinding();
 }
@@ -2012,8 +2106,9 @@ EventMachine_t::WatchPid
 const unsigned long EventMachine_t::WatchPid (int pid)
 {
 	#ifdef HAVE_KQUEUE
-	if (!bKqueue)
+	if (!bKqueue) {
 		throw std::runtime_error("must enable kqueue (EM.kqueue=true) for pid watching support");
+	}
 
 	struct kevent event;
 	int kqres;
@@ -2053,12 +2148,12 @@ void EventMachine_t::UnwatchPid (int pid)
 	struct kevent k;
 
 	EV_SET(&k, pid, EVFILT_PROC, EV_DELETE, 0, 0, 0);
-	/*int t =*/ kevent (kqfd, &k, 1, NULL, 0, NULL);
-	// t==-1 if the process already exited; ignore this for now
+	kevent (kqfd, &k, 1, NULL, 0, NULL);
 	#endif
 
-	if (EventCallback)
+	if (EventCallback) {
 		(*EventCallback)(b->GetBinding(), EM_CONNECTION_UNBOUND, NULL, 0);
+	}
 
 	delete b;
 }
@@ -2112,8 +2207,9 @@ const unsigned long EventMachine_t::WatchFile (const char *fpath)
 	#endif
 
 	#ifdef HAVE_KQUEUE
-	if (!bKqueue)
+	if (!bKqueue) {
 		throw std::runtime_error("must enable kqueue (EM.kqueue=true) for file watching support");
+	}
 
 	// With kqueue we have to open the file first and use the resulting fd to register for events
 	wd = open(fpath, O_RDONLY);
@@ -2153,8 +2249,9 @@ void EventMachine_t::UnwatchFile (int wd)
 	close(wd);
 	#endif
 
-	if (EventCallback)
+	if (EventCallback) {
 		(*EventCallback)(b->GetBinding(), EM_CONNECTION_UNBOUND, NULL, 0);
+	}
 
 	delete b;
 }
@@ -2221,8 +2318,10 @@ void EventMachine_t::_HandleKqueuePidEvent(struct kevent *event)
 {
 	assert(EventCallback);
 
-	if (event->fflags & NOTE_FORK)
+	if (event->fflags & NOTE_FORK) {
 		(*EventCallback)(Pids [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "fork", 4);
+	}
+
 	if (event->fflags & NOTE_EXIT) {
 		(*EventCallback)(Pids [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "exit", 4);
 		// stop watching the pid if it died
@@ -2241,10 +2340,14 @@ void EventMachine_t::_HandleKqueueFileEvent(struct kevent *event)
 {
 	assert(EventCallback);
 
-	if (event->fflags & NOTE_WRITE)
+	if (event->fflags & NOTE_WRITE) {
 		(*EventCallback)(Files [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "modified", 8);
-	if (event->fflags & NOTE_RENAME)
+	}
+
+	if (event->fflags & NOTE_RENAME) {
 		(*EventCallback)(Files [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "moved", 5);
+	}
+
 	if (event->fflags & NOTE_DELETE) {
 		(*EventCallback)(Files [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "deleted", 7);
 		UnwatchFile ((int)event->ident);
@@ -2301,5 +2404,3 @@ int EventMachine_t::SetHeartbeatInterval(float interval)
 	}
 	return 0;
 }
-//#endif // OS_UNIX
-
