@@ -5,6 +5,8 @@ module EventMachine
   # * File is deleted
   # * File is moved
   #
+  # @note On Mac OS X, file watching only works when kqueue is enabled
+  #
   # @see EventMachine.watch_file
   class FileWatch < Connection
     # @private
