@@ -1,5 +1,5 @@
 module EventMachine
-  # Streams a file over a given connection. Streaming beings once the object is
+  # Streams a file over a given connection. Streaming begins once the object is
   # instantiated. Typically FileStreamer instances are not reused.
   #
   # Streaming uses buffering for files larger than 16K and uses so-called fast file reader (a C++ extension)
