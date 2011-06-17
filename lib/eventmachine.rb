@@ -1589,9 +1589,6 @@ module EventMachine
   #   @runtime_error_hook = blk
   # end
   #
-  #--
-  # This is a provisional implementation of a stream-oriented file access object.
-  # We also experiment with wrapping up some better exception reporting.
   #
   # @private
   def self._open_file_for_writing filename, handler=nil # :nodoc:
