@@ -12,7 +12,7 @@ module EventMachine
   #  cb.call('hello world')
   #
   #
-  # @example EventMachine.Callback used with an object (to be more specific, class object) and amethod name, returns a callable
+  # @example EventMachine.Callback used with an object (to be more specific, class object) and a method name, returns a callable
   #
   #  cb = EventMachine.Callback(Object, :puts)
   #  # returned object is a callable that delegates to Kernel#puts (in this case Object.puts)
