@@ -1607,17 +1607,17 @@ module EventMachine
   private
   def self.klass_from_handler(klass = Connection, handler = nil, *args)
     klass = if handler and handler.is_a?(Class)
-              raise ArgumentError, "must provide module or subclass of #{klass.name}" unless klass >= handler
-              handler
-            elsif handler
-              begin
-                handler::EM_CONNECTION_CLASS
-              rescue NameError
-                handler::const_set(:EM_CONNECTION_CLASS, Class.new(klass) {include handler})
-              end
-            else
-              klass
-            end
+      raise ArgumentError, "must provide module or subclass of #{klass.name}" unless klass >= handler
+      handler
+    elsif handler
+      begin
+        handler::EM_CONNECTION_CLASS
+      rescue NameError
+        handler::const_set(:EM_CONNECTION_CLASS, Class.new(klass) {include handler})
+      end
+    else
+      klass
+    end
 
     arity = klass.instance_method(:initialize).arity
     expected = arity >= 0 ? arity : -(arity + 1)
