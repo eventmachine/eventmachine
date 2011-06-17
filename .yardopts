@@ -1,3 +1,7 @@
+--no-private
+--protected
+--markup="markdown" lib/**/*.rb
+--main README.md
 --exclude jeventmachine --exclude pure_ruby
 -
-docs/DEFERRABLES docs/EPOLL docs/KEYBOARD
+docs/*.md
