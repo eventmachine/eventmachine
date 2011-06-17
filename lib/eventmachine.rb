@@ -126,10 +126,6 @@ module EventMachine
   #   end
   #
   #   EventMachine.run do
-  #     # hit Control + C to stop
-  #     Signal.trap("INT")  { EventMachine.stop }
-  #     Signal.trap("TERM") { EventMachine.stop }
-  #
   #     EventMachine.start_server("0.0.0.0", 10000, EchoServer)
   #   end
   #
@@ -299,10 +295,6 @@ module EventMachine
   # @example Setting a one-shot timer with EventMachine
   #
   #  EventMachine.run {
-  #    # hit Control + C to stop
-  #    Signal.trap("INT")  { EventMachine.stop }
-  #    Signal.trap("TERM") { EventMachine.stop }
-  #
   #    puts "Starting the run now: #{Time.now}"
   #    EventMachine.add_timer 5, proc { puts "Executing timer event: #{Time.now}" }
   #    EventMachine.add_timer(10) { puts "Executing timer event: #{Time.now}" }
@@ -331,10 +323,6 @@ module EventMachine
   # @example Write a dollar-sign to stderr every five seconds, without blocking
   #
   #  EventMachine.run {
-  #    # hit Control + C to stop
-  #    Signal.trap("INT")  { EventMachine.stop }
-  #    Signal.trap("TERM") { EventMachine.stop }
-  #
   #    EventMachine.add_periodic_timer( 5 ) { $stderr.write "$" }
   #  }
   #
@@ -395,10 +383,6 @@ module EventMachine
   #
   #  puts "We're starting the event loop now."
   #  EventMachine.run {
-  #    # hit Control + C to stop
-  #    Signal.trap("INT")  { EventMachine.stop }
-  #    Signal.trap("TERM") { EventMachine.stop }
-  #
   #    EventMachine.connect "www.microsoft.com", 80, Redmond
   #  }
   #  puts "The event loop has stopped."
@@ -498,10 +482,6 @@ module EventMachine
   #  end
   #
   #  EventMachine.run {
-  #    # hit Control + C to stop
-  #    Signal.trap("INT")  { EventMachine.stop }
-  #    Signal.trap("TERM") { EventMachine.stop }
-  #
   #    host, port = "192.168.0.100", 8090
   #    EventMachine.start_server host, port, LineCounter
   #    puts "Now accepting connections on address #{host}, port #{port}..."
@@ -598,10 +578,6 @@ module EventMachine
   #  end
   #
   #  EventMachine.run {
-  #    # hit Control + C to stop
-  #    Signal.trap("INT")  { EventMachine.stop }
-  #    Signal.trap("TERM") { EventMachine.stop }
-  #
   #    EventMachine.connect "www.bayshorenetworks.com", 80, DumbHttpClient
   #  }
   #  puts "The event loop has ended"
@@ -718,10 +694,6 @@ module EventMachine
   #  end
   #
   #  EventMachine.run {
-  #    # hit Control + C to stop
-  #    Signal.trap("INT")  { EventMachine.stop }
-  #    Signal.trap("TERM") { EventMachine.stop }
-  #
   #    sock = TCPSocket.new('site.com', 80)
   #    sock.write("GET / HTTP/1.0\r\n\r\n")
   #    conn = EventMachine.watch(sock, SimpleHttpClient)
@@ -923,10 +895,6 @@ module EventMachine
   # @example
   #
   #  EventMachine.run {
-  #    # hit Control + C to stop
-  #    Signal.trap("INT")  { EventMachine.stop }
-  #    Signal.trap("TERM") { EventMachine.stop }
-  #
   #    EventMachine.connect("rubyeventmachine.com", 80)
   #    # count will be 0 in this case, because connection is not
   #    # established yet
@@ -937,10 +905,6 @@ module EventMachine
   # @example
   #
   #  EventMachine.run {
-  #    # hit Control + C to stop
-  #    Signal.trap("INT")  { EventMachine.stop }
-  #    Signal.trap("TERM") { EventMachine.stop }
-  #
   #    EventMachine.connect("rubyeventmachine.com", 80)
   #
   #    EventMachine.next_tick {
@@ -1140,10 +1104,6 @@ module EventMachine
   #  end
   #
   #  EventMachine.run {
-  #    # hit Control + C to stop
-  #    Signal.trap("INT")  { EventMachine.stop }
-  #    Signal.trap("TERM") { EventMachine.stop }
-  #
   #    EventMachine.popen("ruby -e' $stdout.sync = true; gets.to_i.times{ |i| puts i+1; sleep 1 } '", RubyCounter)
   #  }
   #
@@ -1244,10 +1204,6 @@ module EventMachine
   #  EventMachine.kqueue = true if EventMachine.kqueue?
   #
   #  EventMachine.run {
-  #    # hit Control + C to stop
-  #    Signal.trap("INT")  { EventMachine.stop }
-  #    Signal.trap("TERM") { EventMachine.stop }
-  #
   #    EventMachine.watch_file("/tmp/foo", Handler)
   #  }
   #
@@ -1285,10 +1241,6 @@ module EventMachine
   #  pid = fork{ sleep }
   #
   #  EventMachine.run {
-  #    # hit Control + C to stop
-  #    Signal.trap("INT")  { EventMachine.stop }
-  #    Signal.trap("TERM") { EventMachine.stop }
-  #
   #    EventMachine.watch_process(pid, ProcessWatcher)
   #    EventMachine.add_timer(1){ Process.kill('TERM', pid) }
   #  }
@@ -1376,10 +1328,6 @@ module EventMachine
   #  end
   #
   #  EventMachine.run {
-  #    # hit Control + C to stop
-  #    Signal.trap("INT")  { EventMachine.stop }
-  #    Signal.trap("TERM") { EventMachine.stop }
-  #
   #    EventMachine.start_server("127.0.0.1", 8080, ProxyServer)
   #  }
   #

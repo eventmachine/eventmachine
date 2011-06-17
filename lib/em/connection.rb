@@ -379,10 +379,6 @@ module EventMachine
     #  end
     #
     #   EventMachine.run do
-    #     # hit Control + C to stop
-    #     Signal.trap("INT")  { EventMachine.stop }
-    #     Signal.trap("TERM") { EventMachine.stop }
-    #
     #    EventMachine.start_server("127.0.0.1", 9999, Handler)
     #  end
     #
@@ -443,10 +439,6 @@ module EventMachine
     #  end
     #
     #   EventMachine.run do
-    #     # hit Control + C to stop
-    #     Signal.trap("INT")  { EventMachine.stop }
-    #     Signal.trap("TERM") { EventMachine.stop }
-    #
     #     EventMachine.connect "mail.google.com", 443, Handler
     #  end
     #
