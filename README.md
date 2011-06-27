@@ -61,6 +61,7 @@ For an introduction to EventMachine, check out:
 
 Here's a fully-functional echo server written with EventMachine:
 
+```ruby
      require 'eventmachine'
 
      module EchoServer
@@ -82,7 +83,7 @@ Here's a fully-functional echo server written with EventMachine:
     EventMachine.run {
       EventMachine.start_server "127.0.0.1", 8081, EchoServer
     }
-
+```
 
 ## EventMachine documentation ##
 
