@@ -38,8 +38,9 @@
 #
 class EM::Deferrable::Pool
   def initialize
-    @resources = EM::Queue.new
-    @removed = []
+    @resources  = EM::Queue.new
+    @removed    = []
+    @on_error   = nil
   end
 
   def add resource
