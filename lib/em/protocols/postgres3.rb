@@ -24,7 +24,6 @@
 # 
 # 
 
-require 'readbytes'
 require 'postgres-pr/message'
 require 'postgres-pr/connection'
 require 'stringio'
