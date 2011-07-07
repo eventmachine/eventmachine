@@ -37,25 +37,54 @@
 #    end
 #
 class EM::Deferrable::Pool
+
   def initialize
     @resources = EM::Queue.new
     @removed = []
+    @contents = []
     @on_error = nil
   end
 
   def add resource
-    @resources.push resource
+    @contents << resource
+    requeue resource
   end
-  alias requeue add
 
   def remove resource
+    @contents.delete resource
     @removed << resource
   end
 
+  # Returns a list for introspection purposes only. You should *NEVER* call
+  # modification or work oriented methods on objects in this list. A good
+  # example use case is periodic statistics collection against a set of
+  # connection resources.
+  #
+  # For example: 
+  #     pool.contents.inject(0) { |sum, connection| connection.num_bytes }
+  def contents
+    @contents.dup
+  end
+
+  # Define a default catch-all for when the deferrables returned by work
+  # blocks enter a failed state. By default all that happens is that the
+  # resource is returned to the pool. If on_error is defined, this block is
+  # responsible for re-adding the resource to the pool if it is still usable.
+  # In other words, it is generally assumed that on_error blocks explicitly
+  # handle the rest of the lifetime of the resource.
   def on_error *a, &b
     @on_error = EM::Callback(*a, &b)
   end
 
+  # Perform a given #call-able object or block. The callable object will be
+  # called with a resource from the pool as soon as one is available, and is
+  # expected to return a deferrable.
+  # 
+  # The deferrable will have callback and errback added such that when the
+  # deferrable enters a finished state, the object is returned to the pool.
+  #
+  # If on_error is defined, then objects are not automatically returned to the
+  # pool.
   def perform(*a, &b)
     work = EM::Callback(*a, &b)
 
@@ -70,18 +99,16 @@ class EM::Deferrable::Pool
   end
   alias reschedule perform
 
-  def process work, resource
-    deferrable = work.call resource
-    if deferrable.kind_of?(EM::Deferrable)
-      completion deferrable, resource
-    else
-      raise ArgumentError, "deferrable expected from work"
-    end
+  # Removed will show resources in a partial pruned state. Resources in the
+  # removed list may not appear in the contents list if they are currently in
+  # use.
+  def removed? resource
+    @removed.include? resource
   end
 
-  def completion deferrable, resource
-    deferrable.callback { requeue resource }
-    deferrable.errback  { failure resource }
+  protected
+  def requeue resource
+    @resources.push resource
   end
 
   def failure resource
@@ -92,7 +119,18 @@ class EM::Deferrable::Pool
     end
   end
 
-  def removed? resource
-    @removed.include? resource
+  def completion deferrable, resource
+    deferrable.callback { requeue resource }
+    deferrable.errback  { failure resource }
   end
+
+  def process work, resource
+    deferrable = work.call resource
+    if deferrable.kind_of?(EM::Deferrable)
+      completion deferrable, resource
+    else
+      raise ArgumentError, "deferrable expected from work"
+    end
+  end
+
 end

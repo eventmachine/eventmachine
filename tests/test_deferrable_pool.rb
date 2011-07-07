@@ -104,4 +104,14 @@ class TestDeferrablePool < Test::Unit::TestCase
     end
     assert_equal [:res], performs
   end
+
+  # Contents is only to be used for inspection of the pool!
+  def test_contents
+    pool.add :res
+    assert_equal [:res], pool.contents
+    # Assert that modifying the contents list does not affect the pools
+    # contents.
+    pool.contents.delete(:res)
+    assert_equal [:res], pool.contents
+  end
 end
