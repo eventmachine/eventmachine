@@ -99,6 +99,11 @@ class EM::Deferrable::Pool
   end
   alias reschedule perform
 
+  # A peek at the number of enqueued jobs waiting for resources
+  def num_waiting
+    @resources.num_waiting
+  end
+
   # Removed will show resources in a partial pruned state. Resources in the
   # removed list may not appear in the contents list if they are currently in
   # use.

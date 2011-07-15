@@ -59,6 +59,13 @@ module EventMachine
     # @note This is a peek, it's not thread safe, and may only tend toward accuracy.
     def size
       @items.size
-    end # size
+    end
+
+    # @return [Integer] Waiting size
+    # @note This is a peek at the number of jobs that are currently waiting on the Queue
+    def num_waiting
+      @popq.size
+    end
+
   end # Queue
 end # EventMachine

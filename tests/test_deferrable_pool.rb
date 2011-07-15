@@ -114,4 +114,15 @@ class TestDeferrablePool < Test::Unit::TestCase
     pool.contents.delete(:res)
     assert_equal [:res], pool.contents
   end
+
+  def test_num_waiting
+    pool.add :res
+    assert_equal 0, pool.num_waiting
+    pool.perform { |r| EM::DefaultDeferrable.new }
+    assert_equal 0, pool.num_waiting
+    10.times { pool.perform { |r| EM::DefaultDeferrable.new } }
+    EM.run { EM.next_tick { EM.stop } }
+    assert_equal 10, pool.num_waiting
+  end
+
 end
