@@ -170,6 +170,18 @@ class TestSendFile < Test::Unit::TestCase
   begin
     require 'fastfilereaderext'
 
+    module PositionStreamTestModule
+      def initialize filename
+        @filename = filename
+      end
+
+      def post_init
+        EM::Deferrable.future( stream_file_data(@filename, :position => 50000)) {
+          close_connection_after_writing
+        }
+      end
+    end
+
     def test_stream_large_file_data
       File.open( @filename, "w" ) {|f|
         f << ("A" * 100000)
@@ -209,6 +221,24 @@ class TestSendFile < Test::Unit::TestCase
         "0\r\n\r\n"
       ].join
       assert_equal( expected, data )
+    end
+
+    def test_stream_large_file_data_from_position
+      File.open( @filename, "w" ) {|f|
+        f << ("A" * 100000)
+      }
+
+      data = ''
+
+      EM.run {
+        EM.start_server "127.0.0.1", @port, PositionStreamTestModule, @filename
+        setup_timeout
+        EM.connect "127.0.0.1", @port, TestClient do |c|
+          c.data_to { |d| data << d }
+        end
+      }
+
+      assert_equal( "A" * 50000, data )
     end
   rescue LoadError
     warn "require 'fastfilereaderext' failed, skipping tests in #{__FILE__}"

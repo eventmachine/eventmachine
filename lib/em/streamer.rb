@@ -33,16 +33,23 @@ module EventMachine
     # @param [String] filename File path
     #
     # @option args [Boolean] :http_chunks (false) Use HTTP 1.1 style chunked-encoding semantics.
+    # @option args [Fixnum]  :position    (0)     Position (in bytes) to start reading the file
+    #                                             from. Only applies to files larger than 16k.
     def initialize connection, filename, args = {}
       @connection = connection
       @http_chunks = args[:http_chunks]
+      @position = args[:position] || 0
 
       if File.exist?(filename)
         @size = File.size(filename)
         if @size <= MappingThreshold
           stream_without_mapping filename
         else
-          stream_with_mapping filename
+          if @position > @size
+            fail "position #{@position} is past the end of the file"
+          else
+            stream_with_mapping filename
+          end
         end
       else
         fail "file not found"
@@ -66,7 +73,6 @@ module EventMachine
     def stream_with_mapping filename # :nodoc:
       ensure_mapping_extension_is_present
 
-      @position = 0
       @mapping = EventMachine::FastFileReader::Mapper.new filename
       stream_one_chunk
     end
