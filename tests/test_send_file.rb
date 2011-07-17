@@ -172,7 +172,7 @@ class TestSendFile < Test::Unit::TestCase
 
     def test_stream_large_file_data
       File.open( @filename, "w" ) {|f|
-        f << ("A" * 10000)
+        f << ("A" * 100000)
       }
 
       data = ''
@@ -185,7 +185,7 @@ class TestSendFile < Test::Unit::TestCase
         end
       }
 
-      assert_equal( "A" * 10000, data )
+      assert_equal( "A" * 100000, data )
     end
 
     def test_stream_large_chunked_file_data
