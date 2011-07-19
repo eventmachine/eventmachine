@@ -1015,7 +1015,6 @@ EventMachine_t::_RunTimers
 void EventMachine_t::_RunTimers()
 {
 	// These are caller-defined timer handlers.
-	// Return T/F to indicate whether we should continue the main loop.
 	// We rely on the fact that multimaps sort by their keys to avoid
 	// inspecting the whole list every time we come here.
 	// Just keep inspecting and processing the list head until we hit
