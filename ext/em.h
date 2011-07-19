@@ -131,7 +131,7 @@ class EventMachine_t
 		uint64_t GetRealTime();
 
 	private:
-		bool _RunOnce();
+		void _RunOnce();
 		bool _RunTimers();
 		void _UpdateTime();
 		void _AddNewDescriptors();
@@ -139,9 +139,9 @@ class EventMachine_t
 		void _InitializeLoopBreaker();
 		void _CleanupSockets();
 
-		bool _RunSelectOnce();
-		bool _RunEpollOnce();
-		bool _RunKqueueOnce();
+		void _RunSelectOnce();
+		void _RunEpollOnce();
+		void _RunKqueueOnce();
 
 		void _ModifyEpollEvent (EventableDescriptor*);
 		void _DispatchHeartbeats();

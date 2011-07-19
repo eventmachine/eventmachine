@@ -483,8 +483,7 @@ void EventMachine_t::Run()
 		_AddNewDescriptors();
 		_ModifyDescriptors();
 
-		if (!_RunOnce())
-			break;
+		_RunOnce();
 		if (bTerminateSignalReceived)
 			break;
 	}
@@ -495,27 +494,24 @@ void EventMachine_t::Run()
 EventMachine_t::_RunOnce
 ************************/
 
-bool EventMachine_t::_RunOnce()
+void EventMachine_t::_RunOnce()
 {
-	bool ret;
 	if (bEpoll)
-		ret = _RunEpollOnce();
+		_RunEpollOnce();
 	else if (bKqueue)
-		ret = _RunKqueueOnce();
+		_RunKqueueOnce();
 	else
-		ret = _RunSelectOnce();
+		_RunSelectOnce();
 	_DispatchHeartbeats();
 	_CleanupSockets();
-	return ret;
 }
-
 
 
 /*****************************
 EventMachine_t::_RunEpollOnce
 *****************************/
 
-bool EventMachine_t::_RunEpollOnce()
+void EventMachine_t::_RunEpollOnce()
 {
 	#ifdef HAVE_EPOLL
 	assert (epfd != -1);
@@ -535,7 +531,7 @@ bool EventMachine_t::_RunEpollOnce()
 			assert(errno != EINVAL);
 			assert(errno != EBADF);
 		}
-		return true;
+		return;
 	}
 
 	TRAP_BEG;
@@ -573,8 +569,6 @@ bool EventMachine_t::_RunEpollOnce()
 		timeval tv = {0, ((errno == EINTR) ? 5 : 50) * 1000};
 		EmSelect (0, NULL, NULL, NULL, &tv);
 	}
-
-	return true;
 	#else
 	throw std::runtime_error ("epoll is not implemented on this platform");
 	#endif
@@ -585,7 +579,7 @@ bool EventMachine_t::_RunEpollOnce()
 EventMachine_t::_RunKqueueOnce
 ******************************/
 
-bool EventMachine_t::_RunKqueueOnce()
+void EventMachine_t::_RunKqueueOnce()
 {
 	#ifdef HAVE_KQUEUE
 	assert (kqfd != -1);
@@ -609,7 +603,7 @@ bool EventMachine_t::_RunKqueueOnce()
 			assert(errno != EINVAL);
 			assert(errno != EBADF);
 		}
-		return true;
+		return;
 	}
 
 	TRAP_BEG;
@@ -660,8 +654,6 @@ bool EventMachine_t::_RunKqueueOnce()
 		rb_thread_schedule();
 	}
 	#endif
-
-	return true;
 	#else
 	throw std::runtime_error ("kqueue is not implemented on this platform");
 	#endif
@@ -828,36 +820,16 @@ int SelectData_t::_Select()
 EventMachine_t::_RunSelectOnce
 ******************************/
 
-bool EventMachine_t::_RunSelectOnce()
+void EventMachine_t::_RunSelectOnce()
 {
 	// Crank the event machine once.
 	// If there are no descriptors to process, then sleep
 	// for a few hundred mills to avoid busy-looping.
-	// Return T/F to indicate whether we should continue.
 	// This is based on a select loop. Alternately provide epoll
 	// if we know we're running on a 2.6 kernel.
 	// epoll will be effective if we provide it as an alternative,
 	// however it has the same problem interoperating with Ruby
 	// threads that select does.
-
-	//cerr << "X";
-
-	/* This protection is now obsolete, because we will ALWAYS
-	 * have at least one descriptor (the loop-breaker) to read.
-	 */
-	/*
-	if (Descriptors.size() == 0) {
-		#ifdef OS_UNIX
-		timeval tv = {0, 200 * 1000};
-		EmSelect (0, NULL, NULL, NULL, &tv);
-		return true;
-		#endif
-		#ifdef OS_WIN32
-		Sleep (200);
-		return true;
-		#endif
-	}
-	*/
 
 	SelectData_t SelectData;
 	/*
@@ -960,8 +932,6 @@ bool EventMachine_t::_RunSelectOnce()
 			}
 		}
 	}
-
-	return true;
 }
 
 void EventMachine_t::_CleanBadDescriptors()
