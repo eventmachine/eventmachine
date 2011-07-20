@@ -473,8 +473,7 @@ void EventMachine_t::Run()
 
 	while (true) {
 		_UpdateTime();
-		if (!_RunTimers())
-			break;
+		_RunTimers();
 
 		/* _Add must precede _Modify because the same descriptor might
 		 * be on both lists during the same pass through the machine,
@@ -983,10 +982,9 @@ void EventMachine_t::_ReadLoopBreaker()
 EventMachine_t::_RunTimers
 **************************/
 
-bool EventMachine_t::_RunTimers()
+void EventMachine_t::_RunTimers()
 {
 	// These are caller-defined timer handlers.
-	// Return T/F to indicate whether we should continue the main loop.
 	// We rely on the fact that multimaps sort by their keys to avoid
 	// inspecting the whole list every time we come here.
 	// Just keep inspecting and processing the list head until we hit
@@ -1002,7 +1000,6 @@ bool EventMachine_t::_RunTimers()
 			(*EventCallback) (0, EM_TIMER_FIRED, NULL, i->second.GetBinding());
 		Timers.erase (i);
 	}
-	return true;
 }
 
 

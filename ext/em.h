@@ -132,7 +132,7 @@ class EventMachine_t
 
 	private:
 		void _RunOnce();
-		bool _RunTimers();
+		void _RunTimers();
 		void _UpdateTime();
 		void _AddNewDescriptors();
 		void _ModifyDescriptors();
