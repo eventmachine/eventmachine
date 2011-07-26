@@ -13,6 +13,7 @@ else
 end
 
 require 'em/version'
+require 'em/pool'
 require 'em/deferrable'
 require 'em/future'
 require 'em/streamer'

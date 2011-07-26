@@ -1,6 +1,6 @@
-class TestDeferrablePool < Test::Unit::TestCase
+class TestPool < Test::Unit::TestCase
   def pool
-    @pool ||= EM::Deferrable::Pool.new
+    @pool ||= EM::Pool.new
   end
 
   def go
