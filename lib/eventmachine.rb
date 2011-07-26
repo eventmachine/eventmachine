@@ -30,6 +30,7 @@ require 'em/file_watch'
 require 'em/process_watch'
 require 'em/tick_loop'
 require 'em/resolver'
+require 'em/completion'
 
 require 'shellwords'
 require 'thread'
