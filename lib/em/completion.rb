@@ -191,7 +191,11 @@ module EventMachine
 
     # Statebacks are called when you enter (or are in) the named state.
     def stateback(state, *a, &b)
-      unless completed? && @state != state
+      # The following is quite unfortunate special casing for :completed
+      # statebacks, but it's a necessary evil for latent completion
+      # definitions.
+
+      if :completed == state || !completed? || @state == state
         @callbacks[state] << EM::Callback(*a, &b)
       end
       execute_callbacks

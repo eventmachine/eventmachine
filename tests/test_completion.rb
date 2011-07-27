@@ -145,6 +145,15 @@ class TestCompletion < Test::Unit::TestCase
     assert_equal [:completion], results
   end
 
+  def test_latent_completion
+    completion.completion { results << :completion }
+    completion.succeed
+    crank
+    completion.completion { results << :completion }
+    crank
+    assert_equal [:completion, :completion], results
+  end
+
   def test_timeout
     args = [1, 2, 3]
     EM.run do
