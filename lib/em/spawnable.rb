@@ -46,10 +46,7 @@ module EventMachine
     alias_method :run, :notify # for formulations like (EM.spawn {xxx}).run
 
     def set_receiver blk
-      (class << self ; self ; end).class_eval do
-        remove_method :call if method_defined? :call
-        define_method :call, blk
-      end
+      class << self; self; end.instance_eval { define_method :call, blk }
     end
 
   end
