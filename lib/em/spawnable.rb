@@ -29,17 +29,16 @@ module EventMachine
   class SpawnedProcess
     # Send a message to the spawned process
     def notify *x
-      me = self
       EM.next_tick {
         # A notification executes in the context of this
         # SpawnedProcess object. That makes self and notify
         # work as one would expect.
         #
-        y = me.call(*x)
+        y = call(*x)
         if y and y.respond_to?(:pull_out_yield_block)
           a,b = y.pull_out_yield_block
           set_receiver a
-          self.notify if b
+          notify if b
         end
       }
     end
