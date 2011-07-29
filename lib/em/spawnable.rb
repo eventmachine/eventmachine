@@ -65,9 +65,7 @@ module EventMachine
 
   # Spawn an erlang-style process
   def self.spawn &block
-    s = SpawnedProcess.new
-    s.set_receiver block
-    s
+    SpawnedProcess.new.tap { |s| s.set_receiver block }
   end
 
   def self.yield &block # :nodoc:
