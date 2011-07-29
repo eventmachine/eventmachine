@@ -673,13 +673,13 @@ EventMachine_t::_TimeTilNextEvent
 
 timeval EventMachine_t::_TimeTilNextEvent()
 {
-  // 29jul11: Changed calculation base from MyCurrentLoopTime to the 
-  // real time. As MyCurrentLoopTime is set at the beginning of an
-  // iteration and this calculation is done at the end, evenmachine
-  // will potentially oversleep by the amount of time the iteration
-  // took to execute.
+	// 29jul11: Changed calculation base from MyCurrentLoopTime to the 
+	// real time. As MyCurrentLoopTime is set at the beginning of an
+	// iteration and this calculation is done at the end, evenmachine
+	// will potentially oversleep by the amount of time the iteration
+	// took to execute.
 	uint64_t next_event = 0;
-  uint64_t current_time = GetRealTime();
+	uint64_t current_time = GetRealTime();
 
 	if (!Heartbeats.empty()) {
 		multimap<uint64_t,EventableDescriptor*>::iterator heartbeats = Heartbeats.begin();
