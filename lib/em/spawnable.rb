@@ -71,10 +71,10 @@ module EventMachine
   end
 
   def self.yield &block # :nodoc:
-    return YieldBlockFromSpawnedProcess.new( block, false )
+    YieldBlockFromSpawnedProcess.new( block, false )
   end
 
   def self.yield_and_notify &block # :nodoc:
-    return YieldBlockFromSpawnedProcess.new( block, true )
+    YieldBlockFromSpawnedProcess.new( block, true )
   end
 end
