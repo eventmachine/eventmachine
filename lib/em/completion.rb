@@ -199,6 +199,7 @@ module EventMachine
         @callbacks[state] << EM::Callback(*a, &b)
       end
       execute_callbacks
+      self
     end
 
     # Callbacks are called when you enter (or are in) a :succeeded state.
