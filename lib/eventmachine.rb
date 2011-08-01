@@ -155,13 +155,10 @@ module EventMachine
     # which throws something inside of #run. Without the ensure, the second test
     # will start without release_machine being called and will immediately throw
 
-    #
-
-
     tail and @tails.unshift(tail)
 
     if reactor_running?
-      (b = blk || block) and b.call # next_tick(b)
+      (b = blk || block) and b.call
     else
       @conns = {}
       @acceptors = {}
@@ -220,11 +217,10 @@ module EventMachine
   # finishes running, until user code calls {EventMachine.stop})
   #
   def self.run_block &block
-    pr = proc {
+    run do
       block.call
       EventMachine::stop
-    }
-    run(&pr)
+    end
   end
 
   # @return [Boolean] true if the calling thread is the same thread as the reactor.
@@ -339,7 +335,7 @@ module EventMachine
     interval = args.shift
     code = args.shift || block
 
-    EventMachine::PeriodicTimer.new(interval, code)
+    PeriodicTimer.new(interval, code)
   end
 
 
@@ -402,7 +398,7 @@ module EventMachine
   #
   #
   def self.stop_event_loop
-    EventMachine::stop
+    stop
   end
 
   # Initiates a TCP server (socket acceptor) on the specified IP address and port.
@@ -705,7 +701,7 @@ module EventMachine
   #  }
   #
   # @author Riham Aldakkak (eSpace Technologies)
-  def EventMachine::watch io, handler=nil, *args, &blk
+  def self.watch io, handler=nil, *args, &blk
     attach_io io, true, handler, *args, &blk
   end
 
@@ -715,12 +711,12 @@ module EventMachine
   #
   # To watch a fd instead, use {EventMachine.watch}, which will not alter the state of the socket
   # and fire notify_readable and notify_writable events instead.
-  def EventMachine::attach io, handler=nil, *args, &blk
+  def self.attach io, handler=nil, *args, &blk
     attach_io io, false, handler, *args, &blk
   end
 
   # @private
-  def EventMachine::attach_io io, watch_mode, handler=nil, *args
+  def self.attach_io io, watch_mode, handler=nil, *args
     klass = klass_from_handler(Connection, handler, *args)
 
     if !watch_mode and klass.public_instance_methods.any?{|m| [:notify_readable, :notify_writable].include? m.to_sym }
@@ -740,7 +736,7 @@ module EventMachine
     c.instance_variable_set(:@fd, fd)
 
     @conns[s] = c
-    block_given? and yield c
+    yield c if block_given?
     c
   end
 
@@ -759,13 +755,12 @@ module EventMachine
     # We may want to change it yet again and call the block, if any.
 
     raise "invalid handler" unless handler.respond_to?(:connection_completed)
-    #raise "still connected" if @conns.has_key?(handler.signature)
     return handler if @conns.has_key?(handler.signature)
 
     s = connect_server server, port
     handler.signature = s
     @conns[s] = handler
-    block_given? and yield handler
+    yield handler if block_given?
     handler
   end
 
@@ -845,7 +840,7 @@ module EventMachine
     s = open_udp_socket address, port.to_i
     c = klass.new s, *args
     @conns[s] = c
-    block_given? and yield c
+    yield c if block_given?
     c
   end
 
@@ -920,7 +915,7 @@ module EventMachine
   #
   # @return [Integer] Number of connections currently held by the reactor.
   def self.connection_count
-    self.get_connection_count
+    get_connection_count
   end
 
   # The is the responder for the loopback-signalled event.
@@ -937,10 +932,7 @@ module EventMachine
       cback.call result if cback
     end
 
-    @next_tick_mutex.synchronize do
-      jobs, @next_tick_queue = @next_tick_queue, []
-      jobs
-    end.each { |j| j.call }
+    @next_tick_mutex.synchronize { @next_tick_queue.dup | @next_tick_queue.clear }.each &:[]
   end
 
 
@@ -1006,7 +998,7 @@ module EventMachine
   # @private
   def self.spawn_threadpool
     until @threadpool.size == @threadpool_size.to_i
-      thread = Thread.new do
+      @threadpool << Thread.new do
         Thread.current.abort_on_exception = true
         while true
           op, cback = *@threadqueue.pop
@@ -1015,7 +1007,6 @@ module EventMachine
           EventMachine.signal_loopbreak
         end
       end
-      @threadpool << thread
     end
   end
 
@@ -1066,7 +1057,7 @@ module EventMachine
   # @note This method has no effective implementation on Windows or in the pure-Ruby
   #       implementation of EventMachine
   def self.set_effective_user username
-    EventMachine::setuid_string username
+    setuid_string username
   end
 
 
@@ -1085,7 +1076,7 @@ module EventMachine
   # @param [Integer] n_descriptors The maximum number of file or socket descriptors that your process may open
   # @return [Integer] The new descriptor table size.
   def self.set_descriptor_table_size n_descriptors=nil
-    EventMachine::set_rlimit_nofile n_descriptors
+    set_rlimit_nofile n_descriptors
   end
 
 
@@ -1119,12 +1110,12 @@ module EventMachine
     # Perhaps misnamed since the underlying function uses socketpair and is full-duplex.
 
     klass = klass_from_handler(Connection, handler, *args)
-    w = Shellwords::shellwords( cmd )
-    w.unshift( w.first ) if w.first
-    s = invoke_popen( w )
+    w = Shellwords::shellwords cmd
+    w.unshift(w.first) if w.first
+    s = invoke_popen w
     c = klass.new s, *args
     @conns[s] = c
-    yield(c) if block_given?
+    yield c if block_given?
     c
   end
 
@@ -1139,7 +1130,7 @@ module EventMachine
   #
   # @return [Boolean] true if the EventMachine reactor loop is currently running
   def self.reactor_running?
-    (@reactor_running || false)
+    !!@reactor_running
   end
 
 
@@ -1152,7 +1143,7 @@ module EventMachine
     s = read_keyboard
     c = klass.new s, *args
     @conns[s] = c
-    block_given? and yield c
+    yield c if block_given?
     c
   end
 
@@ -1223,12 +1214,12 @@ module EventMachine
   def self.watch_file(filename, handler=nil, *args)
     klass = klass_from_handler(FileWatch, handler, *args)
 
-    s = EM::watch_filename(filename)
+    s = watch_filename filename
     c = klass.new s, *args
     # we have to set the path like this because of how Connection.new works
     c.instance_variable_set("@path", filename)
     @conns[s] = c
-    block_given? and yield c
+    yield c if block_given?
     c
   end
 
@@ -1256,12 +1247,12 @@ module EventMachine
 
     klass = klass_from_handler(ProcessWatch, handler, *args)
 
-    s = EM::watch_pid(pid)
+    s = watch_pid pid
     c = klass.new s, *args
     # we have to set the path like this because of how Connection.new works
     c.instance_variable_set("@pid", pid)
     @conns[s] = c
-    block_given? and yield c
+    yield c if block_given?
     c
   end
 
@@ -1342,7 +1333,7 @@ module EventMachine
   #
   # @see EventMachine.disable_proxy
   def self.enable_proxy(from, to, bufsize=0, length=0)
-    EM::start_proxy(from.signature, to.signature, bufsize, length)
+    start_proxy(from.signature, to.signature, bufsize, length)
   end
 
   # Takes just one argument, a {Connection} that has proxying enabled via {EventMachine.enable_proxy}.
@@ -1352,7 +1343,7 @@ module EventMachine
   # @param [EventMachine::Connection] from    Source of data that is being proxied
   # @see EventMachine.enable_proxy
   def self.disable_proxy(from)
-    EM::stop_proxy(from.signature)
+    stop_proxy(from.signature)
   end
 
   # Retrieve the heartbeat interval. This is how often EventMachine will check for dead connections
@@ -1361,7 +1352,7 @@ module EventMachine
   #
   # @return [Integer] Heartbeat interval, in seconds
   def self.heartbeat_interval
-    EM::get_heartbeat_interval
+    get_heartbeat_interval
   end
 
   # Set the heartbeat interval. This is how often EventMachine will check for dead connections
@@ -1370,7 +1361,7 @@ module EventMachine
   #
   # @param [Integer] time Heartbeat interval, in seconds
   def self.heartbeat_interval=(time)
-    EM::set_heartbeat_interval time.to_f
+    set_heartbeat_interval time.to_f
   end
 
   private
@@ -1417,7 +1408,7 @@ module EventMachine
       raise NoHandlerForAcceptedConnection unless accep
       c = accep.new data, *args
       @conns[data] = c
-      blk and blk.call(c)
+      blk.call c if blk
       c # (needed?)
       ##
       # The remaining code is a fallback for the pure ruby and java reactors.
@@ -1453,7 +1444,7 @@ module EventMachine
     s = _write_file filename
     c = klass.new s
     @conns[s] = c
-    block_given? and yield c
+    yield c if block_given?
     c
   end
 
