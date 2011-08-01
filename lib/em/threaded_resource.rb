@@ -58,9 +58,7 @@ module EventMachine
 
       @running = true
       @queue   = ::Queue.new
-      @thread  = Thread.new do
-        @queue.pop.call while @running
-      end
+      @thread  = Thread.new { @queue.pop.call while @running }
     end
 
     # Called on the EM thread, generally in a perform block to return a
@@ -75,6 +73,7 @@ module EventMachine
           completion.fail e
         end
       end
+      @thread.run
       completion
     end
 
