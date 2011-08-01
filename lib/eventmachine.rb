@@ -86,8 +86,9 @@ module EventMachine
 
   # System errnos
   # @private
+
   ERRNOS = Errno::constants.grep(/^E/).inject(Hash.new(:unknown)) { |hash, name|
-    errno = Errno.__send__(:const_get, name)
+    errno = Errno.const_get name
     hash[errno::Errno] = errno
     hash
   }
