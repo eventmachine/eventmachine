@@ -118,7 +118,7 @@ module EventMachine
     # been completed, as a result of calling #start_tls to initiate SSL/TLS on the connection.
     #
     # This callback exists because {#post_init} and {#connection_completed} are **not** reliable
-    # for indicating when an SSL/TLS connection is ready to have it's certificate queried for.
+    # for indicating when an SSL/TLS connection is ready to have its certificate queried for.
     #
     # @see #get_peer_cert
     def ssl_handshake_completed
@@ -464,7 +464,7 @@ module EventMachine
     #  # -----END CERTIFICATE-----
     #
     # You can do whatever you want with the certificate String, such as load it
-    # as a certificate object using the OpenSSL library, and check it's fields.
+    # as a certificate object using the OpenSSL library, and check its fields.
     #
     # @return [String] the remote [X509 certificate](http://en.wikipedia.org/wiki/X.509), in the popular [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail),
     #                  if TLS is active on the connection

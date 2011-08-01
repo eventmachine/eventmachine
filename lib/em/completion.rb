@@ -16,7 +16,7 @@
 #
 # == Basic Usage
 #
-# As already mentioned, the basic usage of a Completion is simply for it's two
+# As already mentioned, the basic usage of a Completion is simply for its two
 # final states, :succeeded and :failed.
 #
 # An asynchronous operation will complete at some future point in time, and
@@ -24,8 +24,8 @@
 # some common interface to react to these events.
 #
 # In the following example, the user wants to know when a short lived
-# connection has completed it's exchange with the remote server. The simple
-# protocol just waits for an ack to it's message.
+# connection has completed its exchange with the remote server. The simple
+# protocol just waits for an ack to its message.
 #
 #    class Protocol < EM::Connection
 #      include EM::P::LineText2
