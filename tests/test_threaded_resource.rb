@@ -14,12 +14,15 @@ class TestThreadedResource < Test::Unit::TestCase
   end
 
   def test_dispatch_completion
-    completion = resource.dispatch do |o|
-      o[:foo] = :bar
-      :foo
-    end
-    completion.callback do |result|
-      assert_equal :foo, result
+    EM.run do
+      completion = resource.dispatch do |o|
+        o[:foo] = :bar
+        :foo
+      end
+      completion.callback do |result|
+        assert_equal :foo, result
+        EM.stop
+      end
     end
     assert_equal :bar, object[:foo]
   end
