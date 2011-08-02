@@ -29,17 +29,16 @@ module EventMachine
   class SpawnedProcess
     # Send a message to the spawned process
     def notify *x
-      me = self
       EM.next_tick {
         # A notification executes in the context of this
         # SpawnedProcess object. That makes self and notify
         # work as one would expect.
         #
-        y = me.call(*x)
+        y = call(*x)
         if y and y.respond_to?(:pull_out_yield_block)
           a,b = y.pull_out_yield_block
           set_receiver a
-          self.notify if b
+          notify if b
         end
       }
     end
@@ -47,10 +46,7 @@ module EventMachine
     alias_method :run, :notify # for formulations like (EM.spawn {xxx}).run
 
     def set_receiver blk
-      (class << self ; self ; end).class_eval do
-        remove_method :call if method_defined? :call
-        define_method :call, blk
-      end
+      class << self; self; end.instance_eval { define_method :call, blk }
     end
 
   end
@@ -66,16 +62,14 @@ module EventMachine
 
   # Spawn an erlang-style process
   def self.spawn &block
-    s = SpawnedProcess.new
-    s.set_receiver block
-    s
+    SpawnedProcess.new.tap { |s| s.set_receiver block }
   end
 
   def self.yield &block # :nodoc:
-    return YieldBlockFromSpawnedProcess.new( block, false )
+    YieldBlockFromSpawnedProcess.new( block, false )
   end
 
   def self.yield_and_notify &block # :nodoc:
-    return YieldBlockFromSpawnedProcess.new( block, true )
+    YieldBlockFromSpawnedProcess.new( block, true )
   end
 end
