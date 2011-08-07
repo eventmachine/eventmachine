@@ -50,7 +50,7 @@ module EventMachine
     end
 
     # @private
-    def stream_without_mapping filename # :nodoc:
+    def stream_without_mapping filename
       if @http_chunks
         @connection.send_data "#{@size.to_s(16)}\r\n"
         @connection.send_file_data filename
@@ -63,7 +63,7 @@ module EventMachine
     private :stream_without_mapping
 
     # @private
-    def stream_with_mapping filename # :nodoc:
+    def stream_with_mapping filename
       ensure_mapping_extension_is_present
 
       @position = 0

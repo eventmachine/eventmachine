@@ -162,15 +162,15 @@ module EventMachine
         }
       end
 
-      # :stopdoc:
-
       attr_writer :args
 
+      # @private
       def post_init
         @return_values = OpenStruct.new
         @return_values.start_time = Time.now
       end
 
+      # @private
       def connection_completed
         @responder = :receive_signon
         @msg = []
@@ -181,6 +181,7 @@ module EventMachine
       # set a deferred success because the caller will already have done it
       # (no need to wait until the connection closes to invoke the callbacks).
       #
+      # @private
       def unbind
         unless @succeeded
           @return_values.elapsed_time = Time.now - @return_values.start_time
@@ -191,6 +192,7 @@ module EventMachine
         end
       end
 
+      # @private
       def receive_line ln
         $>.puts ln if @args[:verbose]
         @range = ln[0...1].to_i
@@ -202,6 +204,8 @@ module EventMachine
           @msg.clear
         end
       end
+
+      private
 
       # We encountered an error from the server and will close the connection.
       # Use the error and message the server returned.
@@ -356,8 +360,6 @@ module EventMachine
         @return_values.message = @msg
         set_deferred_status :succeeded, @return_values
       end
-
-      # :startdoc:
     end
   end
 end

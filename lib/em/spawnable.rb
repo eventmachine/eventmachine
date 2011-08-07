@@ -55,7 +55,8 @@ module EventMachine
 
   end
 
-  class YieldBlockFromSpawnedProcess # :nodoc:
+  # @private
+  class YieldBlockFromSpawnedProcess
     def initialize block, notify
       @block = [block,notify]
     end
@@ -71,11 +72,13 @@ module EventMachine
     s
   end
 
-  def self.yield &block # :nodoc:
+  # @private
+  def self.yield &block
     return YieldBlockFromSpawnedProcess.new( block, false )
   end
 
-  def self.yield_and_notify &block # :nodoc:
+  # @private
+  def self.yield_and_notify &block
     return YieldBlockFromSpawnedProcess.new( block, true )
   end
 end

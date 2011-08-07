@@ -1372,9 +1372,8 @@ module EventMachine
     EM::set_heartbeat_interval time.to_f
   end
 
-  private
-
-  def self.event_callback conn_binding, opcode, data # :nodoc:
+  # @private
+  def self.event_callback conn_binding, opcode, data
     #
     # Changed 27Dec07: Eliminated the hookable error handling.
     # No one was using it, and it degraded performance significantly.
@@ -1446,7 +1445,7 @@ module EventMachine
   #
   #
   # @private
-  def self._open_file_for_writing filename, handler=nil # :nodoc:
+  def self._open_file_for_writing filename, handler=nil
     klass = klass_from_handler(Connection, handler)
 
     s = _write_file filename
@@ -1456,7 +1455,7 @@ module EventMachine
     c
   end
 
-  private
+  # @private
   def self.klass_from_handler(klass = Connection, handler = nil, *args)
     klass = if handler and handler.is_a?(Class)
       raise ArgumentError, "must provide module or subclass of #{klass.name}" unless klass >= handler

@@ -17,7 +17,8 @@ module EventMachine
         Marshal
       end
 
-      def receive_data data # :nodoc:
+      # @private
+      def receive_data data
         (@buf ||= '') << data
 
         while @buf.size >= 4

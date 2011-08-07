@@ -29,7 +29,8 @@ require 'postgres-pr/message'
 require 'postgres-pr/connection'
 require 'stringio'
 
-class StringIO # :nodoc:
+# @private
+class StringIO
   # Reads exactly +n+ bytes.
   #
   # If the data read is nil an EOFError is raised.
