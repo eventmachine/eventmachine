@@ -64,7 +64,7 @@ module EventMachine
       MaxPostContentLength = 20 * 1024 * 1024
 
       def initialize
-        STDERR.puts "HttpClient is deprecated and will be removed. EM-Http-Request should be used instead."
+        warn "HttpClient is deprecated and will be removed. EM-Http-Request should be used instead."
       end
 
       # @param args [Hash] The request arguments

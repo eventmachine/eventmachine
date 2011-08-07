@@ -44,7 +44,7 @@ module EventMachine
       include LineText2
       
       def initialize
-        STDERR.puts "HttpClient2 is deprecated and will be removed. EM-Http-Request should be used instead."
+        warn "HttpClient2 is deprecated and will be removed. EM-Http-Request should be used instead."
 
         @authorization = nil
         @closed = nil
