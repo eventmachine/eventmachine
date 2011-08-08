@@ -448,7 +448,7 @@ module EventMachine
           s = Socket.for_fd(@io.fileno)
           s.fcntl( Fcntl::F_SETFL, Fcntl::O_NONBLOCK )
         rescue Errno::EINVAL, Errno::EBADF
-          STDERR.puts "Serious error: unable to set descriptor non-blocking"
+          warn "Serious error: unable to set descriptor non-blocking"
         end
       end
       # TODO, should set CLOEXEC on Unix?

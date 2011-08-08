@@ -158,7 +158,7 @@ class TestCompletion < Test::Unit::TestCase
     args = [1, 2, 3]
     EM.run do
       completion.timeout(0.0001, *args)
-      completion.errback { |*args| results << args }
+      completion.errback { |*errargs| results << errargs }
       completion.completion { EM.stop }
       EM.add_timer(0.1) { flunk 'test timed out' }
     end

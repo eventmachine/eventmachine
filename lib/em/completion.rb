@@ -248,7 +248,7 @@ module EventMachine
     def timeout(time, *args)
       cancel_timeout
       @timeout_timer = EM::Timer.new(time) do
-        fail *args unless completed?
+        fail(*args) unless completed?
       end
     end
 
@@ -287,7 +287,7 @@ module EventMachine
     # Iterate all callbacks for a given state, and remove then call them.
     def execute_state_callbacks(state)
       while callback = @callbacks[state].shift
-        callback.call *value
+        callback.call(*value)
       end
     end
 

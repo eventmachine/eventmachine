@@ -357,7 +357,7 @@ module EventMachine
 
       def process_auth_line(line)
         plain = line.unpack("m").first
-        discard,user,psw = plain.split("\000")
+        _,user,psw = plain.split("\000")
         if receive_plain_auth user,psw
           send_data "235 authentication ok\r\n"
           @state << :auth

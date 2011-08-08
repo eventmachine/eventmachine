@@ -49,7 +49,7 @@ class TestEpoll < Test::Unit::TestCase
   # XXX this test causes all sort of weird issues on OSX (when run as part of the suite)
   def _test_descriptors
     EM.epoll
-    s = EM.set_descriptor_table_size 60000
+    EM.set_descriptor_table_size 60000
     EM.run {
       EM.start_server "127.0.0.1", 9800, TestEchoServer
       $n = 0
@@ -101,7 +101,7 @@ class TestEpoll < Test::Unit::TestCase
   def _test_unix_domain
     fn = "/tmp/xxx.chain"
     EM.epoll
-    s = EM.set_descriptor_table_size 60000
+    EM.set_descriptor_table_size 60000
     EM.run {
       # The pure-Ruby version won't let us open the socket if the node already exists.
       # Not sure, that actually may be correct and the compiled version is wrong.
