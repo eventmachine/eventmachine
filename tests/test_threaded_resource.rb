@@ -42,7 +42,7 @@ class TestThreadedResource < Test::Unit::TestCase
     resource.dispatch do |o|
       o[:dispatch_thread] = Thread.current
     end
-    assert_not_equal Thread.current, object[:dispatch_thread]
+    assert_not_equal main, object[:dispatch_thread]
   end
 
   def test_shutdown

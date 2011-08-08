@@ -78,7 +78,7 @@ class TestProcesses < Test::Unit::TestCase
 
     def test_em_system_cmd_arguments
       EM.run{
-        EM.system('sh', '--version', proc{ |process|
+        EM.system('echo', '1', '2', 'version', proc{ |process|
         }, proc{ |out,status|
           $out = out
           $status = status
@@ -86,7 +86,7 @@ class TestProcesses < Test::Unit::TestCase
         })
       }
 
-      assert_match(/version/i, $out)
+      assert_match(/1 2 version/i, $out)
     end
 
     def test_em_system_spaced_arguments
