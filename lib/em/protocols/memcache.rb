@@ -32,18 +32,23 @@ module EventMachine
       ##
       # constants
 
-      # :stopdoc:
       unless defined? Cempty
+        # @private
         Cstored    = 'STORED'.freeze
+        # @private
         Cend       = 'END'.freeze
+        # @private
         Cdeleted   = 'DELETED'.freeze
+        # @private
         Cunknown   = 'NOT_FOUND'.freeze
+        # @private
         Cerror     = 'ERROR'.freeze
 
+        # @private
         Cempty     = ''.freeze
+        # @private
         Cdelimiter = "\r\n".freeze
       end
-      # :startdoc:
 
       ##
       # commands
@@ -110,9 +115,7 @@ module EventMachine
         EM.connect host, port, self, host, port
       end
 
-      # :stopdoc:
-
-      def send_cmd cmd, key, flags = 0, exptime = 0, bytes = 0, noreply = false # :nodoc:
+      def send_cmd cmd, key, flags = 0, exptime = 0, bytes = 0, noreply = false
         send_data "#{cmd} #{key} #{flags} #{exptime} #{bytes}#{noreply ? ' noreply' : ''}\r\n"
       end
       private :send_cmd
@@ -120,16 +123,19 @@ module EventMachine
       ##
       # errors
 
+      # @private
       class ParserError < StandardError
       end
 
       ##
       # em hooks
 
+      # @private
       def initialize host, port = 11211
         @host, @port = host, port
       end
 
+      # @private
       def connection_completed
         @get_cbs = []
         @set_cbs = []
@@ -148,6 +154,7 @@ module EventMachine
       # 19Feb09 Switched to a custom parser, LineText2 is recursive and can cause
       #         stack overflows when there is too much data.
       # include EM::P::LineText2
+      # @private
       def receive_data data
         (@buffer||='') << data
 
@@ -164,6 +171,7 @@ module EventMachine
 
       #--
       # def receive_line line
+      # @private
       def process_cmd line
         case line.strip
         when /^VALUE\s+(.+?)\s+(\d+)\s+(\d+)/ # VALUE <key> <flags> <bytes>
@@ -209,6 +217,7 @@ module EventMachine
       #   @values[@cur_key] = data[0..-3]
       # end
 
+      # @private
       def unbind
         if @connected or @reconnecting
           EM.add_timer(1){ reconnect @host, @port }
@@ -219,8 +228,6 @@ module EventMachine
           raise 'Unable to connect to memcached server'
         end
       end
-
-      # :startdoc:
     end
   end
 end
@@ -229,7 +236,8 @@ if __FILE__ == $0
   # ruby -I ext:lib -r eventmachine -rubygems lib/protocols/memcache.rb
   require 'em/spec'
 
-  class TestConnection # :nodoc:
+  # @private
+  class TestConnection
     include EM::P::Memcache
     def send_data data
       sent_data << data

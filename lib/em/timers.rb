@@ -45,10 +45,13 @@ module EventMachine
     # Fire the timer every interval seconds
     attr_accessor :interval
 
-    def schedule # :nodoc:
+    # @private
+    def schedule
       EventMachine::add_timer @interval, @work
     end
-    def fire # :nodoc:
+
+    # @private
+    def fire
       unless @cancelled
         @code.call
         schedule

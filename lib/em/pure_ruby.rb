@@ -886,7 +886,8 @@ end
 
 
 
-module EventMachine #:nodoc: all
+# @private
+module EventMachine
   # @private
   class DatagramObject < Selectable
     def initialize io
