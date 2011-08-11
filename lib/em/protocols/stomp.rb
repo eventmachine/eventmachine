@@ -64,12 +64,14 @@ module EventMachine
         # Body of the message
         attr_accessor :body
 
-        def initialize # :nodoc:
+        # @private
+        def initialize
           @header = {}
           @state = :precommand
           @content_length = nil
         end
-        def consume_line line # :nodoc:
+        # @private
+        def consume_line line
           if @state == :precommand
             unless line =~ /\A\s*\Z/
               @command = line
@@ -100,8 +102,7 @@ module EventMachine
         end
       end
 
-      # :stopdoc:
-
+      # @private
       def send_frame verb, headers={}, body=""
         ary = [verb, "\n"]
         headers.each {|k,v| ary << "#{k}:#{v}\n" }
@@ -113,6 +114,7 @@ module EventMachine
         send_data ary.join
       end
 
+      # @private
       def receive_line line
         @stomp_initialized || init_message_reader
         @stomp_message.consume_line(line) {|outcome|
@@ -127,20 +129,20 @@ module EventMachine
         }
       end
 
+      # @private
       def receive_binary_data data
         @stomp_message.body = data[0..-2]
         receive_msg(@stomp_message) if respond_to?(:receive_msg)
         init_message_reader
       end
 
+      # @private
       def init_message_reader
         @stomp_initialized = true
         set_delimiter "\n"
         set_line_mode
         @stomp_message = Message.new
       end
-
-      # :startdoc:
 
       # Invoked with an incoming Stomp::Message received from the STOMP server
       def receive_msg msg

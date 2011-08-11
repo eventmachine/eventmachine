@@ -51,7 +51,8 @@ module EventMachine
         @requests = nil
       end
 
-      class Request # :nodoc:
+      # @private
+      class Request
         include Deferrable
 
         attr_reader :version
@@ -283,12 +284,12 @@ module EventMachine
         request args
       end
 
-      # :stopdoc:
 
       #--
       # Compute and remember a string to be used as the host header in HTTP requests
       # unless the user overrides it with an argument to #request.
       #
+      # @private
       def set_default_host_header host, port, ssl
         if (ssl and port != 443) or (!ssl and port != 80)
           @host_header = "#{host}:#{port}"
@@ -298,11 +299,13 @@ module EventMachine
       end
 
 
+      # @private
       def post_init
         super
         @connected = EM::DefaultDeferrable.new
       end
 
+      # @private
       def connection_completed
         super
         @connected.succeed
@@ -320,12 +323,14 @@ module EventMachine
       # Set and remember a flag (@closed) so we can immediately fail any
       # subsequent requests.
       #
+      # @private
       def unbind
         super
         @closed = true
         (@requests || []).each {|r| r.fail}
       end
 
+      # @private
       def request args
         args[:host_header] = @host_header unless args.has_key?(:host_header)
         args[:authorization] = @authorization unless args.has_key?(:authorization)
@@ -339,6 +344,7 @@ module EventMachine
         r
       end
 
+      # @private
       def receive_line ln
         if req = @requests.last
           req.receive_line ln
@@ -346,8 +352,9 @@ module EventMachine
           p "??????????"
           p ln
         end
-
       end
+
+      # @private
       def receive_binary_data text
         @requests.last.receive_text text
       end
@@ -355,11 +362,10 @@ module EventMachine
       #--
       # Called by a Request object when it completes.
       #
+      # @private
       def pop_request
         @requests.pop
       end
-
-      # :startdoc:
     end
 
 
