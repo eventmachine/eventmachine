@@ -38,6 +38,9 @@ module EventMachine
     # @private
     attr_accessor :signature
 
+    # @private
+    alias original_method method
+
     # Override .new so subclasses don't have to call super and can ignore
     # connection-specific arguments
     #
