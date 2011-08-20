@@ -1788,6 +1788,34 @@ void EventMachine_t::Modify (EventableDescriptor *ed)
 }
 
 
+/***********************
+EventMachine_t::Closing
+***********************/
+
+void EventMachine_t::Closing (EventableDescriptor *ed)
+{
+	if (!ed)
+		throw std::runtime_error ("modified bad descriptor");
+	#ifdef HAVE_EPOLL
+	// cut/paste from _CleanupSockets().  The error handling could be
+	// refactored out of there, but it is cut/paste all over the
+	// file already.
+	if (bEpoll) {
+		assert (epfd != -1);
+		assert (ed->GetSocket() != INVALID_SOCKET);
+		int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
+		// ENOENT or EBADF are not errors because the socket may be already closed when we get here.
+		if (e && (errno != ENOENT) && (errno != EBADF) && (errno != EPERM)) {
+			char buf [200];
+			snprintf (buf, sizeof(buf)-1, "unable to delete epoll event: %s", strerror(errno));
+			throw std::runtime_error (buf);
+		}
+		ModifiedDescriptors.erase(ed);
+	}
+	#endif
+}
+
+
 /**************************************
 EventMachine_t::CreateUnixDomainServer
 **************************************/

@@ -135,8 +135,44 @@ EventableDescriptor::Close
 
 void EventableDescriptor::Close()
 {
+	/* EventMachine relies on the fact that when close(fd)
+	 * is called that the fd is removed from any
+	 * epoll event queues.
+	 *
+	 * However, this is not *always* the behavior of close(fd)
+	 *
+	 * See man 4 epoll Q6/A6 and then consider what happens
+	 * when using pipes with eventmachine.
+	 * (As is often done when communicating with a subprocess)
+	 *
+	 * The pipes end up looking like:
+	 *
+	 * ls -l /proc/<pid>/fd
+	 * ...
+	 * lr-x------ 1 root root 64 2011-08-19 21:31 3 -> pipe:[940970]
+	 * l-wx------ 1 root root 64 2011-08-19 21:31 4 -> pipe:[940970]
+	 *
+	 * This meets the critera from man 4 epoll Q6/A4 for not
+	 * removing fds from epoll event queues until all fds
+	 * that reference the underlying file have been removed.
+	 *
+	 * If the EventableDescriptor associated with fd 3 is deleted,
+	 * its dtor will call EventableDescriptor::Close(),
+	 * which will call ::close(int fd).
+	 *
+	 * However, unless the EventableDescriptor associated with fd 4 is
+	 * also deleted before the next call to epoll_wait, events may fire
+	 * for fd 3 that were registered with an already deleted
+	 * EventableDescriptor.
+	 *
+	 * Therefore, it is necessary to notify EventMachine that
+	 * the fd associated with this EventableDescriptor is
+	 * closing.
+	 */
+
 	// Close the socket right now. Intended for emergencies.
 	if (MySocket != INVALID_SOCKET && !bWatchOnly) {
+		MyEventMachine->Closing (this);
 		shutdown (MySocket, 1);
 		close (MySocket);
 		MySocket = INVALID_SOCKET;
