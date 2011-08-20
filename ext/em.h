@@ -81,6 +81,7 @@ class EventMachine_t
 
 		void Add (EventableDescriptor*);
 		void Modify (EventableDescriptor*);
+		void Closing (EventableDescriptor*);
 
 		const unsigned long AttachFD (int, bool);
 		int DetachFD (EventableDescriptor*);
