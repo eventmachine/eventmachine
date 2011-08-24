@@ -168,10 +168,13 @@ void EventableDescriptor::Close()
 	 * Therefore, it is necessary to notify EventMachine that
 	 * the fd associated with this EventableDescriptor is
 	 * closing.
+	 *
+	 * EventMachine also never closes fds for STDIN, STDOUT and 
+	 * STDERR (0, 1 & 2)
 	 */
 
 	// Close the socket right now. Intended for emergencies.
-	if (MySocket != INVALID_SOCKET && !bWatchOnly) {
+	if (MySocket != INVALID_SOCKET && MySocket > 2 && !bWatchOnly) {
 		MyEventMachine->Closing (this);
 		shutdown (MySocket, 1);
 		close (MySocket);
