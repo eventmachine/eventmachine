@@ -522,7 +522,7 @@ bool EventMachine_t::_RunEpollOnce()
 
 	timeval tv = _TimeTilNextEvent();
 
-	#ifdef BUILD_FOR_RUBY
+	#if defined(BUILD_FOR_RUBY) && !defined(BUILD_FOR_MAGLEV)
 	int ret = 0;
 	fd_set fdreads;
 
@@ -596,7 +596,7 @@ bool EventMachine_t::_RunKqueueOnce()
 	ts.tv_sec = tv.tv_sec;
 	ts.tv_nsec = tv.tv_usec * 1000;
 
-	#ifdef BUILD_FOR_RUBY
+	#if defined(BUILD_FOR_RUBY) && !defined(BUILD_FOR_MAGLEV)
 	int ret = 0;
 	fd_set fdreads;
 
@@ -654,7 +654,7 @@ bool EventMachine_t::_RunKqueueOnce()
 	}
 
 	// TODO, replace this with rb_thread_blocking_region for 1.9 builds.
-	#ifdef BUILD_FOR_RUBY
+	#if defined(BUILD_FOR_RUBY) && !defined(BUILD_FOR_MAGLEV)
 	if (!rb_thread_alone()) {
 		rb_thread_schedule();
 	}
