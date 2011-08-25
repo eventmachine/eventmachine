@@ -270,6 +270,10 @@ module EventMachine
       EventMachine::get_sock_opt @signature, level, option
     end
 
+    def set_sock_opt level, optname, optval
+      EventMachine::set_sock_opt @signature, level, optname, optval
+    end
+
     # A variant of {#close_connection}.
     # All of the descriptive comments given for close_connection also apply to
     # close_connection_after_writing, *with one exception*: if the connection has
