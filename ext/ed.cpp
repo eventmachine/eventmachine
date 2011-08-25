@@ -174,10 +174,15 @@ void EventableDescriptor::Close()
 	 */
 
 	// Close the socket right now. Intended for emergencies.
-	if (MySocket != INVALID_SOCKET && MySocket > 2 && !bWatchOnly) {
+	if (MySocket != INVALID_SOCKET && !bWatchOnly) {
 		MyEventMachine->Closing (this);
-		shutdown (MySocket, 1);
-		close (MySocket);
+		
+		// Do not close STDIN, STDOUT, STDERR
+		if (MySocket > 2) {
+			shutdown (MySocket, 1);
+			close (MySocket);
+		}
+		
 		MySocket = INVALID_SOCKET;
 	}
 }
