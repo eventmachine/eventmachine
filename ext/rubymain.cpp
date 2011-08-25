@@ -583,6 +583,44 @@ static VALUE t_get_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optna
 	return rb_str_new(buf, len);
 }
 
+/**************
+t_set_sock_opt
+**************/
+
+static VALUE t_set_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optname, VALUE optval)
+{
+	int fd = evma_get_file_descriptor (NUM2ULONG (signature));
+	int level = NUM2INT(lev), option = NUM2INT(optname);
+	int i;
+	void *v;
+	socklen_t len;
+
+	switch (TYPE(optval)) {
+	case T_FIXNUM:
+		i = FIX2INT(optval);
+		goto numval;
+	case T_FALSE:
+		i = 0;
+		goto numval;
+	case T_TRUE:
+		i = 1;
+		numval:
+		v = (void*)&i; len = sizeof(i);
+		break;
+	default:
+		StringValue(optval);
+		v = RSTRING_PTR(optval);
+		len = RSTRING_LENINT(optval);
+		break;
+	}
+
+
+	if (setsockopt(fd, level, option, v, len) < 0)
+		rb_sys_fail("setsockopt");
+
+	return INT2FIX(0);
+}
+
 /********************
 t_is_notify_readable
 ********************/
@@ -1133,6 +1171,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "attach_fd", (VALUE (*)(...))t_attach_fd, 2);
 	rb_define_module_function (EmModule, "detach_fd", (VALUE (*)(...))t_detach_fd, 1);
 	rb_define_module_function (EmModule, "get_sock_opt", (VALUE (*)(...))t_get_sock_opt, 3);
+	rb_define_module_function (EmModule, "set_sock_opt", (VALUE (*)(...))t_set_sock_opt, 4);
 	rb_define_module_function (EmModule, "set_notify_readable", (VALUE (*)(...))t_set_notify_readable, 2);
 	rb_define_module_function (EmModule, "set_notify_writable", (VALUE (*)(...))t_set_notify_writable, 2);
 	rb_define_module_function (EmModule, "is_notify_readable", (VALUE (*)(...))t_is_notify_readable, 1);

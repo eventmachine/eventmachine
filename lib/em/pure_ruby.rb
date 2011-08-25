@@ -178,6 +178,18 @@ module EventMachine
     end
 
     # @private
+    def get_sock_opt signature, level, optname
+      selectable = Reactor.instance.get_selectable( signature ) or raise "unknown get_peername target"
+      selectable.getsockopt level, optname
+    end
+
+    # @private
+    def set_sock_opt signature, level, optname, optval
+      selectable = Reactor.instance.get_selectable( signature ) or raise "unknown get_peername target"
+      selectable.setsockopt level, optname, optval
+    end
+
+    # @private
     def send_file_data sig, filename
       sz = File.size(filename)
       raise "file too large" if sz > 32*1024

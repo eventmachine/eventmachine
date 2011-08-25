@@ -43,6 +43,15 @@ See the file COPYING for complete licensing information.
   #ifndef RUBY_UBF_IO
     #define RUBY_UBF_IO RB_UBF_DFL
   #endif
+  #ifndef RSTRING_PTR
+    #define RSTRING_PTR(str) RString(str)->ptr
+  #endif
+  #ifndef RSTRING_LEN
+    #define RSTRING_LEN(str) RString(str)->len
+  #endif
+  #ifndef RSTRING_LENINT
+    #define RSTRING_LENINT(str) RSTRING_LEN(str)
+  #endif
 #else
   #define EmSelect select
 #endif
