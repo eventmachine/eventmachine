@@ -592,7 +592,7 @@ static VALUE t_set_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optna
 	int fd = evma_get_file_descriptor (NUM2ULONG (signature));
 	int level = NUM2INT(lev), option = NUM2INT(optname);
 	int i;
-	void *v;
+	const void *v;
 	socklen_t len;
 
 	switch (TYPE(optval)) {
