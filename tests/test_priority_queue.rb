@@ -50,7 +50,7 @@ class TestEMPriorityQueue < Test::Unit::TestCase
 
   def test_queue_push_sorts
     queue = EM::PriorityQueue.new
-    nums = (0..10_00).map {|i| rand(10_000) }
+    nums = (0..10_000).map {|i| rand(10_000) }
     popped = []
     EM.run do
       nums.each {|num| queue.push(num) }
