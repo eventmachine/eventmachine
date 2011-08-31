@@ -1517,6 +1517,14 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 		}
 	}
 
+	{ // enable tcpkeepalive for TCP server sockets
+		int oval = 1;
+		if (setsockopt (sd_accept, SOL_SOCKET, SO_KEEPALIVE, (char*)&oval, sizeof(oval)) < 0) {
+			//__warning ("setsockopt failed while creating listener","");
+			goto fail;
+		}
+	}
+
 	{ // set CLOEXEC. Only makes sense on Unix
 		#ifdef OS_UNIX
 		int cloexec = fcntl (sd_accept, F_GETFD, 0);
