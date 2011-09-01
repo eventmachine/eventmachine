@@ -159,11 +159,14 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 			e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
 		else
 			e = SSL_CTX_use_PrivateKey (pCtx, DefaultPrivateKey);
+		if (e <= 0) ERR_print_errors_fp(stderr);
 		assert (e > 0);
+
 		if (certchainfile.length() > 0)
 			e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
 		else
 			e = SSL_CTX_use_certificate (pCtx, DefaultCertificate);
+		if (e <= 0) ERR_print_errors_fp(stderr);
 		assert (e > 0);
 	}
 
@@ -177,10 +180,12 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 		int e;
 		if (privkeyfile.length() > 0) {
 			e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
+			if (e <= 0) ERR_print_errors_fp(stderr);
 			assert (e > 0);
 		}
 		if (certchainfile.length() > 0) {
 			e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
+			if (e <= 0) ERR_print_errors_fp(stderr);
 			assert (e > 0);
 		}
 	}
