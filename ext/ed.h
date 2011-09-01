@@ -88,9 +88,9 @@ class EventableDescriptor: public Bindable_t
 		virtual void StopProxy();
 		virtual void SetProxiedFrom(EventableDescriptor*, const unsigned long);
 		virtual int SendOutboundData(const char*,int){ return -1; }
-		virtual bool IsPaused(){ return false; }
-		virtual bool Pause(){ return false; }
-		virtual bool Resume(){ return false; }
+		virtual bool IsPaused(){ return bPaused; }
+		virtual bool Pause(){ bPaused = true; return bPaused; }
+		virtual bool Resume(){ bPaused = false; return bPaused; }
 
 		void SetUnbindReasonCode(int code){ UnbindReasonCode = code; }
 		virtual int ReportErrorStatus(){ return 0; }
@@ -127,6 +127,7 @@ class EventableDescriptor: public Bindable_t
 		uint64_t InactivityTimeout;
 		uint64_t LastActivity;
 		uint64_t NextHeartbeat;
+		bool bPaused;
 };
 
 
@@ -170,7 +171,6 @@ class ConnectionDescriptor: public EventableDescriptor
 		void SetNotifyWritable (bool);
 		void SetWatchOnly (bool);
 
-		bool IsPaused(){ return bPaused; }
 		bool Pause();
 		bool Resume();
 
@@ -217,7 +217,6 @@ class ConnectionDescriptor: public EventableDescriptor
 		};
 
 	protected:
-		bool bPaused;
 		bool bConnectPending;
 
 		bool bNotifyReadable;
