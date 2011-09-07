@@ -781,6 +781,7 @@ module EventMachine
       def start_server host, port
         sd = Socket.new( Socket::AF_INET, Socket::SOCK_STREAM, 0 )
         sd.setsockopt( Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true )
+        sd.setsockopt( Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, true )
         sd.bind( Socket.pack_sockaddr_in( port, host ))
         sd.listen( 50 ) # 5 is what you see in all the books. Ain't enough.
         EvmaTCPServer.new sd
