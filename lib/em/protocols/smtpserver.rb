@@ -366,12 +366,23 @@ module EventMachine
       def process_auth_line(line)
         plain = line.unpack("m").first
         _,user,psw = plain.split("\000")
-        if receive_plain_auth user,psw
+        
+        succeeded = proc {
           send_data "235 authentication ok\r\n"
           @state << :auth
-        else
+        }
+        failed = proc {
           send_data "535 invalid authentication\r\n"
+        }
+        auth = receive_plain_auth user,psw
+        
+        if auth.respond_to?(:callback)
+          auth.callback(&succeeded)
+          auth.errback(&failed)
+        else
+          (auth ? succeeded : failed).call
         end
+        
         @state.delete :auth_incomplete
       end
 
