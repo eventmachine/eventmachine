@@ -26,7 +26,7 @@ class EventMachine_t; // forward reference
 class SslBox_t; // forward reference
 #endif
 
-bool SetSocketNonblocking (SOCKET);
+bool SetSocketNonblocking (SOCKET, bool set_cloexec=true);
 
 
 /*************************

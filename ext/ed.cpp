@@ -25,14 +25,23 @@ See the file COPYING for complete licensing information.
 SetSocketNonblocking
 ********************/
 
-bool SetSocketNonblocking (SOCKET sd)
+bool SetSocketNonblocking (SOCKET sd, bool set_cloexec)
 {
 	#ifdef OS_UNIX
+	if (set_cloexec) {
+		int cloexec = fcntl (sd, F_GETFD, 0);
+		assert (cloexec >= 0);
+		cloexec |= FD_CLOEXEC;
+		fcntl (sd, F_SETFD, cloexec);
+	}
 	int val = fcntl (sd, F_GETFL, 0);
 	return (fcntl (sd, F_SETFL, val | O_NONBLOCK) != SOCKET_ERROR) ? true : false;
 	#endif
 	
 	#ifdef OS_WIN32
+	if (set_cloexec) {
+		SetHandleInformation(reinterpret_cast<HANDLE>(sd), HANDLE_FLAG_INHERIT, 0);
+	}
 	#ifdef BUILD_FOR_RUBY
 	// 14Jun09 Ruby provides its own wrappers for ioctlsocket. On 1.8 this is a simple wrapper,
 	// however, 1.9 keeps its own state about the socket.
