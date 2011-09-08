@@ -615,7 +615,11 @@ static VALUE t_set_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optna
 	}
 
 
-	if (setsockopt(fd, level, option, v, len) < 0)
+	if (setsockopt(fd, level, option,
+#ifdef OS_WIN32
+                       (const char *)
+#endif
+                                      v, len) < 0)
 		rb_sys_fail("setsockopt");
 
 	return INT2FIX(0);
