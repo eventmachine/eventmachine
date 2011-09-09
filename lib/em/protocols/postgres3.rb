@@ -24,7 +24,11 @@
 # 
 # 
 
-require 'readbytes'
+begin
+  require 'readbytes'
+rescue LoadError => e
+  raise e unless /^1\.9/ === RUBY_VERSION
+end
 require 'postgres-pr/message'
 require 'postgres-pr/connection'
 require 'stringio'
