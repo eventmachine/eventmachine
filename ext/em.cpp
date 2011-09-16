@@ -1257,7 +1257,7 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 
 	#ifdef OS_WIN32
 	throw std::runtime_error ("unix-domain connection unavailable on this platform");
-	return NULL;
+	return 0;
 	#endif
 
 	// The whole rest of this function is only compiled on Unix systems.
