@@ -25,7 +25,7 @@ end
 def manual_ssl_config
   ssl_libs_heads_args = {
     :unix => [%w[ssl crypto], %w[openssl/ssl.h openssl/err.h]],
-    :mswin => [%w[ssleay32 libeay32], %w[openssl/ssl.h openssl/err.h]],
+    :mswin => [%w[ssleay32 eay32], %w[openssl/ssl.h openssl/err.h]],
   }
 
   dc_flags = ['ssl']
@@ -57,7 +57,7 @@ if ENV['CROSS_COMPILING']
 end
 
 # Try to use pkg_config first, fixes #73
-if pkg_config('openssl') || manual_ssl_config
+if (!ENV['CROSS_COMPILING'] and pkg_config('openssl')) || manual_ssl_config
   add_define "WITH_SSL"
 else
   add_define "WITHOUT_SSL"
@@ -76,7 +76,7 @@ have_func('rb_time_new')
 # Minor platform details between *nix and Windows:
 
 if RUBY_PLATFORM =~ /(mswin|mingw|bccwin)/
-  GNU_CHAIN = $1 == 'mingw'
+  GNU_CHAIN = ENV['CROSS_COMPILING'] or $1 == 'mingw'
   OS_WIN32 = true
   add_define "OS_WIN32"
 else
