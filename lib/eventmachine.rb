@@ -761,7 +761,11 @@ module EventMachine
     #raise "still connected" if @conns.has_key?(handler.signature)
     return handler if @conns.has_key?(handler.signature)
 
-    s = connect_server server, port
+    s = if port
+          connect_server server, port
+        else
+          connect_unix_server server
+        end
     handler.signature = s
     @conns[s] = handler
     block_given? and yield handler
