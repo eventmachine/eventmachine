@@ -137,7 +137,7 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 		bLibraryInitialized = true;
 		SSL_library_init();
 		OpenSSL_add_ssl_algorithms();
-	        OpenSSL_add_all_algorithms();
+		OpenSSL_add_all_algorithms();
 		SSL_load_error_strings();
 		ERR_load_crypto_strings();
 
