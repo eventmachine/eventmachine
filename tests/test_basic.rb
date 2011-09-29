@@ -224,4 +224,25 @@ class TestBasic < Test::Unit::TestCase
       end
     end
   end
+  
+  def test_schedule_close
+    localhost, port = '127.0.0.1', 9000
+    timer_ran = false
+    num_close_scheduled = nil
+    EM.run do
+      assert_equal 0, EM.num_close_scheduled
+      EM.add_timer(1) { timer_ran = true; EM.stop }
+      EM.start_server localhost, port do |s|
+        s.close_connection
+        num_close_scheduled = EM.num_close_scheduled
+      end
+      EM.connect localhost, port do |c|
+        def c.unbind
+          EM.stop
+        end
+      end
+    end
+    assert !timer_ran
+    assert_equal 1, num_close_scheduled
+  end
 end

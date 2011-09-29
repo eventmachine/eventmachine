@@ -59,6 +59,8 @@ extern "C" {
 	int evma_is_paused(const unsigned long binding);
 	int evma_resume(const unsigned long binding);
 
+    int evma_num_close_scheduled();
+
 	void evma_stop_tcp_server (const unsigned long signature);
 	const unsigned long evma_create_tcp_server (const char *address, int port);
 	const unsigned long evma_create_unix_domain_server (const char *filename);

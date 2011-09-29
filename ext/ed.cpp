@@ -115,6 +115,7 @@ EventableDescriptor::~EventableDescriptor()
 		(*EventCallback)(ProxiedFrom->GetBinding(), EM_PROXY_TARGET_UNBOUND, NULL, 0);
 		ProxiedFrom->StopProxy();
 	}
+	MyEventMachine->NumCloseScheduled--;
 	StopProxy();
 	Close();
 }
@@ -214,6 +215,7 @@ EventableDescriptor::ScheduleClose
 
 void EventableDescriptor::ScheduleClose (bool after_writing)
 {
+	MyEventMachine->NumCloseScheduled++;
 	// KEEP THIS SYNCHRONIZED WITH ::IsCloseScheduled.
 	if (after_writing)
 		bCloseAfterWriting = true;
