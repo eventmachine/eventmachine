@@ -151,6 +151,9 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 
 	SSL_CTX_set_options (pCtx, SSL_OP_ALL);
 	//SSL_CTX_set_options (pCtx, (SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3));
+#ifdef SSL_MODE_RELEASE_BUFFERS
+	SSL_CTX_set_mode (pCtx, SSL_MODE_RELEASE_BUFFERS);
+#endif
 
 	if (is_server) {
 		// The SSL_CTX calls here do NOT allocate memory.
