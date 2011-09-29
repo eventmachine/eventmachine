@@ -155,7 +155,13 @@ module EventMachine
     # will start without release_machine being called and will immediately throw
 
     #
-
+    if reactor_running? and @reactor_pid != Process.pid
+      # Reactor was started in a different parent, meaning we have forked.
+      # Clean up reactor state so a new reactor boots up in this child.
+      stop_event_loop
+      release_machine
+      @reactor_running = false
+    end
 
     tail and @tails.unshift(tail)
 
@@ -169,6 +175,7 @@ module EventMachine
       @next_tick_queue ||= []
       @tails ||= []
       begin
+        @reactor_pid = Process.pid
         @reactor_running = true
         initialize_event_machine
         (b = blk || block) and add_timer(0, b)
@@ -252,7 +259,7 @@ module EventMachine
       if self.reactor_running?
         self.stop_event_loop
         self.release_machine
-        self.instance_variable_set( '@reactor_running', false )
+        @reactor_running = false
       end
       self.run block
     end

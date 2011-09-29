@@ -245,4 +245,28 @@ class TestBasic < Test::Unit::TestCase
     assert !timer_ran
     assert_equal 1, num_close_scheduled
   end
+
+  def test_fork_safe
+    return unless cpid = fork { exit! } rescue false
+
+    read, write = IO.pipe
+    EM.run do
+      cpid = fork do
+        write.puts "forked"
+        EM.run do
+          EM.next_tick do
+            write.puts "EM ran"
+            exit!
+          end
+        end
+      end
+      EM.stop
+    end
+    Process.waitall
+    assert_equal "forked\n", read.readline
+    assert_equal "EM ran\n", read.readline
+  ensure
+    read.close rescue nil
+    write.close rescue nil
+  end
 end
