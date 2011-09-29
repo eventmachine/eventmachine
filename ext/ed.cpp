@@ -1202,16 +1202,18 @@ void ConnectionDescriptor::_DispatchCiphertext()
 
 	char BigBuf [2048];
 	bool did_work;
+	int num_chunks = 0;
 
 	do {
 		did_work = false;
 
 		// try to drain ciphertext
-		while (SslBox->CanGetCiphertext()) {
+		while (SslBox->CanGetCiphertext() && num_chunks < 8) {
 			int r = SslBox->GetCiphertext (BigBuf, sizeof(BigBuf));
 			assert (r > 0);
 			_SendRawOutboundData (BigBuf, r);
 			did_work = true;
+			num_chunks += 1;
 		}
 
 		// Pump the SslBox, in case it has queued outgoing plaintext
