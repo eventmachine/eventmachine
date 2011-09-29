@@ -269,4 +269,26 @@ class TestBasic < Test::Unit::TestCase
     read.close rescue nil
     write.close rescue nil
   end
+
+  def test_error_handler_idempotent # issue 185
+    errors = []
+    ticks = []
+    EM.error_handler do |e|
+      errors << e
+    end
+
+    EM.run do
+      EM.next_tick do
+        ticks << :first
+        raise
+      end
+      EM.next_tick do
+        ticks << :second
+      end
+      EM.add_timer(0.001) { EM.stop }
+    end
+
+    assert_equal 1, errors.size
+    assert_equal [:first, :second], ticks
+  end
 end
