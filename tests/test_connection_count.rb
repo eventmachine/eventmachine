@@ -1,6 +1,4 @@
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestConnectionCount < Test::Unit::TestCase
   def test_idle_connection_count

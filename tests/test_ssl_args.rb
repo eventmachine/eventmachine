@@ -1,10 +1,9 @@
 require "test/unit"
 require 'tempfile'
 
-$:.unshift File.expand_path(File.dirname(__FILE__) + '/../lib')
-require "eventmachine"
+require 'em_test_helper'
 
-module EventMachine
+module EM
   def self._set_mocks
     class <<self
       alias set_tls_parms_old set_tls_parms
@@ -36,11 +35,11 @@ end
 
 class TestSslArgs < Test::Unit::TestCase
   def setup
-    EventMachine._set_mocks
+    EM._set_mocks
   end
   
   def teardown
-    EventMachine._clear_mocks
+    EM._clear_mocks
   end
   
   def test_tls_params_file_doesnt_exist
@@ -50,15 +49,15 @@ class TestSslArgs < Test::Unit::TestCase
     end
     
     # associate_callback_target is a pain! (build!)
-    conn = EventMachine::Connection.new('foo')
+    conn = EM::Connection.new('foo')
     
-    assert_raises(EventMachine::FileNotFoundException) do
+    assert_raises(EM::FileNotFoundException) do
       conn.start_tls(:private_key_file => priv_file)
     end
-    assert_raises(EventMachine::FileNotFoundException) do
+    assert_raises(EM::FileNotFoundException) do
       conn.start_tls(:cert_chain_file => cert_file)
     end
-    assert_raises(EventMachine::FileNotFoundException) do
+    assert_raises(EM::FileNotFoundException) do
       conn.start_tls(:private_key_file => priv_file, :cert_chain_file => cert_file)
     end
   end
@@ -68,7 +67,7 @@ class TestSslArgs < Test::Unit::TestCase
     cert_file = Tempfile.new('em_test')
     priv_file_path = priv_file.path
     cert_file_path = cert_file.path
-    conn = EventMachine::Connection.new('foo')
+    conn = EM::Connection.new('foo')
     params = {:private_key_file => priv_file_path, :cert_chain_file => cert_file_path}
     begin
       conn.start_tls params

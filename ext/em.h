@@ -17,16 +17,6 @@ See the file COPYING for complete licensing information.
 
 *****************************************************************************/
 
-
-
-#ifdef OS_WIN32
-#include "emwin.h"
-#endif
-
-
-// THIS ENTIRE FILE WILL EVENTUALLY BE FOR UNIX BUILDS ONLY.
-//#ifdef OS_UNIX
-
 #ifndef __EventMachine__H_
 #define __EventMachine__H_
 
@@ -52,6 +42,15 @@ See the file COPYING for complete licensing information.
   // 1.9.0 compat
   #ifndef RUBY_UBF_IO
     #define RUBY_UBF_IO RB_UBF_DFL
+  #endif
+  #ifndef RSTRING_PTR
+    #define RSTRING_PTR(str) RString(str)->ptr
+  #endif
+  #ifndef RSTRING_LEN
+    #define RSTRING_LEN(str) RString(str)->len
+  #endif
+  #ifndef RSTRING_LENINT
+    #define RSTRING_LENINT(str) RSTRING_LEN(str)
   #endif
 #else
   #define EmSelect select
@@ -85,13 +84,13 @@ class EventMachine_t
 		const unsigned long CreateTcpServer (const char *, int);
 		const unsigned long OpenDatagramSocket (const char *, int);
 		const unsigned long CreateUnixDomainServer (const char*);
-		const unsigned long _OpenFileForWriting (const char*);
 		const unsigned long OpenKeyboard();
 		//const char *Popen (const char*, const char*);
 		const unsigned long Socketpair (char* const*);
 
 		void Add (EventableDescriptor*);
 		void Modify (EventableDescriptor*);
+		void Deregister (EventableDescriptor*);
 
 		const unsigned long AttachFD (int, bool);
 		int DetachFD (EventableDescriptor*);
@@ -127,7 +126,7 @@ class EventMachine_t
 		void _HandleKqueuePidEvent (struct kevent*);
 		#endif
 
-		uint64_t GetCurrentTime() { return MyCurrentLoopTime; }
+		uint64_t GetCurrentLoopTime() { return MyCurrentLoopTime; }
 
 		// Temporary:
 		void _UseEpoll();
@@ -137,13 +136,13 @@ class EventMachine_t
 		bool UsingEpoll() { return bEpoll; }
 
 		void QueueHeartbeat(EventableDescriptor*);
-		void ClearHeartbeat(uint64_t);
+		void ClearHeartbeat(uint64_t, EventableDescriptor*);
 
 		uint64_t GetRealTime();
 
 	private:
 		bool _RunOnce();
-		bool _RunTimers();
+		void _RunTimers();
 		void _UpdateTime();
 		void _AddNewDescriptors();
 		void _ModifyDescriptors();
@@ -201,6 +200,8 @@ class EventMachine_t
 		#endif
 
 	private:
+		bool bTerminateSignalReceived;
+
 		bool bEpoll;
 		int epfd; // Epoll file-descriptor
 		#ifdef HAVE_EPOLL
@@ -236,5 +237,3 @@ struct SelectData_t
 };
 
 #endif // __EventMachine__H_
-
-//#endif // OS_UNIX

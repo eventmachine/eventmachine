@@ -56,7 +56,7 @@ class EventableDescriptor: public Bindable_t
 		bool ShouldDelete();
 		// Do we have any data to write? This is used by ShouldDelete.
 		virtual int GetOutboundDataSize() {return 0;}
-		virtual bool IsWatchOnly(){ return false; }
+		virtual bool IsWatchOnly(){ return bWatchOnly; }
 
 		virtual void ScheduleClose (bool after_writing);
 		bool IsCloseScheduled();
@@ -64,8 +64,8 @@ class EventableDescriptor: public Bindable_t
 
 		void SetEventCallback (EMCallback);
 
-		virtual bool GetPeername (struct sockaddr*) {return false;}
-		virtual bool GetSockname (struct sockaddr*) {return false;}
+		virtual bool GetPeername (struct sockaddr*, socklen_t*) {return false;}
+		virtual bool GetSockname (struct sockaddr*, socklen_t*) {return false;}
 		virtual bool GetSubprocessPid (pid_t*) {return false;}
 
 		virtual void StartTls() {}
@@ -84,14 +84,15 @@ class EventableDescriptor: public Bindable_t
 		struct epoll_event *GetEpollEvent() { return &EpollEvent; }
 		#endif
 
-		virtual void StartProxy(const unsigned long, const unsigned long);
+		virtual void StartProxy(const unsigned long, const unsigned long, const unsigned long);
 		virtual void StopProxy();
 		virtual void SetProxiedFrom(EventableDescriptor*, const unsigned long);
 		virtual int SendOutboundData(const char*,int){ return -1; }
-		virtual bool IsPaused(){ return false; }
-		virtual bool Pause(){ return false; }
-		virtual bool Resume(){ return false; }
+		virtual bool IsPaused(){ return bPaused; }
+		virtual bool Pause(){ bPaused = true; return bPaused; }
+		virtual bool Resume(){ bPaused = false; return bPaused; }
 
+		void SetUnbindReasonCode(int code){ UnbindReasonCode = code; }
 		virtual int ReportErrorStatus(){ return 0; }
 		virtual bool IsConnectPending(){ return false; }
 		virtual uint64_t GetNextHeartbeat();
@@ -102,6 +103,7 @@ class EventableDescriptor: public Bindable_t
 
 	protected:
 		int MySocket;
+		bool bWatchOnly;
 
 		EMCallback EventCallback;
 		void _GenericInboundDispatch(const char*, int);
@@ -109,6 +111,8 @@ class EventableDescriptor: public Bindable_t
 		uint64_t CreatedAt;
 		bool bCallbackUnbind;
 		int UnbindReasonCode;
+
+		unsigned long BytesToProxy;
 		EventableDescriptor *ProxyTarget;
 		EventableDescriptor *ProxiedFrom;
 
@@ -123,6 +127,7 @@ class EventableDescriptor: public Bindable_t
 		uint64_t InactivityTimeout;
 		uint64_t LastActivity;
 		uint64_t NextHeartbeat;
+		bool bPaused;
 };
 
 
@@ -166,13 +171,11 @@ class ConnectionDescriptor: public EventableDescriptor
 		void SetNotifyWritable (bool);
 		void SetWatchOnly (bool);
 
-		bool IsPaused(){ return bPaused; }
 		bool Pause();
 		bool Resume();
 
 		bool IsNotifyReadable(){ return bNotifyReadable; }
 		bool IsNotifyWritable(){ return bNotifyWritable; }
-		virtual bool IsWatchOnly(){ return bWatchOnly; }
 
 		virtual void Read();
 		virtual void Write();
@@ -195,8 +198,8 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		void SetServerMode() {bIsServer = true;}
 
-		virtual bool GetPeername (struct sockaddr*);
-		virtual bool GetSockname (struct sockaddr*);
+		virtual bool GetPeername (struct sockaddr*, socklen_t*);
+		virtual bool GetSockname (struct sockaddr*, socklen_t*);
 
 		virtual uint64_t GetCommInactivityTimeout();
 		virtual int SetCommInactivityTimeout (uint64_t value);
@@ -214,12 +217,10 @@ class ConnectionDescriptor: public EventableDescriptor
 		};
 
 	protected:
-		bool bPaused;
 		bool bConnectPending;
 
 		bool bNotifyReadable;
 		bool bNotifyWritable;
-		bool bWatchOnly;
 
 		bool bReadAttemptedAfterClose;
 		bool bWriteAttemptedAfterClose;
@@ -277,8 +278,8 @@ class DatagramDescriptor: public EventableDescriptor
 		// Do we have any data to write? This is used by ShouldDelete.
 		virtual int GetOutboundDataSize() {return OutboundDataSize;}
 
-		virtual bool GetPeername (struct sockaddr*);
-		virtual bool GetSockname (struct sockaddr*);
+		virtual bool GetPeername (struct sockaddr*, socklen_t*);
+		virtual bool GetSockname (struct sockaddr*, socklen_t*);
 
 		virtual uint64_t GetCommInactivityTimeout();
 		virtual int SetCommInactivityTimeout (uint64_t value);
@@ -317,7 +318,7 @@ class AcceptorDescriptor: public EventableDescriptor
 		virtual bool SelectForRead() {return true;}
 		virtual bool SelectForWrite() {return false;}
 
-		virtual bool GetSockname (struct sockaddr*);
+		virtual bool GetSockname (struct sockaddr*, socklen_t*);
 
 		static void StopAcceptor (const unsigned long binding);
 };

@@ -20,6 +20,7 @@ module EventMachine
 
   # Creates a periodic timer
   #
+  # @example
   #  n = 0
   #  timer = EventMachine::PeriodicTimer.new(5) do
   #    puts "the time is #{Time.now}"
@@ -32,6 +33,7 @@ module EventMachine
       @interval = interval
       @code = callback || block
       @cancelled = false
+      @work = method(:fire)
       schedule
     end
 
@@ -43,10 +45,13 @@ module EventMachine
     # Fire the timer every interval seconds
     attr_accessor :interval
 
-    def schedule # :nodoc:
-      EventMachine::add_timer @interval, method(:fire)
+    # @private
+    def schedule
+      EventMachine::add_timer @interval, @work
     end
-    def fire # :nodoc:
+
+    # @private
+    def fire
       unless @cancelled
         @code.call
         schedule

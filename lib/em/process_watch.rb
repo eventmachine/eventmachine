@@ -3,12 +3,13 @@ module EventMachine
   # This is subclassed from EventMachine::Connection for use with the process monitoring API. Read the
   # documentation on the instance methods of this class, and for a full explanation see EventMachine.watch_process.
   class ProcessWatch < Connection
-    # :stopdoc:
+    # @private
     Cfork = 'fork'.freeze
+    # @private
     Cexit = 'exit'.freeze
-    # :startdoc:
 
-    def receive_data(data) # :nodoc:
+    # @private
+    def receive_data(data)
       case data
       when Cfork
         process_forked

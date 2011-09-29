@@ -35,7 +35,8 @@ extern "C" {
 		EM_CONNECTION_NOTIFY_WRITABLE = 107,
 		EM_SSL_HANDSHAKE_COMPLETED = 108,
 		EM_SSL_VERIFY = 109,
-		EM_PROXY_TARGET_UNBOUND = 110
+		EM_PROXY_TARGET_UNBOUND = 110,
+		EM_PROXY_COMPLETED = 111
 
 	};
 
@@ -73,8 +74,8 @@ extern "C" {
 	void evma_accept_ssl_peer (const unsigned long binding);
 	#endif
 
-	int evma_get_peername (const unsigned long binding, struct sockaddr*);
-	int evma_get_sockname (const unsigned long binding, struct sockaddr*);
+	int evma_get_peername (const unsigned long binding, struct sockaddr*, socklen_t*);
+	int evma_get_sockname (const unsigned long binding, struct sockaddr*, socklen_t*);
 	int evma_get_subprocess_pid (const unsigned long binding, pid_t*);
 	int evma_get_subprocess_status (const unsigned long binding, int*);
 	int evma_get_connection_count();
@@ -98,7 +99,6 @@ extern "C" {
 	float evma_get_heartbeat_interval();
 	int evma_set_heartbeat_interval(float);
 
-	const unsigned long evma__write_file (const char *filename);
 	const unsigned long evma_popen (char * const*cmd_strings);
 
 	const unsigned long evma_watch_filename (const char *fname);
@@ -107,7 +107,7 @@ extern "C" {
 	const unsigned long evma_watch_pid (int);
 	void evma_unwatch_pid (const unsigned long);
 
-	void evma_start_proxy(const unsigned long, const unsigned long, const unsigned long);
+	void evma_start_proxy(const unsigned long, const unsigned long, const unsigned long, const unsigned long);
 	void evma_stop_proxy(const unsigned long);
 
 	int evma_set_rlimit_nofile (int n_files);

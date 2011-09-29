@@ -45,21 +45,18 @@ module EventMachine
     end
     alias_method :resume, :notify
     alias_method :run, :notify # for formulations like (EM.spawn {xxx}).run
-    #attr_accessor :receiver
 
-    #--
-    # I know I'm missing something stupid, but the inside of class << s
-    # can't see locally-bound values. It can see globals, though.
     def set_receiver blk
-      $em______tmpglobal = blk
-      class << self
-        define_method :call, $em______tmpglobal.dup
+      (class << self ; self ; end).class_eval do
+        remove_method :call if method_defined? :call
+        define_method :call, blk
       end
     end
 
   end
 
-  class YieldBlockFromSpawnedProcess # :nodoc:
+  # @private
+  class YieldBlockFromSpawnedProcess
     def initialize block, notify
       @block = [block,notify]
     end
@@ -75,11 +72,13 @@ module EventMachine
     s
   end
 
-  def self.yield &block # :nodoc:
+  # @private
+  def self.yield &block
     return YieldBlockFromSpawnedProcess.new( block, false )
   end
 
-  def self.yield_and_notify &block # :nodoc:
+  # @private
+  def self.yield_and_notify &block
     return YieldBlockFromSpawnedProcess.new( block, true )
   end
 end

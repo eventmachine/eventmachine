@@ -1,38 +1,8 @@
-# $Id$
-#
-# Author:: Francis Cianfrocca (gmail: blackhedd)
-# Homepage::  http://rubyeventmachine.com
-# Date:: 8 April 2006
-# 
-# See EventMachine and EventMachine::Connection for documentation and
-# usage examples.
-#
-#----------------------------------------------------------------------------
-#
-# Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
-# Gmail: blackhedd
-# 
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of either: 1) the GNU General Public License
-# as published by the Free Software Foundation; either version 2 of the
-# License, or (at your option) any later version; or 2) Ruby's License.
-# 
-# See the file COPYING for complete licensing information.
-#
-#---------------------------------------------------------------------------
-#
-#
-#
-
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestHeaderAndContentProtocol < Test::Unit::TestCase
 
-  TestHost = "127.0.0.1"
-  TestPort = 8905
-
-  class SimpleTest < EventMachine::Protocols::HeaderAndContentProtocol
+  class SimpleTest < EM::P::HeaderAndContentProtocol
     attr_reader :first_header, :my_headers, :request
 
     def receive_first_header_line hdr
@@ -51,19 +21,23 @@ class TestHeaderAndContentProtocol < Test::Unit::TestCase
   
   class StopOnUnbind < EM::Connection
     def unbind
-      EM.add_timer(0.1) { EM.stop }
+      EM.add_timer(0.01) { EM.stop }
     end
+  end
+
+  def setup
+    @port = next_port
   end
 
   def test_no_content
     the_connection = nil
     EM.run {
-      EM.start_server( TestHost, TestPort, SimpleTest ) do |conn|
+      EM.start_server( "127.0.0.1", @port, SimpleTest ) do |conn|
         the_connection = conn
       end
       setup_timeout
 
-      EM.connect TestHost, TestPort, StopOnUnbind do |c|
+      EM.connect "127.0.0.1", @port, StopOnUnbind do |c|
         c.send_data [ "aaa\n", "bbb\r\n", "ccc\n", "\n" ].join
         c.close_connection_after_writing
       end
@@ -77,13 +51,13 @@ class TestHeaderAndContentProtocol < Test::Unit::TestCase
     the_connection = nil
     content = "A" * 50
     headers = ["aaa", "bbb", "Content-length: #{content.length}", "ccc"]
-    EventMachine.run {
-      EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
+    EM.run {
+      EM.start_server( "127.0.0.1", @port, SimpleTest ) do |conn|
         the_connection = conn
       end
       setup_timeout
 
-      EM.connect TestHost, TestPort, StopOnUnbind do |c|
+      EM.connect "127.0.0.1", @port, StopOnUnbind do |c|
         headers.each { |h| c.send_data "#{h}\r\n" }
         c.send_data "\n"
         c.send_data content
@@ -99,13 +73,13 @@ class TestHeaderAndContentProtocol < Test::Unit::TestCase
     the_connection = nil
     content = "A" * 50
     headers = ["aaa", "bbb", "Content-length: #{content.length}", "ccc"]
-    EventMachine.run {
-      EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
+    EM.run {
+      EM.start_server( "127.0.0.1", @port, SimpleTest ) do |conn|
         the_connection = conn
       end
       setup_timeout
 
-      EventMachine.connect( TestHost, TestPort, StopOnUnbind ) do |c|
+      EM.connect( "127.0.0.1", @port, StopOnUnbind ) do |c|
         5.times do
           headers.each { |h| c.send_data "#{h}\r\n" }
           c.send_data "\n"
@@ -125,20 +99,20 @@ class TestHeaderAndContentProtocol < Test::Unit::TestCase
   #   the_connection = nil
   #   content = "A" * 50
   #   headers = ["aaa", "bbb", ["Content-length: #{content.length}"]*2, "ccc"].flatten
-  #   EventMachine.run {
-  #     EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
+  #   EM.run {
+  #     EM.start_server( "127.0.0.1", @port, SimpleTest ) do |conn|
   #       the_connection = conn
   #     end
-  #     EventMachine.add_timer(4) {raise "test timed out"}
+  #     EM.add_timer(4) {raise "test timed out"}
   #     test_proc = proc {
-  #       t = TCPSocket.new TestHost, TestPort
+  #       t = TCPSocket.new "127.0.0.1", @port
   #       headers.each {|h| t.write "#{h}\r\n" }
   #       t.write "\n"
   #       t.write content
   #       t.close
   #     }
-  #     EventMachine.defer test_proc, proc {
-  #       EventMachine.stop
+  #     EM.defer test_proc, proc {
+  #       EM.stop
   #     }
   #   }
   # end
@@ -154,13 +128,13 @@ class TestHeaderAndContentProtocol < Test::Unit::TestCase
       "x-tempest-header:ddd"
     ]
 
-    EventMachine.run {
-      EventMachine.start_server( TestHost, TestPort, SimpleTest ) do |conn|
+    EM.run {
+      EM.start_server( "127.0.0.1", @port, SimpleTest ) do |conn|
         the_connection = conn
       end
       setup_timeout
 
-      EventMachine.connect( TestHost, TestPort, StopOnUnbind ) do |c|
+      EM.connect( "127.0.0.1", @port, StopOnUnbind ) do |c|
         headers.each { |h| c.send_data "#{h}\r\n" }
         c.send_data "\n"
         c.send_data content
@@ -176,15 +150,6 @@ class TestHeaderAndContentProtocol < Test::Unit::TestCase
       :x_tempest_header => "ddd"
     }
     assert_equal(expect, hsh)
-  end
-
-  def setup_timeout(timeout = 4)
-    EM.schedule {
-      start_time = EM.current_time
-      EM.add_periodic_timer(0.01) {
-        raise "timeout" if EM.current_time - start_time >= timeout
-      }
-    }
   end
 
 end

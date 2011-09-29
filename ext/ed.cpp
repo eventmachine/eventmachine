@@ -54,6 +54,7 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	bCloseNow (false),
 	bCloseAfterWriting (false),
 	MySocket (sd),
+	bWatchOnly (false),
 	EventCallback (NULL),
 	bCallbackUnbind (true),
 	UnbindReasonCode (0),
@@ -62,7 +63,8 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	MaxOutboundBufSize(0),
 	MyEventMachine (em),
 	PendingConnectTimeout(20000000),
-	InactivityTimeout (0)
+	InactivityTimeout (0),
+	bPaused (false)
 {
 	/* There are three ways to close a socket, all of which should
 	 * automatically signal to the event machine that this object
@@ -89,13 +91,13 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 		throw std::runtime_error ("bad eventable descriptor");
 	if (MyEventMachine == NULL)
 		throw std::runtime_error ("bad em in eventable descriptor");
-	CreatedAt = MyEventMachine->GetCurrentTime();
+	CreatedAt = MyEventMachine->GetCurrentLoopTime();
 
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = 0;
 	EpollEvent.data.ptr = this;
 	#endif
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 }
 
 
@@ -106,7 +108,7 @@ EventableDescriptor::~EventableDescriptor
 EventableDescriptor::~EventableDescriptor()
 {
 	if (NextHeartbeat)
-		MyEventMachine->ClearHeartbeat(NextHeartbeat);
+		MyEventMachine->ClearHeartbeat(NextHeartbeat, this);
 	if (EventCallback && bCallbackUnbind)
 		(*EventCallback)(GetBinding(), EM_CONNECTION_UNBOUND, NULL, UnbindReasonCode);
 	if (ProxiedFrom) {
@@ -135,10 +137,54 @@ EventableDescriptor::Close
 
 void EventableDescriptor::Close()
 {
+	/* EventMachine relies on the fact that when close(fd)
+	 * is called that the fd is removed from any
+	 * epoll event queues.
+	 *
+	 * However, this is not *always* the behavior of close(fd)
+	 *
+	 * See man 4 epoll Q6/A6 and then consider what happens
+	 * when using pipes with eventmachine.
+	 * (As is often done when communicating with a subprocess)
+	 *
+	 * The pipes end up looking like:
+	 *
+	 * ls -l /proc/<pid>/fd
+	 * ...
+	 * lr-x------ 1 root root 64 2011-08-19 21:31 3 -> pipe:[940970]
+	 * l-wx------ 1 root root 64 2011-08-19 21:31 4 -> pipe:[940970]
+	 *
+	 * This meets the critera from man 4 epoll Q6/A4 for not
+	 * removing fds from epoll event queues until all fds
+	 * that reference the underlying file have been removed.
+	 *
+	 * If the EventableDescriptor associated with fd 3 is deleted,
+	 * its dtor will call EventableDescriptor::Close(),
+	 * which will call ::close(int fd).
+	 *
+	 * However, unless the EventableDescriptor associated with fd 4 is
+	 * also deleted before the next call to epoll_wait, events may fire
+	 * for fd 3 that were registered with an already deleted
+	 * EventableDescriptor.
+	 *
+	 * Therefore, it is necessary to notify EventMachine that
+	 * the fd associated with this EventableDescriptor is
+	 * closing.
+	 *
+	 * EventMachine also never closes fds for STDIN, STDOUT and 
+	 * STDERR (0, 1 & 2)
+	 */
+
 	// Close the socket right now. Intended for emergencies.
 	if (MySocket != INVALID_SOCKET) {
-		shutdown (MySocket, 1);
-		closesocket (MySocket);
+		MyEventMachine->Deregister (this);
+		
+		// Do not close STDIN, STDOUT, STDERR
+		if (MySocket > 2 && !bWatchOnly) {
+			shutdown (MySocket, 1);
+			close (MySocket);
+		}
+		
 		MySocket = INVALID_SOCKET;
 	}
 }
@@ -193,12 +239,13 @@ bool EventableDescriptor::IsCloseScheduled()
 EventableDescriptor::StartProxy
 *******************************/
 
-void EventableDescriptor::StartProxy(const unsigned long to, const unsigned long bufsize)
+void EventableDescriptor::StartProxy(const unsigned long to, const unsigned long bufsize, const unsigned long length)
 {
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (to));
 	if (ed) {
 		StopProxy();
 		ProxyTarget = ed;
+		BytesToProxy = length;
 		ed->SetProxiedFrom(this, bufsize);
 		return;
 	}
@@ -225,6 +272,9 @@ EventableDescriptor::SetProxiedFrom
 
 void EventableDescriptor::SetProxiedFrom(EventableDescriptor *from, const unsigned long bufsize)
 {
+	if (from != NULL && ProxiedFrom != NULL)
+		throw std::runtime_error ("Tried to proxy to a busy target");
+
 	ProxiedFrom = from;
 	MaxOutboundBufSize = bufsize;
 }
@@ -238,10 +288,24 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 {
 	assert(EventCallback);
 
-	if (ProxyTarget)
-		ProxyTarget->SendOutboundData(buf, size);
-	else
+	if (ProxyTarget) {
+		if (BytesToProxy > 0) {
+			unsigned long proxied = min(BytesToProxy, (unsigned long) size);
+			ProxyTarget->SendOutboundData(buf, proxied);
+			BytesToProxy -= proxied;
+			if (BytesToProxy == 0) {
+				StopProxy();
+				(*EventCallback)(GetBinding(), EM_PROXY_COMPLETED, NULL, 0);
+				if (proxied < size) {
+					(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf + proxied, size - proxied);
+				}
+			}
+		} else {
+			ProxyTarget->SendOutboundData(buf, size);
+		}
+	} else {
 		(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf, size);
+	}
 }
 
 
@@ -277,12 +341,12 @@ EventableDescriptor::GetNextHeartbeat
 uint64_t EventableDescriptor::GetNextHeartbeat()
 {
 	if (NextHeartbeat)
-		MyEventMachine->ClearHeartbeat(NextHeartbeat);
+		MyEventMachine->ClearHeartbeat(NextHeartbeat, this);
 
 	NextHeartbeat = 0;
 
 	if (!ShouldDelete()) {
-		uint64_t time_til_next = GetCommInactivityTimeout() * 1000;
+		uint64_t time_til_next = InactivityTimeout;
 		if (IsConnectPending()) {
 			if (time_til_next == 0 || PendingConnectTimeout < time_til_next)
 				time_til_next = PendingConnectTimeout;
@@ -302,11 +366,9 @@ ConnectionDescriptor::ConnectionDescriptor
 
 ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	EventableDescriptor (sd, em),
-	bPaused (false),
 	bConnectPending (false),
 	bNotifyReadable (false),
 	bNotifyWritable (false),
-	bWatchOnly (false),
 	bReadAttemptedAfterClose (false),
 	bWriteAttemptedAfterClose (false),
 	OutboundDataSize (0),
@@ -521,7 +583,11 @@ int ConnectionDescriptor::_SendRawOutboundData (const char *data, int length)
 	// (Well, not so bad, small pages are coalesced in ::Write)
 
 	if (IsCloseScheduled())
-	//if (bCloseNow || bCloseAfterWriting)
+		return 0;
+
+	// 25Mar10: Ignore 0 length packets as they are not meaningful in TCP (as opposed to UDP)
+	// and can cause the assert(nbytes>0) to fail when OutboundPages has a bunch of 0 length pages.
+	if (length == 0)
 		return 0;
 
 	if (!data && (length > 0))
@@ -668,7 +734,7 @@ void ConnectionDescriptor::Read()
 		return;
 	}
 
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 
 	int total_bytes_read = 0;
 	char readbuffer [16 * 1024 + 1];
@@ -683,6 +749,7 @@ void ConnectionDescriptor::Read()
 		
 
 		int r = read (sd, readbuffer, sizeof(readbuffer) - 1);
+		int e = errno;
 		//cerr << "<R:" << r << ">";
 
 		if (r > 0) {
@@ -701,8 +768,21 @@ void ConnectionDescriptor::Read()
 			break;
 		}
 		else {
-			// Basically a would-block, meaning we've read everything there is to read.
-			break;
+			#ifdef OS_UNIX
+			if ((e != EINPROGRESS) && (e != EWOULDBLOCK) && (e != EAGAIN) && (e != EINTR)) {
+			#endif
+			#ifdef OS_WIN32
+			if ((e != WSAEINPROGRESS) && (e != WSAEWOULDBLOCK)) {
+			#endif
+				// 26Mar11: Previously, all read errors were assumed to be EWOULDBLOCK and ignored.
+				// Now, instead, we call Close() on errors like ECONNRESET and ENOTCONN.
+				UnbindReasonCode = e;
+				Close();
+				break;
+			} else {
+				// Basically a would-block, meaning we've read everything there is to read.
+				break;
+			}
 		}
 
 	}
@@ -811,9 +891,12 @@ void ConnectionDescriptor::Write()
 			// from EventMachine_t::AttachFD as well.
 			SetConnectPending (false);
 		}
-		else
+		else {
+			if (o == 0)
+				UnbindReasonCode = error;
 			ScheduleClose (false);
 			//bCloseNow = true;
+		}
 	}
 	else {
 
@@ -874,7 +957,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 		return;
 	}
 
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 	size_t nbytes = 0;
 
 	#ifdef HAVE_WRITEV
@@ -933,6 +1016,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 	#endif
 
 	bool err = false;
+	int e = errno;
 	if (bytes_written < 0) {
 		err = true;
 		bytes_written = 0;
@@ -983,12 +1067,14 @@ void ConnectionDescriptor::_WriteOutboundData()
 
 	if (err) {
 		#ifdef OS_UNIX
-		if ((errno != EINPROGRESS) && (errno != EWOULDBLOCK) && (errno != EINTR))
+		if ((e != EINPROGRESS) && (e != EWOULDBLOCK) && (e != EINTR)) {
 		#endif
 		#ifdef OS_WIN32
-		if ((errno != WSAEINPROGRESS) && (errno != WSAEWOULDBLOCK))
+		if ((e != WSAEINPROGRESS) && (e != WSAEWOULDBLOCK)) {
 		#endif
+			UnbindReasonCode = e;
 			Close();
+		}
 	}
 }
 
@@ -999,6 +1085,10 @@ ConnectionDescriptor::ReportErrorStatus
 
 int ConnectionDescriptor::ReportErrorStatus()
 {
+	if (MySocket == INVALID_SOCKET) {
+		return -1;
+	}
+
 	int error;
 	socklen_t len;
 	len = sizeof(error);
@@ -1010,8 +1100,10 @@ int ConnectionDescriptor::ReportErrorStatus()
 	#endif
 	if ((o == 0) && (error == 0))
 		return 0;
+	else if (o == 0)
+		return error;
 	else
-		return 1;
+		return -1;
 }
 
 
@@ -1178,14 +1270,18 @@ void ConnectionDescriptor::Heartbeat()
 	 */
 
 	if (bConnectPending) {
-		if ((MyEventMachine->GetCurrentTime() - CreatedAt) >= PendingConnectTimeout)
+		if ((MyEventMachine->GetCurrentLoopTime() - CreatedAt) >= PendingConnectTimeout) {
+			UnbindReasonCode = ETIMEDOUT;
 			ScheduleClose (false);
 			//bCloseNow = true;
+    }
 	}
 	else {
-		if (InactivityTimeout && ((MyEventMachine->GetCurrentTime() - LastActivity) >= InactivityTimeout))
+		if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout)) {
+			UnbindReasonCode = ETIMEDOUT;
 			ScheduleClose (false);
 			//bCloseNow = true;
+    }
 	}
 }
 
@@ -1316,7 +1412,7 @@ void AcceptorDescriptor::Read()
 		//int val = fcntl (sd, F_GETFL, 0);
 		//if (fcntl (sd, F_SETFL, val | O_NONBLOCK) == -1) {
 			shutdown (sd, 1);
-			closesocket (sd);
+			close (sd);
 			continue;
 		}
 
@@ -1373,12 +1469,11 @@ void AcceptorDescriptor::Heartbeat()
 AcceptorDescriptor::GetSockname
 *******************************/
 
-bool AcceptorDescriptor::GetSockname (struct sockaddr *s)
+bool AcceptorDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		socklen_t len = sizeof(*s);
-		int gp = getsockname (GetSocket(), s, &len);
+		int gp = getsockname (GetSocket(), s, len);
 		if (gp == 0)
 			ok = true;
 	}
@@ -1447,7 +1542,7 @@ void DatagramDescriptor::Heartbeat()
 {
 	// Close it if its inactivity timer has expired.
 
-	if (InactivityTimeout && ((MyEventMachine->GetCurrentTime() - LastActivity) >= InactivityTimeout))
+	if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout))
 		ScheduleClose (false);
 		//bCloseNow = true;
 }
@@ -1461,7 +1556,7 @@ void DatagramDescriptor::Read()
 {
 	int sd = GetSocket();
 	assert (sd != INVALID_SOCKET);
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 
 	// This is an extremely large read buffer.
 	// In many cases you wouldn't expect to get any more than 4K.
@@ -1538,7 +1633,7 @@ void DatagramDescriptor::Write()
 
 	int sd = GetSocket();
 	assert (sd != INVALID_SOCKET);
-	LastActivity = MyEventMachine->GetCurrentTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 
 	assert (OutboundPages.size() > 0);
 
@@ -1563,6 +1658,7 @@ void DatagramDescriptor::Write()
 			#ifdef OS_WIN32
 			if ((e != WSAEINPROGRESS) && (e != WSAEWOULDBLOCK)) {
 			#endif
+				UnbindReasonCode = e;
 				Close();
 				break;
 			}
@@ -1604,11 +1700,11 @@ DatagramDescriptor::SendOutboundData
 
 int DatagramDescriptor::SendOutboundData (const char *data, int length)
 {
-	// This is an exact clone of ConnectionDescriptor::SendOutboundData.
-	// That means it needs to move to a common ancestor.
+	// This is almost an exact clone of ConnectionDescriptor::_SendRawOutboundData.
+	// That means most of it could be factored to a common ancestor. Note that
+	// empty datagrams are meaningful, which isn't the case for TCP streams.
 
 	if (IsCloseScheduled())
-	//if (bCloseNow || bCloseAfterWriting)
 		return 0;
 
 	if (!data && (length > 0))
@@ -1696,12 +1792,11 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 ConnectionDescriptor::GetPeername
 *********************************/
 
-bool ConnectionDescriptor::GetPeername (struct sockaddr *s)
+bool ConnectionDescriptor::GetPeername (struct sockaddr *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		socklen_t len = sizeof(*s);
-		int gp = getpeername (GetSocket(), s, &len);
+		int gp = getpeername (GetSocket(), s, len);
 		if (gp == 0)
 			ok = true;
 	}
@@ -1712,12 +1807,11 @@ bool ConnectionDescriptor::GetPeername (struct sockaddr *s)
 ConnectionDescriptor::GetSockname
 *********************************/
 
-bool ConnectionDescriptor::GetSockname (struct sockaddr *s)
+bool ConnectionDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		socklen_t len = sizeof(*s);
-		int gp = getsockname (GetSocket(), s, &len);
+		int gp = getsockname (GetSocket(), s, len);
 		if (gp == 0)
 			ok = true;
 	}
@@ -1741,22 +1835,20 @@ ConnectionDescriptor::SetCommInactivityTimeout
 
 int ConnectionDescriptor::SetCommInactivityTimeout (uint64_t value)
 {
-	if (value > 0) {
-		InactivityTimeout = value * 1000;
-		MyEventMachine->QueueHeartbeat(this);
-		return 1;
-	}
-	return 0;
+	InactivityTimeout = value * 1000;
+	MyEventMachine->QueueHeartbeat(this);
+	return 1;
 }
 
 /*******************************
 DatagramDescriptor::GetPeername
 *******************************/
 
-bool DatagramDescriptor::GetPeername (struct sockaddr *s)
+bool DatagramDescriptor::GetPeername (struct sockaddr *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
+		*len = sizeof(struct sockaddr);
 		memset (s, 0, sizeof(struct sockaddr));
 		memcpy (s, &ReturnAddress, sizeof(ReturnAddress));
 		ok = true;
@@ -1768,12 +1860,11 @@ bool DatagramDescriptor::GetPeername (struct sockaddr *s)
 DatagramDescriptor::GetSockname
 *******************************/
 
-bool DatagramDescriptor::GetSockname (struct sockaddr *s)
+bool DatagramDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		socklen_t len = sizeof(*s);
-		int gp = getsockname (GetSocket(), s, &len);
+		int gp = getsockname (GetSocket(), s, len);
 		if (gp == 0)
 			ok = true;
 	}

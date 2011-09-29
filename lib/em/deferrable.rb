@@ -25,6 +25,7 @@
 
 module EventMachine
   module Deferrable
+    autoload :Pool, 'em/deferrable/pool'
 
     # Specify a block to be executed if and when the Deferrable object receives
     # a status of :succeeded. See #set_deferred_status for more information.
@@ -49,6 +50,14 @@ module EventMachine
         @callbacks ||= []
         @callbacks.unshift block # << block
       end
+      self
+    end
+
+    # Cancels an outstanding callback to &block if any. Undoes the action of #callback.
+    #
+    def cancel_callback block
+      @callbacks ||= []
+      @callbacks.delete block
     end
 
     # Specify a block to be executed if and when the Deferrable object receives
@@ -67,6 +76,14 @@ module EventMachine
         @errbacks ||= []
         @errbacks.unshift block # << block
       end
+      self
+    end
+
+    # Cancels an outstanding errback to &block if any. Undoes the action of #errback.
+    #
+    def cancel_errback block
+      @errbacks ||= []
+      @errbacks.delete block
     end
 
     # Sets the "disposition" (status) of the Deferrable object. See also the large set of
@@ -150,10 +167,11 @@ module EventMachine
     # the Timeout expires (passing no arguments to the object's errbacks).
     # Setting the status at any time prior to a call to the expiration of the timeout
     # will cause the timer to be cancelled.
-    def timeout seconds
+    def timeout seconds, *args
       cancel_timeout
       me = self
-      @deferred_timeout = EventMachine::Timer.new(seconds) {me.fail}
+      @deferred_timeout = EventMachine::Timer.new(seconds) {me.fail(*args)}
+      self
     end
 
     # Cancels an outstanding timeout if any. Undoes the action of #timeout.

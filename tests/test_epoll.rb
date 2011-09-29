@@ -1,35 +1,4 @@
-# $Id$
-#
-# Author:: Francis Cianfrocca (gmail: blackhedd)
-# Homepage::  http://rubyeventmachine.com
-# Date:: 8 April 2006
-# 
-# See EventMachine and EventMachine::Connection for documentation and
-# usage examples.
-#
-#----------------------------------------------------------------------------
-#
-# Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
-# Gmail: blackhedd
-# 
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of either: 1) the GNU General Public License
-# as published by the Free Software Foundation; either version 2 of the
-# License, or (at your option) any later version; or 2) Ruby's License.
-# 
-# See the file COPYING for complete licensing information.
-#
-#---------------------------------------------------------------------------
-#
-#
-#
-# TODO, and I know this doesn't belong here, but if a datagram calls
-# send_data outside of a receive_data, there is no return address, and
-# the result is a very confusing error message.
-#
-
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 
 class TestEpoll < Test::Unit::TestCase
@@ -56,16 +25,19 @@ class TestEpoll < Test::Unit::TestCase
   end
 
 
-  # We can set the rlimit/nofile of a process but we can only set it
-  # higher if we're running as root.
-  # On most systems, the default value is 1024.
-  # Java doesn't (currently) implement this.
-  def test_rlimit
-    unless RUBY_PLATFORM =~ /java/ or EM.set_descriptor_table_size >= 1024
-      a = EM.set_descriptor_table_size
-      assert( a <= 1024 )
-      a = EM.set_descriptor_table_size( 1024 )
-      assert( a == 1024 )
+  if windows? || jruby?
+    warn "EM.set_descriptor_table_size not implemented, skipping test in #{__FILE__}"
+  else
+    # We can set the rlimit/nofile of a process but we can only set it
+    # higher if we're running as root.
+    # On most systems, the default value is 1024.
+    def test_rlimit
+      unless EM.set_descriptor_table_size >= 1024
+        a = EM.set_descriptor_table_size
+        assert( a <= 1024 )
+        a = EM.set_descriptor_table_size( 1024 )
+        assert( a == 1024 )
+      end
     end
   end
 
@@ -77,7 +49,7 @@ class TestEpoll < Test::Unit::TestCase
   # XXX this test causes all sort of weird issues on OSX (when run as part of the suite)
   def _test_descriptors
     EM.epoll
-    s = EM.set_descriptor_table_size 60000
+    EM.set_descriptor_table_size 60000
     EM.run {
       EM.start_server "127.0.0.1", 9800, TestEchoServer
       $n = 0
@@ -90,16 +62,9 @@ class TestEpoll < Test::Unit::TestCase
     assert_equal(100, $max)
   end
 
-  def test_defer
-    n = 0
-    work_proc = proc {n += 1}
-    callback_proc = proc {EM.stop}
-    EM.run {
-      EM.defer work_proc, callback_proc
-    }
-    assert_equal( 1, n )
-  end unless RUBY_VERSION >= '1.9.0'
-
+  def setup
+    @port = next_port
+  end
 
   module TestDatagramServer
     def receive_data dgm
@@ -108,9 +73,14 @@ class TestEpoll < Test::Unit::TestCase
     end
   end
   module TestDatagramClient
-    def post_init
-      send_datagram "1234567890", "127.0.0.1", 9500
+    def initialize port
+      @port = port
     end
+
+    def post_init
+      send_datagram "1234567890", "127.0.0.1", @port
+    end
+
     def receive_data dgm
       $out = dgm
       EM.stop
@@ -120,8 +90,8 @@ class TestEpoll < Test::Unit::TestCase
   def test_datagrams
     $in = $out = ""
     EM.run {
-      EM.open_datagram_socket "127.0.0.1", 9500, TestDatagramServer
-      EM.open_datagram_socket "127.0.0.1", 0, TestDatagramClient
+      EM.open_datagram_socket "127.0.0.1", @port, TestDatagramServer
+      EM.open_datagram_socket "127.0.0.1", 0, TestDatagramClient, @port
     }
     assert_equal( "1234567890", $in )
     assert_equal( "abcdefghij", $out )
@@ -131,7 +101,7 @@ class TestEpoll < Test::Unit::TestCase
   def _test_unix_domain
     fn = "/tmp/xxx.chain"
     EM.epoll
-    s = EM.set_descriptor_table_size 60000
+    EM.set_descriptor_table_size 60000
     EM.run {
       # The pure-Ruby version won't let us open the socket if the node already exists.
       # Not sure, that actually may be correct and the compiled version is wrong.

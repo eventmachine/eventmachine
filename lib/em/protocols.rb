@@ -5,7 +5,7 @@ module EventMachine
   # - Memcache
   # - SmtpClient and SmtpServer
   # - SASLauth and SASLauthclient
-  # - LineAndTextProtocol and LineText2
+  # - LineProtocol, LineAndTextProtocol and LineText2
   # - HeaderAndContentProtocol
   # - Postgres3
   # - ObjectProtocol

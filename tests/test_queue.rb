@@ -1,8 +1,6 @@
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
-class TestEventMachineQueue < Test::Unit::TestCase
+class TestEMQueue < Test::Unit::TestCase
   def test_queue_push
     s = 0
     EM.run do
@@ -40,5 +38,13 @@ class TestEventMachineQueue < Test::Unit::TestCase
     assert_equal nil, x
     EM.run { EM.next_tick { EM.stop } }
     assert_equal 1, x
+  end
+
+  def test_num_waiting
+    q = EM::Queue.new
+    many = 3
+    many.times { q.pop {} }
+    EM.run { EM.next_tick { EM.stop } }
+    assert_equal many, q.num_waiting
   end
 end

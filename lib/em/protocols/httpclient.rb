@@ -3,7 +3,7 @@
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com
 # Date:: 16 July 2006
-# 
+#
 # See EventMachine and EventMachine::Connection for documentation and
 # usage examples.
 #
@@ -11,25 +11,26 @@
 #
 # Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
 # Gmail: blackhedd
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of either: 1) the GNU General Public License
 # as published by the Free Software Foundation; either version 2 of the
 # License, or (at your option) any later version; or 2) Ruby's License.
-# 
+#
 # See the file COPYING for complete licensing information.
 #
 #---------------------------------------------------------------------------
 #
-# 
+#
 
 
 
 module EventMachine
   module Protocols
 
-    # === Usage
+    # <b>Note:</b> This class is deprecated and will be removed. Please use EM-HTTP-Request instead.
     #
+    # @example
     #  EventMachine.run {
     #    http = EventMachine::Protocols::HttpClient.request(
     #      :host => server,
@@ -62,11 +63,21 @@ module EventMachine
 
       MaxPostContentLength = 20 * 1024 * 1024
 
-      # === Arg list
-      # :host => 'ip/dns', :port => fixnum, :verb => 'GET', :request => 'path',
-      # :basic_auth => {:username => '', :password => ''}, :content => 'content',
-      # :contenttype => 'text/plain', :query_string => '', :host_header => '',
-      # :cookie => ''
+      def initialize
+        warn "HttpClient is deprecated and will be removed. EM-Http-Request should be used instead."
+      end
+
+      # @param args [Hash] The request arguments
+      # @option args [String] :host The host IP/DNS name
+      # @option args [Integer] :port The port to connect too
+      # @option args [String] :verb The request type [GET | POST | DELETE | PUT]
+      # @option args [String] :request The request path
+      # @option args [Hash] :basic_auth The basic auth credentials (:username and :password)
+      # @option args [String] :content The request content
+      # @option args [String] :contenttype The content type (e.g. text/plain)
+      # @option args [String] :query_string The query string
+      # @option args [String] :host_header The host header to set
+      # @option args [String] :cookie Cookies to set
       def self.request( args = {} )
         args[:port] ||= 80
         EventMachine.connect( args[:host], args[:port], self ) {|c|
@@ -141,6 +152,11 @@ module EventMachine
           if args[:cookie]
             req << "Cookie: #{args[:cookie]}"
           end
+
+          # Allow custom HTTP headers, e.g. SOAPAction
+          args[:custom_headers].each do |k,v|
+            req << "#{k}: #{v}"
+          end if args[:custom_headers]
 
           # Basic-auth stanza contributed by Matt Murphy.
           if args[:basic_auth]

@@ -28,7 +28,7 @@
 # which is a garden-variety Ruby-extension glue module.
 
 require 'java'
-require 'em_reactor'
+require 'rubyeventmachine'
 require 'socket'
 
 java_import java.io.FileDescriptor
@@ -59,17 +59,27 @@ SocketChannel.send :include, JavaFields
 module EventMachine
   # TODO: These event numbers are defined in way too many places.
   # DRY them up.
+  # @private
   TimerFired = 100
+  # @private
   ConnectionData = 101
+  # @private
   ConnectionUnbound = 102
+  # @private
   ConnectionAccepted = 103
+  # @private
   ConnectionCompleted = 104
+  # @private
   LoopbreakSignalled = 105
+  # @private
   ConnectionNotifyReadable = 106
+  # @private
   ConnectionNotifyWritable = 107
+  # @private
   SslHandshakeCompleted = 108
 
   # Exceptions that are defined in rubymain.cpp
+  class ConnectionError < RuntimeError; end
   class ConnectionNotBound < RuntimeError; end
   class UnknownTimerFired < RuntimeError; end
   class Unsupported < RuntimeError; end
@@ -117,7 +127,7 @@ module EventMachine
     @em.sendData sig, data.to_java_bytes
   end
   def self.send_datagram sig, data, length, address, port
-    @em.sendDatagram sig, data, length, address, port
+    @em.sendDatagram sig, data.to_java_bytes, length, address, port
   end
   def self.connect_server server, port
     bind_connect_server nil, nil, server, port
@@ -130,6 +140,10 @@ module EventMachine
   end
   def self.set_comm_inactivity_timeout sig, interval
     @em.setCommInactivityTimeout sig, interval
+  end
+  def self.set_pending_connect_timeout sig, val
+  end
+  def self.set_heartbeat_interval val
   end
   def self.start_tls sig
     @em.startTls sig
@@ -186,9 +200,10 @@ module EventMachine
   end
   def self.get_peername sig
     if peer = @em.getPeerName(sig)
-      Socket.pack_sockaddr_in *peer
+      Socket.pack_sockaddr_in(*peer)
     end
   end
+  # @private
   def self.attach_fd fileno, watch_mode
     # 3Aug09: We could pass in the actual SocketChannel, but then it would be modified (set as non-blocking), and
     # we would need some logic to make sure detach_fd below didn't clobber it. For now, we just always make a new
@@ -246,6 +261,13 @@ module EventMachine
   end
   def self.get_connection_count
     @em.getConnectionCount
+  end
+
+  def self.set_tls_parms(sig, params)
+  end
+  def self.start_tls(sig)
+  end
+  def self.send_file_data(sig, filename)
   end
 
   class Connection

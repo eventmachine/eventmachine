@@ -24,25 +24,24 @@
 # 
 # 
 
-require 'readbytes'
 require 'postgres-pr/message'
 require 'postgres-pr/connection'
 require 'stringio'
 
-class StringIO # :nodoc:
+# @private
+class StringIO
   # Reads exactly +n+ bytes.
   #
   # If the data read is nil an EOFError is raised.
   #
-  # If the data read is too short a TruncatedDataError is raised and the read
-  # data is obtainable via its #data method.
+  # If the data read is too short an IOError is raised
   def readbytes(n)
     str = read(n)
     if str == nil
       raise EOFError, "End of file reached"
     end
     if str.size < n
-      raise TruncatedDataError.new("data truncated", str) 
+      raise IOError, "data truncated"
     end
     str
   end
@@ -67,15 +66,15 @@ module EventMachine
     # in basically a production-ready state, and the wire protocol isn't that complicated
     # anyway.
     #
-    # We need to monkeypatch StringIO because it lacks the #readbytes method needed
-    # by postgres-pr.
-    #
     # We're tucking in a bunch of require statements that may not be present in garden-variety
     # EM installations. Until we find a good way to only require these if a program
     # requires postgres, this file will need to be required explicitly.
     #
-    # The StringIO monkeypatch is lifted verbatim from the standard library readbytes.rb,
+    # We need to monkeypatch StringIO because it lacks the #readbytes method needed
+    # by postgres-pr.
+    # The StringIO monkeypatch is lifted from the standard library readbytes.rb,
     # which adds method #readbytes directly to class IO. But StringIO is not a subclass of IO.
+    # It is modified to raise an IOError instead of TruncatedDataException since the exception is unused.
     #
     # We cloned the handling of postgres messages from lib/postgres-pr/connection.rb
     # in the postgres-pr library, and modified it for event-handling.

@@ -1,8 +1,6 @@
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
-class TestEventMachineChannel < Test::Unit::TestCase
+class TestEMChannel < Test::Unit::TestCase
   def test_channel_subscribe
     s = 0
     EM.run do
@@ -30,8 +28,9 @@ class TestEventMachineChannel < Test::Unit::TestCase
     EM.run do
       c = EM::Channel.new
       c.pop{ |v| s = v }
-      c << 1
-      c << 2
+      c.push(1,2,3)
+      c << 4
+      c << 5
       EM.next_tick { EM.stop }
     end
     assert_equal 1, s

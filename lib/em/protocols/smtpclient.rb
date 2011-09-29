@@ -3,7 +3,7 @@
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com
 # Date:: 16 July 2006
-# 
+#
 # See EventMachine and EventMachine::Connection for documentation and
 # usage examples.
 #
@@ -11,17 +11,17 @@
 #
 # Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
 # Gmail: blackhedd
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of either: 1) the GNU General Public License
 # as published by the Free Software Foundation; either version 2 of the
 # License, or (at your option) any later version; or 2) Ruby's License.
-# 
+#
 # See the file COPYING for complete licensing information.
 #
 #---------------------------------------------------------------------------
 #
-# 
+#
 
 require 'ostruct'
 
@@ -30,6 +30,7 @@ module EventMachine
 
     # Simple SMTP client
     #
+    # @example
     #  email = EM::Protocols::SmtpClient.send(
     #    :domain=>"example.com",
     #    :host=>'localhost',
@@ -66,7 +67,7 @@ module EventMachine
     class SmtpClient < Connection
       include EventMachine::Deferrable
       include EventMachine::Protocols::LineText2
-      
+
       def initialize
         @succeeded = nil
         @responder = nil
@@ -91,7 +92,10 @@ module EventMachine
       #   depending on the type.
       #   Currently only :type => :plain is supported. Pass additional parameters :username (String),
       #   and :password (either a String or a Proc that will be called at auth-time).
-      #   Example: :auth => {:type=>:plain, :username=>"mickey@disney.com", :password=>"mouse"}
+      #
+      #   @example
+      #     :auth => {:type=>:plain, :username=>"mickey@disney.com", :password=>"mouse"}
+      #
       # :from => required String
       #   Specifies the sender of the message. Will be passed as the argument
       #   to the MAIL FROM. Do NOT enclose the argument in angle-bracket (<>) characters.
@@ -109,7 +113,9 @@ module EventMachine
       #   containing the header values. TODO, support Arrays of header values, which would cause us to
       #   send that specific header line more than once.
       #
-      #   Example: :header => {"Subject" => "Bogus", "CC" => "myboss@example.com"}
+      #   @example
+      #     :header => {"Subject" => "Bogus", "CC" => "myboss@example.com"}
+      #
       # :body => Optional string, defaults blank.
       #   This will be passed as the body of the email message.
       #   TODO, this needs to be significantly beefed up. As currently written, this requires the caller
@@ -156,15 +162,15 @@ module EventMachine
         }
       end
 
-      # :stopdoc:
-
       attr_writer :args
 
+      # @private
       def post_init
         @return_values = OpenStruct.new
         @return_values.start_time = Time.now
       end
 
+      # @private
       def connection_completed
         @responder = :receive_signon
         @msg = []
@@ -175,6 +181,7 @@ module EventMachine
       # set a deferred success because the caller will already have done it
       # (no need to wait until the connection closes to invoke the callbacks).
       #
+      # @private
       def unbind
         unless @succeeded
           @return_values.elapsed_time = Time.now - @return_values.start_time
@@ -185,6 +192,7 @@ module EventMachine
         end
       end
 
+      # @private
       def receive_line ln
         $>.puts ln if @args[:verbose]
         @range = ln[0...1].to_i
@@ -196,6 +204,8 @@ module EventMachine
           @msg.clear
         end
       end
+
+      private
 
       # We encountered an error from the server and will close the connection.
       # Use the error and message the server returned.
@@ -350,8 +360,6 @@ module EventMachine
         @return_values.message = @msg
         set_deferred_status :succeeded, @return_values
       end
-
-      # :startdoc:
     end
   end
 end

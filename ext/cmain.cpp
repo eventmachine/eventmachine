@@ -25,6 +25,7 @@ See the file COPYING for complete licensing information.
 */
 #if defined(BUILD_FOR_RUBY) && defined(OS_WIN32)
 #undef stat
+#undef fstat
 #endif
 
 static EventMachine_t *EventMachine;
@@ -51,9 +52,6 @@ evma_initialize_library
 
 extern "C" void evma_initialize_library (EMCallback cb)
 {
-	// Probably a bad idea to mess with the signal mask of a process
-	// we're just being linked into.
-	//InstallSignalHandlers();
 	if (EventMachine)
 		#ifdef BUILD_FOR_RUBY
 			rb_raise(rb_eRuntimeError, "eventmachine already initialized: evma_initialize_library");
@@ -222,7 +220,7 @@ evma_pause
 
 extern "C" int evma_pause (const unsigned long binding)
 {
-	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
+	EventableDescriptor *cd = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (cd)
 		return cd->Pause() ? 1 : 0;
 
@@ -235,7 +233,7 @@ evma_resume
 
 extern "C" int evma_resume (const unsigned long binding)
 {
-	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
+	EventableDescriptor *cd = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (cd)
 		return cd->Resume() ? 1 : 0;
 
@@ -248,7 +246,7 @@ evma_is_paused
 
 extern "C" int evma_is_paused (const unsigned long binding)
 {
-	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject (binding));
+	EventableDescriptor *cd = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (cd)
 		return cd->IsPaused() ? 1 : 0;
 
@@ -475,12 +473,12 @@ extern "C" void evma_accept_ssl_peer (const unsigned long binding)
 evma_get_peername
 *****************/
 
-extern "C" int evma_get_peername (const unsigned long binding, struct sockaddr *sa)
+extern "C" int evma_get_peername (const unsigned long binding, struct sockaddr *sa, socklen_t *len)
 {
 	ensure_eventmachine("evma_get_peername");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed) {
-		return ed->GetPeername (sa) ? 1 : 0;
+		return ed->GetPeername (sa, len) ? 1 : 0;
 	}
 	else
 		return 0;
@@ -490,12 +488,12 @@ extern "C" int evma_get_peername (const unsigned long binding, struct sockaddr *
 evma_get_sockname
 *****************/
 
-extern "C" int evma_get_sockname (const unsigned long binding, struct sockaddr *sa)
+extern "C" int evma_get_sockname (const unsigned long binding, struct sockaddr *sa, socklen_t *len)
 {
 	ensure_eventmachine("evma_get_sockname");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed) {
-		return ed->GetSockname (sa) ? 1 : 0;
+		return ed->GetSockname (sa, len) ? 1 : 0;
 	}
 	else
 		return 0;
@@ -559,17 +557,6 @@ extern "C" void evma_signal_loopbreak()
 	EventMachine->SignalLoopBreaker();
 }
 
-
-
-/****************
-evma__write_file
-****************/
-
-extern "C" const unsigned long evma__write_file (const char *filename)
-{
-	ensure_eventmachine("evma__write_file");
-	return EventMachine->_OpenFileForWriting (filename);
-}
 
 
 /********************************
@@ -805,12 +792,12 @@ extern "C" int evma_send_file_data_to_connection (const unsigned long binding, c
 evma_start_proxy
 *****************/
 
-extern "C" void evma_start_proxy (const unsigned long from, const unsigned long to, const unsigned long bufsize)
+extern "C" void evma_start_proxy (const unsigned long from, const unsigned long to, const unsigned long bufsize, const unsigned long length)
 {
 	ensure_eventmachine("evma_start_proxy");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (from));
 	if (ed)
-		ed->StartProxy(to, bufsize);
+		ed->StartProxy(to, bufsize, length);
 }
 
 
@@ -856,5 +843,5 @@ evma_get_current_loop_time
 extern "C" uint64_t evma_get_current_loop_time()
 {
 	ensure_eventmachine("evma_get_current_loop_time");
-	return EventMachine->GetCurrentTime();
+	return EventMachine->GetCurrentLoopTime();
 }

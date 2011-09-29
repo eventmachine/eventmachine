@@ -48,6 +48,7 @@ public class EmReactor {
 	public final int EM_SSL_HANDSHAKE_COMPLETED = 108;
 	public final int EM_SSL_VERIFY = 109;
 	public final int EM_PROXY_TARGET_UNBOUND = 110;
+    public final int EM_PROXY_COMPLETED = 111;
 
 	private Selector mySelector;
 	private TreeMap<Long, ArrayList<Long>> Timers;
@@ -441,8 +442,8 @@ public class EmReactor {
 		Connections.get(sig).setCommInactivityTimeout (mills);
 	}
 
-	public void sendDatagram (long sig, String data, int length, String recipAddress, int recipPort) {
-		sendDatagram (sig, ByteBuffer.wrap(data.getBytes()), recipAddress, recipPort);
+	public void sendDatagram (long sig, byte[] data, int length, String recipAddress, int recipPort) {
+		sendDatagram (sig, ByteBuffer.wrap(data), recipAddress, recipPort);
 	}
 
 	public void sendDatagram (long sig, ByteBuffer bb, String recipAddress, int recipPort) {

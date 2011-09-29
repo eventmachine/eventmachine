@@ -194,6 +194,7 @@ module EventMachine
         @@parms[:verbose] and $>.puts ">>> #{ln}"
 
         return process_data_line(ln) if @state.include?(:data)
+        return process_auth_line(ln) if @state.include?(:auth_incomplete)
 
         case ln
         when EhloRegex
@@ -296,7 +297,7 @@ module EventMachine
             send_data "250-STARTTLS\r\n"
           end
           if @@parms[:auth]
-            send_data "250-AUTH PLAIN LOGIN\r\n"
+            send_data "250-AUTH PLAIN\r\n"
           end
           send_data "250-NO-SOLICITING\r\n"
           # TODO, size needs to be configurable.
@@ -339,19 +340,31 @@ module EventMachine
       def process_auth str
         if @state.include?(:auth)
           send_data "503 auth already issued\r\n"
-        elsif str =~ /\APLAIN\s+/i
-          plain = ($'.dup).unpack("m").first # Base64::decode64($'.dup)
-          discard,user,psw = plain.split("\000")
-          if receive_plain_auth user,psw
-            send_data "235 authentication ok\r\n"
-            @state << :auth
+        elsif str =~ /\APLAIN\s?/i
+          if $'.length == 0
+            # we got a partial response, so let the client know to send the rest
+            @state << :auth_incomplete
+            send_data("334 \r\n")
           else
-            send_data "535 invalid authentication\r\n"
+            # we got the initial response, so go ahead & process it
+            process_auth_line($')
           end
           #elsif str =~ /\ALOGIN\s+/i
         else
           send_data "504 auth mechanism not available\r\n"
         end
+      end
+
+      def process_auth_line(line)
+        plain = line.unpack("m").first
+        _,user,psw = plain.split("\000")
+        if receive_plain_auth user,psw
+          send_data "235 authentication ok\r\n"
+          @state << :auth
+        else
+          send_data "535 invalid authentication\r\n"
+        end
+        @state.delete :auth_incomplete
       end
 
       #--

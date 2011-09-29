@@ -1,76 +1,36 @@
-# $Id$
-#
-# Author:: Francis Cianfrocca (gmail: blackhedd)
-# Homepage::  http://rubyeventmachine.com
-# Date:: 8 April 2006
-# 
-# See EventMachine and EventMachine::Connection for documentation and
-# usage examples.
-#
-#----------------------------------------------------------------------------
-#
-# Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
-# Gmail: blackhedd
-# 
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of either: 1) the GNU General Public License
-# as published by the Free Software Foundation; either version 2 of the
-# License, or (at your option) any later version; or 2) Ruby's License.
-# 
-# See the file COPYING for complete licensing information.
-#
-#---------------------------------------------------------------------------
-#
-#
-# 
-
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestPure < Test::Unit::TestCase
 
-
-  Host,Port = "0.0.0.0", 9060
-
+  def setup
+    @port = next_port
+  end
 
   # These tests are intended to exercise problems that come up in the
   # pure-Ruby implementation. However, we DON'T constrain them such that
   # they only run in pure-Ruby. These tests need to work identically in
   # any implementation.
 
-  def setup
-  end
-
-  def teardown
-  end
-
   #-------------------------------------
 
   # The EM reactor needs to run down open connections and release other resources
   # when it stops running. Make sure this happens even if user code throws a Ruby
   # exception.
-  # One way to see this is to run identical tests that open a TCP server and throw
-  # an exception. (We do this twice because an exception aborts a test. We make the
-  # two tests identical except for the method name because we can't predict the order
-  # in which the test harness will run them.)
   # If exception handling is incorrect, the second test will fail with a no-bind error
   # because the TCP server opened in the first test will not have been closed.
-  #
-  def run_exception
-      EM.run {
-        EM.start_server Host, Port
-        raise "an exception"
-      }
-  end
-  def test_exception_1
-    assert_raises( RuntimeError ) { run_exception }
-  end
-  def test_exception_2
-    ex_class = RUBY_PLATFORM == 'java' ? NativeException : RuntimeError
-    assert_raises( ex_class ) { run_exception }
-  end
 
+  def test_exception_handling_releases_resources
+    exception = Class.new(StandardError)
+
+    2.times do
+      assert_raises(exception) do
+        EM.run do
+          EM.start_server "127.0.0.1", @port
+          raise exception
+        end
+      end
+    end
+  end
 
   # Under some circumstances, the pure Ruby library would emit an Errno::ECONNREFUSED
   # exception on certain kinds of TCP connect-errors.
@@ -87,12 +47,15 @@ class TestPure < Test::Unit::TestCase
       raise "should never get here"
     end
   end
-  def test_connrefused
-    EM.run {
-      EM.connect "0.0.0.0", 60001, TestConnrefused
-    }
-  end
 
+  def test_connrefused
+    assert_nothing_raised do
+      EM.run {
+        setup_timeout(2)
+        EM.connect "127.0.0.1", @port, TestConnrefused
+      }
+    end
+  end
 
   # Make sure connection_completed gets called as expected with TCP clients. This is the
   # opposite of test_connrefused.
@@ -104,22 +67,13 @@ class TestPure < Test::Unit::TestCase
     end
   end
   def test_connaccepted
-    timeout = false
-    EM.run {
-      EM.start_server "0.0.0.0", 60002
-      EM.connect "0.0.0.0", 60002, TestConnaccepted
-      setup_timeout(1)
-    }
-    assert_equal( false, timeout )
-  end
-  
-  def setup_timeout(timeout = 4)
-    EM.schedule {
-      start_time = EM.current_time
-      EM.add_periodic_timer(0.01) {
-        raise "timeout" if EM.current_time - start_time >= timeout
+    assert_nothing_raised do
+      EM.run {
+        EM.start_server "127.0.0.1", @port
+        EM.connect "127.0.0.1", @port, TestConnaccepted
+        setup_timeout(1)
       }
-    }
+    end
   end
 
   def test_reactor_running

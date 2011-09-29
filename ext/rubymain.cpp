@@ -53,6 +53,7 @@ static VALUE Intern_ssl_verify_peer;
 static VALUE Intern_notify_readable;
 static VALUE Intern_notify_writable;
 static VALUE Intern_proxy_target_unbound;
+static VALUE Intern_proxy_completed;
 static VALUE Intern_connection_completed;
 
 static VALUE rb_cProcStatus;
@@ -94,9 +95,13 @@ static inline void event_callback (struct em_event* e)
 			return;
 		}
 		case EM_CONNECTION_ACCEPTED:
+		{
+			rb_funcall (EmModule, Intern_event_callback, 3, ULONG2NUM(signature), INT2FIX(event), ULONG2NUM(data_num));
+			return;
+		}
 		case EM_CONNECTION_UNBOUND:
 		{
-			rb_funcall (EmModule, Intern_event_callback, 3, ULONG2NUM(signature), INT2FIX(event), data_str ? rb_str_new(data_str,data_num) : ULONG2NUM(data_num));
+			rb_funcall (EmModule, Intern_event_callback, 3, ULONG2NUM(signature), INT2FIX(event), ULONG2NUM(data_num));
 			return;
 		}
 		case EM_CONNECTION_COMPLETED:
@@ -114,7 +119,7 @@ static inline void event_callback (struct em_event* e)
 		case EM_CONNECTION_NOTIFY_WRITABLE:
 		{
 			VALUE conn = ensure_conn(signature);
-			rb_funcall (conn, Intern_notify_readable, 0);
+			rb_funcall (conn, Intern_notify_writable, 0);
 			return;
 		}
 		case EM_LOOPBREAK_SIGNAL:
@@ -154,6 +159,12 @@ static inline void event_callback (struct em_event* e)
 		{
 			VALUE conn = ensure_conn(signature);
 			rb_funcall (conn, Intern_proxy_target_unbound, 0);
+			return;
+		}
+		case EM_PROXY_COMPLETED:
+		{
+			VALUE conn = ensure_conn(signature);
+			rb_funcall (conn, Intern_proxy_completed, 0);
 			return;
 		}
 	}
@@ -235,7 +246,7 @@ static VALUE t_start_server (VALUE self, VALUE server, VALUE port)
 {
 	const unsigned long f = evma_create_tcp_server (StringValuePtr(server), FIX2INT(port));
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no acceptor");
+		rb_raise (rb_eRuntimeError, "no acceptor (port is in use or requires root privileges)");
 	return ULONG2NUM (f);
 }
 
@@ -334,9 +345,10 @@ t_get_peername
 
 static VALUE t_get_peername (VALUE self, VALUE signature)
 {
-	struct sockaddr s;
-	if (evma_get_peername (NUM2ULONG (signature), &s)) {
-		return rb_str_new ((const char*)&s, sizeof(s));
+	char buf[1024];
+	socklen_t len = sizeof buf;
+	if (evma_get_peername (NUM2ULONG (signature), (struct sockaddr*)buf, &len)) {
+		return rb_str_new (buf, len);
 	}
 
 	return Qnil;
@@ -348,9 +360,10 @@ t_get_sockname
 
 static VALUE t_get_sockname (VALUE self, VALUE signature)
 {
-	struct sockaddr s;
-	if (evma_get_sockname (NUM2ULONG (signature), &s)) {
-		return rb_str_new ((const char*)&s, sizeof(s));
+	char buf[1024];
+	socklen_t len = sizeof buf;
+	if (evma_get_sockname (NUM2ULONG (signature), (struct sockaddr*)buf, &len)) {
+		return rb_str_new (buf, len);
 	}
 
 	return Qnil;
@@ -417,8 +430,9 @@ t_set_comm_inactivity_timeout
 static VALUE t_set_comm_inactivity_timeout (VALUE self, VALUE signature, VALUE timeout)
 {
 	float ti = RFLOAT_VALUE(timeout);
-	if (evma_set_comm_inactivity_timeout (NUM2ULONG (signature), ti));
+	if (evma_set_comm_inactivity_timeout(NUM2ULONG(signature), ti)) {
 		return Qtrue;
+	}
 	return Qfalse;
 }
 
@@ -438,8 +452,9 @@ t_set_pending_connect_timeout
 static VALUE t_set_pending_connect_timeout (VALUE self, VALUE signature, VALUE timeout)
 {
 	float ti = RFLOAT_VALUE(timeout);
-	if (evma_set_pending_connect_timeout (NUM2ULONG (signature), ti));
+	if (evma_set_pending_connect_timeout(NUM2ULONG(signature), ti)) {
 		return Qtrue;
+	}
 	return Qfalse;
 }
 
@@ -566,6 +581,44 @@ static VALUE t_get_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optna
 		rb_sys_fail("getsockopt");
 
 	return rb_str_new(buf, len);
+}
+
+/**************
+t_set_sock_opt
+**************/
+
+static VALUE t_set_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optname, VALUE optval)
+{
+	int fd = evma_get_file_descriptor (NUM2ULONG (signature));
+	int level = NUM2INT(lev), option = NUM2INT(optname);
+	int i;
+	void *v;
+	socklen_t len;
+
+	switch (TYPE(optval)) {
+	case T_FIXNUM:
+		i = FIX2INT(optval);
+		goto numval;
+	case T_FALSE:
+		i = 0;
+		goto numval;
+	case T_TRUE:
+		i = 1;
+		numval:
+		v = (void*)&i; len = sizeof(i);
+		break;
+	default:
+		StringValue(optval);
+		v = RSTRING_PTR(optval);
+		len = RSTRING_LENINT(optval);
+		break;
+	}
+
+
+	if (setsockopt(fd, level, option, (char *)v, len) < 0)
+		rb_sys_fail("setsockopt");
+
+	return INT2FIX(0);
 }
 
 /********************
@@ -739,18 +792,6 @@ static VALUE t_setuid_string (VALUE self, VALUE username)
 
 
 
-/*************
-t__write_file
-*************/
-
-static VALUE t__write_file (VALUE self, VALUE filename)
-{
-	const unsigned long f = evma__write_file (StringValuePtr (filename));
-	if (!f)
-		rb_raise (rb_eRuntimeError, "file not opened");
-	return ULONG2NUM (f);
-}
-
 /**************
 t_invoke_popen
 **************/
@@ -763,9 +804,9 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 	#else
 		int len = RARRAY (cmd)->len;
 	#endif
-	if (len > 98)
+	if (len >= 2048)
 		rb_raise (rb_eRuntimeError, "too many arguments to popen");
-	char *strings [100];
+	char *strings [2048];
 	for (int i=0; i < len; i++) {
 		VALUE ix = INT2FIX (i);
 		VALUE s = rb_ary_aref (1, &ix, cmd);
@@ -1028,9 +1069,13 @@ static VALUE t_get_loop_time (VALUE self)
 t_start_proxy
 **************/
 
-static VALUE t_start_proxy (VALUE self, VALUE from, VALUE to, VALUE bufsize)
+static VALUE t_start_proxy (VALUE self, VALUE from, VALUE to, VALUE bufsize, VALUE length)
 {
-	evma_start_proxy(NUM2ULONG (from), NUM2ULONG (to), NUM2ULONG(bufsize));
+	try {
+		evma_start_proxy(NUM2ULONG (from), NUM2ULONG (to), NUM2ULONG(bufsize), NUM2ULONG(length));
+	} catch (std::runtime_error e) {
+		rb_raise (EM_eConnectionError, e.what());
+	}
 	return Qnil;
 }
 
@@ -1041,7 +1086,11 @@ t_stop_proxy
 
 static VALUE t_stop_proxy (VALUE self, VALUE from)
 {
-	evma_stop_proxy(NUM2ULONG (from));
+	try{
+		evma_stop_proxy(NUM2ULONG (from));
+	} catch (std::runtime_error e) {
+		rb_raise (EM_eConnectionError, e.what());
+	}
 	return Qnil;
 }
 
@@ -1095,6 +1144,7 @@ extern "C" void Init_rubyeventmachine()
 	Intern_notify_readable = rb_intern ("notify_readable");
 	Intern_notify_writable = rb_intern ("notify_writable");
 	Intern_proxy_target_unbound = rb_intern ("proxy_target_unbound");
+	Intern_proxy_completed = rb_intern ("proxy_completed");
 	Intern_connection_completed = rb_intern ("connection_completed");
 
 	// INCOMPLETE, we need to define class Connections inside module EventMachine
@@ -1130,6 +1180,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "attach_fd", (VALUE (*)(...))t_attach_fd, 2);
 	rb_define_module_function (EmModule, "detach_fd", (VALUE (*)(...))t_detach_fd, 1);
 	rb_define_module_function (EmModule, "get_sock_opt", (VALUE (*)(...))t_get_sock_opt, 3);
+	rb_define_module_function (EmModule, "set_sock_opt", (VALUE (*)(...))t_set_sock_opt, 4);
 	rb_define_module_function (EmModule, "set_notify_readable", (VALUE (*)(...))t_set_notify_readable, 2);
 	rb_define_module_function (EmModule, "set_notify_writable", (VALUE (*)(...))t_set_notify_writable, 2);
 	rb_define_module_function (EmModule, "is_notify_readable", (VALUE (*)(...))t_is_notify_readable, 1);
@@ -1140,7 +1191,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "connection_paused?", (VALUE (*)(...))t_paused_p, 1);
 	rb_define_module_function (EmModule, "num_close_scheduled", (VALUE (*)(...))t_num_close_scheduled, 0);
 
-	rb_define_module_function (EmModule, "start_proxy", (VALUE (*)(...))t_start_proxy, 3);
+	rb_define_module_function (EmModule, "start_proxy", (VALUE (*)(...))t_start_proxy, 4);
 	rb_define_module_function (EmModule, "stop_proxy", (VALUE (*)(...))t_stop_proxy, 1);
 
 	rb_define_module_function (EmModule, "watch_filename", (VALUE (*)(...))t_watch_filename, 1);
@@ -1165,9 +1216,6 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "send_file_data", (VALUE(*)(...))t_send_file_data, 2);
 	rb_define_module_function (EmModule, "get_heartbeat_interval", (VALUE(*)(...))t_get_heartbeat_interval, 0);
 	rb_define_module_function (EmModule, "set_heartbeat_interval", (VALUE(*)(...))t_set_heartbeat_interval, 1);
-
-	// Provisional:
-	rb_define_module_function (EmModule, "_write_file", (VALUE(*)(...))t__write_file, 1);
 
 	rb_define_module_function (EmModule, "get_peername", (VALUE(*)(...))t_get_peername, 1);
 	rb_define_module_function (EmModule, "get_sockname", (VALUE(*)(...))t_get_sockname, 1);

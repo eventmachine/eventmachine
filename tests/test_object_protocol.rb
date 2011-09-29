@@ -1,11 +1,6 @@
-$:.unshift "../lib"
-require 'eventmachine'
-require 'test/unit'
+require 'em_test_helper'
 
 class TestObjectProtocol < Test::Unit::TestCase
-  Host = "127.0.0.1"
-  Port = 9550
-
   module Server
     include EM::P::ObjectProtocol
     def post_init
@@ -25,10 +20,14 @@ class TestObjectProtocol < Test::Unit::TestCase
     end
   end
 
+  def setup
+    @port = next_port
+  end
+
   def test_send_receive
     EM.run{
-      EM.start_server Host, Port, Server
-      EM.connect Host, Port, Client
+      EM.start_server "127.0.0.1", @port, Server
+      EM.connect "127.0.0.1", @port, Client
     }
 
     assert($client == {:hello=>'world'})
