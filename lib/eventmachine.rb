@@ -947,10 +947,21 @@ module EventMachine
       cback.call result if cback
     end
 
-    @next_tick_mutex.synchronize do
-      jobs, @next_tick_queue = @next_tick_queue, []
-      jobs
-    end.each { |j| j.call }
+    # Capture the size at the start of this tick...
+    size = @next_tick_mutex.synchronize { @next_tick_queue.size }
+    size.times do |i|
+      callback = @next_tick_mutex.synchronize { @next_tick_queue.shift }
+      begin
+        callback.call
+      ensure
+        # This is a little nasty. The problem is, if an exception occurs during
+        # the callback, then we need to send a signal to the reactor to actually
+        # do some work during the next_tick. The only mechanism we have from the
+        # ruby side is next_tick itself, although ideally, we'd just drop a byte
+        # on the loopback descriptor.
+        EM.next_tick {}
+      end
+    end
   end
 
 
