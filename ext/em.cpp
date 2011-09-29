@@ -1396,7 +1396,11 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 	if (bKqueue) {
 		// remove any read/write events for this fd
 		struct kevent k;
+#ifdef __NetBSD__
+		EV_SET (&k, ed->GetSocket(), EVFILT_READ | EVFILT_WRITE, EV_DELETE, 0, 0, (intptr_t)ed);
+#else
 		EV_SET (&k, ed->GetSocket(), EVFILT_READ | EVFILT_WRITE, EV_DELETE, 0, 0, ed);
+#endif
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
 		if (t < 0 && (errno != ENOENT) && (errno != EBADF)) {
 			char buf [200];
@@ -1652,7 +1656,11 @@ void EventMachine_t::ArmKqueueWriter (EventableDescriptor *ed)
 		if (!ed)
 			throw std::runtime_error ("added bad descriptor");
 		struct kevent k;
+#ifdef __NetBSD__
+		EV_SET (&k, ed->GetSocket(), EVFILT_WRITE, EV_ADD | EV_ONESHOT, 0, 0, (intptr_t)ed);
+#else
 		EV_SET (&k, ed->GetSocket(), EVFILT_WRITE, EV_ADD | EV_ONESHOT, 0, 0, ed);
+#endif
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
 		if (t < 0) {
 			char buf [200];
@@ -1674,7 +1682,11 @@ void EventMachine_t::ArmKqueueReader (EventableDescriptor *ed)
 		if (!ed)
 			throw std::runtime_error ("added bad descriptor");
 		struct kevent k;
+#ifdef __NetBSD__
+		EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_ADD, 0, 0, (intptr_t)ed);
+#else
 		EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_ADD, 0, 0, ed);
+#endif
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
 		if (t < 0) {
 			char buf [200];
@@ -1725,7 +1737,11 @@ void EventMachine_t::_AddNewDescriptors()
 			// INCOMPLETE. Some descriptors don't want to be readable.
 			assert (kqfd != -1);
 			struct kevent k;
+#ifdef __NetBSD__
+			EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_ADD, 0, 0, (intptr_t)ed);
+#else
 			EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_ADD, 0, 0, ed);
+#endif
 			int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
 			assert (t == 0);
 		}
