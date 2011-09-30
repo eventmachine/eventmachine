@@ -959,7 +959,7 @@ module EventMachine
         # do some work during the next_tick. The only mechanism we have from the
         # ruby side is next_tick itself, although ideally, we'd just drop a byte
         # on the loopback descriptor.
-        EM.next_tick {}
+        EM.next_tick {} if $!
       end
     end
   end
