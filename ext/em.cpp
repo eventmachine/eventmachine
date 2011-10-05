@@ -673,7 +673,13 @@ EventMachine_t::_TimeTilNextEvent
 
 timeval EventMachine_t::_TimeTilNextEvent()
 {
+	// 29jul11: Changed calculation base from MyCurrentLoopTime to the 
+	// real time. As MyCurrentLoopTime is set at the beginning of an
+	// iteration and this calculation is done at the end, evenmachine
+	// will potentially oversleep by the amount of time the iteration
+	// took to execute.
 	uint64_t next_event = 0;
+	uint64_t current_time = GetRealTime();
 
 	if (!Heartbeats.empty()) {
 		multimap<uint64_t,EventableDescriptor*>::iterator heartbeats = Heartbeats.begin();
@@ -687,7 +693,7 @@ timeval EventMachine_t::_TimeTilNextEvent()
 	}
 
 	if (!NewDescriptors.empty() || !ModifiedDescriptors.empty()) {
-		next_event = MyCurrentLoopTime;
+		next_event = current_time;
 	}
 	
 	timeval tv;
@@ -695,8 +701,8 @@ timeval EventMachine_t::_TimeTilNextEvent()
 	if (next_event == 0 || NumCloseScheduled > 0) {
 		tv = Quantum;
 	} else {
-		if (next_event > MyCurrentLoopTime) {
-			uint64_t duration = next_event - MyCurrentLoopTime;
+		if (next_event > current_time) {
+			uint64_t duration = next_event - current_time;
 			tv.tv_sec = duration / 1000000;
 			tv.tv_usec = duration % 1000000;
 		} else {
