@@ -1357,6 +1357,7 @@ const unsigned long EventMachine_t::AttachFD (int fd, bool watch_mode)
 	if (!cd)
 		throw std::runtime_error ("no connection allocated");
 
+	cd->SetAttached(true);
 	cd->SetWatchOnly(watch_mode);
 	cd->SetConnectPending (false);
 

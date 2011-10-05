@@ -743,6 +743,7 @@ module EventMachine
     c = klass.new s, *args
 
     c.instance_variable_set(:@io, io)
+    c.instance_variable_set(:@watch_mode, watch_mode)
     c.instance_variable_set(:@fd, fd)
 
     @conns[s] = c
@@ -1417,6 +1418,14 @@ module EventMachine
             c.unbind(data == 0 ? nil : EventMachine::ERRNOS[data])
           else
             c.unbind
+          end
+          # If this is an attached (but not watched) connection, close the underlying io object.
+          if c.instance_variable_defined?(:@io) and !c.instance_variable_get(:@watch_mode)
+            io = c.instance_variable_get(:@io)
+            begin
+              io.close
+            rescue Errno::EBADF, IOError
+            end
           end
         rescue
           @wrapped_exception = $!

@@ -103,6 +103,7 @@ class EventableDescriptor: public Bindable_t
 
 	protected:
 		int MySocket;
+		bool bAttached;
 		bool bWatchOnly;
 
 		EMCallback EventCallback;
@@ -169,6 +170,7 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		void SetNotifyReadable (bool);
 		void SetNotifyWritable (bool);
+		void SetAttached (bool);
 		void SetWatchOnly (bool);
 
 		bool Pause();

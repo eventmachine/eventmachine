@@ -54,6 +54,7 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	bCloseNow (false),
 	bCloseAfterWriting (false),
 	MySocket (sd),
+	bAttached (false),
 	bWatchOnly (false),
 	EventCallback (NULL),
 	bCallbackUnbind (true),
@@ -180,7 +181,7 @@ void EventableDescriptor::Close()
 		MyEventMachine->Deregister (this);
 		
 		// Do not close STDIN, STDOUT, STDERR
-		if (MySocket > 2 && !bWatchOnly) {
+		if (MySocket > 2 && !bAttached) {
 			shutdown (MySocket, 1);
 			close (MySocket);
 		}
@@ -456,6 +457,16 @@ void ConnectionDescriptor::SetConnectPending(bool f)
 {
 	bConnectPending = f;
 	_UpdateEvents();
+}
+
+
+/**********************************
+ConnectionDescriptor::SetAttached
+***********************************/
+
+void ConnectionDescriptor::SetAttached(bool state)
+{
+   bAttached = state;
 }
 
 
