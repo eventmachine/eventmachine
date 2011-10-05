@@ -198,10 +198,9 @@ EventMachine_t::SetTimerQuantum
 void EventMachine_t::SetTimerQuantum (int interval)
 {
 	/* We get a timer-quantum expressed in milliseconds.
-	 * Don't set a quantum smaller than 5 or larger than 2500.
 	 */
 
-	if ((interval < 5) || (interval > 2500))
+	if ((interval < 5) || (interval > 5*60*1000))
 		throw std::runtime_error ("invalid timer-quantum");
 
 	Quantum.tv_sec = interval / 1000;
