@@ -15,20 +15,20 @@ class TestEMPriorityQueue < Test::Unit::TestCase
     x,y,z = nil
     EM.run do
       q = EM::PriorityQueue.new
-      q.push(1,2,3)
+      q.push(3,1,2)
       q.pop { |v| x = v }
       q.pop { |v| y = v }
       q.pop { |v| z = v; EM.stop }
     end
-    assert_equal 3, x
+    assert_equal 1, x
     assert_equal 2, y
-    assert_equal 1, z
+    assert_equal 3, z
   end
 
   def test_queue_reactor_thread
     q = EM::PriorityQueue.new
 
-    Thread.new { q.push(1,2,3) }.join
+    Thread.new { q.push(3,1,2) }.join
     assert q.empty?
     EM.run { EM.next_tick { EM.stop } }
     assert_equal 3, q.size
@@ -37,7 +37,7 @@ class TestEMPriorityQueue < Test::Unit::TestCase
     Thread.new { q.pop { |v| x = v } }.join
     assert_equal nil, x
     EM.run { EM.next_tick { EM.stop } }
-    assert_equal 3, x
+    assert_equal 1, x
   end
 
   def test_num_waiting
@@ -62,6 +62,6 @@ class TestEMPriorityQueue < Test::Unit::TestCase
     end
     assert queue.empty?
     assert_equal 0, queue.size
-    assert_equal nums.sort {|a, b| -(a <=> b) }, popped
+    assert_equal nums.sort, popped
   end
 end
