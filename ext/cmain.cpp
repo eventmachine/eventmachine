@@ -415,6 +415,15 @@ extern "C" void evma_stop_machine()
 	EventMachine->ScheduleHalt();
 }
 
+/**************************
+evma_graceful_stop_machine
+**************************/
+
+extern "C" void evma_graceful_stop_machine()
+{
+	ensure_eventmachine("evma_graceful_stop_machine");
+	EventMachine->ScheduleGracefulHalt();
+}
 
 /**************
 evma_start_tls

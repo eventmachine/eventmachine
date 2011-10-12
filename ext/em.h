@@ -76,6 +76,7 @@ class EventMachine_t
 
 		void Run();
 		void ScheduleHalt();
+		void ScheduleGracefulHalt();
 		void SignalLoopBreaker();
 		const unsigned long InstallOneshotTimer (int);
 		const unsigned long ConnectToServer (const char *, int, const char *, int);
@@ -148,6 +149,7 @@ class EventMachine_t
 		void _ModifyDescriptors();
 		void _InitializeLoopBreaker();
 		void _CleanupSockets();
+		void _ScheduleCloseAllDescriptors(bool after_writing);
 
 		bool _RunSelectOnce();
 		bool _RunEpollOnce();
@@ -201,6 +203,7 @@ class EventMachine_t
 
 	private:
 		bool bTerminateSignalReceived;
+		bool bGracefulTerminateSignalReceived;
 
 		bool bEpoll;
 		int epfd; // Epoll file-descriptor
