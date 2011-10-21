@@ -354,10 +354,22 @@ static VALUE t_get_peername (VALUE self, VALUE signature)
 	return Qnil;
 }
 
-/**************
-t_get_sockname
-**************/
-
+/*
+ * Get the socket name of this connection
+ *
+ * <code>
+ *   require "socket"
+ *
+ *   EM.run do
+ *     # Bind to a random port
+ *     server = EM::start_server("0.0.0.0", 0, MyHandler)
+ *     sockname = EM.get_sockname(server)
+ *     port, address = Socket.unpack_sockaddr_in(sockname)
+ *     puts "Listening on #{address}:#{port}"
+ *   end
+ * </code>   
+ *
+ */
 static VALUE t_get_sockname (VALUE self, VALUE signature)
 {
 	char buf[1024];
