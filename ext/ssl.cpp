@@ -158,8 +158,14 @@ SslContext_t::SslContext_t (bool is_server, const string &cafile, const string &
 	if (is_server) {
 		// The SSL_CTX calls here do NOT allocate memory.
 		int e;
-		if (privkeyfile.length() > 0)
+		if (privkeyfile.length() > 0) {
+			// if a private key password is provided then set it in this context. note that that assumes
+			// the current approach of having a unique context per request
+			if (privkeypwd.length() > 0) {
+				SSL_CTX_set_default_passwd_cb_userdata(pCtx, const_cast<char*>(privkeypwd.c_str()));
+			}
 			e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
+		}
 		else
 			e = SSL_CTX_use_PrivateKey (pCtx, DefaultPrivateKey);
 		if (e <= 0) ERR_print_errors_fp(stderr);
@@ -171,6 +177,13 @@ SslContext_t::SslContext_t (bool is_server, const string &cafile, const string &
 			e = SSL_CTX_use_certificate (pCtx, DefaultCertificate);
 		if (e <= 0) ERR_print_errors_fp(stderr);
 		assert (e > 0);
+
+		// load trusted ca cert chain for validation of server certificatess
+		if (cafile.length() > 0) {
+			e = SSL_CTX_load_verify_locations(pCtx, const_cast<char*>(cafile.c_str()), 0);
+			if (e <= 0) ERR_print_errors_fp(stderr);
+			assert (e > 0);
+		}
 	}
 
 	SSL_CTX_set_cipher_list (pCtx, "ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH");
