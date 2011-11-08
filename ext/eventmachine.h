@@ -66,7 +66,7 @@ extern "C" {
 	const unsigned long evma_create_unix_domain_server (const char *filename);
 	const unsigned long evma_open_datagram_socket (const char *server, int port);
 	const unsigned long evma_open_keyboard();
-	void evma_set_tls_parms (const unsigned long binding, const char *privatekey_filename, const char *certchain_filenane, int verify_peer);
+	void evma_set_tls_parms (const unsigned long binding, const char *ca_filename, const char *privatekey_filename, const char *privatekey_pwd, const char *certchain_filenane, int verify_peer);
 	void evma_start_tls (const unsigned long binding);
 
 	#ifdef WITH_SSL
