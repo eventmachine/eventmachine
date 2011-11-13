@@ -70,6 +70,57 @@ require 'resolv'
 # * {EventMachine.enable_proxy}
 # * {EventMachine.disable_proxy}
 module EventMachine
+  class Environment
+    @dynamic = {}
+
+    # TODO: do as a block?
+    def self.dynamic_env
+      unless @root_env
+        raise "No root env, but dynamic env is #{@dynamic_env}" if @dynamic_env
+        @root_env = self.new
+        @dynamic_env = @root_env
+      end
+      @dynamic_env
+    end
+    def self.dynamic_env=(env); @dynamic_env = env; end
+
+    def self.register(callback)
+      @dynamic[callback] = dynamic_env.fork
+    end
+    def self.env_for!(callback)
+      @dynamic[callback] || raise("No environment for #{callback.inspect}")
+    end
+
+    def self.dynamic_env_for!(callback, &blk)
+      new_env = env_for!(callback)
+      if blk
+        old_env = self.dynamic_env
+        self.dynamic_env = new_env
+        begin
+          blk.call
+        ensure
+          self.dynamic_env = old_env
+        end
+      else
+        self.dynamic_env = new_env
+      end
+    end
+
+    def initialize(base=nil)
+      @backend = {}
+      @backend.merge!(base) if base
+    end
+
+    def [](k); @backend[k]; end
+    def []=(k, v); @backend[k] = v; end
+
+    def fork
+      # TODO: deep clone?
+      forked = Environment.new(@backend)
+      forked
+    end
+  end
+
   class << self
     # Exposed to allow joining on the thread, when run in a multithreaded
     # environment. Performing other actions on the thread has undefined
@@ -952,6 +1003,7 @@ module EventMachine
     size = @next_tick_mutex.synchronize { @next_tick_queue.size }
     size.times do |i|
       callback = @next_tick_mutex.synchronize { @next_tick_queue.shift }
+      Environment.dynamic_env_for!(callback)
       begin
         callback.call
       ensure
@@ -1070,7 +1122,9 @@ module EventMachine
 
     raise ArgumentError, "no proc or block given" unless ((pr && pr.respond_to?(:call)) or block)
     @next_tick_mutex.synchronize do
-      @next_tick_queue << ( pr || block )
+      callback = pr || block
+      Environment.register(callback)
+      @next_tick_queue << callback
     end
     signal_loopbreak if reactor_running?
   end

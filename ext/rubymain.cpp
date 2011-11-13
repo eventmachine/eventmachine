@@ -170,6 +170,18 @@ static inline void event_callback (struct em_event* e)
 	}
 }
 
+/******************
+TODO: put elsewhere
+
+register_signature
+******************/
+
+void register_signature(unsigned long num)
+{
+	VALUE EnvironmentClass = rb_const_get(EmModule, rb_intern("Environment"));
+	rb_funcall (EnvironmentClass, rb_intern("register"), 1, INT2NUM(num));
+}
+
 /*******************
 event_error_handler
 *******************/
@@ -192,10 +204,27 @@ static void event_callback_wrapper (const unsigned long signature, int event, co
 	e.data_str = data_str;
 	e.data_num = data_num;
 
+	// Could definitely be cleaned up. Not sure if keying off of
+	// 'signature' is even necessarily correct. Oh well.
+	VALUE EnvironmentClass;
+	VALUE old_env;
+	VALUE new_env;
+
+	if (signature != 0) {
+		EnvironmentClass = rb_const_get(EmModule, rb_intern("Environment"));
+		old_env = rb_funcall (EnvironmentClass, rb_intern("dynamic_env"), 0);
+		new_env = rb_funcall (EnvironmentClass, rb_intern("dynamic_env_for!"), 1, INT2NUM(signature));
+		rb_funcall (EnvironmentClass, rb_intern("dynamic_env="), 1, new_env);
+	}
+
 	if (!rb_ivar_defined(EmModule, Intern_at_error_handler))
 		event_callback(&e);
 	else
 		rb_rescue((VALUE (*)(ANYARGS))event_callback, (VALUE)&e, (VALUE (*)(ANYARGS))event_error_handler, Qnil);
+
+	if (signature != 0) {
+		rb_funcall (EnvironmentClass, rb_intern("dynamic_env="), 1, old_env);
+	}
 }
 
 /**************************
