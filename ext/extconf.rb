@@ -139,6 +139,15 @@ when /linux/
 when /aix/
   CONFIG['LDSHARED'] = "$(CXX) -shared -Wl,-G -Wl,-brtl"
 
+when /cygwin/
+  # For rubies built with Cygwin, CXX may be set to CC, which is just
+  # a wrapper for gcc.
+  # This will compile, but it will not link to the C++ std library.
+  # Explicitly set CXX to use g++.
+  CONFIG['CXX'] = "g++"
+  # on Unix we need a g++ link, not gcc.
+  CONFIG['LDSHARED'] = "$(CXX) -shared"
+
 else
   # on Unix we need a g++ link, not gcc.
   CONFIG['LDSHARED'] = "$(CXX) -shared"
