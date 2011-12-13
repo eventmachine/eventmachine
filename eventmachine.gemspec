@@ -1,5 +1,7 @@
 # -*- encoding: utf-8 -*-
-require File.expand_path('../lib/em/version', __FILE__)
+$:.unshift File.expand_path("../lib", __FILE__)
+require "em/version"
+
 
 Gem::Specification.new do |s|
   s.name = 'eventmachine'
