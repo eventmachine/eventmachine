@@ -1407,7 +1407,7 @@ void AcceptorDescriptor::Read()
 	socklen_t addrlen = sizeof (pin);
 
 	for (int i=0; i < 10; i++) {
-		int sd = accept (GetSocket(), (struct sockaddr*)&pin, &addrlen);
+		int sd = accept4 (GetSocket(), (struct sockaddr*)&pin, &addrlen, SOCK_CLOEXEC);
 		if (sd == INVALID_SOCKET) {
 			// This breaks the loop when we've accepted everything on the kernel queue,
 			// up to 10 new connections. But what if the *first* accept fails?
