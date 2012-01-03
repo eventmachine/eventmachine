@@ -564,7 +564,7 @@ module EventMachine
             (d ? succeeded : failed).call
           end
 
-          @state.delete :data
+          @state -= [:data, :mail_from, :rcpt]
         else
           # slice off leading . if any
           ln.slice!(0...1) if ln[0] == ?.
