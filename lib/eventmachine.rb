@@ -1414,7 +1414,7 @@ module EventMachine
     if opcode == ConnectionUnbound
       if c = @conns.delete( conn_binding )
         begin
-          if c.original_method(:unbind).arity == 1
+          if c.original_method(:unbind).arity != 0
             c.unbind(data == 0 ? nil : EventMachine::ERRNOS[data])
           else
             c.unbind
