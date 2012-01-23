@@ -115,6 +115,41 @@ class TestPool < Test::Unit::TestCase
     assert_equal [:res], pool.contents
   end
 
+  def test_contents_when_perform_errors_and_on_error_is_not_set
+    pool.add :res
+    assert_equal [:res], pool.contents
+
+    pool.perform do |r|
+      d = EM::DefaultDeferrable.new
+      d.fail
+      d
+    end
+
+    EM.run { EM.next_tick { EM.stop } }
+
+    assert_equal [:res], pool.contents
+  end
+
+  def test_contents_when_perform_errors_and_on_error_is_set
+    pool.add :res
+    res = nil
+    pool.on_error do |res|
+      res = res
+    end
+    assert_equal [:res], pool.contents
+
+    pool.perform do |r|
+      d = EM::DefaultDeferrable.new
+      d.fail 'foo'
+      d
+    end
+
+    EM.run { EM.next_tick { EM.stop } }
+
+    assert_equal :res, res
+    assert_equal [], pool.contents
+  end
+
   def test_num_waiting
     pool.add :res
     assert_equal 0, pool.num_waiting
@@ -123,6 +158,37 @@ class TestPool < Test::Unit::TestCase
     10.times { pool.perform { |r| EM::DefaultDeferrable.new } }
     EM.run { EM.next_tick { EM.stop } }
     assert_equal 10, pool.num_waiting
+  end
+
+  def test_exceptions_in_the_work_block_bubble_up_raise_and_fail_the_resource
+    pool.add :res
+
+    res = nil
+    pool.on_error { |r| res = r }
+    pool.perform { raise 'boom' }
+
+    assert_raises(RuntimeError) do
+      EM.run { EM.next_tick { EM.stop } }
+    end
+
+    assert_equal [], pool.contents
+    assert_equal :res, res
+  end
+
+  def test_removed_list_does_not_leak_on_errors
+    pool.add :res
+
+    pool.on_error do |r|
+      # This is actually the wrong thing to do, and not required, but some users
+      # might do it. When they do, they would find that @removed would cause a
+      # slow leak.
+      pool.remove r
+    end
+
+    pool.perform { d = EM::DefaultDeferrable.new; d.fail; d }
+
+    EM.run { EM.next_tick { EM.stop } }
+    assert_equal [], pool.instance_variable_get(:@removed)
   end
 
 end
