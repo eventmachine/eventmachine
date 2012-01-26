@@ -133,8 +133,8 @@ class TestPool < Test::Unit::TestCase
   def test_contents_when_perform_errors_and_on_error_is_set
     pool.add :res
     res = nil
-    pool.on_error do |res|
-      res = res
+    pool.on_error do |r|
+      res = r
     end
     assert_equal [:res], pool.contents
 
