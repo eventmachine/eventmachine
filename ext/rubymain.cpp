@@ -347,7 +347,7 @@ static VALUE t_get_peername (VALUE self, VALUE signature)
 {
 	char buf[1024];
 	socklen_t len = sizeof buf;
-	if (evma_get_peername (NUM2ULONG (signature), (struct sockaddr*)buf, &len)) {
+	if (evma_get_peername (NUM2ULONG (signature), (struct sockaddr_storage*)buf, &len)) {
 		return rb_str_new (buf, len);
 	}
 
@@ -362,7 +362,7 @@ static VALUE t_get_sockname (VALUE self, VALUE signature)
 {
 	char buf[1024];
 	socklen_t len = sizeof buf;
-	if (evma_get_sockname (NUM2ULONG (signature), (struct sockaddr*)buf, &len)) {
+	if (evma_get_sockname (NUM2ULONG (signature), (struct sockaddr_storage*)buf, &len)) {
 		return rb_str_new (buf, len);
 	}
 
