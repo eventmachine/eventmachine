@@ -92,8 +92,9 @@ class TestEpoll < Test::Unit::TestCase
       $testing_localhost = localhost
       $in = $out = ""
       EM.run {
+        setup_timeout(2)
         EM.open_datagram_socket $testing_localhost, @port, TestDatagramServer
-        EM.open_datagram_socket $testing_localhost, 0, TestDatagramClient
+        EM.open_datagram_socket $testing_localhost, 0, TestDatagramClient, @port
       }
       assert_equal( "1234567890", $in )
       assert_equal( "abcdefghij", $out )
