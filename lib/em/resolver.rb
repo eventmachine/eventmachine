@@ -37,7 +37,8 @@ module EventMachine
           @nameservers = []
           IO.readlines('/etc/resolv.conf').each do |line|
             if line =~ /^nameserver (.+)$/
-              @nameservers << $1.split(/\s+/).first
+              nscandidate = $1.split(/\s+/).first
+              @nameservers << nscandidate unless nscandidate =~ /:/ # stick with IPv4 for now
             end
           end
         end
@@ -57,7 +58,7 @@ module EventMachine
 
     class Socket < EventMachine::Connection
       def self.open
-        EventMachine::open_datagram_socket('0.0.0.0', 0, self)
+        EventMachine::open_datagram_socket('0.0.0.0', 0, self) # FIXME: this is IPv4 only
       end
 
       def initialize
