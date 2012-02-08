@@ -19,8 +19,10 @@ class TestSetSockOpt < Test::Unit::TestCase
       EM.run do
         EM.connect 'google.com', 80, Module.new {
           define_method :post_init do
-            val = set_sock_opt Socket::SOL_SOCKET, Socket::SO_DEBUG, true
+            val = set_sock_opt Socket::SOL_SOCKET, Socket::SO_RCVBUF, 10240
             test.assert_equal 0, val
+            val = get_sock_opt Socket::SOL_SOCKET, Socket::SO_RCVBUF
+            test.assert_equal [10240].pack("L"), val
             EM.stop
           end
         }
