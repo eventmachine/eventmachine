@@ -13,20 +13,24 @@ class TestIPv6 < Test::Unit::TestCase
     def test_ipv6_tcp_client
       conn = nil
       setup_timeout(2)
-      
+
       EM.run do
         conn = EM::connect("2a00:1450:4001:c01::93", 80) do |c|
           def c.connected
             @connected
           end
-          
+
+          def c.unbind(reason)
+            warn "unbind: #{reason.inspect}" if reason # XXX at least find out why it failed
+          end
+
           def c.connection_completed
             @connected = true
             EM.stop
           end
         end
       end
-      
+
       assert conn.connected
     end
 
@@ -36,16 +40,19 @@ class TestIPv6 < Test::Unit::TestCase
       @@received_data = nil
       @local_port = next_port
       setup_timeout(2)
-      
+
       EM.run do
         EM::start_server(@@local_ipv6, @local_port) do |s|
           def s.receive_data data
             @@received_data = data
             EM.stop
-          end          
+          end
         end
 
         EM::connect(@@local_ipv6, @local_port) do |c|
+          def c.unbind(reason)
+            warn "unbind: #{reason.inspect}" if reason # XXX at least find out why it failed
+          end
           c.send_data "ipv6/tcp"
         end
       end
