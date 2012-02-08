@@ -4,7 +4,7 @@ class TestResolver < Test::Unit::TestCase
   def test_a
     EM.run {
       d = EM::DNS::Resolver.resolve "google.com"
-      d.errback { assert false }
+      d.errback { |msg, err| assert false, "msg: #{msg.inspect}, err: #{err.inspect}" }
       d.callback { |r|
         assert r
         EM.stop
@@ -31,7 +31,7 @@ class TestResolver < Test::Unit::TestCase
   def test_a_pair
     EM.run {
       d = EM::DNS::Resolver.resolve "google.com"
-      d.errback { assert false }
+      d.errback { |msg, err| assert false, "msg: #{msg.inspect}, err: #{err.inspect}" }
       d.callback { |r|
         assert_equal(Array, r.class)
         assert r.size > 1
