@@ -1090,7 +1090,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		throw std::runtime_error ("invalid server or port");
 
 	int family, bind_size;
-	struct sockaddr bind_as, *bind_as_ptr = name2address (server, port, &family, &bind_size);
+	struct sockaddr_storage bind_as, *bind_as_ptr = (struct sockaddr_storage*)name2address (server, port, &family, &bind_size);
 	if (!bind_as_ptr)
 		throw std::runtime_error ("unable to resolve server address");
 	bind_as = *bind_as_ptr; // copy because name2address points to a static
@@ -1132,7 +1132,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 
 	#ifdef OS_UNIX
 	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
-	if (connect (sd, &bind_as, bind_size) == 0) {
+	if (connect (sd, (struct sockaddr*)&bind_as, bind_size) == 0) {
 		// This is a connect success, which Linux appears
 		// never to give when the socket is nonblocking,
 		// even if the connection is intramachine or to
