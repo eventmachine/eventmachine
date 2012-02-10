@@ -2,13 +2,21 @@ require 'em_test_helper'
 
 class TestUDP46 < Test::Unit::TestCase
 
-  WANT_ALL = [["::1", "::241.2.3.4", 5555, Errno::EHOSTUNREACH],
-              ["127.0.0.1", "241.2.3.4", 5555, Errno::ENETUNREACH]
-             ]
+  # this is a bit brittle.  Maybe do not test for the actual error...
+  WANT_ALL = [
+              ( RUBY_PLATFORM =~ /darwin1/ and # not an error in Linux (!?),
+                # strange handling in OSX 10.5.x (darwin9)
+                ["::1", "::241.1.2.3", 5555, Errno::EHOSTUNREACH]),
+              ["::1", "241.2.3.4", 5555,
+               (RUBY_PLATFORM =~ /linux/ ? Errno::ENETUNREACH : Errno::EAFNOSUPPORT)],
+              ["127.0.0.1", "241.4.5.6", 5555,
+               (RUBY_PLATFORM =~ /linux/ ? Errno::EINVAL : Errno::ENETUNREACH)]
+             ].compact
 
-  # Open a UDP socket listening in ::1 and tries to send a UDP datagram to IP
-  # ::241.1.2.3 (so no network route). Currently it makes EM to close the UDP socket.
-  #   See: https://github.com/eventmachine/eventmachine/issues/276
+  # Open a UDP socket listening on, say, ::1, and try to send a UDP
+  # datagram to IP address, say, ::241.1.2.3 (so no network route).
+  # Without the error handling fix, it makes EM close the UDP socket.
+  # Now fixed: https://github.com/eventmachine/eventmachine/issues/276
   def test_udp_no_route
     WANT_ALL.each do |want|
       @@udp_socket_alive = false
