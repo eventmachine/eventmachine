@@ -58,7 +58,9 @@ module EventMachine
 
     class Socket < EventMachine::Connection
       def self.open
-        EventMachine::open_datagram_socket('0.0.0.0', 0, self) # FIXME: this is IPv4 only
+        s = EventMachine::open_datagram_socket('0.0.0.0', 0, self) # FIXME: this is IPv4 only
+        s.send_error_handling = :ERRORHANDLING_REPORT
+        s
       end
 
       def initialize

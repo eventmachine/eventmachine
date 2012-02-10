@@ -121,7 +121,9 @@ module EventMachine
     #
     # @private
     def receive_error data
-      receive_senderror EventMachine::ERRNOS[data.getbyte(0)], data
+      info = data.unpack("Ca*")
+      receive_senderror(EventMachine::ERRNOS[info[0]],
+                        Socket::getnameinfo(info[1], Socket::NI_NUMERICSERV|Socket::NI_NUMERICHOST))
     end
 
     def receive_senderror error, data
@@ -701,7 +703,7 @@ module EventMachine
     # :ERRORHANDLING_IGNORE to ignore any send errors,
     # :ERRORHANDLING_REPORT to signal send errors via #receive_senderror
     def send_error_handling= mode
-      EventMachine::set_error_handling @signature, SEND_ERROR_MODES(mode)
+      EventMachine::set_error_handling @signature, SEND_ERROR_MODES[mode]
     end
 
     # Pause a connection so that {#send_data} and {#receive_data} events are not fired until {#resume} is called.

@@ -1669,6 +1669,23 @@ void DatagramDescriptor::Write()
 			#ifdef OS_WIN32
 			if ((e != WSAEINPROGRESS) && (e != WSAEWOULDBLOCK)) {
 			#endif
+                          // save error info before deleting outboundpage
+                          // Hmm, we don't seem to have sockport.h available here, kludge along
+                          int sz = (op->From.sin6_family == AF_INET ?
+                                    sizeof (struct sockaddr_in) : sizeof (struct sockaddr_in6));
+                          int f = op->From.sin6_family;
+                          *((char *)&op->From) = sz;
+                          op->From.sin6_family = f;
+                          // this would have been SET_SS_LEN(((struct sockaddr_storage *)&op->From), sz);
+
+                          char info[sizeof (struct sockaddr_in6)+2];
+                          info[0] = e;
+                          memcpy(info+1, (const char *)&(op->From), sz);
+                          sz++;
+                          info[sz] = 0; // cargo cult
+
+                          OutboundPages.pop_front();
+
                           switch(SendErrorHandling) {
                           case ERRORHANDLING_KILL:
 				UnbindReasonCode = e;
@@ -1678,18 +1695,16 @@ void DatagramDescriptor::Write()
                           case ERRORHANDLING_IGNORE:
                             break;
                           case ERRORHANDLING_REPORT:
-                            op->From.sin6_len = e; // store error in useless length field
-                            if (EventCallback)
-                              (*EventCallback)(GetBinding(), EM_CONNECTION_SENDERROR, (const char *)&(op->From), sizeof(op->From));
+                            if (EventCallback) {
+                              (*EventCallback)(GetBinding(), EM_CONNECTION_SENDERROR, info, sz);
+                            }
                             break;
                           }
                         }
-		}
-
-		OutboundPages.pop_front();
+		} else
+                          OutboundPages.pop_front();
 
 	}
-
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = (EPOLLIN | (SelectForWrite() ? EPOLLOUT : 0));
 	assert (MyEventMachine);
