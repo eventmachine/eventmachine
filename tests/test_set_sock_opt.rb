@@ -24,7 +24,7 @@ class TestSetSockOpt < Test::Unit::TestCase
             test.assert_equal 0, val
             val = get_sock_opt Socket::SOL_SOCKET, Socket::SO_RCVBUF
             obtained = val.unpack("L")[0]
-            test.assert (obtained == wanted || obtained == wanted * 2) # Linux at work
+            test.assert obtained == wanted || obtained == wanted * 2 # Linux at work
             EM.stop
           end
         }
