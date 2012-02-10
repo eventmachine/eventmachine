@@ -8,7 +8,7 @@ class TestUDP46 < Test::Unit::TestCase
                 # strange handling in OSX 10.5.x (darwin9)
                 ["::1", "::241.1.2.3", 5555, Errno::EHOSTUNREACH]),
               ["::1", "241.2.3.4", 5555,
-               (RUBY_PLATFORM =~ /linux/ ? Errno::ENETUNREACH : Errno::EAFNOSUPPORT)],
+               (RUBY_PLATFORM =~ /linux/ ? Errno::ENETUNREACH : Errno::EINVAL)],
               ["127.0.0.1", "241.4.5.6", 5555,
                (RUBY_PLATFORM =~ /linux/ ? Errno::EINVAL : Errno::ENETUNREACH)]
              ].compact
