@@ -1782,15 +1782,15 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 
 	if (IsCloseScheduled())
 	//if (bCloseNow || bCloseAfterWriting)
-		return 0;
+		return -1;
 
 	if (!address || !*address || !port)
-		return 0;
+		return -1;
 
 	int family, addr_size;
 	struct sockaddr *addr_here = EventMachine_t::name2address (address, port, &family, &addr_size);
 	if (!addr_here)
-		return 0;
+		return -1;
 
 
 	if (!data && (length > 0))

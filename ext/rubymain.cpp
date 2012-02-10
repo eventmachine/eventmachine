@@ -474,6 +474,8 @@ t_send_datagram
 static VALUE t_send_datagram (VALUE self, VALUE signature, VALUE data, VALUE data_length, VALUE address, VALUE port)
 {
 	int b = evma_send_datagram (NUM2ULONG (signature), StringValuePtr (data), FIX2INT (data_length), StringValuePtr(address), FIX2INT(port));
+        if (b < 0)
+          rb_raise (EM_eConnectionError, "error in sending datagram"); // FIXME: this could be more specific.
 	return INT2NUM (b);
 }
 
