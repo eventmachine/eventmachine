@@ -287,6 +287,8 @@ class DatagramDescriptor: public EventableDescriptor
 		virtual uint64_t GetCommInactivityTimeout();
 		virtual int SetCommInactivityTimeout (uint64_t value);
 
+                enum ERRORHANDLINGTYPE {ERRORHANDLING_KILL = 0, ERRORHANDLING_IGNORE = 1, ERRORHANDLING_REPORT = 2} SendErrorHandling;
+                
 	protected:
 		struct OutboundPage {
                   OutboundPage (const char *b, int l, struct sockaddr_storage &f, int o=0): Buffer(b), Length(l), Offset(o), From(*(struct sockaddr_in6*)&f) {}

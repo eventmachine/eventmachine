@@ -36,7 +36,8 @@ extern "C" {
 		EM_SSL_HANDSHAKE_COMPLETED = 108,
 		EM_SSL_VERIFY = 109,
 		EM_PROXY_TARGET_UNBOUND = 110,
-		EM_PROXY_COMPLETED = 111
+		EM_PROXY_COMPLETED = 111,
+		EM_CONNECTION_SENDERROR = 112
 
 	};
 
@@ -54,6 +55,7 @@ extern "C" {
 	void evma_set_notify_readable (const unsigned long binding, int mode);
 	int evma_is_notify_writable (const unsigned long binding);
 	void evma_set_notify_writable (const unsigned long binding, int mode);
+	void evma_set_error_handling (const unsigned long binding, int mode);
 
 	int evma_pause(const unsigned long binding);
 	int evma_is_paused(const unsigned long binding);

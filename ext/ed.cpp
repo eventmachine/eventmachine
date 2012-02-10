@@ -1499,7 +1499,8 @@ DatagramDescriptor::DatagramDescriptor
 
 DatagramDescriptor::DatagramDescriptor (int sd, EventMachine_t *parent_em):
 	EventableDescriptor (sd, parent_em),
-	OutboundDataSize (0)
+	OutboundDataSize (0),
+        SendErrorHandling(ERRORHANDLING_KILL)
 {
 	memset (&ReturnAddress, 0, sizeof(ReturnAddress));
 
@@ -1660,7 +1661,6 @@ void DatagramDescriptor::Write()
 
 		OutboundDataSize -= op->Length;
 		op->Free();
-		OutboundPages.pop_front();
 
 		if (s == SOCKET_ERROR) {
 			#ifdef OS_UNIX
@@ -1669,11 +1669,25 @@ void DatagramDescriptor::Write()
 			#ifdef OS_WIN32
 			if ((e != WSAEINPROGRESS) && (e != WSAEWOULDBLOCK)) {
 			#endif
+                          switch(SendErrorHandling) {
+                          case ERRORHANDLING_KILL:
 				UnbindReasonCode = e;
 				Close();
+                                i = 11; // break out from send loop
 				break;
-			}
+                          case ERRORHANDLING_IGNORE:
+                            break;
+                          case ERRORHANDLING_REPORT:
+                            op->From.sin6_len = e; // store error in useless length field
+                            if (EventCallback)
+                              (*EventCallback)(GetBinding(), EM_CONNECTION_SENDERROR, (const char *)&(op->From), sizeof(op->From));
+                            break;
+                          }
+                        }
 		}
+
+		OutboundPages.pop_front();
+
 	}
 
 	#ifdef HAVE_EPOLL

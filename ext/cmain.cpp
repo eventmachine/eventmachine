@@ -214,6 +214,17 @@ extern "C" void evma_set_notify_writable (const unsigned long binding, int mode)
 		cd->SetNotifyWritable (mode ? true : false);
 }
 
+/************************
+evma_set_error_handling
+************************/
+
+extern "C" void evma_set_error_handling (const unsigned long binding, int mode)
+{
+	DatagramDescriptor *cd = dynamic_cast <DatagramDescriptor*> (Bindable_t::GetObject (binding));
+	if (cd)
+          cd->SendErrorHandling = (DatagramDescriptor::ERRORHANDLINGTYPE)mode;
+}
+
 /**********
 evma_pause
 **********/
