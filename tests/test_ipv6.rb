@@ -10,7 +10,7 @@ class TestIPv6 < Test::Unit::TestCase
 
     # Tries to connect to ipv6.google.com port 80 via TCP.
     # Timeout in 2 seconds.
-    def _test_ipv6_tcp_client
+    def test_ipv6_tcp_client
       conn = nil
       setup_timeout(4)
 
