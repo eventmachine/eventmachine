@@ -9,6 +9,7 @@ class TestUDP < Test::Unit::TestCase
     conn = nil
     @@udp_socket_alive = false
     @@udp_socket_unbind_cause = nil
+    @@error_came_in = false
 
     EM.run do
 
@@ -18,6 +19,10 @@ class TestUDP < Test::Unit::TestCase
         def c.unbind cause=nil
           @@udp_socket_unbind_cause = cause
           EM.stop
+        end
+
+        def c.receive_senderror(error, data)
+          @@error_came_in = (error == Errno::ENETUNREACH) && data == ["1.2.3.4", "5555"]
         end
 
         c.send_datagram "no-route", "1.2.3.4", 5555
@@ -30,6 +35,7 @@ class TestUDP < Test::Unit::TestCase
     end
 
     assert @@udp_socket_alive, "UDP socket was killed (unbind cause: #{@@udp_socket_unbind_cause})"
+    assert @@error_came_in, "No error or incorrect error"
   end
 
 end
