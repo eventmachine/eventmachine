@@ -1840,8 +1840,8 @@ bool ConnectionDescriptor::GetSockname (struct sockaddr_storage *s, socklen_t *l
 {
 	bool ok = false;
 	if (s) {
-		socklen_t len = sizeof(*s);
-		int gp = getsockname (GetSocket(), (struct sockaddr *)s, &len);
+		*len = sizeof(*s);
+		int gp = getsockname (GetSocket(), (struct sockaddr *)s, len);
 		if (gp == 0)
 			ok = true;
 	}
@@ -1894,8 +1894,8 @@ bool DatagramDescriptor::GetSockname (struct sockaddr_storage *s, socklen_t *len
 {
 	bool ok = false;
 	if (s) {
-		socklen_t len = sizeof(*s);
-		int gp = getsockname (GetSocket(), (struct sockaddr *)s, &len);
+		*len = sizeof(*s);
+		int gp = getsockname (GetSocket(), (struct sockaddr *)s, len);
 		if (gp == 0)
 			ok = true;
 	}
