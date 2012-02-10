@@ -12,7 +12,7 @@ class TestIPv6 < Test::Unit::TestCase
     # Timeout in 2 seconds.
     def test_ipv6_tcp_client
       conn = nil
-      setup_timeout(2)
+      setup_timeout(4)
 
       EM.run do
         conn = EM::connect("2a00:1450:4001:c01::93", 80) do |c|
@@ -42,7 +42,7 @@ class TestIPv6 < Test::Unit::TestCase
       setup_timeout(2)
 
       EM.run do
-        EM::start_server(@@local_ipv6, @local_port) do |s|
+        EM.start_server(@@local_ipv6, @local_port) do |s|
           def s.receive_data data
             @@received_data = data
             EM.stop
@@ -68,19 +68,57 @@ class TestIPv6 < Test::Unit::TestCase
       setup_timeout(2)
 
       EM.run do
-        EM::open_datagram_socket(@@local_ipv6, @local_port) do |s|
+        EM.open_datagram_socket(@@local_ipv6, @local_port) do |s|
           def s.receive_data data
             @@received_data = data
             EM.stop
           end
         end
 
-        EM::open_datagram_socket(@@local_ipv6, next_port) do |c|
+        EM.open_datagram_socket(@@local_ipv6, next_port) do |c|
           c.send_datagram "ipv6/udp", @@local_ipv6, @local_port
         end
       end
 
       assert_equal "ipv6/udp", @@received_data
+    end
+
+    # Try to connect via TCP to an invalid IPv6. EM.connect should raise
+    # EM::ConnectionError.
+    def test_tcp_connect_to_invalid_ipv6
+      invalid_ipv6 = "1:A"
+
+      EM.run do
+        begin
+          error = nil
+          EM.connect(invalid_ipv6, 1234)
+        rescue => e
+          error = e
+        ensure
+          EM.stop
+          assert_equal EM::ConnectionError, (error && error.class)
+        end
+      end
+    end
+
+    # Try to send a UDP datagram to an invalid IPv6. EM.send_datagram should raise
+    # EM::ConnectionError.
+    def test_udp_send_datagram_to_invalid_ipv6
+      invalid_ipv6 = "1:A"
+
+      EM.run do
+        begin
+          error = nil
+          EM.open_datagram_socket(@@local_ipv6, next_port) do |c|
+            c.send_datagram "hello", invalid_ipv6, 1234
+          end
+        rescue => e
+          error = e
+        ensure
+          EM.stop
+          assert_equal EM::ConnectionError, (error && error.class)
+        end
+      end
     end
 
 

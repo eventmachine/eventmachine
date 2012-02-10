@@ -76,6 +76,44 @@ class TestIPv4 < Test::Unit::TestCase
       assert_equal "ipv4/udp", @@received_data
     end
 
+    # Try to connect via TCP to an invalid IPv4. EM.connect should raise
+    # EM::ConnectionError.
+    def test_tcp_connect_to_invalid_ipv4
+      invalid_ipv4 = "9.9:9"
+
+      EM.run do
+        begin
+          error = nil
+          EM.connect(invalid_ipv4, 1234)
+        rescue => e
+          error = e
+        ensure
+          EM.stop
+          assert_equal EM::ConnectionError, (error && error.class)
+        end
+      end
+    end
+
+    # Try to send a UDP datagram to an invalid IPv4. EM.send_datagram should raise
+    # EM::ConnectionError.
+    def test_udp_send_datagram_to_invalid_ipv4
+      invalid_ipv4 = "9.9:9"
+
+      EM.run do
+        begin
+          error = nil
+          EM.open_datagram_socket(@@local_ipv4, next_port) do |c|
+            c.send_datagram "hello", invalid_ipv4, 1234
+          end
+        rescue => e
+          error = e
+        ensure
+          EM.stop
+          assert_equal EM::ConnectionError, (error && error.class)
+        end
+      end
+    end
+
 
   rescue => e
     warn "cannot autodiscover local IPv4 (#{e.class}: #{e.message}), skipping tests in #{__FILE__}"
