@@ -1656,7 +1656,10 @@ void DatagramDescriptor::Write()
 		OutboundPage *op = &(OutboundPages[0]);
 
 		// The nasty cast to (char*) is needed because Windows is brain-dead.
-		int s = sendto (sd, (char*)op->Buffer, op->Length, 0, (struct sockaddr*)&(op->From), sizeof(op->From));
+		int s = sendto (sd, (char*)op->Buffer, op->Length, 0,
+                                (struct sockaddr*)&(op->From),
+                                (op->From.sin6_family == AF_INET6 ?
+                                 sizeof (struct sockaddr_in6) : sizeof (struct sockaddr_in)));
 		int e = errno;
 
 		OutboundDataSize -= op->Length;
