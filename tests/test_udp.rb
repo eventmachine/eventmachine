@@ -13,6 +13,8 @@ class TestUDP < Test::Unit::TestCase
     EM.run do
 
       conn = EM::open_datagram_socket("127.0.0.1", next_port, EM::Connection) do |c|
+        c.send_error_handling = :ERRORHANDLING_REPORT
+
         def c.unbind cause=nil
           @@udp_socket_unbind_cause = cause
           EM.stop
