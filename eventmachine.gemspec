@@ -35,7 +35,12 @@ Carsten Bormann and Iñaki Baz Castillo.  This is needed for many
 applications in 2012, but might detract from the stability achieved
 for other typical uses of the base eventmachine.  It is otherwise
 identical with base eventmachine.  Install either base eventmachine or
-this version eventmachine-with-ipv6.
+this version eventmachine-with-ipv6.  If you have installed both, use
+gem 'eventmachine-with-ipv6'
+before
+require 'eventmachine'
+Alternatively use Bundler and write this in your gemfile:
+gem "eventmachine", :git => "git://github.com/cabo/eventmachine"
 
 Please send all bugs in this version to https://github.com/cabo/eventmachine/issues
 "
