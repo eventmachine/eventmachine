@@ -40,7 +40,7 @@ gem 'eventmachine-with-ipv6'
 before
 require 'eventmachine'
 Alternatively use Bundler and write this in your gemfile:
-gem "eventmachine", :git => "git://github.com/cabo/eventmachine"
+gem \"eventmachine\", :git => \"git://github.com/cabo/eventmachine\"
 
 Please send all bugs in this version to https://github.com/cabo/eventmachine/issues
 "
