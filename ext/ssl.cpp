@@ -245,7 +245,7 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	SSL_set_ex_data(pSSL, 0, (void*) binding);
 
 	if (bVerifyPeer)
-		SSL_set_verify(pSSL, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, ssl_verify_wrapper);
+		SSL_set_verify(pSSL, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT | SSL_VERIFY_CLIENT_ONCE, ssl_verify_wrapper);
 
 	if (!bIsServer)
 		SSL_connect (pSSL);
