@@ -49,8 +49,8 @@ module EventMachine
     # is started via #each, #map or #inject
     #
     def initialize(list, concurrency = 1)
-      raise ArgumentError, 'argument must be an array' unless list.respond_to?(:to_a)
-      @list = list.to_a.dup
+      raise ArgumentError, 'argument must be an Enumerable' unless list.respond_to?(:each)
+      @list = list.to_enum
       @concurrency = concurrency
 
       @started = false
@@ -97,12 +97,8 @@ module EventMachine
       @process_next = proc{
         # p [:process_next, :pending=, @pending, :workers=, @workers, :ended=, @ended, :concurrency=, @concurrency, :list=, @list]
         unless @ended or @workers > @concurrency
-          if @list.empty?
-            @ended = true
-            @workers -= 1
-            all_done.call
-          else
-            item = @list.shift
+          begin
+            item = @list.next
             @pending += 1
 
             is_done = false
@@ -123,6 +119,12 @@ module EventMachine
             end
 
             foreach.call(item, on_done)
+          rescue StopIteration
+            @ended = true
+            @workers -= 1
+            all_done.call
+          rescue => e
+            raise e
           end
         else
           @workers -= 1
