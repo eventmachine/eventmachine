@@ -148,8 +148,9 @@ static inline void event_callback (struct em_event* e)
 		}
 		case EM_SSL_VERIFY:
 		{
+			struct ssl_verify_callback *ssl_verify_callback_data = (struct ssl_verify_callback *) data_str;
 			VALUE conn = ensure_conn(signature);
-			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
+			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 5, (ssl_verify_callback_data->preverify_ok==1)?Qtrue:Qfalse, rb_str_new2(ssl_verify_callback_data->cert), INT2NUM(ssl_verify_callback_data->depth), INT2NUM(ssl_verify_callback_data->err), rb_str_new2(ssl_verify_callback_data->error_string));
 			if (RTEST(should_accept))
 				evma_accept_ssl_peer (signature);
 			return;

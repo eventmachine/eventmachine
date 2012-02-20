@@ -1179,12 +1179,12 @@ ConnectionDescriptor::VerifySslPeer
 ***********************************/
 
 #ifdef WITH_SSL
-bool ConnectionDescriptor::VerifySslPeer(const char *cert)
+bool ConnectionDescriptor::VerifySslPeer(struct ssl_verify_callback *ssl_verify_callback_data)
 {
 	bSslPeerAccepted = false;
 
 	if (EventCallback)
-		(*EventCallback)(GetBinding(), EM_SSL_VERIFY, cert, strlen(cert));
+		(*EventCallback)(GetBinding(), EM_SSL_VERIFY, (const char *)ssl_verify_callback_data, sizeof(*ssl_verify_callback_data));
 
 	return bSslPeerAccepted;
 }

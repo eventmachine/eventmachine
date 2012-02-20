@@ -87,6 +87,14 @@ class SslBox_t
 
 extern "C" int ssl_verify_wrapper(int, X509_STORE_CTX*);
 
+struct ssl_verify_callback {
+	int preverify_ok;
+	int depth;
+	int err;
+	const char *cert;
+	const char *error_string;
+};
+
 #endif // WITH_SSL
 
 
