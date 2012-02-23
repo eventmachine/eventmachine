@@ -2,13 +2,13 @@
 require File.expand_path('../lib/em/version', __FILE__)
 
 Gem::Specification.new do |s|
-  s.name = 'eventmachine-with-ipv6'
+  s.name = 'eventmachine-le'
   s.version = EventMachine::VERSION
-  s.homepage = 'http://github.com/cabo/eventmachine'
+  s.homepage = 'https://github.com/ibc/EventMachine-LE/'
 #  s.rubyforge_project = 'eventmachine'
 
-  s.authors = ["Francis Cianfrocca", "Aman Gupta", "hacked by Carsten Bormann"]
-  s.email   = ["garbagecat10@gmail.com", "aman@tmm1.net", "cabo@tzi.org"]
+  s.authors = ["Francis Cianfrocca", "Aman Gupta", "hacked by Carsten Bormann and Inaki Baz Castillo"]
+  s.email   = ["garbagecat10@gmail.com", "aman@tmm1.net", "cabo@tzi.org", "ibc@aliax.net"]
 
   s.files = `git ls-files`.split("\n")
   s.extensions = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'yard', ">= 0.7.2"
   s.add_development_dependency 'bluecloth'
 
-  s.summary = 'Ruby/EventMachine library with UDP and IPv6 fixes'
+  s.summary = 'EventMachine LE (Live Edition)'
   s.description = "EventMachine implements a fast, single-threaded engine for arbitrary network
 communications. It's extremely easy to use in Ruby. EventMachine wraps all
 interactions with IP sockets, allowing programs to concentrate on the
@@ -29,22 +29,10 @@ are provided with the package, primarily to serve as examples. The real goal
 of EventMachine is to enable programs to easily interface with other programs
 using TCP/IP, especially if custom protocols are required.
 
-The present alternative version 'eventmachine-with-ipv6' contains some
-crucial fixes for datagrams (UDP) and IPv6 developed since 2010 by
-Carsten Bormann and Iñaki Baz Castillo.  This is needed for many
-applications in 2012, but might detract from the stability achieved
-for other typical uses of the base eventmachine.  It is otherwise
-identical with base eventmachine.  Install either base eventmachine or
-this version eventmachine-with-ipv6.  If you have installed both, use
-gem 'eventmachine-with-ipv6'
-before
-require 'eventmachine'
-Alternatively use Bundler and write this in your gemfile:
-gem \"eventmachine\", :git => \"git://github.com/cabo/eventmachine\"
-
-Please send all bugs in this version to https://github.com/cabo/eventmachine/issues
+The present alternative version 'eventmachine-le'...
+TODO
 "
 
-  s.rdoc_options = ["--title", "EventMachine", "--main", "README.md", "-x", "lib/em/version", "-x", "lib/jeventmachine"]
+  s.rdoc_options = ["--title", "EventMachine-LE", "--main", "README.md", "-x", "lib/em/version", "-x", "lib/jeventmachine"]
   s.extra_rdoc_files = ["README.md"] + `git ls-files -- docs/*`.split("\n")
 end
