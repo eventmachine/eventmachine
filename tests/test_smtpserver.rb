@@ -1,4 +1,5 @@
 require 'net/smtp'
+require "net/telnet"
 require 'em_test_helper'
 
 class TestSmtpServer < Test::Unit::TestCase
@@ -86,5 +87,33 @@ class TestSmtpServer < Test::Unit::TestCase
     end
 
     assert_equal( 2, c.messages_count )
+  end
+
+  def test_login_authentication
+    Mailserver.parms = {:auth => :required}
+    connection = run_server do
+      Thread.new do
+        pop = Net::Telnet::new("Host" => Localhost,
+                               "Port" =>Localport,
+                               "Telnetmode" => false,
+                               "Prompt" => /^\d{3}\s+/n
+                              )
+        pop.cmd(<<-CMD)
+auth login
+#{["aaa"].pack('m').chomp}
+#{["bbb"].pack('m').chomp}
+mail from:a@b.com
+rcpt to:c@d.com
+data
+hello
+.
+quit
+CMD
+      end
+    end
+
+    assert_equal( 1, connection.messages_count )
+  ensure
+    Mailserver.parms = {:auth => nil}
   end
 end
