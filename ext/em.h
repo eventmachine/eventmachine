@@ -44,10 +44,10 @@ See the file COPYING for complete licensing information.
     #define RUBY_UBF_IO RB_UBF_DFL
   #endif
   #ifndef RSTRING_PTR
-    #define RSTRING_PTR(str) RString(str)->ptr
+    #define RSTRING_PTR(str) RSTRING(str)->ptr
   #endif
   #ifndef RSTRING_LEN
-    #define RSTRING_LEN(str) RString(str)->len
+    #define RSTRING_LEN(str) RSTRING(str)->len
   #endif
   #ifndef RSTRING_LENINT
     #define RSTRING_LENINT(str) RSTRING_LEN(str)
