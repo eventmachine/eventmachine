@@ -29,7 +29,6 @@ of EventMachine is to enable programs to easily interface with other programs
 using TCP/IP, especially if custom protocols are required.
 
 The present alternative version 'eventmachine-le'...
-TODO
 "
 
   s.rdoc_options = ["--title", "EventMachine-LE", "--main", "README.md", "-x", "lib/em/version", "-x", "lib/jeventmachine"]
