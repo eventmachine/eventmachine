@@ -739,6 +739,28 @@ module EventMachine
     c
   end
 
+  # Attaches a server IO object or file descriptor to the eventloop.
+  # This function behaves just like start_server but allows you to reuse
+  # an already existing file descriptor instead of having EventMachine create
+  # one. The descriptor must be accept()able and will be set as non-blocking.
+  #
+  # Unlike start_server however, the file descriptor is not closed when
+  # EventMachine is released, so you will have to do any cleanups manually.
+  # If +io+ is an IO object then a reference to it will be kept until
+  # EventMachine is released, so that the file descriptor isn't accidentally
+  # closed by the garbage collector.
+  def EventMachine::attach_server io, handler = nil, *args, &block
+    klass = klass_from_handler(Connection, handler, *args)
+    if io.respond_to?(:fileno)
+      fd = defined?(JRuby) ? JRuby.runtime.getDescriptorByFileno(io.fileno).getChannel : io.fileno
+    else
+      fd = io
+    end
+    s = attach_server_fd(fd)
+    @acceptors[s] = [klass,args,block,io]
+    s
+  end
+
 
   # Connect to a given host/port and re-use the provided {EventMachine::Connection} instance.
   # Consider also {EventMachine::Connection#reconnect}.

@@ -577,6 +577,18 @@ static VALUE t_detach_fd (VALUE self, VALUE signature)
 	return INT2NUM(evma_detach_fd (NUM2ULONG (signature)));
 }
 
+/***********
+  t_attach_server_fd
+***********/
+
+static VALUE t_attach_server_fd (VALUE self, VALUE file_descriptor, VALUE watch_mode)
+{
+	const unsigned long f = evma_attach_server_fd (NUM2INT(file_descriptor));
+	if (!f)
+		rb_raise (rb_eRuntimeError, "no connection");
+	return ULONG2NUM (f);
+}
+
 /**************
 t_get_sock_opt
 **************/
@@ -1201,6 +1213,7 @@ extern "C" void Init_rubyeventmachine()
 
 	rb_define_module_function (EmModule, "attach_fd", (VALUE (*)(...))t_attach_fd, 2);
 	rb_define_module_function (EmModule, "detach_fd", (VALUE (*)(...))t_detach_fd, 1);
+	rb_define_module_function (EmModule, "attach_server_fd", (VALUE (*)(...))t_attach_server_fd, 1);
 	rb_define_module_function (EmModule, "get_sock_opt", (VALUE (*)(...))t_get_sock_opt, 3);
 	rb_define_module_function (EmModule, "set_sock_opt", (VALUE (*)(...))t_set_sock_opt, 4);
 	rb_define_module_function (EmModule, "set_notify_readable", (VALUE (*)(...))t_set_notify_readable, 2);
