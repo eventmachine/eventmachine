@@ -1,3 +1,5 @@
+require 'rubyeventmachine'
+
 require 'em/version'
 require 'em/pool'
 require 'em/deferrable'

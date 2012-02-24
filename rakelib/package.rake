@@ -1,4 +1,4 @@
-require 'rake/gempackagetask'
+require 'rubygems/package_task'
 begin
   require 'rake/extensiontask'
   require 'rake/javaextensiontask'
@@ -12,7 +12,7 @@ rake-compiler gem seems to be missing. Please install it with
   MSG
 end
 
-Rake::GemPackageTask.new(GEMSPEC) do |pkg|
+Gem::PackageTask.new(GEMSPEC) do |pkg|
 end
 
 if RUBY_PLATFORM =~ /java/

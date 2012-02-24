@@ -1,10 +1,10 @@
 require 'rubygems'
-GEMSPEC = Gem::Specification.load('eventmachine.gemspec')
+GEMSPEC = Gem::Specification.load('eventmachine-le.gemspec')
 
 require 'rake/clean'
 task :clobber => :clean
 
-desc "Build eventmachine, then run tests."
+desc "Build eventmachine-le, then run tests."
 task :default => [:compile, :test]
 
 desc 'Generate documentation'

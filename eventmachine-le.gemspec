@@ -5,7 +5,6 @@ Gem::Specification.new do |s|
   s.name = 'eventmachine-le'
   s.version = EventMachine::VERSION
   s.homepage = 'https://github.com/ibc/EventMachine-LE/'
-#  s.rubyforge_project = 'eventmachine'
 
   s.authors = ["Francis Cianfrocca", "Aman Gupta", "hacked by Carsten Bormann and Inaki Baz Castillo"]
   s.email   = ["garbagecat10@gmail.com", "aman@tmm1.net", "cabo@tzi.org", "ibc@aliax.net"]
