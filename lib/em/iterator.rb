@@ -40,7 +40,52 @@ module EventMachine
   #     async_http_get(url){ iter.next }
   #   end
   #
+
+  # Support for Enumerable in Ruby 1.9+
+  module IteratorWithEnumerable
+    def setup_list(list)
+      raise ArgumentError, 'argument must be an Enumerable' unless list.respond_to?(:each)
+      list.to_enum
+    end
+
+    def next_item
+      @next_item
+    end
+
+    # We can't check just next_item as far as it can return nil in two cases: 
+    # when our enumerator is stopped and when it stores nil value
+    def next?
+      begin
+        @next_item = @list.next
+        true
+      rescue StopIteration
+        false
+      rescue => e
+        raise e
+      end
+    end
+  end
+
+  # Ruby 1.8 uses continuations in Enumerable, so we should use Arrays
+  module IteratorWithArray
+    def setup_list(list)
+      raise ArgumentError, 'argument must be an array' unless list.respond_to?(:to_a)
+      list.dup.to_a
+    end
+
+    def next_item
+      @list.shift
+    end
+
+    def next?
+      @list.any?
+    end
+  end
+
   class Iterator
+    include IteratorWithEnumerable if defined? Fiber
+    include IteratorWithArray unless defined? Fiber
+    
     # Create a new parallel async iterator with specified concurrency.
     #
     #   i = EM::Iterator.new(1..100, 10)
@@ -49,8 +94,7 @@ module EventMachine
     # is started via #each, #map or #inject
     #
     def initialize(list, concurrency = 1)
-      raise ArgumentError, 'argument must be an array' unless list.respond_to?(:to_a)
-      @list = list.to_a.dup
+      @list = setup_list(list)
       @concurrency = concurrency
 
       @started = false
@@ -97,12 +141,8 @@ module EventMachine
       @process_next = proc{
         # p [:process_next, :pending=, @pending, :workers=, @workers, :ended=, @ended, :concurrency=, @concurrency, :list=, @list]
         unless @ended or @workers > @concurrency
-          if @list.empty?
-            @ended = true
-            @workers -= 1
-            all_done.call
-          else
-            item = @list.shift
+          if next?
+            item = next_item
             @pending += 1
 
             is_done = false
@@ -123,6 +163,10 @@ module EventMachine
             end
 
             foreach.call(item, on_done)
+          else
+            @ended = true
+            @workers -= 1
+            all_done.call
           end
         else
           @workers -= 1
