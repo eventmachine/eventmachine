@@ -88,7 +88,7 @@ class TestEpoll < Test::Unit::TestCase
   end
 
   def test_datagrams
-    ["127.0.0.1", "::1"].each {  |localhost|
+    local_ips.each {  |localhost|
       $testing_localhost = localhost
       $in = $out = ""
       EM.run {

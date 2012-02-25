@@ -16,7 +16,6 @@ class TestUDP46 < Test::Unit::TestCase
   # Open a UDP socket listening on, say, ::1, and try to send a UDP
   # datagram to IP address, say, ::241.1.2.3 (so no network route).
   # Without the error handling fix, it makes EM close the UDP socket.
-  # Now fixed: https://github.com/eventmachine/eventmachine/issues/276
   def test_udp_no_route
     WANT_ALL.each do |want|
       @@udp_socket_alive = false

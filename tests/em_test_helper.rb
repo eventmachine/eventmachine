@@ -31,6 +31,66 @@ class Test::Unit::TestCase
     @@port
   end
 
+  # Returns true if the host have a localhost 127.0.0.1 IPv6.
+  def self.local_ipv4?
+    return @@has_local_ipv4 if defined?(@@has_local_ipv4)
+    begin
+      socket = Addrinfo.udp("127.0.0.1", 1).connect
+      socket.close
+      @@has_local_ipv4 = true
+    rescue
+      @@has_local_ipv4 = false
+    end
+  end
+
+  # Returns true if the host have a public IPv6 and stores it in
+  # @@public_ipv4.
+  def self.public_ipv4?
+    return @@has_public_ipv4 if defined?(@@has_public_ipv4)
+    begin
+      socket = Addrinfo.udp("1.2.3.4", 1).connect
+      @@public_ipv4 = socket.local_address.ip_address
+      socket.close
+      @@has_public_ipv4 = true
+    rescue
+      @@has_public_ipv4 = false
+    end
+  end
+  
+  # Returns true if the host have a localhost ::1 IPv6.
+  def self.local_ipv6?
+    return @@has_local_ipv6 if defined?(@@has_local_ipv6)
+    begin
+      socket = Addrinfo.udp("::1", 1).connect
+      socket.close
+      @@has_local_ipv6 = true
+    rescue
+      @@has_local_ipv6 = false
+    end
+  end
+
+  # Returns true if the host have a public IPv6 and stores it in
+  # @@public_ipv6.
+  def self.public_ipv6?
+    return @@has_public_ipv6 if defined?(@@has_public_ipv6)
+    begin
+      socket = Addrinfo.udp("2001::1", 1).connect
+      @@public_ipv6 = socket.local_address.ip_address
+      socket.close
+      @@has_public_ipv6 = true
+    rescue
+      @@has_public_ipv6 = false
+    end
+  end
+
+  # Returns an array with the localhost addresses (IPv4 and/or IPv6).
+  def local_ips
+    return @@local_ips if defined?(@@local_ips)
+    @@local_ips = []
+    @@local_ips << "127.0.0.1" if self.class.local_ipv4?
+    @@local_ips << "::1" if self.class.local_ipv6?
+  end
+  
   def exception_class
     jruby? ? NativeException : RuntimeError
   end

@@ -1,12 +1,8 @@
 require 'em_test_helper'
-require 'socket'
 
 class TestIPv6 < Test::Unit::TestCase
 
-  begin
-    socket = Addrinfo.udp("2001::1", 1).connect
-    @@local_ipv6 = socket.local_address.ip_address
-    socket.close
+  if Test::Unit::TestCase.public_ipv6?
 
     # Tries to connect to ipv6.google.com port 80 via TCP.
     # Timeout in 2 seconds.
@@ -42,14 +38,14 @@ class TestIPv6 < Test::Unit::TestCase
       setup_timeout(2)
 
       EM.run do
-        EM.start_server(@@local_ipv6, @local_port) do |s|
+        EM.start_server(@@public_ipv6, @local_port) do |s|
           def s.receive_data data
             @@received_data = data
             EM.stop
           end
         end
 
-        EM::connect(@@local_ipv6, @local_port) do |c|
+        EM::connect(@@public_ipv6, @local_port) do |c|
           def c.unbind(reason)
             warn "unbind: #{reason.inspect}" if reason # XXX at least find out why it failed
           end
@@ -68,15 +64,15 @@ class TestIPv6 < Test::Unit::TestCase
       setup_timeout(2)
 
       EM.run do
-        EM.open_datagram_socket(@@local_ipv6, @local_port) do |s|
+        EM.open_datagram_socket(@@public_ipv6, @local_port) do |s|
           def s.receive_data data
             @@received_data = data
             EM.stop
           end
         end
 
-        EM.open_datagram_socket(@@local_ipv6, next_port) do |c|
-          c.send_datagram "ipv6/udp", @@local_ipv6, @local_port
+        EM.open_datagram_socket(@@public_ipv6, next_port) do |c|
+          c.send_datagram "ipv6/udp", @@public_ipv6, @local_port
         end
       end
 
@@ -109,7 +105,7 @@ class TestIPv6 < Test::Unit::TestCase
       EM.run do
         begin
           error = nil
-          EM.open_datagram_socket(@@local_ipv6, next_port) do |c|
+          EM.open_datagram_socket(@@public_ipv6, next_port) do |c|
             c.send_datagram "hello", invalid_ipv6, 1234
           end
         rescue => e
@@ -122,10 +118,10 @@ class TestIPv6 < Test::Unit::TestCase
     end
 
 
-  rescue => e
-    warn "cannot autodiscover local IPv6 (#{e.class}: #{e.message}), skipping tests in #{__FILE__}"
+  else
+    warn "no IPv6 in this host, skipping tests in #{__FILE__}"
 
-    # Because some rubies will complain if a TestCase class has no tests
+    # Because some rubies will complain if a TestCase class has no tests.
     def test_ipv6_unavailable
       assert true
     end

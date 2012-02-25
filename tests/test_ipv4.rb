@@ -3,10 +3,7 @@ require 'socket'
 
 class TestIPv4 < Test::Unit::TestCase
 
-  begin
-    socket = Addrinfo.udp("1.2.3.4", 1).connect
-    @@local_ipv4 = socket.local_address.ip_address
-    socket.close
+  if Test::Unit::TestCase.public_ipv4?
 
     # Tries to connect to www.google.com port 80 via TCP.
     # Timeout in 2 seconds.
@@ -38,14 +35,14 @@ class TestIPv4 < Test::Unit::TestCase
       setup_timeout(2)
       
       EM.run do
-        EM::start_server(@@local_ipv4, @local_port) do |s|
+        EM::start_server(@@public_ipv4, @local_port) do |s|
           def s.receive_data data
             @@received_data = data
             EM.stop
           end          
         end
 
-        EM::connect(@@local_ipv4, @local_port) do |c|
+        EM::connect(@@public_ipv4, @local_port) do |c|
           c.send_data "ipv4/tcp"
         end
       end
@@ -61,15 +58,15 @@ class TestIPv4 < Test::Unit::TestCase
       setup_timeout(2)
 
       EM.run do
-        EM::open_datagram_socket(@@local_ipv4, @local_port) do |s|
+        EM::open_datagram_socket(@@public_ipv4, @local_port) do |s|
           def s.receive_data data
             @@received_data = data
             EM.stop
           end
         end
 
-        EM::open_datagram_socket(@@local_ipv4, next_port) do |c|
-          c.send_datagram "ipv4/udp", @@local_ipv4, @local_port
+        EM::open_datagram_socket(@@public_ipv4, next_port) do |c|
+          c.send_datagram "ipv4/udp", @@public_ipv4, @local_port
         end
       end
 
@@ -102,7 +99,7 @@ class TestIPv4 < Test::Unit::TestCase
       EM.run do
         begin
           error = nil
-          EM.open_datagram_socket(@@local_ipv4, next_port) do |c|
+          EM.open_datagram_socket(@@public_ipv4, next_port) do |c|
             c.send_datagram "hello", invalid_ipv4, 1234
           end
         rescue => e
@@ -115,8 +112,8 @@ class TestIPv4 < Test::Unit::TestCase
     end
 
 
-  rescue => e
-    warn "cannot autodiscover local IPv4 (#{e.class}: #{e.message}), skipping tests in #{__FILE__}"
+  else
+    warn "no IPv4 in this host, skipping tests in #{__FILE__}"
 
     # Because some rubies will complain if a TestCase class has no tests
     def test_ipv4_unavailable
