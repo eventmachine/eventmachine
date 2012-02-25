@@ -891,6 +891,17 @@ module EventMachine
     set_timer_quantum mills.to_i
   end
 
+  # Max number of timers is removed in EventMachine-LE, so this method does nothing.
+  def self.set_max_timers ct
+    true
+  end
+
+  # Max number of timers is removed in EventMachine-LE, so this method does nothing.
+  def self.get_max_timers
+    # Return "a lot", since there is no limit now.
+    2**28
+  end
+
   # Returns the total number of connections (file descriptors) currently held by the reactor.
   # Note that a tick must pass after the 'initiation' of a connection for this number to increment.
   # It's usually accurate, but don't rely on the exact precision of this number unless you really know EM internals.
