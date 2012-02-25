@@ -305,7 +305,6 @@ module EventMachine
     interval = args.shift
     code = args.shift || block
     if code
-      # check too many timers!
       s = add_oneshot_timer((interval.to_f * 1000).to_i)
       @timers[s] = code
       s
@@ -334,6 +333,42 @@ module EventMachine
     code = args.shift || block
 
     EventMachine::PeriodicTimer.new(interval, code)
+  end
+
+
+  # EventMachine#add_restartable_timer adds a restartable timer to the event loop.
+  # It takes the same parameters as the one-shot timer method, EventMachine#add_timer.
+  # This method schedules execution of the given block for a one-shot timer, but can
+  # be restarted before firing to begin the timer from the start of the interval again.
+  #
+  # A restartable timer can be restarted as many times as required, as long as the timer
+  # has not completed. It can also be cancelled like a regular timer.
+  #
+  # === Usage example
+  #
+  # The following sample program creates a restartable and then restarts the timer at
+  # some later time with another shorter timer. The time to complete the restartable
+  # will be the original interval plus the amount of time passed before being restarted.
+  #
+  #  EventMachine::run {
+  #    puts "Starting the run now: #{Time.now}"
+  #    timer = EventMachine::add_restartable_timer( 5 ) {
+  #      puts "Executing timer event: #{Time.now}"
+  #    }
+  #    EventMachine::add_timer( 2 ) {
+  #      puts "Restarting timer: #{Time.now}"
+  #      timer.restart
+  #    }
+  #  }
+  #
+  #
+  # Also see EventMachine::RestartableTimer
+  #
+  def self.add_restartable_timer *args, &block
+    interval = args.shift
+    code = args.shift || block
+
+    EventMachine::RestartableTimer.new(interval, code)
   end
 
 
