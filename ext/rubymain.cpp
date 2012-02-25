@@ -241,8 +241,6 @@ t_add_oneshot_timer
 static VALUE t_add_oneshot_timer (VALUE self, VALUE interval)
 {
 	const unsigned long f = evma_install_oneshot_timer (FIX2INT (interval));
-	if (!f)
-		rb_raise (rb_eRuntimeError, "ran out of timers; use #set_max_timers to increase limit");
 	return ULONG2NUM (f);
 }
 
@@ -783,7 +781,6 @@ static VALUE t_library_type (VALUE self)
 }
 
 
-
 /*******************
 t_set_timer_quantum
 *******************/
@@ -794,24 +791,6 @@ static VALUE t_set_timer_quantum (VALUE self, VALUE interval)
   return Qnil;
 }
 
-/********************
-t_get_max_timer_count
-********************/
-
-static VALUE t_get_max_timer_count (VALUE self)
-{
-  return INT2FIX (evma_get_max_timer_count());
-}
-
-/********************
-t_set_max_timer_count
-********************/
-
-static VALUE t_set_max_timer_count (VALUE self, VALUE ct)
-{
-  evma_set_max_timer_count (FIX2INT (ct));
-  return Qnil;
-}
 
 /***************
 t_setuid_string
@@ -822,7 +801,6 @@ static VALUE t_setuid_string (VALUE self, VALUE username)
   evma_setuid_string (StringValuePtr (username));
   return Qnil;
 }
-
 
 
 /**************
@@ -1245,8 +1223,6 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "signal_loopbreak", (VALUE(*)(...))t_signal_loopbreak, 0);
 	rb_define_module_function (EmModule, "library_type", (VALUE(*)(...))t_library_type, 0);
 	rb_define_module_function (EmModule, "set_timer_quantum", (VALUE(*)(...))t_set_timer_quantum, 1);
-	rb_define_module_function (EmModule, "get_max_timer_count", (VALUE(*)(...))t_get_max_timer_count, 0);
-	rb_define_module_function (EmModule, "set_max_timer_count", (VALUE(*)(...))t_set_max_timer_count, 1);
 	rb_define_module_function (EmModule, "setuid_string", (VALUE(*)(...))t_setuid_string, 1);
 	rb_define_module_function (EmModule, "invoke_popen", (VALUE(*)(...))t_invoke_popen, 1);
 	rb_define_module_function (EmModule, "send_file_data", (VALUE(*)(...))t_send_file_data, 2);

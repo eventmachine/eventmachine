@@ -654,33 +654,6 @@ extern "C" void evma_set_timer_quantum (int interval)
 }
 
 
-/************************
-evma_get_max_timer_count
-************************/
-
-extern "C" int evma_get_max_timer_count()
-{
-	return EventMachine_t::GetMaxTimerCount();
-}
-
-
-/************************
-evma_set_max_timer_count
-************************/
-
-extern "C" void evma_set_max_timer_count (int ct)
-{
-	// This may only be called if the reactor is not running.
-
-	if (EventMachine)
-		#ifdef BUILD_FOR_RUBY
-			rb_raise(rb_eRuntimeError, "eventmachine already initialized: evma_set_max_timer_count");
-		#else
-			throw std::runtime_error ("eventmachine already initialized: evma_set_max_timer_count");
-		#endif
-	EventMachine_t::SetMaxTimerCount (ct);
-}
-
 /******************
 evma_setuid_string
 ******************/

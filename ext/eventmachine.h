@@ -95,8 +95,6 @@ extern "C" {
 	int evma_report_connection_error_status (const unsigned long binding);
 	void evma_signal_loopbreak();
 	void evma_set_timer_quantum (int);
-	int evma_get_max_timer_count();
-	void evma_set_max_timer_count (int);
 	void evma_setuid_string (const char *username);
 	void evma_stop_machine();
 	float evma_get_heartbeat_interval();

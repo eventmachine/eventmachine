@@ -22,40 +22,6 @@ See the file COPYING for complete licensing information.
 
 #include "project.h"
 
-/* The numer of max outstanding timers was once a const enum defined in em.h.
- * Now we define it here so that users can change its value if necessary.
- */
-static unsigned int MaxOutstandingTimers = 100000;
-
-
-/***************************************
-STATIC EventMachine_t::GetMaxTimerCount
-***************************************/
-
-int EventMachine_t::GetMaxTimerCount()
-{
-	return MaxOutstandingTimers;
-}
-
-
-/***************************************
-STATIC EventMachine_t::SetMaxTimerCount
-***************************************/
-
-void EventMachine_t::SetMaxTimerCount (int count)
-{
-	/* Allow a user to increase the maximum number of outstanding timers.
-	 * If this gets "too high" (a metric that is of course platform dependent),
-	 * bad things will happen like performance problems and possible overuse
-	 * of memory.
-	 * The actual timer mechanism is very efficient so it's hard to know what
-	 * the practical max, but 100,000 shouldn't be too problematical.
-	 */
-	if (count < 100)
-		count = 100;
-	MaxOutstandingTimers = count;
-}
-
 
 
 /******************************
@@ -1041,9 +1007,6 @@ EventMachine_t::InstallOneshotTimer
 
 const unsigned long EventMachine_t::InstallOneshotTimer (int milliseconds)
 {
-	if (Timers.size() > MaxOutstandingTimers)
-		return false;
-
 	uint64_t fire_at = GetRealTime();
 	fire_at += ((uint64_t)milliseconds) * 1000LL;
 

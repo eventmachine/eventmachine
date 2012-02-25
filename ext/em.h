@@ -67,9 +67,6 @@ class EventMachine_t
 class EventMachine_t
 {
 	public:
-		static int GetMaxTimerCount();
-		static void SetMaxTimerCount (int);
-
                 /* Internal helper to convert strings to internet addresses.
                  * IPv6-aware.
                  * Not reentrant or threadsafe, optimized for speed.

@@ -891,28 +891,6 @@ module EventMachine
     set_timer_quantum mills.to_i
   end
 
-  # Sets the maximum number of timers and periodic timers that may be outstanding at any
-  # given time. You only need to call {.set_max_timers} if you need more than the default
-  # number of timers, which on most platforms is 1000.
-  #
-  # @note This method has to be used *before* event loop is started.
-  #
-  # @param [Integer] ct Maximum number of timers that may be outstanding at any given time
-  #
-  # @see EventMachine.add_timer
-  # @see EventMachine.add_periodic_timer
-  # @see EventMachine::Timer
-  def self.set_max_timers ct
-    set_max_timer_count ct
-  end
-
-  # Gets the current maximum number of allowed timers
-  #
-  # @return [Integer] Maximum number of timers that may be outstanding at any given time
-  def self.get_max_timers
-    get_max_timer_count
-  end
-
   # Returns the total number of connections (file descriptors) currently held by the reactor.
   # Note that a tick must pass after the 'initiation' of a connection for this number to increment.
   # It's usually accurate, but don't rely on the exact precision of this number unless you really know EM internals.

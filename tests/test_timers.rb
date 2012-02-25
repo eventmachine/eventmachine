@@ -93,31 +93,4 @@ class TestTimers < Test::Unit::TestCase
     assert_equal 4, x
   end
 
-
-  # This test is only applicable to compiled versions of the reactor.
-  # Pure ruby and java versions have no built-in limit on the number of outstanding timers.
-  unless [:pure_ruby, :java].include? EM.library_type
-    def test_timer_change_max_outstanding
-      defaults = EM.get_max_timers
-      EM.set_max_timers(100)
-
-      one_hundred_one_timers = lambda do
-        101.times { EM.add_timer(0.01) {} }
-        EM.stop
-      end
-
-      assert_raises(RuntimeError) do
-        EM.run( &one_hundred_one_timers )
-      end
-
-      EM.set_max_timers( 101 )
-
-      assert_nothing_raised do
-        EM.run( &one_hundred_one_timers )
-      end
-    ensure
-      EM.set_max_timers(defaults)
-    end
-  end
-
 end
