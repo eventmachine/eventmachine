@@ -1,3 +1,5 @@
+require 'em_test_helper'
+
 class TestThreadedResource < Test::Unit::TestCase
   def object
     @object ||= {}
