@@ -4,11 +4,11 @@ class TestIPv6 < Test::Unit::TestCase
 
   if Test::Unit::TestCase.public_ipv6?
 
-    # Tries to connect to ipv6.google.com port 80 via TCP.
-    # Timeout in 2 seconds.
-    def test_ipv6_tcp_client
+    # Tries to connect to ipv6.google.com (2a00:1450:4001:c01::93) port 80 via TCP.
+    # Timeout in 6 seconds.
+    def test_ipv6_tcp_client_with_ipv6_google_com
       conn = nil
-      setup_timeout(4)
+      setup_timeout(6)
 
       EM.run do
         conn = EM::connect("2a00:1450:4001:c01::93", 80) do |c|
