@@ -24,20 +24,19 @@ Gem::Specification.new do |s|
   s.add_development_dependency 'bluecloth'
 
   s.summary = 'EventMachine LE (Live Edition)'
-  s.description = "EventMachine implements a fast, single-threaded engine for arbitrary network
-communications. It's extremely easy to use in Ruby. EventMachine wraps all
-interactions with IP sockets, allowing programs to concentrate on the
-implementation of network protocols. It can be used to create both network
-servers and clients. To create a server or client, a Ruby program only needs
-to specify the IP address and port, and provide a Module that implements the
-communications protocol. Implementations of several standard network protocols
-are provided with the package, primarily to serve as examples. The real goal
-of EventMachine is to enable programs to easily interface with other programs
-using TCP/IP, especially if custom protocols are required.
+  s.description = "EventMachine-LE (Live Edition) is a branch of EventMachine (https://github.com/eventmachine/eventmachine).
 
-The present alternative version 'eventmachine-le'...
+This branch incorporates interesting pull requests that are not yet included in the mainline EventMachine repository. The maintainers of that version prefer to minimize change in order to keep the stability with already existing EventMachine deployments, which provides an impressive multi-platform base for IPv4 TCP servers (e.g., Web servers) that don't need good UDP or IPv6 support.
+
+This dedication to stability is helpful for production use, but can also lead to ossification. The present \"Live Edition\" or \"Leading Edge\" branch has its focus on supporting a somewhat wider use, including new Web servers or protocols beyond the HTTP Web.
+
+To provide even more focus, this branch is currently applying its energy towards Linux and Unix/BSD/OSX environments. Java reactor and pure Ruby reactor are for now removed in this branch, and Windows/Cygwin support is untested. This may very well change later, once interesting pull requests come in.
+
+EventMachine-LE draws from a number of dormant pull requests on the mainline version of EventMachine. New proposals will also directly come to EventMachine-LE and will be included once they are tested.
+
+This is not a \"development branch\", EventMachine-LE is ready for production, just beyond the focus of mainline EventMachine.
 "
 
-  s.rdoc_options = ["--title", "EventMachine-LE", "--main", "README.md", "-x", "lib/em/version", "-x", "lib/jeventmachine"]
-  s.extra_rdoc_files = ["README.md"] + `git ls-files -- docs/*`.split("\n")
+  s.rdoc_options = ["--title", "EventMachine-LE", "--main", "README.md", "-x", "lib/em/version"]
+  s.extra_rdoc_files = ["README.md"] + `git ls-files`.split("\n")
 end
