@@ -1,5 +1,11 @@
 # -*- encoding: utf-8 -*-
-require File.expand_path('../lib/em/version', __FILE__)
+if RUBY_VERSION == '1.8.7'
+  $:.unshift File.expand_path("../lib", __FILE__)
+  require "em/version"
+else
+  # Ruby 1.9.
+  require File.expand_path('../lib/em/version', __FILE__)
+end
 
 Gem::Specification.new do |s|
   s.name = 'eventmachine-le'
@@ -12,6 +18,7 @@ Gem::Specification.new do |s|
   s.files = `git ls-files`.split("\n")
   s.extensions = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
 
+  s.required_ruby_version = ">= 1.8.7"
   s.add_development_dependency 'rake-compiler', '0.7.9'
   s.add_development_dependency 'yard', ">= 0.7.2"
   s.add_development_dependency 'bluecloth'

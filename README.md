@@ -48,6 +48,7 @@ the following features/fixes have been applied in EventMachine-LE:
 * `EM::attach_server` added ([ramonmaruko](https://github.com/eventmachine/eventmachine/pull/271)).
 * `EM::RestartableTimer` added ([adzap](https://github.com/eventmachine/eventmachine/pull/114)).
 * `EM::get_max_timers` and `EM::set_max_timers` are removed (they still exist but do nothing). This solves the annoying "RuntimeError: max timers exceeded" exception.
+* Support for Enumerable in `EM::Iterator` ([fl00r](https://github.com/eventmachine/eventmachine/pull/300)).
 * Improvements to `EM::Protocols::LineProtocol` and have it autoload ([gaffneyc](https://github.com/eventmachine/eventmachine/pull/151)).
 * Many code cleanups.
 
