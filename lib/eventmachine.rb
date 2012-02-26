@@ -734,7 +734,7 @@ module EventMachine
   #  }
   #
   # @author Riham Aldakkak (eSpace Technologies)
-  def EventMachine::watch io, handler=nil, *args, &blk
+  def self.watch io, handler=nil, *args, &blk
     attach_io io, true, handler, *args, &blk
   end
 
@@ -744,12 +744,12 @@ module EventMachine
   #
   # To watch a fd instead, use {EventMachine.watch}, which will not alter the state of the socket
   # and fire notify_readable and notify_writable events instead.
-  def EventMachine::attach io, handler=nil, *args, &blk
+  def self.attach io, handler=nil, *args, &blk
     attach_io io, false, handler, *args, &blk
   end
 
   # @private
-  def EventMachine::attach_io io, watch_mode, handler=nil, *args
+  def self.attach_io io, watch_mode, handler=nil, *args
     klass = klass_from_handler(Connection, handler, *args)
 
     if !watch_mode and klass.public_instance_methods.any?{|m| [:notify_readable, :notify_writable].include? m.to_sym }
@@ -784,7 +784,7 @@ module EventMachine
   # If +io+ is an IO object then a reference to it will be kept until
   # EventMachine is released, so that the file descriptor isn't accidentally
   # closed by the garbage collector.
-  def EventMachine::attach_server io, handler = nil, *args, &block
+  def self.attach_server io, handler = nil, *args, &block
     klass = klass_from_handler(Connection, handler, *args)
     if io.respond_to?(:fileno)
       fd = defined?(JRuby) ? JRuby.runtime.getDescriptorByFileno(io.fileno).getChannel : io.fileno
