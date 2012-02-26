@@ -1522,13 +1522,13 @@ module EventMachine
 
   # @private
   def self.klass_from_handler(klass = Connection, handler = nil, *args)
-    klass = if handler and handler.is_a?(Class)
+    klass = if handler.is_a?(Class)
       raise ArgumentError, "must provide module or subclass of #{klass.name}" unless klass >= handler
       handler
     elsif handler
-      begin
+      if handler.const_defined?(:EM_CONNECTION_CLASS)
         handler::EM_CONNECTION_CLASS
-      rescue NameError
+      else
         handler::const_set(:EM_CONNECTION_CLASS, Class.new(klass) {include handler})
       end
     else
