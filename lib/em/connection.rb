@@ -45,7 +45,7 @@ module EventMachine
     # connection-specific arguments
     #
     # @private
-    def self.new(sig, *args)
+    def self.new sig, *args
       allocate.instance_eval do
         # Store signature
         @signature = sig
@@ -64,7 +64,7 @@ module EventMachine
     # Stubbed initialize so legacy superclasses can safely call super
     #
     # @private
-    def initialize(*args)
+    def initialize *args
     end
 
     # Called by the event loop immediately after the network connection has been established,
@@ -184,7 +184,7 @@ module EventMachine
     #   end
     #
     # @see #start_tls
-    def ssl_verify_peer(cert)
+    def ssl_verify_peer cert
     end
 
     # called by the framework whenever a connection (either a server or client connection) is closed.
@@ -242,7 +242,7 @@ module EventMachine
     # as the argument. This is essentially just a helper method for enable_proxy.
     #
     # @see EventMachine.enable_proxy
-    def proxy_incoming_to(conn,bufsize=0)
+    def proxy_incoming_to conn, bufsize=0
       EventMachine::enable_proxy(self, conn, bufsize)
     end
 
