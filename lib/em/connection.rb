@@ -622,13 +622,13 @@ module EventMachine
     end
     alias set_pending_connect_timeout pending_connect_timeout=
 
-      # Reconnect to a given host/port with the current instance
-      #
-      # @param [String] server Hostname or IP address
-      # @param [Integer] port  Port to reconnect to
-      def reconnect server, port
-        EventMachine::reconnect server, port, self
-      end
+    # Reconnect to a given host/port with the current instance
+    #
+    # @param [String] server Hostname or IP address
+    # @param [Integer] port  Port to reconnect to
+    def reconnect server, port
+      EventMachine::reconnect server, port, self
+    end
 
 
     # Like {EventMachine::Connection#send_data}, this sends data to the remote end of
