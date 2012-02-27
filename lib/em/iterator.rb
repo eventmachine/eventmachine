@@ -1,4 +1,43 @@
 module EventMachine
+  # Support for Enumerable in Ruby 1.9+
+  module IteratorWithEnumerable
+    attr_reader :next_item
+
+    # In case of Enumerable object we can use lazyness of Enumerator
+    def setup_list(list)
+      raise ArgumentError, 'argument must be an Enumerable' unless list.respond_to?(:each)
+      list.to_enum
+    end
+
+    # We can't check just next_item as far as it can return nil in two cases: 
+    # when our enumerator is stopped and when it stores nil value
+    def next?
+      begin
+        @next_item = @list.next
+        true
+      rescue StopIteration
+        false
+      rescue => e
+        raise e
+      end
+    end
+  end
+
+  # Ruby 1.8 uses continuations in Enumerable, so we should use Arrays
+  module IteratorWithArray
+    attr_reader :next_item
+
+    def setup_list(list)
+      raise ArgumentError, 'argument must be an array' unless list.respond_to?(:to_a)
+      list.dup.to_a
+    end
+
+    def next?
+      @next_item = @list.shift
+      @list.any?
+    end
+  end
+
   # A simple iterator for concurrent asynchronous work.
   #
   # Unlike ruby's built-in iterators, the end of the current iteration cycle is signaled manually,
@@ -40,47 +79,6 @@ module EventMachine
   #     async_http_get(url){ iter.next }
   #   end
   #
-
-  # Support for Enumerable in Ruby 1.9+
-  module IteratorWithEnumerable
-    def setup_list(list)
-      raise ArgumentError, 'argument must be an Enumerable' unless list.respond_to?(:each)
-      list.to_enum
-    end
-
-    def next_item
-      @next_item
-    end
-
-    # We can't check just next_item as far as it can return nil in two cases: 
-    # when our enumerator is stopped and when it stores nil value
-    def next?
-      begin
-        @next_item = @list.next
-        true
-      rescue StopIteration
-        false
-      rescue => e
-        raise e
-      end
-    end
-  end
-
-  # Ruby 1.8 uses continuations in Enumerable, so we should use Arrays
-  module IteratorWithArray
-    def setup_list(list)
-      raise ArgumentError, 'argument must be an array' unless list.respond_to?(:to_a)
-      list.dup.to_a
-    end
-
-    def next_item
-      @list.shift
-    end
-
-    def next?
-      @list.any?
-    end
-  end
 
   class Iterator
     include IteratorWithEnumerable if defined? Fiber
