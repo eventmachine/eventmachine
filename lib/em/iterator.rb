@@ -33,8 +33,9 @@ module EventMachine
     end
 
     def next?
+      any = @list.any?
       @next_item = @list.shift
-      @list.any?
+      any
     end
   end
 
