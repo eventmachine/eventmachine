@@ -374,7 +374,7 @@ module EventMachine
         end
       end
 
-      def process_auth_line(line)
+      def process_auth_plain_line(line)
         plain = line.unpack("m").first
         _,user,psw = plain.split("\000")
         process_plain_auth user,psw
