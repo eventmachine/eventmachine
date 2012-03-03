@@ -107,4 +107,39 @@ class TestIterator < Test::Unit::TestCase
     assert_equal 3, enumerable.instance_variable_get(:@d)
     assert_equal false, enumerable.instance_variable_defined?(:@e)
   end
+
+  def test_iterator_with_queue
+    result = []
+    EM.run {
+      q = EM::Queue.new
+      q.push 1, 2, 3, 4, 5
+      after = proc{ EM.stop }
+      EM::Iterator.new(q).each{ |num,iter|
+        result << num
+        iter.next
+      }
+      EM.add_timer(0.1,&after)
+    }
+    assert_equal (1..5).to_a, result
+  end
+
+  def test_with_queue_with_pushing
+    result = []
+    EM.run {
+      q = EM::Queue.new
+      q.push 1, 2, 3, 4, 5
+      after = proc{ EM.stop }
+      EM::Iterator.new(q).each{ |num,iter|
+        result << num
+        iter.next
+      }
+      q.push 6,7,8
+      # and after some time
+      push_to_queue = proc{ q.push 9,10}
+      EM.add_timer(0.1,&push_to_queue)
+      # stop this infinite Iterator
+      EM.add_timer(0.2,&after)
+    }
+    assert_equal (1..10).to_a, result
+  end
 end
