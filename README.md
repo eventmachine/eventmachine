@@ -61,6 +61,11 @@ Install the Ruby Gem:
 gem install eventmachine-le
 </pre>
 
+If you want the beta version (not fully tested) install it by using `--pre` option:
+<pre>
+gem install eventmachine-le --pre
+</pre>
+
 
 ## Usage ##
 
