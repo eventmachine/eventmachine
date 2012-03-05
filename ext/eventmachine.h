@@ -109,6 +109,7 @@ extern "C" {
 
 	void evma_start_proxy(const unsigned long, const unsigned long, const unsigned long, const unsigned long);
 	void evma_stop_proxy(const unsigned long);
+	unsigned long evma_proxied_bytes(const unsigned long);
 
 	int evma_set_rlimit_nofile (int n_files);
 

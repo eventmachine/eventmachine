@@ -238,6 +238,12 @@ module EventMachine
       EventMachine::disable_proxy(self)
     end
 
+    # The number of bytes proxied to another connection. Reset to zero when
+    # EventMachine::Connection#proxy_incoming_to is called, and incremented whenever data is proxied.
+    def proxied_bytes
+      EventMachine::get_proxied_bytes(self.signature)
+    end
+
     # EventMachine::Connection#close_connection is called only by user code, and never
     # by the event loop. You may call this method against a connection object in any
     # callback handler, whether or not the callback was made against the connection

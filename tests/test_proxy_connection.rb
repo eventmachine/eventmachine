@@ -24,6 +24,7 @@ class TestProxyConnection < Test::Unit::TestCase
       end
 
       def unbind
+        $proxied_bytes = proxied_bytes
         @client.close_connection_after_writing
       end
     end
@@ -94,7 +95,7 @@ class TestProxyConnection < Test::Unit::TestCase
       end
 
       def receive_data(data)
-        EM.connect("127.0.0.1", @port, ProxyConnection, self, data)
+        @proxy = EM.connect("127.0.0.1", @port, ProxyConnection, self, data)
       end
     end
 
@@ -132,6 +133,17 @@ class TestProxyConnection < Test::Unit::TestCase
       }
 
       assert_equal("I know!", $client_data)
+    end
+
+    def test_proxied_bytes
+      EM.run {
+        EM.start_server("127.0.0.1", @port, Server)
+        EM.start_server("127.0.0.1", @proxy_port, ProxyServer, @port)
+        EM.connect("127.0.0.1", @proxy_port, Client)
+      }
+
+      assert_equal("I know!", $client_data)
+      assert_equal("I know!".bytesize, $proxied_bytes)
     end
 
     def test_partial_proxy_connection

@@ -1094,6 +1094,20 @@ static VALUE t_stop_proxy (VALUE self, VALUE from)
 	return Qnil;
 }
 
+/***************
+t_proxied_bytes
+****************/
+
+static VALUE t_proxied_bytes (VALUE self, VALUE from)
+{
+	try{
+		return ULONG2NUM(evma_proxied_bytes(NUM2ULONG (from)));
+	} catch (std::runtime_error e) {
+		rb_raise (EM_eConnectionError, e.what());
+	}
+	return Qnil;
+}
+
 
 /************************
 t_get_heartbeat_interval
@@ -1193,6 +1207,7 @@ extern "C" void Init_rubyeventmachine()
 
 	rb_define_module_function (EmModule, "start_proxy", (VALUE (*)(...))t_start_proxy, 4);
 	rb_define_module_function (EmModule, "stop_proxy", (VALUE (*)(...))t_stop_proxy, 1);
+	rb_define_module_function (EmModule, "get_proxied_bytes", (VALUE (*)(...))t_proxied_bytes, 1);
 
 	rb_define_module_function (EmModule, "watch_filename", (VALUE (*)(...))t_watch_filename, 1);
 	rb_define_module_function (EmModule, "unwatch_filename", (VALUE (*)(...))t_unwatch_filename, 1);
