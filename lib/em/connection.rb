@@ -576,6 +576,11 @@ module EventMachine
       EventMachine::get_subprocess_status @signature
     end
 
+    # The number of seconds since the last send/receive activity on this connection.
+    def get_idle_time
+      EventMachine::get_idle_time @signature
+    end
+
     # comm_inactivity_timeout returns the current value (float in seconds) of the inactivity-timeout
     # property of network-connection and datagram-socket objects. A nonzero value
     # indicates that the connection or socket will automatically be closed if no read or write

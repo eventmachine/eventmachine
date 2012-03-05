@@ -79,6 +79,7 @@ class EventableDescriptor: public Bindable_t
 		virtual int SetCommInactivityTimeout (uint64_t value) {return 0;}
 		uint64_t GetPendingConnectTimeout();
 		int SetPendingConnectTimeout (uint64_t value);
+		uint64_t GetLastActivity() { return LastActivity; }
 
 		#ifdef HAVE_EPOLL
 		struct epoll_event *GetEpollEvent() { return &EpollEvent; }

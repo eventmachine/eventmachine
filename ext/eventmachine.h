@@ -86,6 +86,7 @@ extern "C" {
 	float evma_get_pending_connect_timeout (const unsigned long binding);
 	int evma_set_pending_connect_timeout (const unsigned long binding, float value);
 	int evma_get_outbound_data_size (const unsigned long binding);
+	uint64_t evma_get_last_activity_time (const unsigned long);
 	int evma_send_file_data_to_connection (const unsigned long binding, const char *filename);
 
 	void evma_close_connection (const unsigned long binding, int after_writing);
