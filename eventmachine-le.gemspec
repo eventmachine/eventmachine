@@ -1,16 +1,16 @@
 # -*- encoding: utf-8 -*-
-if RUBY_VERSION == '1.8.7'
+if RUBY_VERSION == "1.8.7"
   $:.unshift File.expand_path("../lib", __FILE__)
   require "em/version"
 else
   # Ruby 1.9.
-  require File.expand_path('../lib/em/version', __FILE__)
+  require File.expand_path("../lib/em/version", __FILE__)
 end
 
 Gem::Specification.new do |s|
-  s.name = 'eventmachine-le'
+  s.name = "eventmachine-le"
   s.version = EventMachine::VERSION
-  s.homepage = 'https://github.com/ibc/EventMachine-LE/'
+  s.homepage = "https://github.com/ibc/EventMachine-LE/"
 
   s.authors = ["Francis Cianfrocca", "Aman Gupta", "hacked by Carsten Bormann and Inaki Baz Castillo"]
   s.email   = ["garbagecat10@gmail.com", "aman@tmm1.net", "cabo@tzi.org", "ibc@aliax.net"]
@@ -19,11 +19,11 @@ Gem::Specification.new do |s|
   s.extensions = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
 
   s.required_ruby_version = ">= 1.8.7"
-  s.add_development_dependency 'rake-compiler', '0.7.9'
-  s.add_development_dependency 'yard', ">= 0.7.2"
-  s.add_development_dependency 'bluecloth'
+  s.add_development_dependency "rake-compiler", ">= 0.7.9"
+  s.add_development_dependency "yard", ">= 0.7.2"
+  s.add_development_dependency "bluecloth"
 
-  s.summary = 'EventMachine LE (Live Edition)'
+  s.summary = "EventMachine LE (Live Edition)"
   s.description = "EventMachine-LE (Live Edition) is a branch of EventMachine (https://github.com/eventmachine/eventmachine).
 
 This branch incorporates interesting pull requests that are not yet included in the mainline EventMachine repository. The maintainers of that version prefer to minimize change in order to keep the stability with already existing EventMachine deployments, which provides an impressive multi-platform base for IPv4 TCP servers (e.g., Web servers) that don't need good UDP or IPv6 support.
