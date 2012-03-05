@@ -24,7 +24,7 @@ class TestProxyConnection < Test::Unit::TestCase
       end
 
       def unbind
-        $proxied_bytes = proxied_bytes
+        $proxied_bytes = self.get_proxied_bytes
         @client.close_connection_after_writing
       end
     end

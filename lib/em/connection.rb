@@ -240,8 +240,8 @@ module EventMachine
 
     # The number of bytes proxied to another connection. Reset to zero when
     # EventMachine::Connection#proxy_incoming_to is called, and incremented whenever data is proxied.
-    def proxied_bytes
-      EventMachine::get_proxied_bytes(self.signature)
+    def get_proxied_bytes
+      EventMachine::get_proxied_bytes(@signature)
     end
 
     # EventMachine::Connection#close_connection is called only by user code, and never
