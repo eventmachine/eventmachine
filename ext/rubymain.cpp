@@ -1105,6 +1105,44 @@ static VALUE t_stop_proxy (VALUE self, VALUE from)
 	return Qnil;
 }
 
+/***************
+t_proxied_bytes
+****************/
+
+static VALUE t_proxied_bytes (VALUE self, VALUE from)
+{
+	try{
+		return ULONG2NUM(evma_proxied_bytes(NUM2ULONG (from)));
+	} catch (std::runtime_error e) {
+		rb_raise (EM_eConnectionError, e.what());
+	}
+	return Qnil;
+}
+
+/***************
+t_get_idle_time
+****************/
+
+static VALUE t_get_idle_time (VALUE self, VALUE from)
+{
+	try{
+		uint64_t current_time = evma_get_current_loop_time();
+		uint64_t time = evma_get_last_activity_time(NUM2ULONG (from));
+		if (current_time != 0 && time != 0) {
+			if (time >= current_time)
+				return ULONG2NUM(0);
+			else {
+				uint64_t diff = current_time - time;
+				float seconds = diff / (1000.0*1000.0);
+				return rb_float_new(seconds);
+			}
+			return Qnil;
+		}
+	} catch (std::runtime_error e) {
+		rb_raise (EM_eConnectionError, e.what());
+	}
+	return Qnil;
+}
 
 /************************
 t_get_heartbeat_interval
@@ -1207,6 +1245,7 @@ extern "C" void Init_rubyeventmachine()
 
 	rb_define_module_function (EmModule, "start_proxy", (VALUE (*)(...))t_start_proxy, 4);
 	rb_define_module_function (EmModule, "stop_proxy", (VALUE (*)(...))t_stop_proxy, 1);
+	rb_define_module_function (EmModule, "get_proxied_bytes", (VALUE (*)(...))t_proxied_bytes, 1);
 
 	rb_define_module_function (EmModule, "watch_filename", (VALUE (*)(...))t_watch_filename, 1);
 	rb_define_module_function (EmModule, "unwatch_filename", (VALUE (*)(...))t_unwatch_filename, 1);
@@ -1228,6 +1267,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "send_file_data", (VALUE(*)(...))t_send_file_data, 2);
 	rb_define_module_function (EmModule, "get_heartbeat_interval", (VALUE(*)(...))t_get_heartbeat_interval, 0);
 	rb_define_module_function (EmModule, "set_heartbeat_interval", (VALUE(*)(...))t_set_heartbeat_interval, 1);
+	rb_define_module_function (EmModule, "get_idle_time", (VALUE(*)(...))t_get_idle_time, 1);
 
 	rb_define_module_function (EmModule, "get_peername", (VALUE(*)(...))t_get_peername, 1);
 	rb_define_module_function (EmModule, "get_sockname", (VALUE(*)(...))t_get_sockname, 1);

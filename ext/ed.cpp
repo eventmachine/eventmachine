@@ -62,6 +62,7 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em, bool autoc
 	UnbindReasonCode (0),
 	ProxyTarget(NULL),
 	ProxiedFrom(NULL),
+	ProxiedBytes(0),
 	MaxOutboundBufSize(0),
 	MyEventMachine (em),
 	PendingConnectTimeout(20000000),
@@ -250,6 +251,7 @@ void EventableDescriptor::StartProxy(const unsigned long to, const unsigned long
 		StopProxy();
 		ProxyTarget = ed;
 		BytesToProxy = length;
+		ProxiedBytes = 0;
 		ed->SetProxiedFrom(this, bufsize);
 		return;
 	}
@@ -296,6 +298,7 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 		if (BytesToProxy > 0) {
 			unsigned long proxied = min(BytesToProxy, (unsigned long) size);
 			ProxyTarget->SendOutboundData(buf, proxied);
+			ProxiedBytes += (unsigned long) proxied;
 			BytesToProxy -= proxied;
 			if (BytesToProxy == 0) {
 				StopProxy();
@@ -306,6 +309,7 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 			}
 		} else {
 			ProxyTarget->SendOutboundData(buf, size);
+			ProxiedBytes += (unsigned long) size;
 		}
 	} else {
 		(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf, size);
