@@ -85,6 +85,8 @@ typedef int SOCKET;
 #define FD_SETSIZE 2048
 
 #define WIN32_LEAN_AND_MEAN
+// Add support for IPv6
+#define _WIN32_WINNT 0x501	
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -92,6 +94,9 @@ typedef int SOCKET;
 #include <fcntl.h>
 #include <assert.h>
 #include <stdio.h>
+
+// link with Ws2_32.lib
+#pragma comment (lib, "Ws2_32.lib")
 
 typedef int socklen_t;
 typedef int pid_t;

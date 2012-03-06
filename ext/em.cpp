@@ -133,6 +133,10 @@ EventMachine_t::~EventMachine_t()
 		close (epfd);
 	if (kqfd != -1)
 		close (kqfd);
+
+	#ifdef OS_WIN32
+		WSACleanup();	// Clean up the windows network library
+	#endif
 }
 
 
@@ -1481,25 +1485,42 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	struct addrinfo hints;
 	
 	memset (&hints, 0, sizeof(hints));
-	hints.ai_family = AF_INET6;
+	hints.ai_family = AF_UNSPEC;
 	
 	if(getaddrinfo((char*)server, NULL, &hints, &result) == 0) {
 		for(ptr=result; ptr != NULL; ptr=ptr->ai_next) {
-			if(ptr->ai_family == AF_INET6) {
+			switch(ptr->ai_family) {
+			
+			case AF_INET6:
+				memcpy((void*) &in6, (const void*)(ptr->ai_addr), sizeof(in6));	// Copy result
+				freeaddrinfo(result);	// Prevent memory leaks
+				
 				if (family)
 					*family = AF_INET6;
 				if (bind_size)
 					*bind_size = sizeof(in6);
-					
-				memcpy((void*) &in6, (const void*)(ptr->ai_addr), sizeof(in6));	// Copy result
-				freeaddrinfo(result);	// Prevent memory leaks
+				
+				in6.sin6_family = AF_INET6;
+				in6.sin6_port = htons (port);
 				return (struct sockaddr*)&in6;
+			case AF_INET:
+				memcpy((void*) &in4, (const void*)(ptr->ai_addr), sizeof(in4));	// Copy result
+				freeaddrinfo(result);	// Prevent memory leaks
+				
+				if (family)
+					*family = AF_INET;
+				if (bind_size)
+					*bind_size = sizeof(in4);
+				
+				in4.sin_family = AF_INET;
+				in4.sin_port = htons (port);
+				return (struct sockaddr*)&in4;
 			}
 		}
 	}
-	#endif
+	#else
 
-	hp = gethostbyname ((char*)server); // Windows requires the cast.
+	hp = gethostbyname ((char*)server); // Windows requires the cast, although no longer executed on windows
 	if (hp) {
 		in4.sin_addr.s_addr = ((in_addr*)(hp->h_addr))->s_addr;
 		if (family)
@@ -1510,6 +1531,8 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 		in4.sin_port = htons (port);
 		return (struct sockaddr*)&in4;
 	}
+
+	#endif
 
 	return NULL;
 }
