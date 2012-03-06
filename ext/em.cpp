@@ -1473,11 +1473,24 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	#endif
 
 	#ifdef OS_WIN32
-	// TODO, must complete this branch. Windows doesn't have inet_pton.
-	// A possible approach is to make a getaddrinfo call with the supplied
-	// server address, constraining the hints to ipv6 and seeing if we
-	// get any addresses.
-	// For the time being, Ipv6 addresses aren't supported on Windows.
+	// Windows doesn't have inet_pton.
+	// Make a getaddrinfo call with the supplied server address,
+	// constraining the hints to ipv6 and seeing if we get any addresses.
+	struct addrinfo *results;
+	struct addrinfo hints;
+	
+	ZeroMemory(&hints, sizeof(hints));	// like memset
+	hints.ai_family = AF_INET6;
+	
+	if(getaddrinfo((char*)server, NULL, &hints, &result) == 0) {
+		if(results != NULL && results->ai_family == AF_INET6) {
+			if (family)
+				*family = AF_INET6;
+			if (bind_size)
+				*bind_size = sizeof(in6);
+			return (struct sockaddr*)result->ai_addr;
+		}
+	}
 	#endif
 
 	hp = gethostbyname ((char*)server); // Windows requires the cast.
