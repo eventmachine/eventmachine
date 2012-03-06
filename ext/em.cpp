@@ -1476,19 +1476,25 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	// Windows doesn't have inet_pton.
 	// Make a getaddrinfo call with the supplied server address,
 	// constraining the hints to ipv6 and seeing if we get any addresses.
-	struct addrinfo *results;
+	struct addrinfo *result = NULL;
+	struct addrinfo *ptr = NULL;
 	struct addrinfo hints;
 	
-	ZeroMemory(&hints, sizeof(hints));	// like memset
+	memset (&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET6;
 	
 	if(getaddrinfo((char*)server, NULL, &hints, &result) == 0) {
-		if(results != NULL && results->ai_family == AF_INET6) {
-			if (family)
-				*family = AF_INET6;
-			if (bind_size)
-				*bind_size = sizeof(in6);
-			return (struct sockaddr*)result->ai_addr;
+		for(ptr=result; ptr != NULL; ptr=ptr->ai_next) {
+			if(ptr->ai_family == AF_INET6) {
+				if (family)
+					*family = AF_INET6;
+				if (bind_size)
+					*bind_size = sizeof(in6);
+					
+				memcpy((void*) &in6, (const void*)(ptr->ai_addr), sizeof(in6));	// Copy result
+				freeaddrinfo(result);	// Prevent memory leaks
+				return (struct sockaddr*)&in6;
+			}
 		}
 	}
 	#endif
