@@ -98,6 +98,7 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	#ifdef OS_WIN32
 	WSADATA w;
 	WSAStartup (MAKEWORD (1, 1), &w);
+	_setmaxstdio(2048);
 	#endif
 
 	_InitializeLoopBreaker();
