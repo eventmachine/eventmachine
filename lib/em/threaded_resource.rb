@@ -29,7 +29,7 @@ module EventMachine
   #
   #    # If we don't care about the result:
   #    pool.perform do |dispatcher|
-  #      # The following blcok executes inside a dedicated thread, and should not
+  #      # The following block executes inside a dedicated thread, and should not
   #      # access EventMachine things:
   #      dispatcher.dispatch do |cassandra|
   #        cassandra.insert(:Things, '10', 'stuff' => 'things')
