@@ -91,6 +91,7 @@ typedef int SOCKET;
 #include <rpc.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <stdio.h>
 
 typedef int socklen_t;
 typedef int pid_t;
