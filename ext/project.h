@@ -81,8 +81,8 @@ typedef int SOCKET;
 #endif /* OS_UNIX */
 
 #ifdef OS_WIN32
-// 21Sep09: windows limits select() to 64 sockets by default, we increase it to 1024 here (before including winsock2.h)
-#define FD_SETSIZE 1024
+// 21Sep09: windows limits select() to 64 sockets by default, we increase here (before including winsock2.h)
+#define FD_SETSIZE 2048
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
