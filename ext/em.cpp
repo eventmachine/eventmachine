@@ -1478,8 +1478,8 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 
 	#ifdef OS_WIN32
 	// Windows doesn't have inet_pton.
-	// Make a getaddrinfo call with the supplied server address,
-	// constraining the hints to ipv6 and seeing if we get any addresses.
+	// Make a getaddrinfo call with the supplied server address (hostname or ipv6 address),
+	// We pick the first valid result.
 	struct addrinfo *result = NULL;
 	struct addrinfo *ptr = NULL;
 	struct addrinfo hints;
