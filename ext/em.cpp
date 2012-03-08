@@ -1482,12 +1482,12 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	// We pick the first valid result.
 	struct addrinfo *result = NULL;
 	struct addrinfo *ptr = NULL;
-	struct addrinfo hints;
+	//struct addrinfo hints;
 	
-	memset (&hints, 0, sizeof(hints));
-	hints.ai_family = AF_UNSPEC;
+	//memset (&hints, 0, sizeof(hints));
+	//hints.ai_family = AF_UNSPEC;		// Hints not needed
 	
-	if(getaddrinfo((char*)server, NULL, &hints, &result) == 0) {
+	if(getaddrinfo((char*)server, NULL, NULL, &result) == 0) {
 		for(ptr=result; ptr != NULL; ptr=ptr->ai_next) {
 			switch(ptr->ai_family) {
 			
