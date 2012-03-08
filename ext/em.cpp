@@ -99,7 +99,7 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	WSADATA w;
 	int iResult = WSAStartup (MAKEWORD (1, 1), &w);
 	if(iResult != NO_ERROR)
-		throw std::runtime_error ("WSAStartup function failed with error: #{iResult}");
+		throw std::runtime_error ("WSAStartup function failed");
 	_setmaxstdio(2048);
 	#endif
 
