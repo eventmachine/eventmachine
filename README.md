@@ -34,9 +34,12 @@ EventMachine-LE draws from a number of dormant pull requests on the
 mainline version of EventMachine.  New proposals will also directly
 come to EventMachine-LE and will be included once they are tested.
 
-This is not a "development branch" — we do intend to use
-EventMachine-LE in production, just beyond the focus of mainline
-EventMachine.
+This is not a "development branch" — we do use EventMachine-LE in production,
+just beyond the focus of mainline EventMachine.
+
+The intention is that EventMachine-LE is always a drop-in replacement
+for EventMachine, just with additional (and fixed) functionality.
+
 
 ## Features and changes ##
 
@@ -56,7 +59,7 @@ the following features/fixes have been applied in EventMachine-LE:
 
 ## Installation ##
 
-Install the Ruby Gem:
+The Current stable version is eventmachine-le-1.1.0 (published as Ruby Gem),installable via:
 <pre>
 gem install eventmachine-le
 </pre>
@@ -69,11 +72,15 @@ gem install eventmachine-le --pre
 
 ## Usage ##
 
-In order to use this branch in your project, make sure you load it as follows:
+Using EventMachine-LE within your project just requires loading it as follows:
 <pre>
 # First load EventMachine-LE.
 require "eventmachine-le"
-# Later load any other Ruby Gem depending on EventMachine so they will use EventMachine-LE.
+
+# NOTE: It does not hurt to call "require 'eventmachine'" *later* (it has no effect at all).
+
+# Then load any other Ruby Gem depending on EventMachine so it
+# will use EventMachine-LE.
 require "em-udns"
 </pre>
 
