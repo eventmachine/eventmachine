@@ -59,7 +59,7 @@ the following features/fixes have been applied in EventMachine-LE:
 
 ## Installation ##
 
-The Current stable version is eventmachine-le-1.1.0 (published as Ruby Gem),installable via:
+The Current stable version is eventmachine-le-1.1.0 (published as Ruby Gem), installable via:
 <pre>
 gem install eventmachine-le
 </pre>
