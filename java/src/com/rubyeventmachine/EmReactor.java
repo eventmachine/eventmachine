@@ -437,6 +437,10 @@ public class EmReactor {
 		sendData (sig, ByteBuffer.wrap(data));
 	}
 
+        public int getOutboundDataSize(long sig) {
+               return Connections.get(sig).getOutboundDataSize();
+        }
+
 	public void setCommInactivityTimeout (long sig, long mills) {
 		Connections.get(sig).setCommInactivityTimeout (mills);
 	}

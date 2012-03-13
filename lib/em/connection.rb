@@ -222,6 +222,10 @@ module EventMachine
       EventMachine::send_data @signature, data, size
     end
 
+    def get_outbound_data_size
+      EventMachine::get_outbound_data_size @signature
+    end
+
     # Returns true if the connection is in an error state, false otherwise.
     # In general, you can detect the occurrence of communication errors or unexpected
     # disconnection by the remote peer by handing the #unbind method. In some cases, however,
