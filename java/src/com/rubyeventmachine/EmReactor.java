@@ -48,7 +48,7 @@ public class EmReactor {
 	public final int EM_SSL_HANDSHAKE_COMPLETED = 108;
 	public final int EM_SSL_VERIFY = 109;
 	public final int EM_PROXY_TARGET_UNBOUND = 110;
-    public final int EM_PROXY_COMPLETED = 111;
+	public final int EM_PROXY_COMPLETED = 111;
 
 	private Selector mySelector;
 	private TreeMap<Long, ArrayList<Long>> Timers;
@@ -162,7 +162,7 @@ public class EmReactor {
 		if (NewConnections.size() > 0) {
 			timeout = -1;
 		} else if (!Timers.isEmpty()) {
-			long now = new Date().getTime();
+			long now = System.currentTimeMillis();
 			long k = Timers.firstKey();
 			long diff = k-now;
 
@@ -356,7 +356,7 @@ public class EmReactor {
 	}
 
 	void runTimers() {
-		long now = new Date().getTime();
+		long now = System.currentTimeMillis();
 		while (!Timers.isEmpty()) {
 			long k = Timers.firstKey();
 			if (k > now)
@@ -375,7 +375,7 @@ public class EmReactor {
 
 	public long installOneshotTimer (int milliseconds) {
 		long s = createBinding();
-		long deadline = new Date().getTime() + milliseconds;
+		long deadline = System.currentTimeMillis() + milliseconds;
 
 		if (Timers.containsKey(deadline)) {
 			Timers.get(deadline).add(s);
