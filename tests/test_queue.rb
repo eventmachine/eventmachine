@@ -47,4 +47,18 @@ class TestEMQueue < Test::Unit::TestCase
     EM.run { EM.next_tick { EM.stop } }
     assert_equal many, q.num_waiting
   end
+
+  def test_big_queue
+    EM.run do
+      q = EM::Queue.new
+      2000.times do |i|
+        q.push(*0..1000)
+        q.pop { |v| assert_equal v, i % 1001 }
+      end
+      q.pop do
+        assert_equal 1_999_999, q.size
+        EM.stop
+      end
+    end
+  end
 end
