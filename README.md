@@ -54,6 +54,7 @@ the following features/fixes have been applied in EventMachine-LE:
 * Support for Enumerable in `EM::Iterator` ([fl00r](https://github.com/eventmachine/eventmachine/pull/300)).
 * Improvements to `EM::Protocols::LineProtocol` and have it autoload ([gaffneyc](https://github.com/eventmachine/eventmachine/pull/151)).
 * `EM::Protocols::SmtpServer`: support multiple messages per one connection and login auth type ([bogdan](https://github.com/eventmachine/eventmachine/pull/288)).
+* Reimplement `EM::Queue` to avoid shift/push performance problem ([grddev](https://github.com/eventmachine/eventmachine/pull/311)).
 * Many code cleanups.
 
 
