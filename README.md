@@ -1,6 +1,9 @@
-# About EventMachine-LE #
+# EventMachine-LE #
 
-EventMachine-LE (Live Edition) is a branch of [EventMachine](http://github.com/eventmachine/eventmachine).
+EventMachine-LE (Live Edition) is a branch of [EventMachine](http://github.com/eventmachine/eventmachine) with fixes and more features.
+
+* Home page: http://ibc.github.com/EventMachine-LE/
+
 
 ## What do you mean by "branch"? ##
 
@@ -78,7 +81,8 @@ Using EventMachine-LE within your project just requires loading it as follows:
 # First load EventMachine-LE.
 require "eventmachine-le"
 
-# NOTE: It does not hurt to call "require 'eventmachine'" *later* (it has no effect at all).
+# NOTE: It does not hurt to call "require 'eventmachine'" later
+# (it has no effect at all).
 
 # Then load any other Ruby Gem depending on EventMachine so it
 # will use EventMachine-LE.
