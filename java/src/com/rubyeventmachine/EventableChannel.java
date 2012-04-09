@@ -34,7 +34,7 @@ import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 
 public interface EventableChannel {
-	
+
 	public void scheduleOutboundData (ByteBuffer bb);
 	
 	public void scheduleOutboundDatagram (ByteBuffer bb, String recipAddress, int recipPort);
@@ -44,7 +44,7 @@ public interface EventableChannel {
 	public void startTls();
 	
 	public long getBinding();
-	
+
 	public void readInboundData (ByteBuffer dst) throws IOException;
 	
 	public void register() throws ClosedChannelException;
@@ -57,7 +57,11 @@ public interface EventableChannel {
 	
 	public boolean writeOutboundData() throws IOException;
 
-	public void setCommInactivityTimeout (long seconds);
+	public void setCommInactivityTimeout(double seconds);
+	public long getCommInactivityTimeout();
+
+	public void setLastCommActivityTime(long time);
+	public long getLastCommActivityTime();
 
 	public Object[] getPeerName();
 

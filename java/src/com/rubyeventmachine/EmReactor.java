@@ -63,6 +63,8 @@ public class EmReactor {
 	private AtomicBoolean loopBreaker;
 	private ByteBuffer myReadBuffer;
 	private int timerQuantum;
+	private long heartbeatInterval;
+	private long nextHeartbeatTime;
 
 	public EmReactor() {
 		Timers = new TreeMap<Long, ArrayList<Long>>();
@@ -73,10 +75,11 @@ public class EmReactor {
 		DetachedConnections = new ArrayList<EventableSocketChannel>();
 
 		BindingIndex = 0;
-		loopBreaker = new AtomicBoolean();
-		loopBreaker.set(false);
+		loopBreaker = new AtomicBoolean(false);
 		myReadBuffer = ByteBuffer.allocate(32*1024); // don't use a direct buffer. Ruby doesn't seem to like them.
 		timerQuantum = 98;
+		heartbeatInterval = 2000;
+		nextHeartbeatTime = 0;
 	}
 
 	/**
@@ -109,6 +112,12 @@ public class EmReactor {
 			checkIO();
 			addNewConnections();
 			processIO();
+
+			long now = System.currentTimeMillis();
+			if (now >= nextHeartbeatTime) {
+				removeInactiveConnections();
+				nextHeartbeatTime = now + heartbeatInterval;
+			}
 		}
 
 		close();
@@ -156,22 +165,47 @@ public class EmReactor {
 		UnboundConnections.clear();
 	}
 
+	private void removeInactiveConnections() {
+		long now = System.currentTimeMillis();
+		for (EventableChannel ec : Connections.values()) {
+			long timeout = ec.getCommInactivityTimeout();
+			if (timeout != 0 && now >= ec.getLastCommActivityTime() + timeout) {
+				UnboundConnections.add(ec.getBinding());
+			}
+		}
+	}
+
 	void checkIO() {
-		long timeout;
+		long timeout = 0; // wait indefinitely
 
 		if (NewConnections.size() > 0) {
 			timeout = -1;
-		} else if (!Timers.isEmpty()) {
-			long now = System.currentTimeMillis();
-			long k = Timers.firstKey();
-			long diff = k-now;
-
-			if (diff <= 0)
-				timeout = -1; // don't wait, just poll once
-			else
-				timeout = diff;
 		} else {
-			timeout = 0; // wait indefinitely
+			// calculate the time of next event
+			long now = System.currentTimeMillis();
+
+			if (!Timers.isEmpty()) {
+				long k = Timers.firstKey();
+				long diff = k-now;
+
+				if (diff <= 0)
+					timeout = -1; // don't wait, just poll once
+				else
+					timeout = diff;
+			}
+
+			if (!Connections.isEmpty()) {
+				long diff = nextHeartbeatTime - now;
+
+				if (diff <= 0)
+					timeout = -1; // don't wait, just poll once
+				else
+					if (timeout == 0) { // no timers
+						timeout = diff;
+					} else {
+						timeout = Math.min(timeout, diff); // wait until the closest
+					}
+			}
 		}
 
 		try {
@@ -261,6 +295,8 @@ public class EmReactor {
 				UnboundConnections.add (b);
 			}
 		}
+
+		ec.setLastCommActivityTime(System.currentTimeMillis());
 	}
 
 	void isWritable (SelectionKey k) {
@@ -279,6 +315,8 @@ public class EmReactor {
 				UnboundConnections.add (b);
 			}
 		}
+
+		ec.setLastCommActivityTime(System.currentTimeMillis());
 	}
 
 	void isConnectable (SelectionKey k) {
@@ -438,8 +476,12 @@ public class EmReactor {
 		sendData (sig, ByteBuffer.wrap(data));
 	}
 
-	public void setCommInactivityTimeout (long sig, long mills) {
-		Connections.get(sig).setCommInactivityTimeout (mills);
+	public void setCommInactivityTimeout (long sig, double seconds) {
+		Connections.get(sig).setCommInactivityTimeout(seconds);
+	}
+
+	public double getCommInactivityTimeout (long sig) {
+		return Connections.get(sig).getCommInactivityTimeout() / 1000.0;
 	}
 
 	public void sendDatagram (long sig, byte[] data, int length, String recipAddress, int recipPort) {
@@ -518,6 +560,15 @@ public class EmReactor {
 		if (mills < 5 || mills > 2500)
 			throw new RuntimeException ("attempt to set invalid timer-quantum value: "+mills);
 		timerQuantum = mills;
+	}
+
+	public void setHeartbeatInterval(double seconds) {
+		if (seconds > 0)
+			heartbeatInterval = (long) (seconds * 1000);
+	}
+
+	public double getHeartbeatInterval() {
+		return heartbeatInterval / 1000.0;
 	}
 
 	public Object[] getPeerName (long sig) {
