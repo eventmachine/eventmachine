@@ -229,7 +229,11 @@ public class EventableSocketChannel extends AbstractEventableChannel {
 		bConnectPending = true;
 		updateEvents();
 	}
-	
+
+	public boolean isConnectPending() {
+		return bConnectPending;
+	}
+
 	/**
 	 * Called by the reactor when we have selected connectable.
 	 * Return false to indicate an error that should cause the connection to close.
@@ -239,6 +243,7 @@ public class EventableSocketChannel extends AbstractEventableChannel {
 
 		bConnectPending = false;
 		updateEvents();
+		lastActivityTime = System.currentTimeMillis();
 		return true;
 	}
 	

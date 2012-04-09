@@ -168,6 +168,10 @@ public class EmReactor {
 	private void removeInactiveConnections() {
 		long now = System.currentTimeMillis();
 		for (EventableChannel ec : Connections.values()) {
+			if (ec instanceof EventableSocketChannel) {
+				if (((EventableSocketChannel) ec).isConnectPending())
+					continue;
+			}
 			long timeout = ec.getCommInactivityTimeout();
 			if (timeout != 0 && now >= ec.getLastCommActivityTime() + timeout) {
 				UnboundConnections.add(ec.getBinding());
