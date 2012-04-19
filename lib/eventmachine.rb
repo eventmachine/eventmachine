@@ -1014,7 +1014,6 @@ module EventMachine
     # has no constructor.
 
     unless @threadpool
-      require 'thread'
       @threadpool = []
       @threadqueue = ::Queue.new
       @resultqueue = ::Queue.new
