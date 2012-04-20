@@ -1048,7 +1048,7 @@ module EventMachine
   # callbacks have been fired.
   #
   def self.defers_finished?
-    return false unless @all_threads_spawned
+    return false if @threadpool and !@all_threads_spawned
     return false if @threadqueue and not @threadqueue.empty?
     return false if @resultqueue and not @resultqueue.empty?
     return false if @threadpool and @threadqueue.num_waiting != @threadpool.size
