@@ -690,6 +690,17 @@ module EventMachine
       EventMachine::is_notify_writable @signature
     end
 
+    # Watch for writting outbound data, so that one could react on decreasing of outbound_data_size
+    def notify_sent_data= mode
+      EventMachine::set_notify_sent_data @signature, mode
+    end
+
+    # Returns true if the connection is being watched for sending data.
+    def notify_sent_data?
+      EventMachine::is_notify_sent_data @signature
+    end
+    alias notify_sent_data notify_sent_data?
+
     # Pause a connection so that {#send_data} and {#receive_data} events are not fired until {#resume} is called.
     # @see #resume
     def pause
