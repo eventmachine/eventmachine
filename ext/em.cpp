@@ -2243,26 +2243,36 @@ void EventMachine_t::_ReadInotifyEvents()
 		}
 		int current = 0;
 		while (current < returned) {
-			struct inotify_event* event = (struct inotify_event*)(buffer+current);
-			map<int, Bindable_t*>::const_iterator bindable = Files.find(event->wd);
+			struct inotify_event event = *(struct inotify_event*)(buffer+current);
+			map<int, Bindable_t*>::const_iterator bindable = Files.find(event.wd);
 			if (bindable != Files.end()) {
-				if (event->mask & (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVE)){
-					if (event->len > 0) {
+				if (event.mask & (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVE)){
+                                        char flag = 0;
+                                        if (event.mask & IN_MODIFY) flag |= 1;
+                                        if (event.mask & IN_CREATE) flag |= 2;
+                                        if (event.mask & IN_DELETE) flag |= 4;
+                                        if (event.mask & IN_MOVED_FROM) flag |= 8;
+                                        if (event.mask & IN_MOVED_TO) flag |= 16;
+					if (event.len > 0) {
                                                 char *name = buffer + current + sizeof_inotify;
-                                                size_t len = find_end(name, event->len);
-						(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, name, len);
+                                                size_t len = find_end(name, event.len);
+                                                name[-1] = flag;
+						(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, name-1, len+1);
+                                        } else {
+						(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, &flag, 1);
                                         }
+
 					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "\0modified", 9);
 				}
-				if (event->mask & IN_MOVE_SELF){
+				if (event.mask & IN_MOVE_SELF){
 					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "\0moved", 6);
 				}
-				if (event->mask & IN_DELETE_SELF) {
+				if (event.mask & IN_DELETE_SELF) {
 					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "\0deleted", 8);
-					UnwatchFile ((int)event->wd);
+					UnwatchFile ((int)event.wd);
 				}
 			}
-			current += sizeof_inotify + event->len;
+			current += sizeof_inotify + event.len;
 		}
 	}
 	#endif

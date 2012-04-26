@@ -15,7 +15,8 @@ module EventMachine
     Cdeleted = "\0deleted".freeze
     # @private
     Cmoved = "\0moved".freeze
-
+    # @private
+    CInotifyEvents = {1 => [:modify], 2 => [:create, :appear], 4 => [:delete, :disappear], 8 => [:moved_from, :disappear], 16 => [:moved_to, :appear]}
 
     # @private
     def receive_data(data)
@@ -23,50 +24,29 @@ module EventMachine
       when Cmodified
         _file_modified
       when Cdeleted
-        _file_deleted
+        file_deleted
       when Cmoved
-        _file_moved
+        file_moved
       else
         @arg = data
       end
     end
 
     # :stopdoc:
-    module CallWithArg # :nodoc: all
-      def _file_modified
-        arg, @arg = @arg, nil
-        file_modified(arg)
-      end
-      def _file_deleted
-        arg, @arg = @arg, nil
-        file_deleted(arg)
-      end
-      def _file_moved
-        arg, @arg = @arg, nil
-        file_moved(arg)
-      end
-    end
-
-    module CallWithoutArg # :nodoc: all
-      def _file_modified
+    def _file_modified
+      @_file_modified_arity ||= method(:file_modified).arity
+      if @_file_modified_arity == 0
         file_modified
-      end
-      def _file_deleted
-        file_deleted
-      end
-      def _file_moved
-        file_moved
-      end
-    end
-
-    %w{_file_modified _file_deleted _file_moved}.each do |method|
-      define_method(method) do
-        if method(method[1..-1]).arity == 0
-          extend CallWithoutArg
-        else
-          extend CallWithArg
-        end
-        send(method)
+      elsif @arg
+        arg, @arg = @arg, nil
+        event, file = arg[0].ord, arg[1..-1]
+        events = [file]
+        CInotifyEvents.each{|k, v|
+          events |= v unless event & k == 0
+        }
+        file_modified(events)
+      else
+        file_modified(nil)
       end
     end
     # :startdoc:

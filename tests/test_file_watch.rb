@@ -81,6 +81,7 @@ class TestFileWatch < Test::Unit::TestCase
           File.open(file, 'w') do end
 
           EM.add_timer(0.01){ 
+            File.open(file, 'w') do end
             File.rename(file, file1)
             EM.add_timer(0.01){
               File.unlink(file1)
@@ -90,7 +91,14 @@ class TestFileWatch < Test::Unit::TestCase
             }
           }
         }
-        assert_equal(%w{test_file test_file test_file1 test_file1}, $modified)
+        expected = [
+          ['test_file', :create, :appear],
+          ['test_file', :modify],
+          ['test_file', :moved_from, :disappear],
+          ['test_file1', :moved_to, :appear],
+          ['test_file1', :delete, :disappear]
+          ]
+        assert_equal(expected, $modified)
       rescue
         Dir[path+'/*'].each{|f| File.unlink(f)}
         Dir.rmdir(path)
