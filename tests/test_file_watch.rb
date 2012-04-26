@@ -25,7 +25,20 @@ class TestFileWatch < Test::Unit::TestCase
       end
     end
 
+    module DirWatcherINotify
+      def file_modified(file = nil)
+        $modified << file
+      end
+      def unbind
+        $unbind = true
+        EM.stop
+      end
+    end
+
     def setup
+      $modified = []
+      $deleted = nil
+      $unbind = nil
       EM.kqueue = true if EM.kqueue?
     end
 
@@ -53,6 +66,36 @@ class TestFileWatch < Test::Unit::TestCase
       assert($modified)
       assert($deleted)
       assert($unbind)
+    end
+
+    if linux?
+      def test_directory
+        path = File.expand_path('../test_watch_dir', __FILE__)
+        EM.run {
+          Dir.mkdir(path)
+
+          watch = EM.watch_file(path, DirWatcherINotify)
+
+          file = File.join(path, 'test_file')
+          file1 = File.join(path, 'test_file1')
+          File.open(file, 'w') do end
+
+          EM.add_timer(0.01){ 
+            File.rename(file, file1)
+            EM.add_timer(0.01){
+              File.unlink(file1)
+              EM.add_timer(0.01) {
+                Dir.rmdir(path)
+              }
+            }
+          }
+        }
+        assert_equal(%w{test_file test_file test_file1 test_file1}, $modified)
+      rescue
+        Dir[path+'/*'].each{|f| File.unlink(f)}
+        Dir.rmdir(path)
+        raise
+      end
     end
   else
     warn "EM.watch_file not implemented, skipping tests in #{__FILE__}"

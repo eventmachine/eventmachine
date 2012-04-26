@@ -10,24 +10,66 @@ module EventMachine
   # @see EventMachine.watch_file
   class FileWatch < Connection
     # @private
-    Cmodified = 'modified'.freeze
+    Cmodified = "\0modified".freeze
     # @private
-    Cdeleted = 'deleted'.freeze
+    Cdeleted = "\0deleted".freeze
     # @private
-    Cmoved = 'moved'.freeze
+    Cmoved = "\0moved".freeze
 
 
     # @private
     def receive_data(data)
       case data
       when Cmodified
-        file_modified
+        _file_modified
       when Cdeleted
-        file_deleted
+        _file_deleted
       when Cmoved
+        _file_moved
+      else
+        @arg = data
+      end
+    end
+
+    # :stopdoc:
+    module CallWithArg # :nodoc: all
+      def _file_modified
+        arg, @arg = @arg, nil
+        file_modified(arg)
+      end
+      def _file_deleted
+        arg, @arg = @arg, nil
+        file_deleted(arg)
+      end
+      def _file_moved
+        arg, @arg = @arg, nil
+        file_moved(arg)
+      end
+    end
+
+    module CallWithoutArg # :nodoc: all
+      def _file_modified
+        file_modified
+      end
+      def _file_deleted
+        file_deleted
+      end
+      def _file_moved
         file_moved
       end
     end
+
+    %w{_file_modified _file_deleted _file_moved}.each do |method|
+      define_method(method) do
+        if method(method[1..-1]).arity == 0
+          extend CallWithoutArg
+        else
+          extend CallWithArg
+        end
+        send(method)
+      end
+    end
+    # :startdoc:
 
     # Returns the path that is being monitored.
     #
@@ -41,25 +83,31 @@ module EventMachine
 
     # Will be called when the file is modified. Supposed to be redefined by subclasses.
     #
+    # On Linux this method could be called with filename argument when directory is watched.
+    #
     # @abstract
-    def file_modified
+    def file_modified(arg = nil)
     end
 
     # Will be called when the file is deleted. Supposed to be redefined by subclasses.
     # When the file is deleted, stop_watching will be called after this to make sure everything is
     # cleaned up correctly.
     #
+    # On Linux this method could be called with filename argument when directory is watched.
+    #
     # @note On Linux (with {http://en.wikipedia.org/wiki/Inotify inotify}), this method will not be called until *all* open file descriptors to
     #       the file have been closed.
     #
     # @abstract
-    def file_deleted
+    def file_deleted(arg = nil)
     end
 
     # Will be called when the file is moved or renamed. Supposed to be redefined by subclasses.
     #
+    # On Linux this method could be called with filename argument when directory is watched.
+    #
     # @abstract
-    def file_moved
+    def file_moved(arg = nil)
     end
 
     # Discontinue monitoring of the file.
