@@ -1275,9 +1275,7 @@ module EventMachine
     klass = klass_from_handler(FileWatch, handler, *args)
 
     s = EM::watch_filename(filename)
-    c = klass.new s, *args
-    # we have to set the path like this because of how Connection.new works
-    c.instance_variable_set("@path", filename)
+    c = klass.new s, filename, *args
     @conns[s] = c
     block_given? and yield c
     c
