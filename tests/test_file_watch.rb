@@ -78,13 +78,16 @@ class TestFileWatch < Test::Unit::TestCase
 
           file = File.join(path, 'test_file')
           file1 = File.join(path, 'test_file1')
+          dir = File.join(path, 'test_dir')
           File.open(file, 'w') do end
 
           EM.add_timer(0.01){ 
             File.open(file, 'w') do end
             File.rename(file, file1)
+            Dir.mkdir(dir)
             EM.add_timer(0.01){
               File.unlink(file1)
+              Dir.unlink(dir)
               EM.add_timer(0.01) {
                 Dir.rmdir(path)
               }
@@ -96,11 +99,19 @@ class TestFileWatch < Test::Unit::TestCase
           ['test_file', :modify],
           ['test_file', :moved_from, :disappear],
           ['test_file1', :moved_to, :appear],
-          ['test_file1', :delete, :disappear]
+          ['test_dir', :create, :appear, :is_dir],
+          ['test_file1', :delete, :disappear],
+          ['test_dir', :delete, :disappear, :is_dir]
           ]
         assert_equal(expected, $modified)
       rescue
-        Dir[path+'/*'].each{|f| File.unlink(f)}
+        Dir[path+'/*'].each{|f|
+          if File.directory?(f)
+            Dir.unlink(f)
+          else
+            File.unlink(f)
+          end
+        }
         Dir.rmdir(path)
         raise
       end

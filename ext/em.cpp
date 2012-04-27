@@ -2248,11 +2248,12 @@ void EventMachine_t::_ReadInotifyEvents()
 			if (bindable != Files.end()) {
 				if (event.mask & (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVE)){
                                         char flag = 0;
-                                        if (event.mask & IN_MODIFY) flag |= 1;
-                                        if (event.mask & IN_CREATE) flag |= 2;
-                                        if (event.mask & IN_DELETE) flag |= 4;
+                                        if (event.mask & IN_MODIFY)     flag |= 1;
+                                        if (event.mask & IN_CREATE)     flag |= 2;
+                                        if (event.mask & IN_DELETE)     flag |= 4;
                                         if (event.mask & IN_MOVED_FROM) flag |= 8;
-                                        if (event.mask & IN_MOVED_TO) flag |= 16;
+                                        if (event.mask & IN_MOVED_TO)   flag |= 16;
+					if (event.mask & IN_ISDIR)      flag |= 32;
 					if (event.len > 0) {
                                                 char *name = buffer + current + sizeof_inotify;
                                                 size_t len = find_end(name, event.len);

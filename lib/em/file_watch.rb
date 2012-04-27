@@ -16,7 +16,14 @@ module EventMachine
     # @private
     Cmoved = "\0moved".freeze
     # @private
-    CInotifyEvents = {1 => [:modify], 2 => [:create, :appear], 4 => [:delete, :disappear], 8 => [:moved_from, :disappear], 16 => [:moved_to, :appear]}
+    CInotifyEvents = [
+      [1, [:modify]],
+      [2, [:create, :appear]],
+      [4, [:delete, :disappear]],
+      [8, [:moved_from, :disappear]],
+      [16, [:moved_to, :appear]],
+      [32, [:is_dir]]
+    ]
 
     # @private
     def receive_data(data)
