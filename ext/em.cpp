@@ -189,7 +189,10 @@ void EventMachine_t::ScheduleHalt()
 	bTerminateSignalReceived = true;
 }
 
-
+bool EventMachine_t::Stopping()
+{
+    return bTerminateSignalReceived;
+}
 
 /*******************************
 EventMachine_t::SetTimerQuantum
