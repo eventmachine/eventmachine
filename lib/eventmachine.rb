@@ -526,7 +526,7 @@ module EventMachine
         else
           start_unix_server server
         end
-    @acceptors[s] = [klass,args,block]
+    @acceptors[s] = [klass, args, block]
     s
   end
 
@@ -731,7 +731,7 @@ module EventMachine
   def EventMachine::attach_io io, watch_mode, handler=nil, *args
     klass = klass_from_handler(Connection, handler, *args)
 
-    if !watch_mode and klass.public_instance_methods.any?{|m| [:notify_readable, :notify_writable].include? m.to_sym }
+    if !watch_mode and klass.public_instance_methods.any? { |m| [:notify_readable, :notify_writable].include? m.to_sym }
       raise ArgumentError, "notify_readable/writable with EM.attach is not supported. Use EM.watch(io){ |c| c.notify_readable = true }"
     end
 
@@ -946,7 +946,7 @@ module EventMachine
   # @private
   def self.run_deferred_callbacks
     until (@resultqueue ||= []).empty?
-      result,cback = @resultqueue.pop
+      result, cback = @resultqueue.pop
       cback.call result if cback
     end
 
@@ -1022,7 +1022,7 @@ module EventMachine
       spawn_threadpool
     end
 
-    @threadqueue << [op||blk,callback]
+    @threadqueue << [op||blk, callback]
   end
 
 
@@ -1084,7 +1084,7 @@ module EventMachine
 
     raise ArgumentError, "no proc or block given" unless ((pr && pr.respond_to?(:call)) or block)
     @next_tick_mutex.synchronize do
-      @next_tick_queue << ( pr || block )
+      @next_tick_queue << (pr || block)
     end
     signal_loopbreak if reactor_running?
   end
@@ -1125,7 +1125,6 @@ module EventMachine
   end
 
 
-
   # Runs an external process.
   #
   # @example
@@ -1155,9 +1154,9 @@ module EventMachine
     # Perhaps misnamed since the underlying function uses socketpair and is full-duplex.
 
     klass = klass_from_handler(Connection, handler, *args)
-    w = Shellwords::shellwords( cmd )
-    w.unshift( w.first ) if w.first
-    s = invoke_popen( w )
+    w = Shellwords::shellwords(cmd)
+    w.unshift(w.first) if w.first
+    s = invoke_popen(w)
     c = klass.new s, *args
     @conns[s] = c
     yield(c) if block_given?
@@ -1426,7 +1425,7 @@ module EventMachine
     # code, but the performance impact may be too large.
     #
     if opcode == ConnectionUnbound
-      if c = @conns.delete( conn_binding )
+      if c = @conns.delete(conn_binding)
         begin
           if c.original_method(:unbind).arity != 0
             c.unbind(data == 0 ? nil : EventMachine::ERRNOS[data])
@@ -1441,11 +1440,15 @@ module EventMachine
             rescue Errno::EBADF, IOError
             end
           end
-        rescue
-          @wrapped_exception = $!
-          stop
+        rescue Exception => e
+          if stopping?
+            @wrapped_exception = $!
+            stop
+          else
+            raise e
+          end
         end
-      elsif c = @acceptors.delete( conn_binding )
+      elsif c = @acceptors.delete(conn_binding)
         # no-op
       else
         if $! # Bubble user generated errors.
@@ -1456,20 +1459,20 @@ module EventMachine
         end
       end
     elsif opcode == ConnectionAccepted
-      accep,args,blk = @acceptors[conn_binding]
+      accep, args, blk = @acceptors[conn_binding]
       raise NoHandlerForAcceptedConnection unless accep
       c = accep.new data, *args
       @conns[data] = c
       blk and blk.call(c)
       c # (needed?)
-      ##
-      # The remaining code is a fallback for the pure ruby and java reactors.
-      # In the C++ reactor, these events are handled in the C event_callback() in rubymain.cpp
+        ##
+        # The remaining code is a fallback for the pure ruby and java reactors.
+        # In the C++ reactor, these events are handled in the C event_callback() in rubymain.cpp
     elsif opcode == ConnectionCompleted
       c = @conns[conn_binding] or raise ConnectionNotBound, "received ConnectionCompleted for unknown signature: #{conn_binding}"
       c.connection_completed
     elsif opcode == TimerFired
-      t = @timers.delete( data )
+      t = @timers.delete(data)
       return if t == false # timer cancelled
       t or raise UnknownTimerFired, "timer data: #{data}"
       t.call
@@ -1503,17 +1506,17 @@ module EventMachine
   # @private
   def self.klass_from_handler(klass = Connection, handler = nil, *args)
     klass = if handler and handler.is_a?(Class)
-      raise ArgumentError, "must provide module or subclass of #{klass.name}" unless klass >= handler
-      handler
-    elsif handler
-      begin
-        handler::EM_CONNECTION_CLASS
-      rescue NameError
-        handler::const_set(:EM_CONNECTION_CLASS, Class.new(klass) {include handler})
-      end
-    else
-      klass
-    end
+              raise ArgumentError, "must provide module or subclass of #{klass.name}" unless klass >= handler
+              handler
+            elsif handler
+              begin
+                handler::EM_CONNECTION_CLASS
+              rescue NameError
+                handler::const_set(:EM_CONNECTION_CLASS, Class.new(klass) { include handler })
+              end
+            else
+              klass
+            end
 
     arity = klass.instance_method(:initialize).arity
     expected = arity >= 0 ? arity : -(arity + 1)

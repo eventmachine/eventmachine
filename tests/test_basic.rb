@@ -82,30 +82,48 @@ class TestBasic < Test::Unit::TestCase
 
   class UnbindError < EM::Connection
     ERR = Class.new(StandardError)
+
     def initialize *args
       super
     end
+
     def connection_completed
       close_connection_after_writing
     end
+
     def unbind
       raise ERR
     end
   end
 
-  def test_unbind_error
-    assert_raises( UnbindError::ERR ) {
+  def test_unbind_error_during_stop
+    assert_raises(UnbindError::ERR) {
       EM.run {
         EM.start_server "127.0.0.1", @port
-        EM.connect "127.0.0.1", @port, UnbindError
+        EM.connect "127.0.0.1", @port, UnbindError do
+          EM.stop
+        end
       }
     }
   end
+
+  def test_unbind_error
+    EM.run {
+      EM.error_handler do |e|
+        assert(e.is_a?(UnbindError::ERR))
+        EM.stop
+      end
+      EM.start_server "127.0.0.1", @port
+      EM.connect "127.0.0.1", @port, UnbindError
+    }
+  end
+
 
   module BrsTestSrv
     def receive_data data
       $received << data
     end
+
     def unbind
       EM.stop
     end
@@ -131,7 +149,7 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_bind_connect
-    local_ip = UDPSocket.open {|s| s.connect('google.com', 80); s.addr.last }
+    local_ip = UDPSocket.open { |s| s.connect('google.com', 80); s.addr.last }
 
     bind_port = next_port
 
@@ -170,7 +188,7 @@ class TestBasic < Test::Unit::TestCase
     end
     assert x
   end
-  
+
   def test_schedule_from_thread
     x = false
     EM.run do
@@ -192,14 +210,15 @@ class TestBasic < Test::Unit::TestCase
   else
     warn "EM.set_heartbeat_interval not implemented, skipping a test in #{__FILE__}"
   end
-  
+
   module PostInitRaiser
     ERR = Class.new(StandardError)
+
     def post_init
       raise ERR
     end
   end
-  
+
   def test_bubble_errors_from_post_init
     assert_raises(PostInitRaiser::ERR) do
       EM.run do
@@ -208,14 +227,15 @@ class TestBasic < Test::Unit::TestCase
       end
     end
   end
-  
+
   module InitializeRaiser
     ERR = Class.new(StandardError)
+
     def initialize
       raise ERR
     end
   end
-  
+
   def test_bubble_errors_from_initialize
     assert_raises(InitializeRaiser::ERR) do
       EM.run do
@@ -224,7 +244,7 @@ class TestBasic < Test::Unit::TestCase
       end
     end
   end
-  
+
   def test_schedule_close
     localhost, port = '127.0.0.1', 9000
     timer_ran = false
