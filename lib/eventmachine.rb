@@ -434,7 +434,8 @@ module EventMachine
   # that you must define. When the network server that is started by
   # start_server accepts a new connection, it instantiates a new
   # object of an anonymous class that is inherited from {EventMachine::Connection},
-  # *into which your handler module have been included*.
+  # *into which your handler module have been included*. Arguments passed into start_server
+  # after the class name are passed into the constructor during the instantiation.
   #
   # Your handler module may override any of the methods in {EventMachine::Connection},
   # such as {EventMachine::Connection#receive_data}, in order to implement the specific behavior
