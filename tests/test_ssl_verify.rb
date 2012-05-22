@@ -2,14 +2,17 @@ require 'em_test_helper'
 
 if EM.ssl?
   class TestSslVerify < Test::Unit::TestCase
-    def setup
-      $dir = File.dirname(File.expand_path(__FILE__)) + '/'
-      $cert_from_file = File.read($dir+'client.crt')
+    CERT_DIRECTORY = File.expand_path("../certs", __FILE__) + '/'
+    CLIENT_KEY_FILE  = CERT_DIRECTORY + 'client.key'
+    CLIENT_CERT_FILE = CERT_DIRECTORY + 'client.crt'
+
+    def cert_from_file
+      File.read(CLIENT_CERT_FILE)
     end
 
     module Client
       def connection_completed
-        start_tls(:private_key_file => $dir+'client.key', :cert_chain_file => $dir+'client.crt')
+        start_tls(:private_key_file => CLIENT_KEY_FILE, :cert_chain_file => CLIENT_CERT_FILE)
       end
 
       def ssl_handshake_completed
@@ -57,10 +60,10 @@ if EM.ssl?
       $client_handshake_completed, $server_handshake_completed = false, false
       EM.run {
         EM.start_server("127.0.0.1", 16784, AcceptServer)
-        EM.connect("127.0.0.1", 16784, Client).instance_variable_get("@signature")
+        EM.connect("127.0.0.1", 16784, Client)
       }
 
-      assert_equal($cert_from_file, $cert_from_server)
+      assert_equal(cert_from_file, $cert_from_server)
       assert($client_handshake_completed)
       assert($server_handshake_completed)
     end
@@ -72,7 +75,7 @@ if EM.ssl?
         EM.connect("127.0.0.1", 16784, Client)
       }
 
-      assert_equal($cert_from_file, $cert_from_server)
+      assert_equal(cert_from_file, $cert_from_server)
       assert(!$client_handshake_completed)
       assert(!$server_handshake_completed)
     end
