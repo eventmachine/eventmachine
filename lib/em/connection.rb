@@ -370,17 +370,22 @@ module EventMachine
     # your redefined {#post_init} method, or in the {#connection_completed} handler for
     # an outbound connection.
     #
+    # @option args [String] :cert_chain_file (nil)  local path of a readable file that contants  a chain of X509 certificates in
+    #                                               the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail),
+    #                                               with the most-resolved certificate at the top of the file, successive intermediate
+    #                                               certs in the middle, and the root (or CA) cert at the bottom.
     #
-    # @option args [String] :cert_chain_file (nil) local path of a readable file that contants  a chain of X509 certificates in
-    #                                              the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail),
-    #                                              with the most-resolved certificate at the top of the file, successive intermediate
-    #                                              certs in the middle, and the root (or CA) cert at the bottom.
+    # @option args [String] :ca_file (nil)          interpreted as the name of a readable file in the local filesystem. The file is
+    #                                               expected to contain a chain of X509 certificates in PEM format.
     #
     # @option args [String] :private_key_file (nil) local path of a readable file that must contain a private key in the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail).
     #
     # @option args [String] :verify_peer (false)    indicates whether a server should request a certificate from a peer, to be verified by user code.
     #                                               If true, the {#ssl_verify_peer} callback on the {EventMachine::Connection} object is called with each certificate
     #                                               in the certificate chain provided by the peer. See documentation on {#ssl_verify_peer} for how to use this.
+    #
+    # @option args [String] :private_key_pwd (nil)  interpreted as the password for the private_key_file
+    #                                               specified above. if no password is supplied the file is opened without one.
     #
     # @example Using TLS with EventMachine
     #
@@ -406,7 +411,7 @@ module EventMachine
     #
     # @see #ssl_verify_peer
     def start_tls args={}
-      priv_key, cert_chain, verify_peer = args.values_at(:private_key_file, :cert_chain_file, :verify_peer)
+      ca_file, priv_key, priv_key_pwd, cert_chain, verify_peer = args.values_at(:ca_file, :private_key_file, :private_key_pwd, :cert_chain_file, :verify_peer)
 
       [priv_key, cert_chain].each do |file|
         next if file.nil? or file.empty?
@@ -414,7 +419,7 @@ module EventMachine
         "Could not find #{file} for start_tls" unless File.exists? file
       end
 
-      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer)
+      EventMachine::set_tls_parms(@signature, ca_file || '', priv_key || '', priv_key_pwd || '', cert_chain || '', verify_peer)
       EventMachine::start_tls @signature
     end
 
