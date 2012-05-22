@@ -146,10 +146,26 @@ static inline void event_callback (struct em_event* e)
 			rb_funcall (conn, Intern_ssl_handshake_completed, 0);
 			return;
 		}
-		case EM_SSL_VERIFY:
+		case EM_SSL_VERIFY_SUCCESS:
 		{
 			VALUE conn = ensure_conn(signature);
-			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
+			VALUE should_accept;
+			if (rb_obj_method_arity(conn, Intern_ssl_verify_peer) == 1)
+				should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
+			else
+				should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 2, rb_str_new(data_str, data_num), Qtrue);
+			if (RTEST(should_accept))
+				evma_accept_ssl_peer (signature);
+			return;
+		}
+		case EM_SSL_VERIFY_FAILURE:
+		{
+			VALUE conn = ensure_conn(signature);
+			VALUE should_accept;
+			if (rb_obj_method_arity(conn, Intern_ssl_verify_peer) == 1)
+				should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
+			else
+				should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 2, rb_str_new(data_str, data_num), Qfalse);
 			if (RTEST(should_accept))
 				evma_accept_ssl_peer (signature);
 			return;

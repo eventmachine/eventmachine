@@ -46,9 +46,11 @@ public class EmReactor {
 	public final int EM_CONNECTION_NOTIFY_READABLE = 106;
 	public final int EM_CONNECTION_NOTIFY_WRITABLE = 107;
 	public final int EM_SSL_HANDSHAKE_COMPLETED = 108;
-	public final int EM_SSL_VERIFY = 109;
+	// public final int EM_SSL_VERIFY = 109;
 	public final int EM_PROXY_TARGET_UNBOUND = 110;
-    public final int EM_PROXY_COMPLETED = 111;
+	public final int EM_PROXY_COMPLETED = 111;
+	public final int EM_SSL_VERIFY_SUCCESS = 112;
+	public final int EM_SSL_VERIFY_FAILURE = 113;
 
 	private Selector mySelector;
 	private TreeMap<Long, ArrayList<Long>> Timers;

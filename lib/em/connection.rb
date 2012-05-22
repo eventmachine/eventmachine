@@ -127,6 +127,7 @@ module EventMachine
     def ssl_handshake_completed
     end
 
+    # TODO fix docs here to reflect new preverify_ok param
     # Called by EventMachine when :verify_peer => true has been passed to {#start_tls}.
     # It will be called with each certificate in the certificate chain provided by the remote peer.
     #
@@ -171,7 +172,8 @@ module EventMachine
     #   end
     #
     # @see #start_tls
-    def ssl_verify_peer(cert)
+    def ssl_verify_peer(cert, preverify_ok)
+      preverify_ok
     end
 
     # called by the framework whenever a connection (either a server or client connection) is closed.

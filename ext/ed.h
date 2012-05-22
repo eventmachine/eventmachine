@@ -197,7 +197,7 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		#ifdef WITH_SSL
 		virtual X509 *GetPeerCert();
-		virtual bool VerifySslPeer(const char*);
+		virtual bool VerifySslPeer(const char*, int);
 		virtual void AcceptSslPeer();
 		#endif
 
