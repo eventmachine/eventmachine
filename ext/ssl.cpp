@@ -118,8 +118,6 @@ static void InitializeDefaultCredentials()
 
 /**************************
 SslContext_t::SslContext_t
-	* [MH] Added cafile - an optional certificate authority file provided to SSL_CTX_load_verify_locations for client-side server certificate verification using this list of known trusted CAs
-	* [MH] Added privkeypwd - an optional password used to decrypt the privatekey_filename
 **************************/
 
 SslContext_t::SslContext_t (bool is_server, const string &cafile, const string &privkeyfile, const string &privkeypwd, const string &certchainfile):
@@ -226,8 +224,6 @@ SslContext_t::~SslContext_t()
 
 /******************
 SslBox_t::SslBox_t
-	* [MH] Added cafile - an optional certificate authority file provided to SSL_CTX_load_verify_locations for client-side server certificate verification using this list of known trusted CAs
-	* [MH] Added privkeypwd - an optional password used to decrypt the privatekey_filename
 ******************/
 
 SslBox_t::SslBox_t (bool is_server, const string &cafile, const string &privkeyfile, const string &privkeypwd, const string &certchainfile, bool verify_peer, const unsigned long binding):

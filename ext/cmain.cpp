@@ -430,8 +430,6 @@ extern "C" void evma_start_tls (const unsigned long binding)
 
 /******************
 evma_set_tls_parms
-	* [MH] Added ca_filename - an optional certificate authority file provided to SSL_CTX_load_verify_locations for client-side server certificate verification using this list of known trusted CAs
-	* [MH] Added privatekey_pwd - an optional password used to decrypt the privatekey_filename
 ******************/
 
 extern "C" void evma_set_tls_parms (const unsigned long binding, const char *ca_filename, const char *privatekey_filename, const char *privatekey_pwd, const char *certchain_filename, int verify_peer)

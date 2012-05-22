@@ -314,9 +314,6 @@ static VALUE t_start_tls (VALUE self, VALUE signature)
 
 /***************
 t_set_tls_parms
-	* [MH] Added cafile - an optional certificate authority file provided to SSL_CTX_load_verify_locations for client-side server certificate verification using this list of known trusted CAs
-	* [MH] Added privkeypwd - an optional password used to decrypt the privatekey_filename
-
 ***************/
 
 static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE cafile, VALUE privkeyfile, VALUE privkeypwd, VALUE certchainfile, VALUE verify_peer)
