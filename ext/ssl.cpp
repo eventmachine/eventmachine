@@ -431,14 +431,17 @@ ssl_verify_wrapper
 
 extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 {
+	char data[256];
 	unsigned long binding;
 	X509 *cert;
 	SSL *ssl;
 	BUF_MEM *buf;
 	BIO *out;
-	int result;
+	int result, depth, err;
 
-	cert = X509_STORE_CTX_get_current_cert(ctx);
+	cert  = X509_STORE_CTX_get_current_cert(ctx);
+	depth = X509_STORE_CTX_get_error_depth(ctx);
+	err   = X509_STORE_CTX_get_error(ctx);
 
 	ssl = (SSL*) X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
 	binding = (unsigned long) SSL_get_ex_data(ssl, 0);
@@ -451,6 +454,18 @@ extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
 	result = (cd->VerifySslPeer(buf->data, preverify_ok) == true ? 1 : 0);
 	BUF_MEM_free(buf);
+
+#ifdef DEBUGSSL
+	printf("ssl_verify_wrapper called:\n");
+	printf("  depth      : %i\n", depth);
+	printf("  preverify  : %s\n", preverify_ok == 1 ? "PASS" : "FAIL");
+	X509_NAME_oneline(X509_get_issuer_name(cert), data, 256);
+	printf("  issuer     : %s\n", data);
+	X509_NAME_oneline(X509_get_subject_name(cert), data, 256);
+	printf("  subject    : %s\n", data);
+	printf("  status     : %i (%s)\n", err, X509_verify_cert_error_string(err));
+	printf("  postverify : %s\n", result == 1 ? "PASS" : "FAIL");
+#endif
 
 	return result;
 }
