@@ -569,8 +569,7 @@ int ConnectionDescriptor::SendOutboundData (const char *data, int length)
 			else
 				_DispatchCiphertext();
 		}
-		// TODO: What's the correct return value?
-		return 1; // That's a wild guess, almost certainly wrong.
+		return length;
 	}
 	else
 	#endif
