@@ -183,6 +183,12 @@ public class EventableDatagramChannel implements EventableChannel {
 		}
 	}
 
+	public Object[] getSockName () {
+		DatagramSocket socket = channel.socket();
+		return new Object[]{ socket.getLocalPort(),
+							 socket.getLocalAddress().getHostAddress() };
+	}
+
 	public boolean isWatchOnly() { return false; }
 	public boolean isNotifyReadable() { return false; }
 	public boolean isNotifyWritable() { return false; }
