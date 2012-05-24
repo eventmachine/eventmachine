@@ -127,14 +127,26 @@ module EventMachine
     def ssl_handshake_completed
     end
 
-    # TODO fix docs here to reflect new preverify_ok param
     # Called by EventMachine when :verify_peer => true has been passed to {#start_tls}.
     # It will be called with each certificate in the certificate chain provided by the remote peer.
+    #
+    # If this method is not overridden, and :verify_peer => true is passed to start_tls, then
+    # the certificate will be verified as being signed by an acceptable CA, or whatever ca_file is
+    # provided to {#start_tls}. It will also verify that the certificate's Common Name (CN, or the 
+    # domain name of the certificate) is the same as the :hostname parameter, if passed to {#start_tls}.
     #
     # The cert will be passed as a String in PEM format, the same as in {#get_peer_cert}. It is up to user defined
     # code to perform a check on the certificates. The return value from this callback is used to accept or deny the peer.
     # A return value that is not nil or false triggers acceptance. If the peer is not accepted, the connection
     # will be subsequently closed.
+    #
+    # The second parameter is the result of the builtin verification (true or false). For backwards
+    # compatibility, this method may also be defined with only one parameter, which will be the certificate
+    # string.
+    #
+    # It is no longer necessary to implement SSL verification yourself; by not overriding this default version,
+    # you get reasonable verification. If you need additional or custom checks, this is where they
+    # can be defined.
     #
     # @example This server always accepts all peers
     #
@@ -143,7 +155,7 @@ module EventMachine
     #       start_tls(:verify_peer => true)
     #     end
     #
-    #     def ssl_verify_peer(cert)
+    #     def ssl_verify_peer(cert, preverify_ok)
     #       true
     #     end
     #
@@ -168,6 +180,14 @@ module EventMachine
     #
     #     def ssl_handshake_completed
     #       $server_handshake_completed = true
+    #     end
+    #   end
+    #
+    # @example This server doesn't use any custom verification
+    #
+    #   module TypicalServer
+    #     def post_init
+    #       start_tls(:verify_peer => true)
     #     end
     #   end
     #
@@ -387,6 +407,10 @@ module EventMachine
     # @option args [String] :private_key_pwd (nil)  interpreted as the password for the private_key_file
     #                                               specified above. if no password is supplied the file is opened without one.
     #
+    # @option args [String] :hostname (nil)         if this option is passed, peer verification will fail unless the certificate name matches
+    #                                               this value. You will normally want to pass this and set it to the domain name you are
+    #                                               connecting to. Eg. www.facebook.com. if not passed, CN verification will be skipped.
+    #
     # @example Using TLS with EventMachine
     #
     #  require 'rubygems'
@@ -404,8 +428,7 @@ module EventMachine
     #
     # @param [Hash] args
     #
-    # @todo support passing an encryption parameter, which can be string or Proc, to get a passphrase
-    # for encrypted private keys.
+    # @todo support passing private_key_pwd as Proc returning the password
     # @todo support passing key material via raw strings or Procs that return strings instead of
     # just filenames.
     #
