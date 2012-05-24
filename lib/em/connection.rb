@@ -384,6 +384,9 @@ module EventMachine
     def connection_completed
     end
 
+    # Default CA file extracted from mozilla source.
+    AUTHORITATIVE_CA_FILE = File.expand_path("../../../cacert.pem", __FILE__)
+
     # Call {#start_tls} at any point to initiate TLS encryption on connected streams.
     # The method is smart enough to know whether it should perform a server-side
     # or a client-side handshake. An appropriate place to call {#start_tls} is in
@@ -434,7 +437,16 @@ module EventMachine
     #
     # @see #ssl_verify_peer
     def start_tls args={}
-      ca_file, priv_key, priv_key_pwd, cert_chain, hostname, verify_peer = args.values_at(:ca_file, :private_key_file, :private_key_pwd, :cert_chain_file, :hostname, :verify_peer)
+      ca_file      = args.delete(:ca_file)          || AUTHORITATIVE_CA_FILE
+      priv_key     = args.delete(:private_key_file) || ''
+      priv_key_pwd = args.delete(:private_key_pwd)  || ''
+      cert_chain   = args.delete(:cert_chain_file)  || ''
+      hostname     = args.delete(:hostname)         || ''
+      verify_peer  = args.delete(:verify_peer)      || false
+
+      if args.any?
+        raise ArgumentError, "Invalid arguments: #{args.keys.join(", ")}"
+      end
 
       [priv_key, cert_chain, ca_file].each do |file|
         next if file.nil? or file.empty?
@@ -442,7 +454,7 @@ module EventMachine
         "Could not find #{file} for start_tls" unless File.exists? file
       end
 
-      EventMachine::set_tls_parms(@signature, ca_file || '', priv_key || '', priv_key_pwd || '', cert_chain || '', hostname || '', verify_peer)
+      EventMachine::set_tls_parms(@signature, ca_file, priv_key, priv_key_pwd, cert_chain, hostname, verify_peer)
       EventMachine::start_tls @signature
     end
 
