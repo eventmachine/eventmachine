@@ -432,28 +432,56 @@ ssl_verify_wrapper
 
 extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 {
-	char data[256];
-	unsigned long binding;
-	X509 *cert;
+	X509 *cert, *bottom_cert;
+	X509_NAME *name;
+	X509_NAME_ENTRY *name_entry;
 	SSL *ssl;
 	BUF_MEM *buf;
 	BIO *out;
-	int result, depth, err;
+	STACK_OF(X509) *chain;
+	ConnectionDescriptor *cd;
+	char data[256], *expected_hostname, *actual_hostname;
+	unsigned long binding;
+	int result, depth, err, cn_comparison, preverify_for_ruby, position;
 
 	cert  = X509_STORE_CTX_get_current_cert(ctx);
 	depth = X509_STORE_CTX_get_error_depth(ctx);
 	err   = X509_STORE_CTX_get_error(ctx);
+	chain = X509_STORE_CTX_get_chain(ctx);
 
+	/* Get the bottom certificate's subject Common Name */
+	bottom_cert = sk_X509_shift(chain);
+	sk_X509_unshift(chain, bottom_cert);
+	name = X509_get_subject_name(bottom_cert);
+	position = X509_NAME_get_index_by_NID(name, NID_commonName, -1);
+	if (position == -1) {
+		actual_hostname = (char*) "";
+	} else {
+		name_entry = X509_NAME_get_entry(name, position);
+		actual_hostname = (char*) X509_NAME_ENTRY_get_data(name_entry)->data;
+	}
+
+	/* Get the expected hostname passed to start_tls in ruby-land */
 	ssl = (SSL*) X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
 	binding = (unsigned long) SSL_get_ex_data(ssl, 0);
+	expected_hostname = (char*) SSL_get_ex_data(ssl, 1);
+
+	/* If an expected hostname was passed, but it doesn't match the CN,
+	 * we want a verify failure */
+	cn_comparison = 1;
+	if (strlen(expected_hostname) != 0) {
+		cn_comparison = (strcmp(expected_hostname, actual_hostname) == 0);
+	}
 
 	out = BIO_new(BIO_s_mem());
 	PEM_write_bio_X509(out, cert);
 	BIO_write(out, "\0", 1);
 	BIO_get_mem_ptr(out, &buf);
 
-	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
-	result = (cd->VerifySslPeer(buf->data, preverify_ok) == true ? 1 : 0);
+	/* Pass our verification result to ruby for post-verification */
+	cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
+	preverify_for_ruby = preverify_ok && cn_comparison;
+	result = (cd->VerifySslPeer(buf->data, preverify_for_ruby) == true ? 1 : 0);
 	BUF_MEM_free(buf);
 
 #ifdef DEBUGSSL
@@ -464,10 +492,14 @@ extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 	printf("  issuer     : %s\n", data);
 	X509_NAME_oneline(X509_get_subject_name(cert), data, 256);
 	printf("  subject    : %s\n", data);
+	printf("  CN         : %s\n", actual_hostname);
+	printf("  expCN      : %s\n", expected_hostname);
+	printf("  CN comp    : %s\n", (cn_comparison ? "PASS" : "FAIL"));
 	printf("  status     : %i (%s)\n", err, X509_verify_cert_error_string(err));
 	printf("  postverify : %s\n", result == 1 ? "PASS" : "FAIL");
 #endif
 
+	/* Return the post-verified result from ruby. */
 	return result;
 }
 
