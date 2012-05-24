@@ -1131,7 +1131,7 @@ void ConnectionDescriptor::StartTls()
 	if (SslBox)
 		throw std::runtime_error ("SSL/TLS already running on connection");
 
-	SslBox = new SslBox_t (bIsServer, CAFilename, PrivateKeyFilename, PrivateKeyPwd, CertChainFilename, bSslVerifyPeer, GetBinding());
+	SslBox = new SslBox_t (bIsServer, CAFilename, PrivateKeyFilename, PrivateKeyPwd, CertChainFilename, Hostname, bSslVerifyPeer, GetBinding());
 	_DispatchCiphertext();
 	#endif
 
@@ -1145,7 +1145,7 @@ void ConnectionDescriptor::StartTls()
 ConnectionDescriptor::SetTlsParms
 *********************************/
 
-void ConnectionDescriptor::SetTlsParms (const char *ca_filename, const char *privkey_filename, const char *privkey_pwd, const char *certchain_filename, bool verify_peer)
+void ConnectionDescriptor::SetTlsParms (const char *ca_filename, const char *privkey_filename, const char *privkey_pwd, const char *certchain_filename, const char *hostname, bool verify_peer)
 {
 	#ifdef WITH_SSL
 	if (SslBox)
@@ -1159,6 +1159,8 @@ void ConnectionDescriptor::SetTlsParms (const char *ca_filename, const char *pri
 		CAFilename = ca_filename;
 	if (certchain_filename && *certchain_filename)
 		CertChainFilename = certchain_filename;
+	if (hostname && *hostname)
+		Hostname = hostname;
 	bSslVerifyPeer = verify_peer;
 	#endif
 

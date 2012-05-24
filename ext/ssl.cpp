@@ -125,7 +125,7 @@ inline void check_errors(int e)
 SslContext_t::SslContext_t
 **************************/
 
-SslContext_t::SslContext_t (bool is_server, const string &cafile, const string &privkeyfile, const string &privkeypwd, const string &certchainfile):
+SslContext_t::SslContext_t (bool is_server, const string &cafile, const string &privkeyfile, const string &privkeypwd, const string &certchainfile, const string &hostname):
 	pCtx (NULL),
 	PrivateKey (NULL),
 	Certificate (NULL)
@@ -206,7 +206,7 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const string &cafile, const string &privkeyfile, const string &privkeypwd, const string &certchainfile, bool verify_peer, const unsigned long binding):
+SslBox_t::SslBox_t (bool is_server, const string &cafile, const string &privkeyfile, const string &privkeypwd, const string &certchainfile, const string &hostname, bool verify_peer, const unsigned long binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),
@@ -218,7 +218,7 @@ SslBox_t::SslBox_t (bool is_server, const string &cafile, const string &privkeyf
 	 * a new one every time we come here.
 	 */
 
-	Context = new SslContext_t (bIsServer, cafile, privkeyfile, privkeypwd, certchainfile);
+	Context = new SslContext_t (bIsServer, cafile, privkeyfile, privkeypwd, certchainfile, hostname);
 	assert (Context);
 
 	pbioRead = BIO_new (BIO_s_mem());
@@ -233,6 +233,7 @@ SslBox_t::SslBox_t (bool is_server, const string &cafile, const string &privkeyf
 
 	// Store a pointer to the binding signature in the SSL object so we can retrieve it later
 	SSL_set_ex_data(pSSL, 0, (void*) binding);
+	SSL_set_ex_data(pSSL, 1, (void*) hostname.c_str());
 
 	if (bVerifyPeer)
 		SSL_set_verify(pSSL, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, ssl_verify_wrapper);
