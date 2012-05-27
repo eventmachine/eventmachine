@@ -81,16 +81,23 @@ typedef int SOCKET;
 #endif /* OS_UNIX */
 
 #ifdef OS_WIN32
-// 21Sep09: windows limits select() to 64 sockets by default, we increase it to 1024 here (before including winsock2.h)
-#define FD_SETSIZE 1024
+// 21Sep09: windows limits select() to 64 sockets by default, we increase here (before including winsock2.h)
+// 27March12: FD_SETSIZE is set at the ruby level and included automatically by extconf
+// #define FD_SETSIZE 32767
 
 #define WIN32_LEAN_AND_MEAN
+// Add support for IPv6
+#define _WIN32_WINNT 0x501	
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <rpc.h>
 #include <fcntl.h>
 #include <assert.h>
+#include <stdio.h>
+
+// link with Ws2_32.lib
+#pragma comment (lib, "Ws2_32.lib")
 
 typedef int socklen_t;
 typedef int pid_t;

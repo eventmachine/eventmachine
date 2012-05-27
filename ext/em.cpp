@@ -97,7 +97,10 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	 */
 	#ifdef OS_WIN32
 	WSADATA w;
-	WSAStartup (MAKEWORD (1, 1), &w);
+	int iResult = WSAStartup (MAKEWORD (1, 1), &w);
+	if(iResult != NO_ERROR)
+		throw std::runtime_error ("WSAStartup function failed");
+	_setmaxstdio(2048);
 	#endif
 
 	_InitializeLoopBreaker();
@@ -130,6 +133,10 @@ EventMachine_t::~EventMachine_t()
 		close (epfd);
 	if (kqfd != -1)
 		close (kqfd);
+
+	#ifdef OS_WIN32
+		WSACleanup();	// Clean up the windows network library
+	#endif
 }
 
 
@@ -1470,14 +1477,50 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	#endif
 
 	#ifdef OS_WIN32
-	// TODO, must complete this branch. Windows doesn't have inet_pton.
-	// A possible approach is to make a getaddrinfo call with the supplied
-	// server address, constraining the hints to ipv6 and seeing if we
-	// get any addresses.
-	// For the time being, Ipv6 addresses aren't supported on Windows.
-	#endif
+	// Windows doesn't have inet_pton.
+	// Make a getaddrinfo call with the supplied server address (hostname or ipv6 address),
+	// We pick the first valid result.
+	struct addrinfo *result = NULL;
+	struct addrinfo *ptr = NULL;
+	//struct addrinfo hints;
+	
+	//memset (&hints, 0, sizeof(hints));
+	//hints.ai_family = AF_UNSPEC;		// Hints not needed
+	
+	if(getaddrinfo((char*)server, NULL, NULL, &result) == 0) {
+		for(ptr=result; ptr != NULL; ptr=ptr->ai_next) {
+			switch(ptr->ai_family) {
+			
+			case AF_INET6:
+				memcpy((void*) &in6, (const void*)(ptr->ai_addr), sizeof(in6));	// Copy result
+				freeaddrinfo(result);	// Prevent memory leaks
+				
+				if (family)
+					*family = AF_INET6;
+				if (bind_size)
+					*bind_size = sizeof(in6);
+				
+				in6.sin6_family = AF_INET6;
+				in6.sin6_port = htons (port);
+				return (struct sockaddr*)&in6;
+			case AF_INET:
+				memcpy((void*) &in4, (const void*)(ptr->ai_addr), sizeof(in4));	// Copy result
+				freeaddrinfo(result);	// Prevent memory leaks
+				
+				if (family)
+					*family = AF_INET;
+				if (bind_size)
+					*bind_size = sizeof(in4);
+				
+				in4.sin_family = AF_INET;
+				in4.sin_port = htons (port);
+				return (struct sockaddr*)&in4;
+			}
+		}
+	}
+	#else
 
-	hp = gethostbyname ((char*)server); // Windows requires the cast.
+	hp = gethostbyname ((char*)server); // Windows requires the cast, although no longer executed on windows
 	if (hp) {
 		in4.sin_addr.s_addr = ((in_addr*)(hp->h_addr))->s_addr;
 		if (family)
@@ -1488,6 +1531,8 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 		in4.sin_port = htons (port);
 		return (struct sockaddr*)&in4;
 	}
+
+	#endif
 
 	return NULL;
 }
