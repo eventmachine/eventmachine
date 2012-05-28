@@ -431,49 +431,118 @@ X509 *SslBox_t::GetPeerCert()
 
 /******************
 ssl_verify_wrapper
-*******************/
+ *******************/
+
+extern "C" int match(char*, char*);
+extern "C" int hostname_matches_subject_alt_name(char*, X509*);
+extern "C" int hostname_matches_subject_common_name(char*, X509*);
+extern "C" int hostname_matches_certificate(char*, X509*);
+
+extern "C" int hostname_matches_certificate(char *hostname, X509 *cert)
+{
+	int san_result = hostname_matches_subject_alt_name(hostname, cert);
+	if (san_result > -1)
+		return san_result;
+	return hostname_matches_subject_common_name(hostname, cert);
+}
+
+
+// See section RFC 6125 Sections 2.4 and 3.1
+extern "C" int match(char *expr, char *string)
+{
+	int i, j;
+
+	for (i = 0, j = 0; i < strlen(expr); i++) {
+		if (expr[i] == '*') {
+			if (string[j] == '.')
+				return 0;
+			while (string[j] != '.')
+				j++;
+		}
+		else if (expr[i] != string[j])
+			return 0;
+		else
+			j++;
+	}
+	return (j == strlen(string));
+}
+
+/* Does this hostname match an entry in the subjectAltName extension?
+ * returns: 0 if no, 1 if yes, -1 if no subjectAltName entries were found.
+ */
+extern "C" int hostname_matches_subject_alt_name(char *hostname, X509 *cert)
+{
+	int found_any_entries = 0;
+	int found_match;
+	GENERAL_NAME *namePart = NULL;
+	STACK_OF(GENERAL_NAME) *san =
+		(STACK_OF(GENERAL_NAME)*) X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL);
+
+	while (sk_GENERAL_NAME_num(san) > 0)
+	{
+		namePart = sk_GENERAL_NAME_pop(san);
+
+		if (namePart->type == GEN_DNS) {
+			found_any_entries = 1;
+			found_match = match((char *)ASN1_STRING_data(namePart->d.uniformResourceIdentifier), hostname);
+			if (found_match)
+				return 1;
+		}
+	}
+
+	return (found_any_entries ? 0 : -1);
+}
+
+extern "C" int hostname_matches_subject_common_name(char *hostname, X509 *cert)
+{
+	X509_NAME *name;
+	X509_NAME_ENTRY *name_entry;
+	char *certname;
+	int i, j, position;
+
+	name = X509_get_subject_name(cert);
+	position = -1;
+	for (;;) {
+		position = X509_NAME_get_index_by_NID(name, NID_commonName, position);
+		if (position == -1)
+			break;
+		name_entry = X509_NAME_get_entry(name, position);
+		char *certname = (char*) X509_NAME_ENTRY_get_data(name_entry)->data;
+		if (match(certname, hostname))
+			return 1;
+	}
+	return 0;
+}
+
 
 extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 {
 	X509 *cert, *bottom_cert;
-	X509_NAME *name;
-	X509_NAME_ENTRY *name_entry;
 	SSL *ssl;
 	BUF_MEM *buf;
 	BIO *out;
 	STACK_OF(X509) *chain;
 	ConnectionDescriptor *cd;
-	char data[256], *expected_hostname, *actual_hostname;
+	char data[256], *expected_hostname, *certificate_hostname;
 	unsigned long binding;
-	int result, depth, err, cn_comparison, preverify_for_ruby, position;
+	int result, depth, err, name_comparison, preverify_for_ruby;
 
 	cert  = X509_STORE_CTX_get_current_cert(ctx);
 	depth = X509_STORE_CTX_get_error_depth(ctx);
 	err   = X509_STORE_CTX_get_error(ctx);
 	chain = X509_STORE_CTX_get_chain(ctx);
 
-	/* Get the bottom certificate's subject Common Name */
-	bottom_cert = sk_X509_shift(chain);
-	sk_X509_unshift(chain, bottom_cert);
-	name = X509_get_subject_name(bottom_cert);
-	position = X509_NAME_get_index_by_NID(name, NID_commonName, -1);
-	if (position == -1) {
-		actual_hostname = (char*) "";
-	} else {
-		name_entry = X509_NAME_get_entry(name, position);
-		actual_hostname = (char*) X509_NAME_ENTRY_get_data(name_entry)->data;
-	}
-
-	/* Get the expected hostname passed to start_tls in ruby-land */
 	ssl = (SSL*) X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
 	binding = (unsigned long) SSL_get_ex_data(ssl, 0);
 	expected_hostname = (char*) SSL_get_ex_data(ssl, 1);
 
 	/* If an expected hostname was passed, but it doesn't match the CN,
 	 * we want a verify failure */
-	cn_comparison = 1;
+	name_comparison = 1;
 	if (strlen(expected_hostname) != 0) {
-		cn_comparison = (strcmp(expected_hostname, actual_hostname) == 0);
+		bottom_cert = sk_X509_shift(chain);
+		sk_X509_unshift(chain, bottom_cert);
+		name_comparison = hostname_matches_certificate(expected_hostname, bottom_cert);
 	}
 
 	out = BIO_new(BIO_s_mem());
@@ -483,7 +552,7 @@ extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 
 	/* Pass our verification result to ruby for post-verification */
 	cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
-	preverify_for_ruby = preverify_ok && cn_comparison;
+	preverify_for_ruby = preverify_ok && name_comparison;
 	result = (cd->VerifySslPeer(buf->data, preverify_for_ruby) == true ? 1 : 0);
 	BUF_MEM_free(buf);
 
@@ -497,7 +566,7 @@ extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 	printf("  subject    : %s\n", data);
 	printf("  CN         : %s\n", actual_hostname);
 	printf("  expCN      : %s\n", expected_hostname);
-	printf("  CN comp    : %s\n", (cn_comparison ? "PASS" : "FAIL"));
+	printf("  CN comp    : %s\n", (name_comparison ? "PASS" : "FAIL"));
 	printf("  status     : %i (%s)\n", err, X509_verify_cert_error_string(err));
 	printf("  postverify : %s\n", result == 1 ? "PASS" : "FAIL");
 #endif
