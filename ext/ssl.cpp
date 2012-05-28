@@ -22,7 +22,6 @@ See the file COPYING for complete licensing information.
 
 #include "project.h"
 
-
 bool SslContext_t::bLibraryInitialized = false;
 
 
@@ -446,7 +445,6 @@ extern "C" int hostname_matches_certificate(char *hostname, X509 *cert)
 	return hostname_matches_subject_common_name(hostname, cert);
 }
 
-
 // See section RFC 6125 Sections 2.4 and 3.1
 extern "C" int match(char *expr, char *string)
 {
@@ -459,7 +457,7 @@ extern "C" int match(char *expr, char *string)
 			while (string[j] != '.')
 				j++;
 		}
-		else if (expr[i] != string[j])
+		else if (toupper(expr[i]) != toupper(string[j]))
 			return 0;
 		else
 			j++;
