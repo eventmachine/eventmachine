@@ -454,6 +454,8 @@ extern "C" int match(char *expr, char *string)
 		if (expr[i] == '*') {
 			if (string[j] == '.')
 				return 0;
+			else if (string[j] == 0)
+				return (i == strlen(expr));
 			while (string[j] != '.')
 				j++;
 		}
