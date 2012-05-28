@@ -238,6 +238,9 @@ SslBox_t::SslBox_t (bool is_server, const string &cafile, const string &privkeyf
 	if (bVerifyPeer)
 		SSL_set_verify(pSSL, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, ssl_verify_wrapper);
 
+	if (hostname.length() > 0)
+		SSL_set_tlsext_host_name(pSSL, hostname.c_str());
+
 	if (!bIsServer)
 		SSL_connect (pSSL);
 }
