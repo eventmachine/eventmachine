@@ -87,6 +87,15 @@ else
   add_define "HAVE_KQUEUE" if have_header("sys/event.h") and have_header("sys/queue.h")
 end
 
+# Adjust number of file descriptors (FD) on Windows
+
+if RbConfig::CONFIG["host_os"] =~ /mingw/
+  found = RbConfig::CONFIG.values_at("CFLAGS", "CPPFLAGS").
+    any? { |v| v.include?("FD_SETSIZE") }
+
+  add_define "FD_SETSIZE=32767" unless found
+end
+
 # Main platform invariances:
 
 case RUBY_PLATFORM
