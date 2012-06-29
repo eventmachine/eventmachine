@@ -40,7 +40,8 @@ def manual_ssl_config
 end
 
 if ENV['CROSS_COMPILING']
-  openssl_dir = File.expand_path("~/.rake-compiler/builds/openssl-1.0.0a/")
+  openssl_version = ENV.fetch("OPENSSL_VERSION", "1.0.0a")
+  openssl_dir = File.expand_path("~/.rake-compiler/builds/openssl-#{openssl_version}/")
   if File.exists?(openssl_dir)
     FileUtils.mkdir_p Dir.pwd+"/openssl/"
     FileUtils.cp Dir[openssl_dir+"/include/openssl/*.h"], Dir.pwd+"/openssl/", :verbose => true
