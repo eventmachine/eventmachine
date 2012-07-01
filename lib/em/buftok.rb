@@ -70,10 +70,12 @@ class BufferedTokenizer
     # entities this go-around, return an empty array.
     return [] if entities.empty?
 
-    # At this point, we've hit a token, or potentially multiple tokens.  Now we can bring
+    # At this point, we've hit a token, or potentially multiple tokens. After merging 
+    # all the data, we must do one final extraction in the edge case
+    # that the delimiter has multiple characters. Now we can bring
     # together all the data we've buffered from earlier calls without hitting a token,
     # and add it to our list of discovered entities.
-    entities.unshift @input.join
+    entities = @input.join.split(@delimiter) + entities
 
     # Now that we've hit a token, joined the input buffer and added it to the entities
     # list, we can go ahead and clear the input buffer.  All of the segments that were
