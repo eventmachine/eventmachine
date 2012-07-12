@@ -15,6 +15,7 @@ Makefile
 java/src/.project
 *.rbc
 Gemfile.lock
+*.gem
 
 .yardoc/*
 doc/*
