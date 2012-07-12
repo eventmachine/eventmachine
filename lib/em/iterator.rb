@@ -197,7 +197,7 @@ module EventMachine
               @workers -= 1
               all_done.call
             end
-          rescue EventMachine::QueueIsEmpty => e
+          rescue EventMachine::QueueIsEmpty
             EM.next_tick(@process_next)
           end
         else
