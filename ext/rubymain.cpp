@@ -516,7 +516,7 @@ static VALUE t_connect_server (VALUE self, VALUE server, VALUE port)
 			rb_raise (EM_eConnectionError, "no connection");
 		return ULONG2NUM (f);
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eConnectionError, e.what());
+		rb_raise (EM_eConnectionError, e.what(), "%s");
 	}
 	return Qnil;
 }
@@ -537,7 +537,7 @@ static VALUE t_bind_connect_server (VALUE self, VALUE bind_addr, VALUE bind_port
 			rb_raise (EM_eConnectionError, "no connection");
 		return ULONG2NUM (f);
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eConnectionError, e.what());
+		rb_raise (EM_eConnectionError, e.what(), "%s");
 	}
 	return Qnil;
 }
@@ -859,7 +859,7 @@ static VALUE t_watch_filename (VALUE self, VALUE fname)
 	try {
 		return ULONG2NUM(evma_watch_filename(StringValuePtr(fname)));
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eUnsupported, e.what());
+		rb_raise (EM_eUnsupported, e.what(), "%s");
 	}
 	return Qnil;
 }
@@ -885,7 +885,7 @@ static VALUE t_watch_pid (VALUE self, VALUE pid)
 	try {
 		return ULONG2NUM(evma_watch_pid(NUM2INT(pid)));
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eUnsupported, e.what());
+		rb_raise (EM_eUnsupported, e.what(), "%s");
 	}
 	return Qnil;
 }
@@ -1085,7 +1085,7 @@ static VALUE t_start_proxy (VALUE self, VALUE from, VALUE to, VALUE bufsize, VAL
 	try {
 		evma_start_proxy(NUM2ULONG (from), NUM2ULONG (to), NUM2ULONG(bufsize), NUM2ULONG(length));
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eConnectionError, e.what());
+		rb_raise (EM_eConnectionError, e.what(), "%s");
 	}
 	return Qnil;
 }
@@ -1100,7 +1100,7 @@ static VALUE t_stop_proxy (VALUE self, VALUE from)
 	try{
 		evma_stop_proxy(NUM2ULONG (from));
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eConnectionError, e.what());
+		rb_raise (EM_eConnectionError, e.what(), "%s");
 	}
 	return Qnil;
 }
@@ -1114,7 +1114,7 @@ static VALUE t_proxied_bytes (VALUE self, VALUE from)
 	try{
 		return ULONG2NUM(evma_proxied_bytes(NUM2ULONG (from)));
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eConnectionError, e.what());
+		rb_raise (EM_eConnectionError, e.what(), "%s");
 	}
 	return Qnil;
 }
@@ -1139,7 +1139,7 @@ static VALUE t_get_idle_time (VALUE self, VALUE from)
 			return Qnil;
 		}
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eConnectionError, e.what());
+		rb_raise (EM_eConnectionError, e.what(), "%s");
 	}
 	return Qnil;
 }
