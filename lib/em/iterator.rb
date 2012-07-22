@@ -1,4 +1,65 @@
 module EventMachine
+
+  # EventMachine::Queue support
+  # 
+  #   queue = EM::Queue.new
+  #   queue.push "glasses", "apples"
+  #   result = []
+  #   EM::Iterator.new(queue).each do |item, iter|
+  #     result << "I have got #{item}"
+  #     iter.next
+  #   end
+  #   queue.push "cars", "elephants"
+  #   p result
+  #   #=> ["I have got glasses", "I have got apples", "I have got cars", "I have got elephants"]
+  #
+  class QueueIsEmpty < RuntimeError; end
+  module IteratorWithQueue
+    def next_from_queue?
+      raise(QueueIsEmpty) if @queue.empty?
+      @queue.pop{ |q| @next_item = q}
+      true
+    end
+  end
+
+  # Support for Enumerable in Ruby 1.9+
+  module IteratorWithEnumerable
+
+    # In case of Enumerable object we can use lazyness of Enumerator
+    def setup_list(list)
+      raise ArgumentError, 'argument must be an Enumerable' unless list.respond_to?(:each)
+      list.to_enum
+    end
+
+    # We can't check just next_item as far as it can return nil in two cases: 
+    # when our enumerator is stopped and when it stores nil value
+    def next?
+      begin
+        @next_item = @list.next
+        true
+      rescue StopIteration
+        false
+      rescue => e
+        raise e
+      end
+    end
+  end
+
+  # Ruby 1.8 uses continuations in Enumerable, so we should use Arrays
+  module IteratorWithArray
+
+    def setup_list(list)
+      raise ArgumentError, 'argument must be an array' unless list.respond_to?(:to_a)
+      list.dup.to_a
+    end
+
+    def next?
+      any = @list.any?
+      @next_item = @list.shift
+      any
+    end
+  end
+
   # A simple iterator for concurrent asynchronous work.
   #
   # Unlike ruby's built-in iterators, the end of the current iteration cycle is signaled manually,
@@ -40,7 +101,14 @@ module EventMachine
   #     async_http_get(url){ iter.next }
   #   end
   #
+
   class Iterator
+    attr_reader :next_item
+
+    include IteratorWithEnumerable if defined? Fiber
+    include IteratorWithArray unless defined? Fiber
+    include IteratorWithQueue
+
     # Create a new parallel async iterator with specified concurrency.
     #
     #   i = EM::Iterator.new(1..100, 10)
@@ -49,8 +117,12 @@ module EventMachine
     # is started via #each, #map or #inject
     #
     def initialize(list, concurrency = 1)
-      raise ArgumentError, 'argument must be an array' unless list.respond_to?(:to_a)
-      @list = list.to_a.dup
+      if list.class == EventMachine::Queue
+        @queue = list
+        alias :next? :next_from_queue?
+      else
+        @list = setup_list(list)
+      end
       @concurrency = concurrency
 
       @started = false
@@ -97,32 +169,36 @@ module EventMachine
       @process_next = proc{
         # p [:process_next, :pending=, @pending, :workers=, @workers, :ended=, @ended, :concurrency=, @concurrency, :list=, @list]
         unless @ended or @workers > @concurrency
-          if @list.empty?
-            @ended = true
-            @workers -= 1
-            all_done.call
-          else
-            item = @list.shift
-            @pending += 1
+          begin
+            if next?
+              item = next_item
+              @pending += 1
 
-            is_done = false
-            on_done = proc{
-              raise RuntimeError, 'already completed this iteration' if is_done
-              is_done = true
+              is_done = false
+              on_done = proc{
+                raise RuntimeError, 'already completed this iteration' if is_done
+                is_done = true
 
-              @pending -= 1
+                @pending -= 1
 
-              if @ended
-                all_done.call
-              else
-                EM.next_tick(@process_next)
+                if @ended
+                  all_done.call
+                else
+                  EM.next_tick(@process_next)
+                end
+              }
+              class << on_done
+                alias :next :call
               end
-            }
-            class << on_done
-              alias :next :call
-            end
 
-            foreach.call(item, on_done)
+              foreach.call(item, on_done)
+            else
+              @ended = true
+              @workers -= 1
+              all_done.call
+            end
+          rescue EventMachine::QueueIsEmpty => e
+            EM.next_tick(@process_next)
           end
         else
           @workers -= 1
