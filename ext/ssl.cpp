@@ -22,7 +22,6 @@ See the file COPYING for complete licensing information.
 
 #include "project.h"
 
-
 bool SslContext_t::bLibraryInitialized = false;
 
 
@@ -115,12 +114,17 @@ static void InitializeDefaultCredentials()
 }
 
 
+inline void check_errors(int e)
+{
+	if (e <= 0) ERR_print_errors_fp(stderr);
+	assert (e > 0);
+}
 
 /**************************
 SslContext_t::SslContext_t
 **************************/
 
-SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile):
+SslContext_t::SslContext_t (bool is_server, const string &cafile, const string &privkeyfile, const string &privkeypwd, const string &certchainfile, const string &hostname):
 	pCtx (NULL),
 	PrivateKey (NULL),
 	Certificate (NULL)
@@ -150,28 +154,25 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 		throw std::runtime_error ("no SSL context");
 
 	SSL_CTX_set_options (pCtx, SSL_OP_ALL);
-	//SSL_CTX_set_options (pCtx, (SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3));
 #ifdef SSL_MODE_RELEASE_BUFFERS
 	SSL_CTX_set_mode (pCtx, SSL_MODE_RELEASE_BUFFERS);
 #endif
 
-	if (is_server) {
-		// The SSL_CTX calls here do NOT allocate memory.
-		int e;
-		if (privkeyfile.length() > 0)
-			e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
-		else
-			e = SSL_CTX_use_PrivateKey (pCtx, DefaultPrivateKey);
-		if (e <= 0) ERR_print_errors_fp(stderr);
-		assert (e > 0);
+	if (privkeypwd.length() > 0)
+		SSL_CTX_set_default_passwd_cb_userdata(pCtx, const_cast<char*>(privkeypwd.c_str()));
 
-		if (certchainfile.length() > 0)
-			e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
-		else
-			e = SSL_CTX_use_certificate (pCtx, DefaultCertificate);
-		if (e <= 0) ERR_print_errors_fp(stderr);
-		assert (e > 0);
-	}
+	if (privkeyfile.length() > 0)
+		check_errors (SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM));
+	else if (is_server)
+		check_errors (SSL_CTX_use_PrivateKey (pCtx, DefaultPrivateKey));
+
+	if (certchainfile.length() > 0)
+		check_errors (SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str()));
+	else if (is_server)
+		check_errors (SSL_CTX_use_certificate (pCtx, DefaultCertificate));
+
+	if (cafile.length() > 0)
+		check_errors (SSL_CTX_load_verify_locations(pCtx, const_cast<char*>(cafile.c_str()), 0));
 
 	SSL_CTX_set_cipher_list (pCtx, "ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH");
 
@@ -179,19 +180,7 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 		SSL_CTX_sess_set_cache_size (pCtx, 128);
 		SSL_CTX_set_session_id_context (pCtx, (unsigned char*)"eventmachine", 12);
 	}
-	else {
-		int e;
-		if (privkeyfile.length() > 0) {
-			e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
-			if (e <= 0) ERR_print_errors_fp(stderr);
-			assert (e > 0);
-		}
-		if (certchainfile.length() > 0) {
-			e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
-			if (e <= 0) ERR_print_errors_fp(stderr);
-			assert (e > 0);
-		}
-	}
+
 }
 
 
@@ -216,7 +205,7 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const unsigned long binding):
+SslBox_t::SslBox_t (bool is_server, const string &cafile, const string &privkeyfile, const string &privkeypwd, const string &certchainfile, const string &hostname, bool verify_peer, const unsigned long binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),
@@ -228,7 +217,7 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	 * a new one every time we come here.
 	 */
 
-	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile);
+	Context = new SslContext_t (bIsServer, cafile, privkeyfile, privkeypwd, certchainfile, hostname);
 	assert (Context);
 
 	pbioRead = BIO_new (BIO_s_mem());
@@ -243,9 +232,13 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 
 	// Store a pointer to the binding signature in the SSL object so we can retrieve it later
 	SSL_set_ex_data(pSSL, 0, (void*) binding);
+	SSL_set_ex_data(pSSL, 1, (void*) hostname.c_str());
 
 	if (bVerifyPeer)
 		SSL_set_verify(pSSL, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, ssl_verify_wrapper);
+
+	if (hostname.length() > 0)
+		SSL_set_tlsext_host_name(pSSL, hostname.c_str());
 
 	if (!bIsServer)
 		SSL_connect (pSSL);
@@ -437,30 +430,148 @@ X509 *SslBox_t::GetPeerCert()
 
 /******************
 ssl_verify_wrapper
-*******************/
+ *******************/
+
+extern "C" int match(char*, char*);
+extern "C" int hostname_matches_subject_alt_name(char*, X509*);
+extern "C" int hostname_matches_subject_common_name(char*, X509*);
+extern "C" int hostname_matches_certificate(char*, X509*);
+
+extern "C" int hostname_matches_certificate(char *hostname, X509 *cert)
+{
+	int san_result = hostname_matches_subject_alt_name(hostname, cert);
+	if (san_result > -1)
+		return san_result;
+	return hostname_matches_subject_common_name(hostname, cert);
+}
+
+// See section RFC 6125 Sections 2.4 and 3.1
+extern "C" int match(char *expr, char *string)
+{
+	int i, j;
+
+	for (i = 0, j = 0; i < strlen(expr); i++) {
+		if (expr[i] == '*') {
+			if (string[j] == '.')
+				return 0;
+			else if (string[j] == 0)
+				return (i == strlen(expr));
+			while (string[j] != '.')
+				j++;
+		}
+		else if (toupper(expr[i]) != toupper(string[j]))
+			return 0;
+		else
+			j++;
+	}
+	return (j == strlen(string));
+}
+
+/* Does this hostname match an entry in the subjectAltName extension?
+ * returns: 0 if no, 1 if yes, -1 if no subjectAltName entries were found.
+ */
+extern "C" int hostname_matches_subject_alt_name(char *hostname, X509 *cert)
+{
+	int found_any_entries = 0;
+	int found_match;
+	GENERAL_NAME *namePart = NULL;
+	STACK_OF(GENERAL_NAME) *san =
+		(STACK_OF(GENERAL_NAME)*) X509_get_ext_d2i(cert, NID_subject_alt_name, NULL, NULL);
+
+	while (sk_GENERAL_NAME_num(san) > 0)
+	{
+		namePart = sk_GENERAL_NAME_pop(san);
+
+		if (namePart->type == GEN_DNS) {
+			found_any_entries = 1;
+			found_match = match((char *)ASN1_STRING_data(namePart->d.uniformResourceIdentifier), hostname);
+			if (found_match)
+				return 1;
+		}
+	}
+
+	return (found_any_entries ? 0 : -1);
+}
+
+extern "C" int hostname_matches_subject_common_name(char *hostname, X509 *cert)
+{
+	X509_NAME *name;
+	X509_NAME_ENTRY *name_entry;
+	char *certname;
+	int i, j, position;
+
+	name = X509_get_subject_name(cert);
+	position = -1;
+	for (;;) {
+		position = X509_NAME_get_index_by_NID(name, NID_commonName, position);
+		if (position == -1)
+			break;
+		name_entry = X509_NAME_get_entry(name, position);
+		char *certname = (char*) X509_NAME_ENTRY_get_data(name_entry)->data;
+		if (match(certname, hostname))
+			return 1;
+	}
+	return 0;
+}
+
 
 extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 {
-	unsigned long binding;
-	X509 *cert;
+	X509 *cert, *bottom_cert;
 	SSL *ssl;
 	BUF_MEM *buf;
 	BIO *out;
-	int result;
+	STACK_OF(X509) *chain;
+	ConnectionDescriptor *cd;
+	char data[256], *expected_hostname, *certificate_hostname;
+	unsigned long binding;
+	int result, depth, err, name_comparison, preverify_for_ruby;
 
-	cert = X509_STORE_CTX_get_current_cert(ctx);
+	cert  = X509_STORE_CTX_get_current_cert(ctx);
+	depth = X509_STORE_CTX_get_error_depth(ctx);
+	err   = X509_STORE_CTX_get_error(ctx);
+	chain = X509_STORE_CTX_get_chain(ctx);
+
 	ssl = (SSL*) X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
 	binding = (unsigned long) SSL_get_ex_data(ssl, 0);
+	expected_hostname = (char*) SSL_get_ex_data(ssl, 1);
+
+	/* If an expected hostname was passed, but it doesn't match the CN,
+	 * we want a verify failure */
+	name_comparison = 1;
+	if (strlen(expected_hostname) != 0) {
+		bottom_cert = sk_X509_shift(chain);
+		sk_X509_unshift(chain, bottom_cert);
+		name_comparison = hostname_matches_certificate(expected_hostname, bottom_cert);
+	}
 
 	out = BIO_new(BIO_s_mem());
 	PEM_write_bio_X509(out, cert);
 	BIO_write(out, "\0", 1);
 	BIO_get_mem_ptr(out, &buf);
 
-	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
-	result = (cd->VerifySslPeer(buf->data) == true ? 1 : 0);
+	/* Pass our verification result to ruby for post-verification */
+	cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
+	preverify_for_ruby = preverify_ok && name_comparison;
+	result = (cd->VerifySslPeer(buf->data, preverify_for_ruby) == true ? 1 : 0);
 	BUF_MEM_free(buf);
 
+#ifdef DEBUGSSL
+	printf("ssl_verify_wrapper called:\n");
+	printf("  depth      : %i\n", depth);
+	printf("  preverify  : %s\n", preverify_ok == 1 ? "PASS" : "FAIL");
+	X509_NAME_oneline(X509_get_issuer_name(cert), data, 256);
+	printf("  issuer     : %s\n", data);
+	X509_NAME_oneline(X509_get_subject_name(cert), data, 256);
+	printf("  subject    : %s\n", data);
+	printf("  CN         : %s\n", actual_hostname);
+	printf("  expCN      : %s\n", expected_hostname);
+	printf("  CN comp    : %s\n", (name_comparison ? "PASS" : "FAIL"));
+	printf("  status     : %i (%s)\n", err, X509_verify_cert_error_string(err));
+	printf("  postverify : %s\n", result == 1 ? "PASS" : "FAIL");
+#endif
+
+	/* Return the post-verified result from ruby. */
 	return result;
 }
 

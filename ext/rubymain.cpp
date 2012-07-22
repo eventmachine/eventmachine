@@ -146,10 +146,26 @@ static inline void event_callback (struct em_event* e)
 			rb_funcall (conn, Intern_ssl_handshake_completed, 0);
 			return;
 		}
-		case EM_SSL_VERIFY:
+		case EM_SSL_VERIFY_SUCCESS:
 		{
 			VALUE conn = ensure_conn(signature);
-			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
+			VALUE should_accept;
+			if (rb_obj_method_arity(conn, Intern_ssl_verify_peer) == 1)
+				should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
+			else
+				should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 2, rb_str_new(data_str, data_num), Qtrue);
+			if (RTEST(should_accept))
+				evma_accept_ssl_peer (signature);
+			return;
+		}
+		case EM_SSL_VERIFY_FAILURE:
+		{
+			VALUE conn = ensure_conn(signature);
+			VALUE should_accept;
+			if (rb_obj_method_arity(conn, Intern_ssl_verify_peer) == 1)
+				should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
+			else
+				should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 2, rb_str_new(data_str, data_num), Qfalse);
 			if (RTEST(should_accept))
 				evma_accept_ssl_peer (signature);
 			return;
@@ -300,14 +316,14 @@ static VALUE t_start_tls (VALUE self, VALUE signature)
 t_set_tls_parms
 ***************/
 
-static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE privkeyfile, VALUE certchainfile, VALUE verify_peer)
+static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE cafile, VALUE privkeyfile, VALUE privkeypwd, VALUE certchainfile, VALUE hostname, VALUE verify_peer)
 {
 	/* set_tls_parms takes a series of positional arguments for specifying such things
 	 * as private keys and certificate chains.
 	 * It's expected that the parameter list will grow as we add more supported features.
 	 * ALL of these parameters are optional, and can be specified as empty or NULL strings.
 	 */
-	evma_set_tls_parms (NUM2ULONG (signature), StringValuePtr (privkeyfile), StringValuePtr (certchainfile), (verify_peer == Qtrue ? 1 : 0));
+	evma_set_tls_parms (NUM2ULONG (signature), StringValuePtr (cafile), StringValuePtr (privkeyfile), StringValuePtr (privkeypwd), StringValuePtr (certchainfile), StringValuePtr (hostname), (verify_peer == Qtrue ? 1 : 0));
 	return Qnil;
 }
 
@@ -1204,7 +1220,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "start_tcp_server", (VALUE(*)(...))t_start_server, 2);
 	rb_define_module_function (EmModule, "stop_tcp_server", (VALUE(*)(...))t_stop_server, 1);
 	rb_define_module_function (EmModule, "start_unix_server", (VALUE(*)(...))t_start_unix_server, 1);
-	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 4);
+	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 7);
 	rb_define_module_function (EmModule, "start_tls", (VALUE(*)(...))t_start_tls, 1);
 	rb_define_module_function (EmModule, "get_peer_cert", (VALUE(*)(...))t_get_peer_cert, 1);
 	rb_define_module_function (EmModule, "send_data", (VALUE(*)(...))t_send_data, 3);

@@ -569,8 +569,7 @@ int ConnectionDescriptor::SendOutboundData (const char *data, int length)
 			else
 				_DispatchCiphertext();
 		}
-		// TODO: What's the correct return value?
-		return 1; // That's a wild guess, almost certainly wrong.
+		return length;
 	}
 	else
 	#endif
@@ -1132,7 +1131,7 @@ void ConnectionDescriptor::StartTls()
 	if (SslBox)
 		throw std::runtime_error ("SSL/TLS already running on connection");
 
-	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, GetBinding());
+	SslBox = new SslBox_t (bIsServer, CAFilename, PrivateKeyFilename, PrivateKeyPwd, CertChainFilename, Hostname, bSslVerifyPeer, GetBinding());
 	_DispatchCiphertext();
 	#endif
 
@@ -1146,15 +1145,22 @@ void ConnectionDescriptor::StartTls()
 ConnectionDescriptor::SetTlsParms
 *********************************/
 
-void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer)
+void ConnectionDescriptor::SetTlsParms (const char *ca_filename, const char *privkey_filename, const char *privkey_pwd, const char *certchain_filename, const char *hostname, bool verify_peer)
 {
 	#ifdef WITH_SSL
 	if (SslBox)
 		throw std::runtime_error ("call SetTlsParms before calling StartTls");
-	if (privkey_filename && *privkey_filename)
+	if (privkey_filename && *privkey_filename) {
 		PrivateKeyFilename = privkey_filename;
+		if (privkey_pwd && *privkey_pwd)
+			PrivateKeyPwd = privkey_pwd;
+	}
+	if (ca_filename && *ca_filename)
+		CAFilename = ca_filename;
 	if (certchain_filename && *certchain_filename)
 		CertChainFilename = certchain_filename;
+	if (hostname && *hostname)
+		Hostname = hostname;
 	bSslVerifyPeer = verify_peer;
 	#endif
 
@@ -1183,12 +1189,14 @@ ConnectionDescriptor::VerifySslPeer
 ***********************************/
 
 #ifdef WITH_SSL
-bool ConnectionDescriptor::VerifySslPeer(const char *cert)
+bool ConnectionDescriptor::VerifySslPeer(const char *cert, int preverify_ok)
 {
 	bSslPeerAccepted = false;
 
+	int message = (preverify_ok == 1 ? EM_SSL_VERIFY_SUCCESS : EM_SSL_VERIFY_FAILURE);
+
 	if (EventCallback)
-		(*EventCallback)(GetBinding(), EM_SSL_VERIFY, cert, strlen(cert));
+		(*EventCallback)(GetBinding(), message, cert, strlen(cert));
 
 	return bSslPeerAccepted;
 }

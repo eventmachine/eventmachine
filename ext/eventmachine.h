@@ -34,9 +34,11 @@ extern "C" {
 		EM_CONNECTION_NOTIFY_READABLE = 106,
 		EM_CONNECTION_NOTIFY_WRITABLE = 107,
 		EM_SSL_HANDSHAKE_COMPLETED = 108,
-		EM_SSL_VERIFY = 109,
+		// EM_SSL_VERIFY = 109, -- deprecated for 112 & 113. reuse?
 		EM_PROXY_TARGET_UNBOUND = 110,
-		EM_PROXY_COMPLETED = 111
+		EM_PROXY_COMPLETED = 111,
+		EM_SSL_VERIFY_SUCCESS = 112,
+		EM_SSL_VERIFY_FAILURE = 113
 
 	};
 
@@ -66,7 +68,7 @@ extern "C" {
 	const unsigned long evma_create_unix_domain_server (const char *filename);
 	const unsigned long evma_open_datagram_socket (const char *server, int port);
 	const unsigned long evma_open_keyboard();
-	void evma_set_tls_parms (const unsigned long binding, const char *privatekey_filename, const char *certchain_filenane, int verify_peer);
+	void evma_set_tls_parms (const unsigned long binding, const char *ca_filename, const char *privatekey_filename, const char *privatekey_pwd, const char *certchain_filenane, const char *hostname, int verify_peer);
 	void evma_start_tls (const unsigned long binding);
 
 	#ifdef WITH_SSL

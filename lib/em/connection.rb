@@ -130,10 +130,23 @@ module EventMachine
     # Called by EventMachine when :verify_peer => true has been passed to {#start_tls}.
     # It will be called with each certificate in the certificate chain provided by the remote peer.
     #
+    # If this method is not overridden, and :verify_peer => true is passed to start_tls, then
+    # the certificate will be verified as being signed by an acceptable CA, or whatever ca_file is
+    # provided to {#start_tls}. It will also verify that the certificate's Common Name (CN, or the 
+    # domain name of the certificate) is the same as the :hostname parameter, if passed to {#start_tls}.
+    #
     # The cert will be passed as a String in PEM format, the same as in {#get_peer_cert}. It is up to user defined
     # code to perform a check on the certificates. The return value from this callback is used to accept or deny the peer.
     # A return value that is not nil or false triggers acceptance. If the peer is not accepted, the connection
     # will be subsequently closed.
+    #
+    # The second parameter is the result of the builtin verification (true or false). For backwards
+    # compatibility, this method may also be defined with only one parameter, which will be the certificate
+    # string.
+    #
+    # It is no longer necessary to implement SSL verification yourself; by not overriding this default version,
+    # you get reasonable verification. If you need additional or custom checks, this is where they
+    # can be defined.
     #
     # @example This server always accepts all peers
     #
@@ -142,7 +155,7 @@ module EventMachine
     #       start_tls(:verify_peer => true)
     #     end
     #
-    #     def ssl_verify_peer(cert)
+    #     def ssl_verify_peer(cert, preverify_ok)
     #       true
     #     end
     #
@@ -170,8 +183,17 @@ module EventMachine
     #     end
     #   end
     #
+    # @example This server doesn't use any custom verification
+    #
+    #   module TypicalServer
+    #     def post_init
+    #       start_tls(:verify_peer => true)
+    #     end
+    #   end
+    #
     # @see #start_tls
-    def ssl_verify_peer(cert)
+    def ssl_verify_peer(cert, preverify_ok)
+      preverify_ok
     end
 
     # called by the framework whenever a connection (either a server or client connection) is closed.
@@ -362,23 +384,35 @@ module EventMachine
     def connection_completed
     end
 
+    # Default CA file extracted from mozilla source.
+    AUTHORITATIVE_CA_FILE = File.expand_path("../../../cacert.pem", __FILE__)
+
     # Call {#start_tls} at any point to initiate TLS encryption on connected streams.
     # The method is smart enough to know whether it should perform a server-side
     # or a client-side handshake. An appropriate place to call {#start_tls} is in
     # your redefined {#post_init} method, or in the {#connection_completed} handler for
     # an outbound connection.
     #
+    # @option args [String] :cert_chain_file (nil)  local path of a readable file that contants  a chain of X509 certificates in
+    #                                               the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail),
+    #                                               with the most-resolved certificate at the top of the file, successive intermediate
+    #                                               certs in the middle, and the root (or CA) cert at the bottom.
     #
-    # @option args [String] :cert_chain_file (nil) local path of a readable file that contants  a chain of X509 certificates in
-    #                                              the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail),
-    #                                              with the most-resolved certificate at the top of the file, successive intermediate
-    #                                              certs in the middle, and the root (or CA) cert at the bottom.
+    # @option args [String] :ca_file (nil)          interpreted as the name of a readable file in the local filesystem. The file is
+    #                                               expected to contain a chain of X509 certificates in PEM format.
     #
     # @option args [String] :private_key_file (nil) local path of a readable file that must contain a private key in the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail).
     #
     # @option args [String] :verify_peer (false)    indicates whether a server should request a certificate from a peer, to be verified by user code.
     #                                               If true, the {#ssl_verify_peer} callback on the {EventMachine::Connection} object is called with each certificate
     #                                               in the certificate chain provided by the peer. See documentation on {#ssl_verify_peer} for how to use this.
+    #
+    # @option args [String] :private_key_pwd (nil)  interpreted as the password for the private_key_file
+    #                                               specified above. if no password is supplied the file is opened without one.
+    #
+    # @option args [String] :hostname (nil)         if this option is passed, peer verification will fail unless the certificate name matches
+    #                                               this value. You will normally want to pass this and set it to the domain name you are
+    #                                               connecting to. Eg. www.facebook.com. if not passed, CN verification will be skipped.
     #
     # @example Using TLS with EventMachine
     #
@@ -397,22 +431,30 @@ module EventMachine
     #
     # @param [Hash] args
     #
-    # @todo support passing an encryption parameter, which can be string or Proc, to get a passphrase
-    # for encrypted private keys.
+    # @todo support passing private_key_pwd as Proc returning the password
     # @todo support passing key material via raw strings or Procs that return strings instead of
     # just filenames.
     #
     # @see #ssl_verify_peer
     def start_tls args={}
-      priv_key, cert_chain, verify_peer = args.values_at(:private_key_file, :cert_chain_file, :verify_peer)
+      ca_file      = args.delete(:ca_file)          || AUTHORITATIVE_CA_FILE
+      priv_key     = args.delete(:private_key_file) || ''
+      priv_key_pwd = args.delete(:private_key_pwd)  || ''
+      cert_chain   = args.delete(:cert_chain_file)  || ''
+      hostname     = args.delete(:hostname)         || ''
+      verify_peer  = args.delete(:verify_peer)      || false
 
-      [priv_key, cert_chain].each do |file|
+      if args.any?
+        raise ArgumentError, "Invalid arguments: #{args.keys.join(", ")}"
+      end
+
+      [priv_key, cert_chain, ca_file].each do |file|
         next if file.nil? or file.empty?
         raise FileNotFoundException,
         "Could not find #{file} for start_tls" unless File.exists? file
       end
 
-      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer)
+      EventMachine::set_tls_parms(@signature, ca_file, priv_key, priv_key_pwd, cert_chain, hostname, verify_peer)
       EventMachine::start_tls @signature
     end
 
