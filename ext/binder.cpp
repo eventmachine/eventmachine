@@ -22,6 +22,7 @@ See the file COPYING for complete licensing information.
 #define DEV_URANDOM "/dev/urandom"
 
 
+void register_signature(unsigned long num);
 map<unsigned long, Bindable_t*> Bindable_t::BindingBag;
 
 
@@ -33,6 +34,7 @@ unsigned long Bindable_t::CreateBinding()
 {
 	static unsigned long num = 0;
 	while(BindingBag[++num]);
+	register_signature(num);
 	return num;
 }
 
