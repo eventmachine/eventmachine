@@ -194,7 +194,8 @@ module EventMachine
         @@parms[:verbose] and $>.puts ">>> #{ln}"
 
         return process_data_line(ln) if @state.include?(:data)
-        return process_auth_line(ln) if @state.include?(:auth_incomplete)
+        return process_auth_plain_line(ln) if @state.include?(:auth_plain_incomplete)
+        return process_auth_login_line(ln) if @state.include?(:auth_login_incomplete)
 
         case ln
         when EhloRegex
@@ -343,28 +344,50 @@ module EventMachine
         elsif str =~ /\APLAIN\s?/i
           if $'.length == 0
             # we got a partial response, so let the client know to send the rest
-            @state << :auth_incomplete
+            @state << :auth_plain_incomplete
             send_data("334 \r\n")
           else
             # we got the initial response, so go ahead & process it
-            process_auth_line($')
+            process_auth_plain_line($')
           end
-          #elsif str =~ /\ALOGIN\s+/i
+        elsif str =~ /\ALOGIN\s?/i
+          if $'.length == 0
+            @state << :auth_login_incomplete
+            send_data("334 \r\n")
+          else
+            process_auth_login_line($')
+          end
+
         else
           send_data "504 auth mechanism not available\r\n"
         end
       end
 
-      def process_auth_line(line)
+      def process_auth_login_line(line)
+        @login_auth ||= []
+        @login_auth << line.unpack("m").first
+        if @login_auth.size == 2
+          process_plain_auth(@login_auth.shift, @login_auth.shift)
+          @state.delete :auth_login_incomplete
+        else
+          send_data("334 \r\n")
+        end
+      end
+
+      def process_auth_plain_line(line)
         plain = line.unpack("m").first
         _,user,psw = plain.split("\000")
-        if receive_plain_auth user,psw
+        process_plain_auth user,psw
+        @state.delete :auth_plain_incomplete
+      end
+
+      def process_plain_auth(user, password)
+        if receive_plain_auth(user, password)
           send_data "235 authentication ok\r\n"
           @state << :auth
         else
           send_data "535 invalid authentication\r\n"
         end
-        @state.delete :auth_incomplete
       end
 
       #--
@@ -538,10 +561,10 @@ module EventMachine
             (d ? succeeded : failed).call
           end
 
-          @state.delete :data
+          @state -= [:data, :mail_from, :rcpt]
         else
           # slice off leading . if any
-          ln.slice!(0...1) if ln[0] == 46
+          ln.slice!(0...1) if ln.start_with?('.')
           @databuffer << ln
           if @databuffer.length > @@parms[:chunksize]
             receive_data_chunk @databuffer
