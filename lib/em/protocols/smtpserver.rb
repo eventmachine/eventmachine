@@ -564,7 +564,7 @@ module EventMachine
           @state -= [:data, :mail_from, :rcpt]
         else
           # slice off leading . if any
-          ln.slice!(0...1) if ln[0] == 46
+          ln.slice!(0...1) if ln.start_with?('.')
           @databuffer << ln
           if @databuffer.length > @@parms[:chunksize]
             receive_data_chunk @databuffer
