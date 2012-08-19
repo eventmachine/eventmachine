@@ -1,4 +1,4 @@
-module Creepy
+module EventMachine
   class TypedChannel
     def initialize
       @subs = {}
