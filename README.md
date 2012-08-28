@@ -59,6 +59,7 @@ the following features/fixes have been applied in EventMachine-LE:
 * `EM::Protocols::SmtpServer`: support multiple messages per one connection and login auth type ([bogdan](https://github.com/eventmachine/eventmachine/pull/288)).
 * Reimplement `EM::Queue` to avoid shift/push performance problem ([grddev](https://github.com/eventmachine/eventmachine/pull/311)).
 * Many code cleanups.
+* New `EM::Connection` option for the `start_tls()` method: `:use_tls` (when true TLS version is used, SSL otherwise).
 
 
 ## Installation ##
