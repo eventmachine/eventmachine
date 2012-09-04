@@ -427,6 +427,9 @@ module EventMachine
         "Could not find #{file} for start_tls" unless File.exists? file
       end
 
+      # Backward compatibility with version 1.1.3:
+      ssl_version = :TLSv1  if args[:use_tls] and not ssl_version
+
       ssl_version = case ssl_version
         when nil     ; 0
         when :SSLv23 ; 0
