@@ -393,7 +393,7 @@ module EventMachine
     #                                               If true, the {#ssl_verify_peer} callback on the {EventMachine::Connection} object is called with each certificate
     #                                               in the certificate chain provided by the peer. See documentation on {#ssl_verify_peer} for how to use this.
     #
-    # @option args [Boolean] :use_tls (false)       indicates whether TLS or SSL must be offered to the peer. If true TLS is used, SSL otherwise.
+    # @option args [Symbol] :ssl_version (:SSLv23)   indicates the version of SSL to use. Valid values are :SSLv23, :SSLv3 and TLSv1.  Default value is :SSLv23.
     #
     # @example Using TLS with EventMachine
     #
@@ -419,7 +419,7 @@ module EventMachine
     #
     # @see #ssl_verify_peer
     def start_tls args={}
-      priv_key, cert_chain, verify_peer, use_tls = args.values_at(:private_key_file, :cert_chain_file, :verify_peer, :use_tls)
+      priv_key, cert_chain, verify_peer, ssl_version = args.values_at(:private_key_file, :cert_chain_file, :verify_peer, :ssl_version)
 
       [priv_key, cert_chain].each do |file|
         next if file.nil? or file.empty?
@@ -427,7 +427,15 @@ module EventMachine
         "Could not find #{file} for start_tls" unless File.exists? file
       end
 
-      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer, (use_tls ? true : false))
+      ssl_version = case ssl_version
+        when nil     ; 0
+        when :SSLv23 ; 0
+        when :SSLv3  ; 1
+        when :TLSv1  ; 2
+        else         ; raise "invalid value #{ssl_version.inspect} for :ssl_version"
+      end
+
+      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer, ssl_version)
       EventMachine::start_tls @signature
     end
 

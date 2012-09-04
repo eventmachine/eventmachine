@@ -70,7 +70,7 @@ class EventableDescriptor: public Bindable_t
 		virtual bool GetSubprocessPid (pid_t*) {return false;}
 
 		virtual void StartTls() {}
-		virtual void SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer, bool use_tls) {}
+		virtual void SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer, int ssl_version) {}
 
 		#ifdef WITH_SSL
 		virtual X509 *GetPeerCert() {return NULL;}
@@ -195,7 +195,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		virtual int GetOutboundDataSize() {return OutboundDataSize;}
 
 		virtual void StartTls();
-		virtual void SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer, bool use_tls);
+		virtual void SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer, int ssl_version);
 
 		#ifdef WITH_SSL
 		virtual X509 *GetPeerCert();
@@ -241,7 +241,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		std::string PrivateKeyFilename;
 		bool bHandshakeSignaled;
 		bool bSslVerifyPeer;
-                bool bSslUseTls;
+                int bSslVersion;
 		bool bSslPeerAccepted;
 		#endif
 

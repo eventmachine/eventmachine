@@ -307,14 +307,14 @@ static VALUE t_start_tls (VALUE self, VALUE signature)
 t_set_tls_parms
 ***************/
 
-static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE privkeyfile, VALUE certchainfile, VALUE verify_peer, VALUE use_tls)
+static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE privkeyfile, VALUE certchainfile, VALUE verify_peer, VALUE ssl_version)
 {
 	/* set_tls_parms takes a series of positional arguments for specifying such things
 	 * as private keys and certificate chains.
 	 * It's expected that the parameter list will grow as we add more supported features.
 	 * ALL of these parameters are optional, and can be specified as empty or NULL strings.
 	 */
-	evma_set_tls_parms (NUM2ULONG (signature), StringValuePtr (privkeyfile), StringValuePtr (certchainfile), (verify_peer == Qtrue ? 1 : 0), (use_tls == Qtrue ? 1 : 0));
+	evma_set_tls_parms (NUM2ULONG (signature), StringValuePtr (privkeyfile), StringValuePtr (certchainfile), (verify_peer == Qtrue ? 1 : 0), FIX2INT(ssl_version));
 	return Qnil;
 }
 

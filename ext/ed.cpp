@@ -384,7 +384,7 @@ ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	SslBox (NULL),
 	bHandshakeSignaled (false),
 	bSslVerifyPeer (false),
-	bSslUseTls (false),
+	bSslVersion (0),
 	bSslPeerAccepted(false),
 	#endif
 	#ifdef HAVE_KQUEUE
@@ -1136,7 +1136,7 @@ void ConnectionDescriptor::StartTls()
 	if (SslBox)
 		throw std::runtime_error ("SSL/TLS already running on connection");
 
-	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, bSslUseTls, GetBinding());
+	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, bSslVersion, GetBinding());
 	_DispatchCiphertext();
 	#endif
 
@@ -1150,7 +1150,7 @@ void ConnectionDescriptor::StartTls()
 ConnectionDescriptor::SetTlsParms
 *********************************/
 
-void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer, bool use_tls)
+void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer, int ssl_version)
 {
 	#ifdef WITH_SSL
 	if (SslBox)
@@ -1160,7 +1160,7 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 	if (certchain_filename && *certchain_filename)
 		CertChainFilename = certchain_filename;
 	bSslVerifyPeer = verify_peer;
-        bSslUseTls = use_tls;
+        bSslVersion = ssl_version;
 	#endif
 
 	#ifdef WITHOUT_SSL

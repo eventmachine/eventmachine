@@ -33,7 +33,7 @@ class SslContext_t
 class SslContext_t
 {
 	public:
-		SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool use_tls);
+		SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, int ssl_version);
 		virtual ~SslContext_t();
 
 	private:
@@ -57,7 +57,7 @@ class SslBox_t
 class SslBox_t
 {
 	public:
-		SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, bool use_tls, const unsigned long binding);
+		SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, int ssl_version, const unsigned long binding);
 		virtual ~SslBox_t();
 
 		int PutPlaintext (const char*, int);
@@ -78,7 +78,7 @@ class SslBox_t
 		bool bIsServer;
 		bool bHandshakeCompleted;
 		bool bVerifyPeer;
-                bool bUseTls;
+                int bSslVersion;
 		SSL *pSSL;
 		BIO *pbioRead;
 		BIO *pbioWrite;
