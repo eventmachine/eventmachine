@@ -523,6 +523,19 @@ bool EventMachine_t::_RunEpollOnce()
 	timeval tv = _TimeTilNextEvent();
 
 	#ifdef BUILD_FOR_RUBY
+          #ifdef RB_HAVE_WAIT_FOR_SINGLE_FD
+	int ret = rb_wait_for_single_fd(epfd, RB_WAITFD_IN | RB_WAITFD_PRI, &tv);
+
+	if (ret == -1) {
+	        assert(errno != EINVAL);
+	        assert(errno != EBADF);
+	        return true;
+	}
+
+	if (ret & (RB_WAITFD_IN | RB_WAITFD_PRI) == 0) {
+	        return true;
+	}
+          #else
 	int ret = 0;
 	fd_set fdreads;
 
@@ -537,6 +550,7 @@ bool EventMachine_t::_RunEpollOnce()
 		return true;
 	}
 
+          #endif
 	TRAP_BEG;
 	s = epoll_wait (epfd, epoll_events, MaxEvents, 0);
 	TRAP_END;

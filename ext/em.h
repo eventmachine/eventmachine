@@ -22,6 +22,9 @@ See the file COPYING for complete licensing information.
 
 #ifdef BUILD_FOR_RUBY
   #include <ruby.h>
+  #ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
+  #include <ruby/io.h>
+  #endif
   #define EmSelect rb_thread_select
 
   #if defined(HAVE_RBTRAP)
