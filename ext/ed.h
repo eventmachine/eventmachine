@@ -64,8 +64,9 @@ class EventableDescriptor: public Bindable_t
 
 		void SetEventCallback (EMCallback);
 
-		virtual bool GetPeername (struct sockaddr*, socklen_t*) {return false;}
-		virtual bool GetSockname (struct sockaddr*, socklen_t*) {return false;}
+		virtual bool GetPeername (struct sockaddr_storage*, socklen_t *len) {return false;}
+		virtual bool GetSockname (struct sockaddr_storage*, socklen_t *len) {return false;}
+
 		virtual bool GetSubprocessPid (pid_t*) {return false;}
 
 		virtual void StartTls() {}
@@ -203,8 +204,8 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		void SetServerMode() {bIsServer = true;}
 
-		virtual bool GetPeername (struct sockaddr*, socklen_t*);
-		virtual bool GetSockname (struct sockaddr*, socklen_t*);
+		virtual bool GetPeername (struct sockaddr_storage*, socklen_t *len);
+		virtual bool GetSockname (struct sockaddr_storage*, socklen_t *len);
 
 		virtual uint64_t GetCommInactivityTimeout();
 		virtual int SetCommInactivityTimeout (uint64_t value);
@@ -283,26 +284,29 @@ class DatagramDescriptor: public EventableDescriptor
 		// Do we have any data to write? This is used by ShouldDelete.
 		virtual int GetOutboundDataSize() {return OutboundDataSize;}
 
-		virtual bool GetPeername (struct sockaddr*, socklen_t*);
-		virtual bool GetSockname (struct sockaddr*, socklen_t*);
+		virtual bool GetPeername (struct sockaddr_storage*, socklen_t *len);
+		virtual bool GetSockname (struct sockaddr_storage*, socklen_t *len);
 
 		virtual uint64_t GetCommInactivityTimeout();
 		virtual int SetCommInactivityTimeout (uint64_t value);
 
+                enum ERRORHANDLINGTYPE {ERRORHANDLING_KILL = 0, ERRORHANDLING_IGNORE = 1, ERRORHANDLING_REPORT = 2} SendErrorHandling;
+                
 	protected:
 		struct OutboundPage {
-			OutboundPage (const char *b, int l, struct sockaddr_in f, int o=0): Buffer(b), Length(l), Offset(o), From(f) {}
+                  OutboundPage (const char *b, int l, struct sockaddr_storage &f, int o=0): Buffer(b), Length(l), Offset(o), From(*(struct sockaddr_in6*)&f) {}
 			void Free() {if (Buffer) free ((char*)Buffer); }
 			const char *Buffer;
 			int Length;
 			int Offset;
-			struct sockaddr_in From;
+                        // struct sockaddr_storage From;    This would be *right*, but it is larger and thus slower than needed
+                        struct sockaddr_in6 From;
 		};
 
 		deque<OutboundPage> OutboundPages;
 		int OutboundDataSize;
 
-		struct sockaddr_in ReturnAddress;
+		struct sockaddr_storage ReturnAddress;
 };
 
 
@@ -323,7 +327,7 @@ class AcceptorDescriptor: public EventableDescriptor
 		virtual bool SelectForRead() {return true;}
 		virtual bool SelectForWrite() {return false;}
 
-		virtual bool GetSockname (struct sockaddr*, socklen_t*);
+		virtual bool GetSockname (struct sockaddr_storage*, socklen_t *len);
 
 		static void StopAcceptor (const unsigned long binding);
 };

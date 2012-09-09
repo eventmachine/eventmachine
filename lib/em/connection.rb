@@ -117,6 +117,19 @@ module EventMachine
       puts "............>>>#{data.length}"
     end
 
+    # decode the errno hidden in the first byte
+    #
+    # @private
+    def receive_error data
+      info = data.unpack("Ca*")
+      receive_senderror(EventMachine::ERRNOS[info[0]],
+                        Socket::getnameinfo(info[1], Socket::NI_NUMERICSERV|Socket::NI_NUMERICHOST))
+    end
+
+    def receive_senderror error, data
+      puts "............>>>#{error.inspect} #{data.inspect}"
+    end
+
     # Called by EventMachine when the SSL/TLS handshake has
     # been completed, as a result of calling #start_tls to initiate SSL/TLS on the connection.
     #
@@ -688,6 +701,20 @@ module EventMachine
     # Returns true if the connection is being watched for writability.
     def notify_writable?
       EventMachine::is_notify_writable @signature
+    end
+
+    SEND_ERROR_MODES = {
+      :ERRORHANDLING_KILL => 0,
+      :ERRORHANDLING_IGNORE => 1,
+      :ERRORHANDLING_REPORT => 2
+    }
+
+    # Controls send error handling for datagragram sockets.
+    # :ERRORHANDLING_KILL to kill the socket after any send error,
+    # :ERRORHANDLING_IGNORE to ignore any send errors,
+    # :ERRORHANDLING_REPORT to signal send errors via #receive_senderror
+    def send_error_handling= mode
+      EventMachine::set_error_handling @signature, SEND_ERROR_MODES[mode]
     end
 
     # Pause a connection so that {#send_data} and {#receive_data} events are not fired until {#resume} is called.

@@ -48,6 +48,7 @@ static VALUE Intern_run_deferred_callbacks;
 static VALUE Intern_delete;
 static VALUE Intern_call;
 static VALUE Intern_receive_data;
+static VALUE Intern_receive_error;
 static VALUE Intern_ssl_handshake_completed;
 static VALUE Intern_ssl_verify_peer;
 static VALUE Intern_notify_readable;
@@ -92,6 +93,14 @@ static inline void event_callback (struct em_event* e)
 			if (conn == Qnil)
 				rb_raise (EM_eConnectionNotBound, "received %lu bytes of data for unknown signature: %lu", data_num, signature);
 			rb_funcall (conn, Intern_receive_data, 1, rb_str_new (data_str, data_num));
+			return;
+		}
+		case EM_CONNECTION_SENDERROR:
+		{
+			VALUE conn = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
+			if (conn == Qnil)
+				rb_raise (EM_eConnectionNotBound, "received %lu bytes of data for unknown signature: %lu", data_num, signature);
+			rb_funcall (conn, Intern_receive_error, 1, rb_str_new (data_str, data_num));
 			return;
 		}
 		case EM_CONNECTION_ACCEPTED:
@@ -347,7 +356,7 @@ static VALUE t_get_peername (VALUE self, VALUE signature)
 {
 	char buf[1024];
 	socklen_t len = sizeof buf;
-	if (evma_get_peername (NUM2ULONG (signature), (struct sockaddr*)buf, &len)) {
+	if (evma_get_peername (NUM2ULONG (signature), (struct sockaddr_storage*)buf, &len)) {
 		return rb_str_new (buf, len);
 	}
 
@@ -362,7 +371,7 @@ static VALUE t_get_sockname (VALUE self, VALUE signature)
 {
 	char buf[1024];
 	socklen_t len = sizeof buf;
-	if (evma_get_sockname (NUM2ULONG (signature), (struct sockaddr*)buf, &len)) {
+	if (evma_get_sockname (NUM2ULONG (signature), (struct sockaddr_storage*)buf, &len)) {
 		return rb_str_new (buf, len);
 	}
 
@@ -465,6 +474,8 @@ t_send_datagram
 static VALUE t_send_datagram (VALUE self, VALUE signature, VALUE data, VALUE data_length, VALUE address, VALUE port)
 {
 	int b = evma_send_datagram (NUM2ULONG (signature), StringValuePtr (data), FIX2INT (data_length), StringValuePtr(address), FIX2INT(port));
+        if (b < 0)
+          rb_raise (EM_eConnectionError, "error in sending datagram"); // FIXME: this could be more specific.
 	return INT2NUM (b);
 }
 
@@ -657,6 +668,16 @@ static VALUE t_set_notify_writable (VALUE self, VALUE signature, VALUE mode)
 {
 	evma_set_notify_writable(NUM2ULONG (signature), mode == Qtrue);
 	return Qnil;
+}
+
+/*********************
+t_set_error_handling
+*********************/
+
+static VALUE t_set_error_handling (VALUE self, VALUE signature, VALUE mode)
+{
+  evma_set_error_handling(NUM2ULONG (signature), NUM2INT(mode));
+  return Qnil;
 }
 
 /*******
@@ -1177,6 +1198,7 @@ extern "C" void Init_rubyeventmachine()
 	Intern_delete = rb_intern ("delete");
 	Intern_call = rb_intern ("call");
 	Intern_receive_data = rb_intern ("receive_data");
+	Intern_receive_error = rb_intern ("receive_error");
 	Intern_ssl_handshake_completed = rb_intern ("ssl_handshake_completed");
 	Intern_ssl_verify_peer = rb_intern ("ssl_verify_peer");
 	Intern_notify_readable = rb_intern ("notify_readable");
@@ -1221,6 +1243,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "set_sock_opt", (VALUE (*)(...))t_set_sock_opt, 4);
 	rb_define_module_function (EmModule, "set_notify_readable", (VALUE (*)(...))t_set_notify_readable, 2);
 	rb_define_module_function (EmModule, "set_notify_writable", (VALUE (*)(...))t_set_notify_writable, 2);
+	rb_define_module_function (EmModule, "set_error_handling", (VALUE (*)(...))t_set_error_handling, 2);
 	rb_define_module_function (EmModule, "is_notify_readable", (VALUE (*)(...))t_is_notify_readable, 1);
 	rb_define_module_function (EmModule, "is_notify_writable", (VALUE (*)(...))t_is_notify_writable, 1);
 

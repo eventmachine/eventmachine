@@ -1407,7 +1407,7 @@ void AcceptorDescriptor::Read()
 	 */
 
 
-	struct sockaddr_in pin;
+	struct sockaddr_storage pin;
 	socklen_t addrlen = sizeof (pin);
 
 	for (int i=0; i < 10; i++) {
@@ -1484,11 +1484,11 @@ void AcceptorDescriptor::Heartbeat()
 AcceptorDescriptor::GetSockname
 *******************************/
 
-bool AcceptorDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
+bool AcceptorDescriptor::GetSockname (struct sockaddr_storage *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		int gp = getsockname (GetSocket(), s, len);
+		int gp = getsockname (GetSocket(), (struct sockaddr *)s, len);
 		if (gp == 0)
 			ok = true;
 	}
@@ -1503,7 +1503,8 @@ DatagramDescriptor::DatagramDescriptor
 
 DatagramDescriptor::DatagramDescriptor (int sd, EventMachine_t *parent_em):
 	EventableDescriptor (sd, parent_em),
-	OutboundDataSize (0)
+	OutboundDataSize (0),
+        SendErrorHandling(ERRORHANDLING_KILL)
 {
 	memset (&ReturnAddress, 0, sizeof(ReturnAddress));
 
@@ -1585,7 +1586,7 @@ void DatagramDescriptor::Read()
 		// That's so we can put a guard byte at the end of what we send
 		// to user code.
 
-		struct sockaddr_in sin;
+		struct sockaddr_storage sin;
 		socklen_t slen = sizeof (sin);
 		memset (&sin, 0, slen);
 
@@ -1659,12 +1660,14 @@ void DatagramDescriptor::Write()
 		OutboundPage *op = &(OutboundPages[0]);
 
 		// The nasty cast to (char*) is needed because Windows is brain-dead.
-		int s = sendto (sd, (char*)op->Buffer, op->Length, 0, (struct sockaddr*)&(op->From), sizeof(op->From));
+		int s = sendto (sd, (char*)op->Buffer, op->Length, 0,
+                                (struct sockaddr*)&(op->From),
+                                (op->From.sin6_family == AF_INET6 ?
+                                 sizeof (struct sockaddr_in6) : sizeof (struct sockaddr_in)));
 		int e = errno;
 
 		OutboundDataSize -= op->Length;
 		op->Free();
-		OutboundPages.pop_front();
 
 		if (s == SOCKET_ERROR) {
 			#ifdef OS_UNIX
@@ -1673,13 +1676,42 @@ void DatagramDescriptor::Write()
 			#ifdef OS_WIN32
 			if ((e != WSAEINPROGRESS) && (e != WSAEWOULDBLOCK)) {
 			#endif
+                          // save error info before deleting outboundpage
+                          // Hmm, we don't seem to have sockport.h available here, kludge along
+                          int sz = (op->From.sin6_family == AF_INET ?
+                                    sizeof (struct sockaddr_in) : sizeof (struct sockaddr_in6));
+                          int f = op->From.sin6_family;
+                          *((char *)&op->From) = sz;
+                          op->From.sin6_family = f;
+                          // this would have been SET_SS_LEN(((struct sockaddr_storage *)&op->From), sz);
+
+                          char info[sizeof (struct sockaddr_in6)+2];
+                          info[0] = e;
+                          memcpy(info+1, (const char *)&(op->From), sz);
+                          sz++;
+                          info[sz] = 0; // cargo cult
+
+                          OutboundPages.pop_front();
+
+                          switch(SendErrorHandling) {
+                          case ERRORHANDLING_KILL:
 				UnbindReasonCode = e;
 				Close();
+                                i = 11; // break out from send loop
 				break;
-			}
-		}
-	}
+                          case ERRORHANDLING_IGNORE:
+                            break;
+                          case ERRORHANDLING_REPORT:
+                            if (EventCallback) {
+                              (*EventCallback)(GetBinding(), EM_CONNECTION_SENDERROR, info, sz);
+                            }
+                            break;
+                          }
+                        }
+		} else
+                          OutboundPages.pop_front();
 
+	}
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = (EPOLLIN | (SelectForWrite() ? EPOLLOUT : 0));
 	assert (MyEventMachine);
@@ -1757,27 +1789,15 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 
 	if (IsCloseScheduled())
 	//if (bCloseNow || bCloseAfterWriting)
-		return 0;
+		return -1;
 
 	if (!address || !*address || !port)
-		return 0;
+		return -1;
 
-	sockaddr_in pin;
-	unsigned long HostAddr;
-
-	HostAddr = inet_addr (address);
-	if (HostAddr == INADDR_NONE) {
-		// The nasty cast to (char*) is because Windows is brain-dead.
-		hostent *hp = gethostbyname ((char*)address);
-		if (!hp)
-			return 0;
-		HostAddr = ((in_addr*)(hp->h_addr))->s_addr;
-	}
-
-	memset (&pin, 0, sizeof(pin));
-	pin.sin_family = AF_INET;
-	pin.sin_addr.s_addr = HostAddr;
-	pin.sin_port = htons (port);
+	int family, addr_size;
+	struct sockaddr *addr_here = EventMachine_t::name2address (address, port, &family, &addr_size);
+	if (!addr_here)
+		return -1;
 
 
 	if (!data && (length > 0))
@@ -1787,7 +1807,7 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 		throw std::runtime_error ("no allocation for outbound data");
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
-	OutboundPages.push_back (OutboundPage (buffer, length, pin));
+	OutboundPages.push_back (OutboundPage (buffer, length, *(struct sockaddr_storage*)addr_here));
 	OutboundDataSize += length;
 
 	#ifdef HAVE_EPOLL
@@ -1807,11 +1827,12 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, cons
 ConnectionDescriptor::GetPeername
 *********************************/
 
-bool ConnectionDescriptor::GetPeername (struct sockaddr *s, socklen_t *len)
+bool ConnectionDescriptor::GetPeername (struct sockaddr_storage *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		int gp = getpeername (GetSocket(), s, len);
+		socklen_t len = sizeof(*s);
+		int gp = getpeername (GetSocket(), (struct sockaddr *)s, &len);
 		if (gp == 0)
 			ok = true;
 	}
@@ -1822,11 +1843,12 @@ bool ConnectionDescriptor::GetPeername (struct sockaddr *s, socklen_t *len)
 ConnectionDescriptor::GetSockname
 *********************************/
 
-bool ConnectionDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
+bool ConnectionDescriptor::GetSockname (struct sockaddr_storage *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		int gp = getsockname (GetSocket(), s, len);
+		*len = sizeof(*s);
+		int gp = getsockname (GetSocket(), (struct sockaddr *)s, len);
 		if (gp == 0)
 			ok = true;
 	}
@@ -1859,12 +1881,12 @@ int ConnectionDescriptor::SetCommInactivityTimeout (uint64_t value)
 DatagramDescriptor::GetPeername
 *******************************/
 
-bool DatagramDescriptor::GetPeername (struct sockaddr *s, socklen_t *len)
+bool DatagramDescriptor::GetPeername (struct sockaddr_storage *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		*len = sizeof(struct sockaddr);
-		memset (s, 0, sizeof(struct sockaddr));
+		*len = sizeof(struct sockaddr_storage);
+		memset (s, 0, sizeof(struct sockaddr_storage));
 		memcpy (s, &ReturnAddress, sizeof(ReturnAddress));
 		ok = true;
 	}
@@ -1875,11 +1897,12 @@ bool DatagramDescriptor::GetPeername (struct sockaddr *s, socklen_t *len)
 DatagramDescriptor::GetSockname
 *******************************/
 
-bool DatagramDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
+bool DatagramDescriptor::GetSockname (struct sockaddr_storage *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		int gp = getsockname (GetSocket(), s, len);
+		*len = sizeof(*s);
+		int gp = getsockname (GetSocket(), (struct sockaddr *)s, len);
 		if (gp == 0)
 			ok = true;
 	}

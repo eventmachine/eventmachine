@@ -32,7 +32,7 @@ class TestEpoll < Test::Unit::TestCase
     # higher if we're running as root.
     # On most systems, the default value is 1024.
     def test_rlimit
-      unless EM.set_descriptor_table_size >= 1024
+      unless RUBY_PLATFORM =~ /java/ or EM.set_descriptor_table_size >= 1024
         a = EM.set_descriptor_table_size
         assert( a <= 1024 )
         a = EM.set_descriptor_table_size( 1024 )
@@ -78,7 +78,7 @@ class TestEpoll < Test::Unit::TestCase
     end
 
     def post_init
-      send_datagram "1234567890", "127.0.0.1", @port
+      send_datagram "1234567890", $testing_localhost, @port
     end
 
     def receive_data dgm
@@ -88,13 +88,17 @@ class TestEpoll < Test::Unit::TestCase
   end
 
   def test_datagrams
-    $in = $out = ""
-    EM.run {
-      EM.open_datagram_socket "127.0.0.1", @port, TestDatagramServer
-      EM.open_datagram_socket "127.0.0.1", 0, TestDatagramClient, @port
+    ["127.0.0.1", "::1"].each {  |localhost|
+      $testing_localhost = localhost
+      $in = $out = ""
+      EM.run {
+        setup_timeout(2)
+        EM.open_datagram_socket $testing_localhost, @port, TestDatagramServer
+        EM.open_datagram_socket $testing_localhost, 0, TestDatagramClient, @port
+      }
+      assert_equal( "1234567890", $in )
+      assert_equal( "abcdefghij", $out )
     }
-    assert_equal( "1234567890", $in )
-    assert_equal( "abcdefghij", $out )
   end
 
   # XXX this test fails randomly..
