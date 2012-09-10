@@ -271,7 +271,7 @@ module EventMachine
               psw = psw.call
             end
             #str = Base64::encode64("\0#{@args[:auth][:username]}\0#{psw}").chomp
-            str = ["\0#{@args[:auth][:username]}\0#{psw}"].pack("m").chomp
+            str = ["\0#{@args[:auth][:username]}\0#{psw}"].pack("m").gsub(/\n/, '')
             send_data "AUTH PLAIN #{str}\r\n"
             @responder = :receive_auth_response
           else
