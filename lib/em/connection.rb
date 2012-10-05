@@ -395,7 +395,7 @@ module EventMachine
     #
     # @option args [Symbol] :ssl_version (:SSLv23)   indicates the version of SSL to use. Valid values are :SSLv23, :SSLv3 and TLSv1.  Default value is :SSLv23.
     #
-    # @option cipher_list [String] :cipher_list ("ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH")   indicates the available SSL cipher values.
+    # @option args [String] :cipher_list ("ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH")   indicates the available SSL cipher values. Default value is "ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH".
     #
     # @example Using TLS with EventMachine
     #
