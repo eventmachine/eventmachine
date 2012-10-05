@@ -395,6 +395,8 @@ module EventMachine
     #
     # @option args [Symbol] :ssl_version (:SSLv23)   indicates the version of SSL to use. Valid values are :SSLv23, :SSLv3 and TLSv1.  Default value is :SSLv23.
     #
+    # @option cipher_list [String] :cipher_list ("ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH")   indicates the available SSL cipher values.
+    #
     # @example Using TLS with EventMachine
     #
     #  require 'rubygems'
@@ -419,7 +421,7 @@ module EventMachine
     #
     # @see #ssl_verify_peer
     def start_tls args={}
-      priv_key, cert_chain, verify_peer, ssl_version = args.values_at(:private_key_file, :cert_chain_file, :verify_peer, :ssl_version)
+      priv_key, cert_chain, verify_peer, ssl_version, cipher_list = args.values_at(:private_key_file, :cert_chain_file, :verify_peer, :ssl_version, :cipher_list)
 
       [priv_key, cert_chain].each do |file|
         next if file.nil? or file.empty?
@@ -438,7 +440,7 @@ module EventMachine
         else         ; raise "invalid value #{ssl_version.inspect} for :ssl_version"
       end
 
-      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer, ssl_version)
+      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer, ssl_version, cipher_list || '')
       EventMachine::start_tls @signature
     end
 
