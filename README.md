@@ -59,17 +59,18 @@ the following features/fixes have been applied in EventMachine-LE:
 * `EM::Protocols::SmtpServer`: support multiple messages per one connection and login auth type ([bogdan](https://github.com/eventmachine/eventmachine/pull/288)).
 * Reimplement `EM::Queue` to avoid shift/push performance problem ([grddev](https://github.com/eventmachine/eventmachine/pull/311)).
 * Many code cleanups.
-* New `EM::Connection` option for the `start_tls()` method: `:use_tls` (when true TLS version is used, SSL otherwise).
+* New `EM::Connection` option for `start_tls()` method: `:ssl_version` (valid values are `:SSLv23`, `:SSLv3` and `:TLSv1`, default value is `:SSLv23`).
+* New `EM::Connection` option for `start_tls()` method: `:cipher_list` (valid values are any [OpenSSL cipher string](http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT), default value is `"ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH"`).
 
 
 ## Installation ##
 
-The Current stable version is eventmachine-le-1.1.0 (published as Ruby Gem), installable via:
+The Current stable version is eventmachine-le-1.1.4 (published as Ruby Gem), installable via:
 <pre>
 gem install eventmachine-le
 </pre>
 
-If you want the beta version (not fully tested) install it by using `--pre` option:
+If you want the last beta version (not fully tested) install it by using `--pre` option:
 <pre>
 gem install eventmachine-le --pre
 </pre>

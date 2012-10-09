@@ -393,7 +393,7 @@ module EventMachine
     #                                               If true, the {#ssl_verify_peer} callback on the {EventMachine::Connection} object is called with each certificate
     #                                               in the certificate chain provided by the peer. See documentation on {#ssl_verify_peer} for how to use this.
     #
-    # @option args [Symbol] :ssl_version (:SSLv23)   indicates the version of SSL to use. Valid values are :SSLv23, :SSLv3 and TLSv1.  Default value is :SSLv23.
+    # @option args [Symbol] :ssl_version (:SSLv23)   indicates the version of SSL to use. Valid values are :SSLv23, :SSLv3 and :TLSv1.  Default value is :SSLv23.
     #
     # @option args [String] :cipher_list ("ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH")   indicates the available SSL cipher values. Default value is "ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH". Check the format of the OpenSSL cipher string at http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT.
     #

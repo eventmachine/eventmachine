@@ -1,3 +1,3 @@
 module EventMachine
-  VERSION = "1.1.4.beta.2"
+  VERSION = "1.1.4"
 end
