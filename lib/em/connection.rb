@@ -131,7 +131,15 @@ module EventMachine
     # It will be called with each certificate in the certificate chain provided by the remote peer.
     #
     # The cert will be passed as a String in PEM format, the same as in {#get_peer_cert}. It is up to user defined
-    # code to perform a check on the certificates. The return value from this callback is used to accept or deny the peer.
+    # code to perform a check on the certificates.
+    # The error is the SSL verification error, if any, which occurred. See: http://www.openssl.org/docs/apps/verify.html
+    # "0" was no error.
+    # The depth argument is the level of the certificate, from n(root-most), to 0(child-most).  This is useful in
+    # determining whether to do the host name check (which will only work on depth 0 certificates).
+    # NOTE: This host name check is VITAL for complete connection security, and is the responsibility of the
+    # calling application, in the ssl_verify_peer callback
+    #
+    # The return value from this callback is used to accept or deny the peer.
     # A return value that is not nil or false triggers acceptance. If the peer is not accepted, the connection
     # will be subsequently closed.
     #
@@ -142,7 +150,7 @@ module EventMachine
     #       start_tls(:verify_peer => true)
     #     end
     #
-    #     def ssl_verify_peer(cert)
+    #     def ssl_verify_peer(cert, error, depth)
     #       true
     #     end
     #
@@ -159,7 +167,7 @@ module EventMachine
     #       start_tls(:verify_peer => true)
     #     end
     #
-    #     def ssl_verify_peer(cert)
+    #     def ssl_verify_peer(cert, error, depth)
     #       # Do not accept the peer. This should now cause the connection to shut down
     #       # without the SSL handshake being completed.
     #       false
@@ -170,8 +178,35 @@ module EventMachine
     #     end
     #   end
     #
+    #
+    # @example This server checks for host name, and relies on the already-determined verification result after that
+    #
+    #   module HostnameValidatingServer
+    #     @domain = "https://www.someserver.com"
+    #     def post_init
+    #       start_tls(:verify_peer => true, :ca_path => '/some/path/to/certs/')
+    #     end
+    #
+    #     def ssl_verify_peer(cert, error, depth)
+    #       return_val = (error == 0)
+    #       if return_val
+    #         # only do a hostname check if we are at depth 0
+    #         # (intermediate and root certificates will not have our hostname)
+    #         if depth == 0
+    #           cert = OpenSSL::X509::Certificate.new(pem) rescue nil
+    #           return_val = OpenSSL::SSL.verify_certificate_identity(cert, @domain) rescue false
+    #         end
+    #       end
+    #       return return_val
+    #     end
+    #
+    #     def ssl_handshake_completed
+    #       $server_handshake_completed = true
+    #     end
+    #   end
+    #
     # @see #start_tls
-    def ssl_verify_peer(cert)
+    def ssl_verify_peer(cert, error, depth)
     end
 
     # called by the framework whenever a connection (either a server or client connection) is closed.
@@ -369,7 +404,7 @@ module EventMachine
     # an outbound connection.
     #
     #
-    # @option args [String] :cert_chain_file (nil) local path of a readable file that contants  a chain of X509 certificates in
+    # @option args [String] :cert_chain_file (nil) local path of a readable file that contains a chain of X509 certificates in
     #                                              the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail),
     #                                              with the most-resolved certificate at the top of the file, successive intermediate
     #                                              certs in the middle, and the root (or CA) cert at the bottom.
@@ -379,6 +414,13 @@ module EventMachine
     # @option args [String] :verify_peer (false)    indicates whether a server should request a certificate from a peer, to be verified by user code.
     #                                               If true, the {#ssl_verify_peer} callback on the {EventMachine::Connection} object is called with each certificate
     #                                               in the certificate chain provided by the peer. See documentation on {#ssl_verify_peer} for how to use this.
+    #
+    # @option args [String] :ca_cert_file (nil) local path of a readable file that contains X509 certificates in the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail).
+    #                                           This differs from the :cert_chain_file option in that the certificates do not need to be a chain, but can be disparate root
+    #                                           and intermediate certificates.
+    #
+    # @option args [String] :ca_path (nil) local path of a directory that contains X509 certificates in the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail).
+    #                                      OpenSSL will search this directory when it encounters an unknown certificate
     #
     # @example Using TLS with EventMachine
     #
@@ -404,15 +446,15 @@ module EventMachine
     #
     # @see #ssl_verify_peer
     def start_tls args={}
-      priv_key, cert_chain, verify_peer = args.values_at(:private_key_file, :cert_chain_file, :verify_peer)
+      priv_key, cert_chain, ca_cert_file, ca_path, verify_peer = args.values_at(:private_key_file, :cert_chain_file, :ca_cert_file, :ca_path, :verify_peer)
 
-      [priv_key, cert_chain].each do |file|
+      [priv_key, cert_chain, ca_cert_file, ca_path].each do |file|
         next if file.nil? or file.empty?
         raise FileNotFoundException,
         "Could not find #{file} for start_tls" unless File.exists? file
       end
 
-      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer)
+      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', ca_cert_file || '', ca_path || '', verify_peer)
       EventMachine::start_tls @signature
     end
 

@@ -33,7 +33,7 @@ class SslContext_t
 class SslContext_t
 {
 	public:
-		SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile);
+		SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &cacertfile, const string &capath);
 		virtual ~SslContext_t();
 
 	private:
@@ -57,7 +57,8 @@ class SslBox_t
 class SslBox_t
 {
 	public:
-		SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const unsigned long binding);
+		SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &cacertfile, const string &capath,
+      bool verify_peer, const unsigned long binding);
 		virtual ~SslBox_t();
 
 		int PutPlaintext (const char*, int);
@@ -83,6 +84,15 @@ class SslBox_t
 		BIO *pbioWrite;
 
 		PageList OutboundQ;
+};
+
+// used for passing information to ssl_verify_peer
+struct ssl_verification_data
+{
+	const char *cert;
+	const int err;
+	const int depth;
+	ssl_verification_data(const char* in_cert, int in_err, int in_depth) : cert(in_cert), err(in_err), depth(in_depth) { };
 };
 
 extern "C" int ssl_verify_wrapper(int, X509_STORE_CTX*);

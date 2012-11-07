@@ -22,7 +22,6 @@ See the file COPYING for complete licensing information.
 
 #include "project.h"
 
-
 bool SslContext_t::bLibraryInitialized = false;
 
 
@@ -115,12 +114,12 @@ static void InitializeDefaultCredentials()
 }
 
 
-
 /**************************
 SslContext_t::SslContext_t
 **************************/
 
-SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile):
+SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile,
+		const string &cacertfile, const string &capath):
 	pCtx (NULL),
 	PrivateKey (NULL),
 	Certificate (NULL)
@@ -191,10 +190,13 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 			if (e <= 0) ERR_print_errors_fp(stderr);
 			assert (e > 0);
 		}
+		if (cacertfile.length() > 0 || capath.length() > 0) {
+			e = SSL_CTX_load_verify_locations(pCtx, cacertfile.empty() ? NULL : cacertfile.c_str(), capath.empty() ? NULL : capath.c_str());
+			if (e <= 0) ERR_print_errors_fp(stderr);
+			assert (e > 0);
+		}
 	}
 }
-
-
 
 /***************************
 SslContext_t::~SslContext_t
@@ -216,7 +218,8 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const unsigned long binding):
+SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &cacertfile, const string &capath,
+					bool verify_peer, const unsigned long binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),
@@ -228,7 +231,7 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	 * a new one every time we come here.
 	 */
 
-	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile);
+	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile, cacertfile, capath);
 	assert (Context);
 
 	pbioRead = BIO_new (BIO_s_mem());
@@ -448,6 +451,9 @@ extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 	BIO *out;
 	int result;
 
+	int err = X509_STORE_CTX_get_error(ctx);
+	int depth = X509_STORE_CTX_get_error_depth(ctx);
+
 	cert = X509_STORE_CTX_get_current_cert(ctx);
 	ssl = (SSL*) X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
 	binding = (unsigned long) SSL_get_ex_data(ssl, 0);
@@ -458,7 +464,7 @@ extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 	BIO_get_mem_ptr(out, &buf);
 
 	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
-	result = (cd->VerifySslPeer(buf->data) == true ? 1 : 0);
+	result = (cd->VerifySslPeer(buf->data, err, depth) == true ? 1 : 0);
 	BUF_MEM_free(buf);
 
 	return result;
