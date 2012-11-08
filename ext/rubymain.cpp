@@ -63,6 +63,7 @@ struct em_event {
 	int event;
 	const char *data_str;
 	unsigned long data_num;
+	unsigned long data_num2;
 };
 
 static inline VALUE ensure_conn(const unsigned long signature)
@@ -84,6 +85,7 @@ static inline void event_callback (struct em_event* e)
 	int event = e->event;
 	const char *data_str = e->data_str;
 	const unsigned long data_num = e->data_num;
+	const unsigned long data_num2 = e->data_num;
 
 	switch (event) {
 		case EM_CONNECTION_READ:
@@ -149,11 +151,9 @@ static inline void event_callback (struct em_event* e)
 		case EM_SSL_VERIFY:
 		{
 			VALUE conn = ensure_conn(signature);
-			// redo data_str (which is really an ssl_verification_data struct casted as a const char *)
-			ssl_verification_data *verify_struct = reinterpret_cast<ssl_verification_data *>(const_cast<char *>(e->data_str));
 
-			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 3, rb_str_new(verify_struct->cert, data_num),
-					INT2FIX(verify_struct->err), INT2FIX(verify_struct->depth));
+			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 3, rb_str_new(e->data_str, strlen(e->data_str)),
+					INT2FIX(e->data_num), INT2FIX(e->data_num2));
 			if (RTEST(should_accept))
 				evma_accept_ssl_peer (signature);
 			return;
@@ -188,13 +188,14 @@ static void event_error_handler(VALUE unused, VALUE err)
 event_callback_wrapper
 **********************/
 
-static void event_callback_wrapper (const unsigned long signature, int event, const char *data_str, const unsigned long data_num)
+static void event_callback_wrapper (const unsigned long signature, int event, const char *data_str, const unsigned long data_num, const unsigned long data_num2)
 {
 	struct em_event e;
 	e.signature = signature;
 	e.event = event;
 	e.data_str = data_str;
 	e.data_num = data_num;
+	e.data_num2 = data_num2;
 
 	if (!rb_ivar_defined(EmModule, Intern_at_error_handler))
 		event_callback(&e);

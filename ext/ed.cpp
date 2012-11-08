@@ -112,9 +112,9 @@ EventableDescriptor::~EventableDescriptor()
 	if (NextHeartbeat)
 		MyEventMachine->ClearHeartbeat(NextHeartbeat, this);
 	if (EventCallback && bCallbackUnbind)
-		(*EventCallback)(GetBinding(), EM_CONNECTION_UNBOUND, NULL, UnbindReasonCode);
+		(*EventCallback)(GetBinding(), EM_CONNECTION_UNBOUND, NULL, UnbindReasonCode, 0);
 	if (ProxiedFrom) {
-		(*EventCallback)(ProxiedFrom->GetBinding(), EM_PROXY_TARGET_UNBOUND, NULL, 0);
+		(*EventCallback)(ProxiedFrom->GetBinding(), EM_PROXY_TARGET_UNBOUND, NULL, 0, 0);
 		ProxiedFrom->StopProxy();
 	}
 	MyEventMachine->NumCloseScheduled--;
@@ -299,9 +299,9 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 			BytesToProxy -= proxied;
 			if (BytesToProxy == 0) {
 				StopProxy();
-				(*EventCallback)(GetBinding(), EM_PROXY_COMPLETED, NULL, 0);
+				(*EventCallback)(GetBinding(), EM_PROXY_COMPLETED, NULL, 0, 0);
 				if (proxied < size) {
-					(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf + proxied, size - proxied);
+					(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf + proxied, size - proxied, 0);
 				}
 			}
 		} else {
@@ -309,7 +309,7 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 			ProxiedBytes += (unsigned long) size;
 		}
 	} else {
-		(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf, size);
+		(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf, size, 0);
 	}
 }
 
@@ -747,7 +747,7 @@ void ConnectionDescriptor::Read()
 
 	if (bWatchOnly) {
 		if (bNotifyReadable && EventCallback)
-			(*EventCallback)(GetBinding(), EM_CONNECTION_NOTIFY_READABLE, NULL, 0);
+			(*EventCallback)(GetBinding(), EM_CONNECTION_NOTIFY_READABLE, NULL, 0, 0);
 		return;
 	}
 
@@ -865,7 +865,7 @@ void ConnectionDescriptor::_CheckHandshakeStatus()
 	if (SslBox && (!bHandshakeSignaled) && SslBox->IsHandshakeCompleted()) {
 		bHandshakeSignaled = true;
 		if (EventCallback)
-			(*EventCallback)(GetBinding(), EM_SSL_HANDSHAKE_COMPLETED, NULL, 0);
+			(*EventCallback)(GetBinding(), EM_SSL_HANDSHAKE_COMPLETED, NULL, 0, 0);
 	}
 	#endif
 }
@@ -902,7 +902,7 @@ void ConnectionDescriptor::Write()
 		#endif
 		if ((o == 0) && (error == 0)) {
 			if (EventCallback)
-				(*EventCallback)(GetBinding(), EM_CONNECTION_COMPLETED, "", 0);
+				(*EventCallback)(GetBinding(), EM_CONNECTION_COMPLETED, "", 0, 0);
 
 			// 5May09: Moved epoll/kqueue read/write arming into SetConnectPending, so it can be called
 			// from EventMachine_t::AttachFD as well.
@@ -919,7 +919,7 @@ void ConnectionDescriptor::Write()
 
 		if (bNotifyWritable) {
 			if (EventCallback)
-				(*EventCallback)(GetBinding(), EM_CONNECTION_NOTIFY_WRITABLE, NULL, 0);
+				(*EventCallback)(GetBinding(), EM_CONNECTION_NOTIFY_WRITABLE, NULL, 0, 0);
 
 			_UpdateEvents(false, true);
 			return;
@@ -1194,11 +1194,7 @@ bool ConnectionDescriptor::VerifySslPeer(const char *cert, int err, int depth)
 	bSslPeerAccepted = false;
 
 	if (EventCallback) {
-		ssl_verification_data verify(cert, err, depth);
-
-		// our event handling mechanism only takes a const char *, but we need to pass back more data than that
-		// use a struct and some reinterpret casts to pass the information:
-		(*EventCallback)(GetBinding(), EM_SSL_VERIFY, reinterpret_cast<const char*>(&verify), strlen(cert));
+		(*EventCallback)(GetBinding(), EM_SSL_VERIFY, cert, err, depth);
 	}
 
 	return bSslPeerAccepted;
@@ -1453,7 +1449,7 @@ void AcceptorDescriptor::Read()
 			throw std::runtime_error ("no newly accepted connection");
 		cd->SetServerMode();
 		if (EventCallback) {
-			(*EventCallback) (GetBinding(), EM_CONNECTION_ACCEPTED, NULL, cd->GetBinding());
+			(*EventCallback) (GetBinding(), EM_CONNECTION_ACCEPTED, NULL, cd->GetBinding(), 0);
 		}
 		#ifdef HAVE_EPOLL
 		cd->GetEpollEvent()->events = EPOLLIN | (cd->SelectForWrite() ? EPOLLOUT : 0);

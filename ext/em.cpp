@@ -1010,7 +1010,7 @@ void EventMachine_t::_ReadLoopBreaker()
 	char buffer [1024];
 	read (LoopBreakerReader, buffer, sizeof(buffer));
 	if (EventCallback)
-		(*EventCallback)(0, EM_LOOPBREAK_SIGNAL, "", 0);
+		(*EventCallback)(0, EM_LOOPBREAK_SIGNAL, "", 0, 0);
 }
 
 
@@ -1033,7 +1033,7 @@ void EventMachine_t::_RunTimers()
 		if (i->first > MyCurrentLoopTime)
 			break;
 		if (EventCallback)
-			(*EventCallback) (0, EM_TIMER_FIRED, NULL, i->second.GetBinding());
+			(*EventCallback) (0, EM_TIMER_FIRED, NULL, i->second.GetBinding(), 0);
 		Timers.erase (i);
 	}
 }
@@ -2106,7 +2106,7 @@ void EventMachine_t::UnwatchPid (int pid)
 	#endif
 
 	if (EventCallback)
-		(*EventCallback)(b->GetBinding(), EM_CONNECTION_UNBOUND, NULL, 0);
+		(*EventCallback)(b->GetBinding(), EM_CONNECTION_UNBOUND, NULL, 0, 0);
 
 	delete b;
 }
@@ -2202,7 +2202,7 @@ void EventMachine_t::UnwatchFile (int wd)
 	#endif
 
 	if (EventCallback)
-		(*EventCallback)(b->GetBinding(), EM_CONNECTION_UNBOUND, NULL, 0);
+		(*EventCallback)(b->GetBinding(), EM_CONNECTION_UNBOUND, NULL, 0, 0);
 
 	delete b;
 }
@@ -2243,13 +2243,13 @@ void EventMachine_t::_ReadInotifyEvents()
 			map<int, Bindable_t*>::const_iterator bindable = Files.find(event->wd);
 			if (bindable != Files.end()) {
 				if (event->mask & (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVE)){
-					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "modified", 8);
+					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "modified", 8, 0);
 				}
 				if (event->mask & IN_MOVE_SELF){
-					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "moved", 5);
+					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "moved", 5, 0);
 				}
 				if (event->mask & IN_DELETE_SELF) {
-					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "deleted", 7);
+					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "deleted", 7, 0);
 					UnwatchFile ((int)event->wd);
 				}
 			}
@@ -2270,9 +2270,9 @@ void EventMachine_t::_HandleKqueuePidEvent(struct kevent *event)
 	assert(EventCallback);
 
 	if (event->fflags & NOTE_FORK)
-		(*EventCallback)(Pids [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "fork", 4);
+		(*EventCallback)(Pids [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "fork", 4, 0);
 	if (event->fflags & NOTE_EXIT) {
-		(*EventCallback)(Pids [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "exit", 4);
+		(*EventCallback)(Pids [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "exit", 4, 0);
 		// stop watching the pid if it died
 		UnwatchPid ((int)event->ident);
 	}
@@ -2290,11 +2290,11 @@ void EventMachine_t::_HandleKqueueFileEvent(struct kevent *event)
 	assert(EventCallback);
 
 	if (event->fflags & NOTE_WRITE)
-		(*EventCallback)(Files [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "modified", 8);
+		(*EventCallback)(Files [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "modified", 8, 0);
 	if (event->fflags & NOTE_RENAME)
-		(*EventCallback)(Files [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "moved", 5);
+		(*EventCallback)(Files [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "moved", 5, 0);
 	if (event->fflags & NOTE_DELETE) {
-		(*EventCallback)(Files [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "deleted", 7);
+		(*EventCallback)(Files [(int) event->ident]->GetBinding(), EM_CONNECTION_READ, "deleted", 7, 0);
 		UnwatchFile ((int)event->ident);
 	}
 }
