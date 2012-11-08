@@ -63,6 +63,7 @@ struct em_event {
 	int event;
 	const char *data_str;
 	unsigned long data_num;
+	unsigned long data_num2;
 };
 
 static inline VALUE ensure_conn(const unsigned long signature)
@@ -84,6 +85,7 @@ static inline void event_callback (struct em_event* e)
 	int event = e->event;
 	const char *data_str = e->data_str;
 	const unsigned long data_num = e->data_num;
+	const unsigned long data_num2 = e->data_num;
 
 	switch (event) {
 		case EM_CONNECTION_READ:
@@ -149,7 +151,9 @@ static inline void event_callback (struct em_event* e)
 		case EM_SSL_VERIFY:
 		{
 			VALUE conn = ensure_conn(signature);
-			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
+
+			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 3, rb_str_new(e->data_str, strlen(e->data_str)),
+					INT2FIX(e->data_num), INT2FIX(e->data_num2));
 			if (RTEST(should_accept))
 				evma_accept_ssl_peer (signature);
 			return;
@@ -184,13 +188,14 @@ static void event_error_handler(VALUE unused, VALUE err)
 event_callback_wrapper
 **********************/
 
-static void event_callback_wrapper (const unsigned long signature, int event, const char *data_str, const unsigned long data_num)
+static void event_callback_wrapper (const unsigned long signature, int event, const char *data_str, const unsigned long data_num, const unsigned long data_num2)
 {
 	struct em_event e;
 	e.signature = signature;
 	e.event = event;
 	e.data_str = data_str;
 	e.data_num = data_num;
+	e.data_num2 = data_num2;
 
 	if (!rb_ivar_defined(EmModule, Intern_at_error_handler))
 		event_callback(&e);
@@ -300,14 +305,14 @@ static VALUE t_start_tls (VALUE self, VALUE signature)
 t_set_tls_parms
 ***************/
 
-static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE privkeyfile, VALUE certchainfile, VALUE verify_peer)
+static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE privkeyfile, VALUE certchainfile, VALUE cacertfile, VALUE capath, VALUE verify_peer)
 {
 	/* set_tls_parms takes a series of positional arguments for specifying such things
 	 * as private keys and certificate chains.
 	 * It's expected that the parameter list will grow as we add more supported features.
 	 * ALL of these parameters are optional, and can be specified as empty or NULL strings.
 	 */
-	evma_set_tls_parms (NUM2ULONG (signature), StringValuePtr (privkeyfile), StringValuePtr (certchainfile), (verify_peer == Qtrue ? 1 : 0));
+	evma_set_tls_parms (NUM2ULONG (signature), StringValuePtr (privkeyfile), StringValuePtr (certchainfile), StringValuePtr (cacertfile), StringValuePtr (capath), (verify_peer == Qtrue ? 1 : 0));
 	return Qnil;
 }
 
@@ -1204,7 +1209,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "start_tcp_server", (VALUE(*)(...))t_start_server, 2);
 	rb_define_module_function (EmModule, "stop_tcp_server", (VALUE(*)(...))t_stop_server, 1);
 	rb_define_module_function (EmModule, "start_unix_server", (VALUE(*)(...))t_start_unix_server, 1);
-	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 4);
+	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 6);
 	rb_define_module_function (EmModule, "start_tls", (VALUE(*)(...))t_start_tls, 1);
 	rb_define_module_function (EmModule, "get_peer_cert", (VALUE(*)(...))t_get_peer_cert, 1);
 	rb_define_module_function (EmModule, "send_data", (VALUE(*)(...))t_send_data, 3);

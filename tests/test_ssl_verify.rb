@@ -27,7 +27,7 @@ if EM.ssl?
         start_tls(:verify_peer => true)
       end
 
-      def ssl_verify_peer(cert)
+      def ssl_verify_peer(cert, error, depth)
         $cert_from_server = cert
         true
       end
@@ -42,7 +42,7 @@ if EM.ssl?
         start_tls(:verify_peer => true)
       end
 
-      def ssl_verify_peer(cert)
+      def ssl_verify_peer(cert, error, depth)
         $cert_from_server = cert
         # Do not accept the peer. This should now cause the connection to shut down without the SSL handshake being completed.
         false

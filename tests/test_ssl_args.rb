@@ -58,17 +58,28 @@ class TestSslArgs < Test::Unit::TestCase
       conn.start_tls(:cert_chain_file => cert_file)
     end
     assert_raises(EM::FileNotFoundException) do
+      conn.start_tls(:ca_cert_file => cert_file)
+    end
+    assert_raises(EM::FileNotFoundException) do
+      conn.start_tls(:ca_path => cert_file)
+    end
+    assert_raises(EM::FileNotFoundException) do
       conn.start_tls(:private_key_file => priv_file, :cert_chain_file => cert_file)
     end
   end
   
   def test_tls_params_file_does_exist
     priv_file = Tempfile.new('em_test')
-    cert_file = Tempfile.new('em_test')
+    cert_chain_file = Tempfile.new('em_test')
+    ca_cert_file = Tempfile.new('em_test')
+    ca_path = Tempfile.new('em_test')
+
     priv_file_path = priv_file.path
-    cert_file_path = cert_file.path
+    cert_chain_file = cert_chain_file.path
+    ca_cert_file = ca_cert_file.path
+    ca_path = ca_path.path
     conn = EM::Connection.new('foo')
-    params = {:private_key_file => priv_file_path, :cert_chain_file => cert_file_path}
+    params = {:private_key_file => priv_file_path, :cert_chain_file => cert_chain_file, :ca_cert_file => ca_cert_file, :ca_path => ca_path }
     begin
       conn.start_tls params
     rescue Object

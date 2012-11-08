@@ -141,7 +141,7 @@ static inline int inotify_rm_watch (int fd, __u32 wd) { return syscall (__NR_ino
 #if __cplusplus
 extern "C" {
 #endif
-  typedef void (*EMCallback)(const unsigned long, int, const char*, const unsigned long);
+  typedef void (*EMCallback)(const unsigned long, int, const char*, const unsigned long, const unsigned long);
 #if __cplusplus
 }
 #endif
