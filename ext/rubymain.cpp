@@ -150,7 +150,7 @@ static inline void event_callback (struct em_event* e)
 		{
 			VALUE conn = ensure_conn(signature);
 			// redo data_str (which is really an ssl_verification_data struct casted as a const char *)
-			ssl_verification_data *verify_struct =reinterpret_cast<ssl_verification_data *>(const_cast<char *>(e->data_str));
+			ssl_verification_data *verify_struct = reinterpret_cast<ssl_verification_data *>(const_cast<char *>(e->data_str));
 
 			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 3, rb_str_new(verify_struct->cert, data_num),
 					INT2FIX(verify_struct->err), INT2FIX(verify_struct->depth));

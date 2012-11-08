@@ -1158,7 +1158,7 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 	if (certchain_filename && *certchain_filename)
 		CertChainFilename = certchain_filename;
 	if (cacert_filename && *cacert_filename)
-		CaCertFile =cacert_filename;
+		CaCertFile = cacert_filename;
 	if (ca_path && *ca_path)
 		CaPath = ca_path;
 	bSslVerifyPeer = verify_peer;

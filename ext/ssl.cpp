@@ -191,7 +191,7 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 			assert (e > 0);
 		}
 		if (cacertfile.length() > 0 || capath.length() > 0) {
-			e = SSL_CTX_load_verify_locations(pCtx, cacertfile.empty() ? NULL : cacertfile.c_str(), capath.empty() ? NULL : capath.c_str());
+			e = SSL_CTX_load_verify_locations(pCtx, (cacertfile.empty() ? NULL : cacertfile.c_str()), (capath.empty() ? NULL : capath.c_str()));
 			if (e <= 0) ERR_print_errors_fp(stderr);
 			assert (e > 0);
 		}
