@@ -41,38 +41,50 @@ class TestSslArgs < Test::Unit::TestCase
   def teardown
     EM._clear_mocks
   end
+
+  OPTIONS = [
+    :private_key_file,
+    :cert_chain_file
+  ]
   
   def test_tls_params_file_doesnt_exist
-    priv_file, cert_file = 'foo_priv_key', 'bar_cert_file'
-    [priv_file, cert_file].all? do |f|
+    parameters = OPTIONS.map do |opt|
+      [ opt, "foo_#{opt}" ]
+    end
+
+    parameters.all? do |opt, f|
       assert(!File.exists?(f), "Cert file #{f} seems to exist, and should not for the tests")
     end
     
     # associate_callback_target is a pain! (build!)
     conn = EM::Connection.new('foo')
-    
-    assert_raises(EM::FileNotFoundException) do
-      conn.start_tls(:private_key_file => priv_file)
-    end
-    assert_raises(EM::FileNotFoundException) do
-      conn.start_tls(:cert_chain_file => cert_file)
-    end
-    assert_raises(EM::FileNotFoundException) do
-      conn.start_tls(:private_key_file => priv_file, :cert_chain_file => cert_file)
+
+    # test all the combinations of parameters
+    (1 .. parameters.length).each do |n|
+      parameters.combination(n) do |params|
+        assert_raises(EM::FileNotFoundException) do
+          conn.start_tls(Hash[ *params.flatten ])
+        end
+      end
     end
   end
   
   def test_tls_params_file_does_exist
-    priv_file = Tempfile.new('em_test')
-    cert_file = Tempfile.new('em_test')
-    priv_file_path = priv_file.path
-    cert_file_path = cert_file.path
+    tempfiles = []
+    parameters = OPTIONS.map do |opt|
+      tempfiles << Tempfile.new('em_test')
+      [ opt, tempfiles.last.path ]
+    end
     conn = EM::Connection.new('foo')
-    params = {:private_key_file => priv_file_path, :cert_chain_file => cert_file_path}
     begin
-      conn.start_tls params
+      conn.start_tls Hash[ *parameters.flatten ]
     rescue Object
       assert(false, 'should not have raised an exception')
+    end
+  ensure
+    tempfiles.each do |tf|
+      tf.close
+      tf.unlink
     end
   end
 end if EM.ssl?
