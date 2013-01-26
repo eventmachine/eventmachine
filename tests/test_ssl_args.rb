@@ -44,7 +44,8 @@ class TestSslArgs < Test::Unit::TestCase
 
   OPTIONS = [
     :private_key_file,
-    :cert_chain_file
+    :cert_chain_file,
+    :cert_auth_file
   ]
   
   def test_tls_params_file_doesnt_exist
