@@ -96,6 +96,72 @@ if EM.ssl?
       assert(!@client_handshake_completed)
       assert(!@server_handshake_completed)
     end
+
+    # Check to make sure undefined, one and two arg versions of ssl_verify_peer work
+    # (for backwards compatibility)
+    def test_undefined  # [PASS]
+      begin
+        EM.run do
+          # no ssl_verify_peer defined
+          EM.start_server("127.0.0.1", 16784, server(:verify_peer => true))
+          EM.connect("127.0.0.1", 16784, client)
+        end
+      rescue Object # ArgumentError might suffice, but let's play it safe
+        assert(false, 'should not have raised an exception')
+      end
+    end
+
+    def test_one_arg_lambda  # [PASS]
+      begin
+        EM.run do
+          EM.start_server("127.0.0.1", 16784, server(:verify_peer => true) { |cert| true })
+          EM.connect("127.0.0.1", 16784, client)
+        end
+      rescue Object # ArgumentError might suffice, but let's play it safe
+        assert(false, 'should not have raised an exception')
+      end
+    end
+
+    def test_two_arg_lambda  # [FAIL]
+      begin
+        EM.run do
+          EM.start_server("127.0.0.1", 16784, server(:verify_peer => true) { |cert, preverify_ok| true })
+          EM.connect("127.0.0.1", 16784, client)
+        end
+      rescue Object # ArgumentError might suffice, but let's play it safe
+        assert(false, 'should not have raised an exception')
+      end
+    end
+    
+    def test_one_arg_method  # [PASS]
+      s = server(:verify_peer => true)
+      s.module_eval do
+        def ssl_verify_peer(cert) ; true ; end
+      end
+      begin
+        EM.run do
+          EM.start_server("127.0.0.1", 16784, s)
+          EM.connect("127.0.0.1", 16784, client)
+        end
+      rescue Object # ArgumentError might suffice, but let's play it safe
+        assert(false, 'should not have raised an exception')
+      end
+    end
+
+    def test_two_arg_method  # [FAIL]
+      s = server(:verify_peer => true)
+      s.module_eval do
+        def ssl_verify_peer(cert, preverify_ok) ; true ; end
+      end
+      begin
+        EM.run do
+          EM.start_server("127.0.0.1", 16784, s)
+          EM.connect("127.0.0.1", 16784, client)
+        end
+      rescue Object # ArgumentError might suffice, but let's play it safe
+        assert(false, 'should not have raised an exception')
+      end
+    end
   end
 else
   warn "EM built without SSL support, skipping tests in #{__FILE__}"
