@@ -120,7 +120,7 @@ static void InitializeDefaultCredentials()
 SslContext_t::SslContext_t
 **************************/
 
-SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile):
+SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &certauthfile):
 	pCtx (NULL),
 	PrivateKey (NULL),
 	Certificate (NULL)
@@ -171,6 +171,11 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 			e = SSL_CTX_use_certificate (pCtx, DefaultCertificate);
 		if (e <= 0) ERR_print_errors_fp(stderr);
 		assert (e > 0);
+
+    if (certauthfile.length() > 0)
+      e = SSL_CTX_load_verify_locations(pCtx, certauthfile.c_str(), NULL);
+		if (e <= 0) ERR_print_errors_fp(stderr);
+		assert (e > 0);
 	}
 
 	SSL_CTX_set_cipher_list (pCtx, "ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH");
@@ -191,6 +196,11 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 			if (e <= 0) ERR_print_errors_fp(stderr);
 			assert (e > 0);
 		}
+    if (certauthfile.length() > 0) {
+      e = SSL_CTX_load_verify_locations(pCtx, certauthfile.c_str(), NULL);
+      if (e <= 0) ERR_print_errors_fp(stderr);
+      assert (e > 0);
+    }
 	}
 }
 
@@ -216,7 +226,7 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const unsigned long binding):
+SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &certauthfile, bool verify_peer, const unsigned long binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),
@@ -228,7 +238,7 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	 * a new one every time we come here.
 	 */
 
-	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile);
+	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile, certauthfile);
 	assert (Context);
 
 	pbioRead = BIO_new (BIO_s_mem());
@@ -458,7 +468,7 @@ extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 	BIO_get_mem_ptr(out, &buf);
 
 	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
-	result = (cd->VerifySslPeer(buf->data) == true ? 1 : 0);
+	result = (cd->VerifySslPeer(preverify_ok == 1, buf->data) == true ? 1 : 0);
 	BUF_MEM_free(buf);
 
 	return result;
