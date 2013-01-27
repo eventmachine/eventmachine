@@ -1,4 +1,5 @@
 require 'em_test_helper'
+require 'tempfile'
 
 if EM.ssl?
   class TestSslVerify < Test::Unit::TestCase
@@ -161,6 +162,93 @@ if EM.ssl?
       rescue Object # ArgumentError might suffice, but let's play it safe
         assert(false, 'should not have raised an exception')
       end
+    end
+
+    def test_no_ca_with_callback # [PASS]
+      found_preverify_ok = nil
+      EM.run do
+        EM.start_server("127.0.0.1", 16784, server(:verify_peer => true) { |cert, preverify_ok| 
+          found_preverify_ok = preverify_ok
+        })
+        EM.connect("127.0.0.1", 16784, client)
+      end
+      # without any CA file to check against, all clients should fail
+      # the preverification
+      assert_equal(false, found_preverify_ok)
+    end
+
+    def test_authorized_client_with_callback # [FAIL]
+      found_preverify_ok = nil
+      EM.run do
+        EM.start_server("127.0.0.1", 16784, 
+                        server(:verify_peer => true, :cert_auth_file => @dir+'ca-bundle-with-client-signer.crt') { |cert, preverify_ok| 
+          found_preverify_ok = preverify_ok
+        })
+        EM.connect("127.0.0.1", 16784, client)
+      end
+      # if the CA file contains a cert that signed the client's cert
+      # then the client should pass the preverification
+      assert_equal(true, found_preverify_ok)
+    end
+
+    def test_unauthorized_client_with_callback # [PASS]
+      found_preverify_ok = nil
+      tf = Tempfile.new('em_test')
+      tf.close
+      EM.run do
+        EM.start_server("127.0.0.1", 16784, 
+                        server(:verify_peer => true, :cert_auth_file => @dir+'ca-bundle-without-client-signer.crt') { |cert, preverify_ok| 
+          found_preverify_ok = preverify_ok
+        })
+        EM.connect("127.0.0.1", 16784, client)
+      end
+      # if the CA file doesn't contains a cert that signed the client's cert
+      # then the client should not pass the preverification
+      assert_equal(false, found_preverify_ok)
+    ensure
+      tf.unlink
+    end
+
+    def test_no_ca_default # [PASS]
+      EM.run do
+        EM.start_server("127.0.0.1", 16784, server(:verify_peer => true))
+        EM.connect("127.0.0.1", 16784, client)
+      end
+      # without any CA file to check against,
+      # if the server doesn't provide a ssl_verify_peer callback
+      # the handshake should not complete.
+      assert_equal(false, @server_handshake_completed)
+      assert_equal(false, @client_handshake_completed)
+    end
+
+    def test_authorized_client_default # [FAIL]
+      EM.run do
+        EM.start_server("127.0.0.1", 16784, 
+                        server(:verify_peer => true, :cert_auth_file => @dir+'ca-bundle-with-client-signer.crt'))
+        EM.connect("127.0.0.1", 16784, client)
+      end
+      # if the CA file contains a cert that signed the client's cert
+      # if the server doesn't provide a ssl_verify_peer callback
+      # the handshake should complete.
+      assert_equal(true, @server_handshake_completed)
+      assert_equal(true, @client_handshake_completed)
+    end
+
+    def test_unauthorized_client_default # [PASS]
+      tf = Tempfile.new('em_test')
+      tf.close
+      EM.run do
+        EM.start_server("127.0.0.1", 16784, 
+                        server(:verify_peer => true, :cert_auth_file => @dir+'ca-bundle-without-client-signer.crt'))
+        EM.connect("127.0.0.1", 16784, client)
+      end
+      # if the CA file doesn't contains a cert that signed the client's cert
+      # if the server doesn't provide a ssl_verify_peer callback
+      # the handshake should not complete.
+      assert_equal(false, @server_handshake_completed)
+      assert_equal(false, @client_handshake_completed)
+    ensure
+      tf.unlink
     end
   end
 else
