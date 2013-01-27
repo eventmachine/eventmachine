@@ -99,7 +99,7 @@ if EM.ssl?
 
     # Check to make sure undefined, one and two arg versions of ssl_verify_peer work
     # (for backwards compatibility)
-    def test_undefined  # [PASS]
+    def test_undefined
       begin
         EM.run do
           # no ssl_verify_peer defined
@@ -111,7 +111,7 @@ if EM.ssl?
       end
     end
 
-    def test_one_arg_lambda  # [PASS]
+    def test_one_arg_lambda
       begin
         EM.run do
           EM.start_server("127.0.0.1", 16784, server(:verify_peer => true) { |cert| true })
@@ -122,7 +122,7 @@ if EM.ssl?
       end
     end
 
-    def test_two_arg_lambda  # [FAIL]
+    def test_two_arg_lambda
       begin
         EM.run do
           EM.start_server("127.0.0.1", 16784, server(:verify_peer => true) { |cert, preverify_ok| true })
@@ -133,7 +133,7 @@ if EM.ssl?
       end
     end
     
-    def test_one_arg_method  # [PASS]
+    def test_one_arg_method
       s = server(:verify_peer => true)
       s.module_eval do
         def ssl_verify_peer(cert) ; true ; end
@@ -148,7 +148,7 @@ if EM.ssl?
       end
     end
 
-    def test_two_arg_method  # [FAIL]
+    def test_two_arg_method
       s = server(:verify_peer => true)
       s.module_eval do
         def ssl_verify_peer(cert, preverify_ok) ; true ; end

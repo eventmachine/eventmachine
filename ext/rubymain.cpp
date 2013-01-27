@@ -55,6 +55,8 @@ static VALUE Intern_notify_writable;
 static VALUE Intern_proxy_target_unbound;
 static VALUE Intern_proxy_completed;
 static VALUE Intern_connection_completed;
+static VALUE Intern_method;
+static VALUE Intern_arity;
 
 static VALUE rb_cProcStatus;
 
@@ -146,10 +148,28 @@ static inline void event_callback (struct em_event* e)
 			rb_funcall (conn, Intern_ssl_handshake_completed, 0);
 			return;
 		}
-		case EM_SSL_VERIFY:
+		case EM_SSL_VERIFY_PREVERIFY_FALSE:
+		case EM_SSL_VERIFY_PREVERIFY_TRUE:
 		{
 			VALUE conn = ensure_conn(signature);
-			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
+			VALUE meth = rb_funcall( conn, Intern_method, 1, ID2SYM(Intern_ssl_verify_peer) );
+			VALUE arity = rb_funcall( meth, Intern_arity, 0);
+			VALUE should_accept = Qnil;
+
+			// allow callbacks of different arity for backwards compatibility
+			switch (FIX2INT(arity)) {
+				case 1:
+					should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, 
+						rb_str_new(data_str, data_num)
+					);
+					break;
+				default:
+					should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 2, 
+						rb_str_new(data_str, data_num),
+						event == EM_SSL_VERIFY_PREVERIFY_TRUE ? Qtrue : Qfalse
+					);
+					break;
+			}
 			if (RTEST(should_accept))
 				evma_accept_ssl_peer (signature);
 			return;
@@ -1184,6 +1204,8 @@ extern "C" void Init_rubyeventmachine()
 	Intern_proxy_target_unbound = rb_intern ("proxy_target_unbound");
 	Intern_proxy_completed = rb_intern ("proxy_completed");
 	Intern_connection_completed = rb_intern ("connection_completed");
+	Intern_method = rb_intern ("method");
+	Intern_arity = rb_intern ("arity");
 
 	// INCOMPLETE, we need to define class Connections inside module EventMachine
 	// run_machine and run_machine_without_threads are now identical.

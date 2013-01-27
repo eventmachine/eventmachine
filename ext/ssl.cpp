@@ -458,7 +458,7 @@ extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 	BIO_get_mem_ptr(out, &buf);
 
 	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
-	result = (cd->VerifySslPeer(buf->data) == true ? 1 : 0);
+	result = (cd->VerifySslPeer(preverify_ok == 1, buf->data) == true ? 1 : 0);
 	BUF_MEM_free(buf);
 
 	return result;
