@@ -128,12 +128,31 @@ module EventMachine
     end
 
     # Called by EventMachine when :verify_peer => true has been passed to {#start_tls}.
-    # It will be called with each certificate in the certificate chain provided by the remote peer.
+    # It will be called with each certificate in the certificate chain provided by the remote peer,
+    # along with the result of the preverification of that certificate against the certificate
+    # authority chain (if used).
     #
     # The cert will be passed as a String in PEM format, the same as in {#get_peer_cert}. It is up to user defined
     # code to perform a check on the certificates. The return value from this callback is used to accept or deny the peer.
     # A return value that is not nil or false triggers acceptance. If the peer is not accepted, the connection
     # will be subsequently closed.
+    #
+    # @example The default server just accepts the preverification results
+    #
+    #   module DefaultServer
+    #     def post_init
+    #       start_tls(:verify_peer => true)
+    #     end
+    #
+    #     # this is the same as not defining ssl_verify_peer at all
+    #     def ssl_verify_peer(cert, preverify_ok)
+    #       preverify_ok
+    #     end
+    #
+    #     def ssl_handshake_completed
+    #       $server_handshake_completed = true
+    #     end
+    #   end
     #
     # @example This server always accepts all peers
     #
@@ -171,7 +190,8 @@ module EventMachine
     #   end
     #
     # @see #start_tls
-    def ssl_verify_peer(cert)
+    def ssl_verify_peer(cert, preverify_ok)
+      preverify_ok
     end
 
     # called by the framework whenever a connection (either a server or client connection) is closed.
@@ -412,7 +432,7 @@ module EventMachine
         "Could not find #{file} for start_tls" unless File.exists? file
       end
 
-      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer)
+      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', cert_auth || '', verify_peer)
       EventMachine::start_tls @signature
     end
 
