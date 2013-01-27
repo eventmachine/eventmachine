@@ -55,6 +55,8 @@ static VALUE Intern_notify_writable;
 static VALUE Intern_proxy_target_unbound;
 static VALUE Intern_proxy_completed;
 static VALUE Intern_connection_completed;
+static VALUE Intern_method;
+static VALUE Intern_arity;
 
 static VALUE rb_cProcStatus;
 
@@ -146,10 +148,28 @@ static inline void event_callback (struct em_event* e)
 			rb_funcall (conn, Intern_ssl_handshake_completed, 0);
 			return;
 		}
-		case EM_SSL_VERIFY:
+		case EM_SSL_VERIFY_PREVERIFY_FALSE:
+		case EM_SSL_VERIFY_PREVERIFY_TRUE:
 		{
 			VALUE conn = ensure_conn(signature);
-			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
+			VALUE meth = rb_funcall( conn, Intern_method, 1, ID2SYM(Intern_ssl_verify_peer) );
+			VALUE arity = rb_funcall( meth, Intern_arity, 0);
+			VALUE should_accept = Qnil;
+
+			// allow callbacks of different arity for backwards compatibility
+			switch (FIX2INT(arity)) {
+				case 1:
+					should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, 
+						rb_str_new(data_str, data_num)
+					);
+					break;
+				default:
+					should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 2, 
+						rb_str_new(data_str, data_num),
+						event == EM_SSL_VERIFY_PREVERIFY_TRUE ? Qtrue : Qfalse
+					);
+					break;
+			}
 			if (RTEST(should_accept))
 				evma_accept_ssl_peer (signature);
 			return;
@@ -300,14 +320,14 @@ static VALUE t_start_tls (VALUE self, VALUE signature)
 t_set_tls_parms
 ***************/
 
-static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE privkeyfile, VALUE certchainfile, VALUE verify_peer)
+static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE privkeyfile, VALUE certchainfile, VALUE certauthfile, VALUE verify_peer)
 {
 	/* set_tls_parms takes a series of positional arguments for specifying such things
 	 * as private keys and certificate chains.
 	 * It's expected that the parameter list will grow as we add more supported features.
 	 * ALL of these parameters are optional, and can be specified as empty or NULL strings.
 	 */
-	evma_set_tls_parms (NUM2ULONG (signature), StringValuePtr (privkeyfile), StringValuePtr (certchainfile), (verify_peer == Qtrue ? 1 : 0));
+	evma_set_tls_parms (NUM2ULONG (signature), StringValuePtr (privkeyfile), StringValuePtr (certchainfile), StringValuePtr (certauthfile), (verify_peer == Qtrue ? 1 : 0));
 	return Qnil;
 }
 
@@ -1184,6 +1204,8 @@ extern "C" void Init_rubyeventmachine()
 	Intern_proxy_target_unbound = rb_intern ("proxy_target_unbound");
 	Intern_proxy_completed = rb_intern ("proxy_completed");
 	Intern_connection_completed = rb_intern ("connection_completed");
+	Intern_method = rb_intern ("method");
+	Intern_arity = rb_intern ("arity");
 
 	// INCOMPLETE, we need to define class Connections inside module EventMachine
 	// run_machine and run_machine_without_threads are now identical.
@@ -1204,7 +1226,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "start_tcp_server", (VALUE(*)(...))t_start_server, 2);
 	rb_define_module_function (EmModule, "stop_tcp_server", (VALUE(*)(...))t_stop_server, 1);
 	rb_define_module_function (EmModule, "start_unix_server", (VALUE(*)(...))t_start_unix_server, 1);
-	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 4);
+	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 5);
 	rb_define_module_function (EmModule, "start_tls", (VALUE(*)(...))t_start_tls, 1);
 	rb_define_module_function (EmModule, "get_peer_cert", (VALUE(*)(...))t_get_peer_cert, 1);
 	rb_define_module_function (EmModule, "send_data", (VALUE(*)(...))t_send_data, 3);
