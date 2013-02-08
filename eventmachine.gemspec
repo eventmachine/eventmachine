@@ -31,4 +31,5 @@ using TCP/IP, especially if custom protocols are required."
 
   s.rdoc_options = ["--title", "EventMachine", "--main", "README.md", "-x", "lib/em/version", "-x", "lib/jeventmachine"]
   s.extra_rdoc_files = ["README.md"] + `git ls-files -- docs/*`.split("\n")
+  s.licenses = ['Ruby', 'GPLv2']
 end
