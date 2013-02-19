@@ -339,7 +339,7 @@ static VALUE t_get_peer_cert (VALUE self, VALUE signature)
 		BIO_get_mem_ptr(out, &buf);
 		ret = rb_str_new(buf->data, buf->length);
 		X509_free(cert);
-		BUF_MEM_free(buf);
+		BIO_free(out);
 	}
 	#endif
 
