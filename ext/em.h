@@ -26,7 +26,7 @@ See the file COPYING for complete licensing information.
 
   #if defined(HAVE_RBTRAP)
     #include <rubysig.h>
-  #elif defined(HAVE_RB_THREAD_CHECK_INTS)
+  #elif defined(HAVE_RB_ENABLE_INTERRUPT)
     extern "C" {
       void rb_enable_interrupt(void);
       void rb_disable_interrupt(void);
