@@ -541,7 +541,7 @@ module EventMachine
           @state.delete :data
         else
           # slice off leading . if any
-          ln.slice!(0...1) if ln[0] == 46
+          ln.slice!(0...1) if ln[0] == ?.
           @databuffer << ln
           if @databuffer.length > @@parms[:chunksize]
             receive_data_chunk @databuffer
