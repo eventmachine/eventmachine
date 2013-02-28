@@ -74,6 +74,7 @@ add_define 'HAVE_WRITEV' if have_func('writev', 'sys/uio.h')
 have_func('rb_wait_for_single_fd')
 have_func('rb_enable_interrupt')
 have_func('rb_time_new')
+have_func('rb_wait_for_single_fd')
 
 # Minor platform details between *nix and Windows:
 
