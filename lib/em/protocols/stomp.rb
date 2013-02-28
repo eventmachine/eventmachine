@@ -197,10 +197,16 @@ module EventMachine
 
       # SUBSCRIBE command, for subscribing to topics
       #
-      #  subscribe '/topic/name', false
+      #  subscribe '/topic/name', (true || {})
       #
-      def subscribe dest, parms={ :ack => 'client' }
-        send_frame "SUBSCRIBE", parms.merge({ :destination => dest })
+      # The ack header is optional, and defaults to auto.
+      def subscribe dest, ack=false
+        if (ack ||= {}).kind_of?(Hash)
+          ack[:destination] ||= dest
+        else
+          ack = { :destination => dest, :ack => 'client' }
+        end
+        send_frame "SUBSCRIBE", ack
       end
 
       # Protocol Version helper method
