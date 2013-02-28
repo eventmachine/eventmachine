@@ -32,5 +32,6 @@ module EventMachine
     autoload :Postgres3, 'em/protocols/postgres3'
     autoload :ObjectProtocol, 'em/protocols/object_protocol'
     autoload :Socks4, 'em/protocols/socks4'
+    autoload :LineProtocol, 'em/protocols/line_protocol'
   end
 end
