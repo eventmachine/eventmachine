@@ -524,12 +524,17 @@ bool EventMachine_t::_RunEpollOnce()
 
 	#ifdef BUILD_FOR_RUBY
 	int ret = 0;
+
+	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
+	if ((ret = rb_wait_for_single_fd(epfd, RB_WAITFD_IN, &tv)) < 1) {
+	#else
 	fd_set fdreads;
 
 	FD_ZERO(&fdreads);
 	FD_SET(epfd, &fdreads);
 
 	if ((ret = rb_thread_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	#endif
 		if (ret == -1) {
 			assert(errno != EINVAL);
 			assert(errno != EBADF);
@@ -598,12 +603,17 @@ bool EventMachine_t::_RunKqueueOnce()
 
 	#ifdef BUILD_FOR_RUBY
 	int ret = 0;
+
+	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
+	if ((ret = rb_wait_for_single_fd(kqfd, RB_WAITFD_IN, &tv)) < 1) {
+	#else
 	fd_set fdreads;
 
 	FD_ZERO(&fdreads);
 	FD_SET(kqfd, &fdreads);
 
 	if ((ret = rb_thread_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	#endif
 		if (ret == -1) {
 			assert(errno != EINVAL);
 			assert(errno != EBADF);
