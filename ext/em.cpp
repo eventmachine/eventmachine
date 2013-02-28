@@ -526,7 +526,7 @@ bool EventMachine_t::_RunEpollOnce()
 	int ret = 0;
 
 	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
-	if ((ret = rb_wait_for_single_fd(epfd, RB_WAITFD_IN, &tv)) < 1) {
+	if ((ret = rb_wait_for_single_fd(epfd, RB_WAITFD_IN|RB_WAITFD_PRI, &tv)) < 1) {
 	#else
 	fd_set fdreads;
 
@@ -605,7 +605,7 @@ bool EventMachine_t::_RunKqueueOnce()
 	int ret = 0;
 
 	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
-	if ((ret = rb_wait_for_single_fd(kqfd, RB_WAITFD_IN, &tv)) < 1) {
+	if ((ret = rb_wait_for_single_fd(kqfd, RB_WAITFD_IN|RB_WAITFD_PRI, &tv)) < 1) {
 	#else
 	fd_set fdreads;
 
