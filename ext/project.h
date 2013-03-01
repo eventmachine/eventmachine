@@ -94,7 +94,7 @@ typedef int SOCKET;
 #include <assert.h>
 
 typedef int socklen_t;
-typedef int pid_t;
+// typedef int pid_t;
 #endif
 
 #if !defined(_MSC_VER) || _MSC_VER > 1500
