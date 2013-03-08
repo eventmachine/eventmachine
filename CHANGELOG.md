@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.x
+## 1.0.3 (March 8, 2013)
 * EM.system was broken in 1.0.2 release [#413]
 
 ## 1.0.2 (March 8, 2013)
