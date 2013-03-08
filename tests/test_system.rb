@@ -22,6 +22,20 @@ class TestSystem < Test::Unit::TestCase
     assert_equal(@test_data, result)
   end
 
+  def test_system_with_string
+    result = nil
+    status = nil
+    EM.run {
+      EM.system("cat '#@filename'"){|out, state|
+        result = out
+        status = state.exitstatus
+        EM.stop
+      }
+    }
+    assert_equal(0, status)
+    assert_equal(@test_data, result)
+  end
+
   def teardown
     File.unlink(@filename)
   end
