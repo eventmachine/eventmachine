@@ -26,24 +26,29 @@ else
     unless RUBY_PLATFORM =~ /mswin|mingw/
       ext.cross_compile = true
       ext.cross_platform = ['x86-mingw32', 'x86-mswin32-60']
-
-      # inject 1.8/1.9 pure-ruby entry point
-      ext.cross_compiling do |spec|
-        spec.files += ["lib/#{ext.name}.rb"]
-      end
+    end
+  end
+  def hack_cross_compilation(ext)
+    # inject 1.8/1.9 pure-ruby entry point
+    # HACK: add these dependencies to the task instead of using cross_compiling
+    ext.cross_platform.each do |platform|
+      Rake::Task["native:#{GEMSPEC.name}:#{platform}"].prerequisites.unshift "lib/#{ext.name}.rb"
     end
   end
 
-  Rake::ExtensionTask.new("rubyeventmachine", GEMSPEC) do |ext|
+  em = Rake::ExtensionTask.new("rubyeventmachine", GEMSPEC) do |ext|
     ext.ext_dir = 'ext'
     ext.source_pattern = '*.{h,c,cpp}'
     setup_cross_compilation(ext)
   end
-  Rake::ExtensionTask.new("fastfilereaderext", GEMSPEC) do |ext|
+  hack_cross_compilation em
+
+  ff = Rake::ExtensionTask.new("fastfilereaderext", GEMSPEC) do |ext|
     ext.ext_dir = 'ext/fastfilereader'
     ext.source_pattern = '*.{h,c,cpp}'
     setup_cross_compilation(ext)
   end
+  hack_cross_compilation ff
 end
 
 # Setup shim files that require 1.8 vs 1.9 extensions in win32 bin gems
