@@ -1,6 +1,8 @@
 # Changelog
 
-## 1.0.x
+## 1.0.2 (March 8, 2013)
+* binary win32 gems now include fastfilereader shim [#222]
+* fix long-standing connection timeout issues [27fdd5b, igrigorik/em-http-request#222]
 * http and line protocol cleanups [#193, #151]
 * reactor return value cleanup [#225]
 * fix double require from gemspec [#284]
