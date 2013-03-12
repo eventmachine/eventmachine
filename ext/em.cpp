@@ -27,6 +27,11 @@ See the file COPYING for complete licensing information.
  */
 static unsigned int MaxOutstandingTimers = 100000;
 
+/* The number of accept() done at once in a single tick when the acceptor
+ * socket becomes readable.
+ */
+static unsigned int SimultaneousAcceptCount = 10;
+
 
 /* Internal helper to convert strings to internet addresses. IPv6-aware.
  * Not reentrant or threadsafe, optimized for speed.
@@ -61,6 +66,17 @@ void EventMachine_t::SetMaxTimerCount (int count)
 	MaxOutstandingTimers = count;
 }
 
+int EventMachine_t::GetSimultaneousAcceptCount()
+{
+	return SimultaneousAcceptCount;
+}
+
+void EventMachine_t::SetSimultaneousAcceptCount (int count)
+{
+	if (count < 1)
+		count = 1;
+	SimultaneousAcceptCount = count;
+}
 
 
 /******************************

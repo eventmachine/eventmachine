@@ -780,6 +780,21 @@ static VALUE t_set_max_timer_count (VALUE self, VALUE ct)
   return Qnil;
 }
 
+/********************
+t_get/set_simultaneous_accept_count
+********************/
+
+static VALUE t_get_simultaneous_accept_count (VALUE self)
+{
+  return INT2FIX (evma_get_simultaneous_accept_count());
+}
+
+static VALUE t_set_simultaneous_accept_count (VALUE self, VALUE ct)
+{
+  evma_set_simultaneous_accept_count (FIX2INT (ct));
+  return Qnil;
+}
+
 /***************
 t_setuid_string
 ***************/
@@ -1250,6 +1265,8 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "set_timer_quantum", (VALUE(*)(...))t_set_timer_quantum, 1);
 	rb_define_module_function (EmModule, "get_max_timer_count", (VALUE(*)(...))t_get_max_timer_count, 0);
 	rb_define_module_function (EmModule, "set_max_timer_count", (VALUE(*)(...))t_set_max_timer_count, 1);
+	rb_define_module_function (EmModule, "get_simultaneous_accept_count", (VALUE(*)(...))t_get_simultaneous_accept_count, 0);
+	rb_define_module_function (EmModule, "set_simultaneous_accept_count", (VALUE(*)(...))t_set_simultaneous_accept_count, 1);
 	rb_define_module_function (EmModule, "setuid_string", (VALUE(*)(...))t_setuid_string, 1);
 	rb_define_module_function (EmModule, "invoke_popen", (VALUE(*)(...))t_invoke_popen, 1);
 	rb_define_module_function (EmModule, "send_file_data", (VALUE(*)(...))t_send_file_data, 2);

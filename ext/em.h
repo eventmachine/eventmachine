@@ -69,6 +69,9 @@ class EventMachine_t
 	public:
 		static int GetMaxTimerCount();
 		static void SetMaxTimerCount (int);
+		
+		static int GetSimultaneousAcceptCount();
+		static void SetSimultaneousAcceptCount (int);
 
 	public:
 		EventMachine_t (EMCallback);

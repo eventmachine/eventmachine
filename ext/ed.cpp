@@ -1411,8 +1411,9 @@ void AcceptorDescriptor::Read()
 
 	struct sockaddr_in pin;
 	socklen_t addrlen = sizeof (pin);
+	int accept_count = EventMachine_t::GetSimultaneousAcceptCount();
 
-	for (int i=0; i < 10; i++) {
+	for (int i=0; i < accept_count; i++) {
 		int sd = accept (GetSocket(), (struct sockaddr*)&pin, &addrlen);
 		if (sd == INVALID_SOCKET) {
 			// This breaks the loop when we've accepted everything on the kernel queue,
