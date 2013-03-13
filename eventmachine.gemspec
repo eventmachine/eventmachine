@@ -8,6 +8,7 @@ Gem::Specification.new do |s|
   s.version = EventMachine::VERSION
   s.homepage = 'http://rubyeventmachine.com'
   s.rubyforge_project = 'eventmachine'
+  s.licenses = ["Ruby", "GPL"]
 
   s.authors = ["Francis Cianfrocca", "Aman Gupta"]
   s.email   = ["garbagecat10@gmail.com", "aman@tmm1.net"]
