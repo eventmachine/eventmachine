@@ -263,6 +263,14 @@ module EventMachine
         self.release_machine
         @reactor_running = false
       end
+      # the threadpool is contained inside the EventMachine class, so it isn't released with the machine.
+      # release everything associated with it so that the child process doesn't have the parents deferred threads in the pool
+      if @threadpool
+        @threadqueue = nil
+        @resultqueue = nil
+        @threadpool = nil
+        @all_threads_spawned = false
+      end
       self.run block
     end
   end
