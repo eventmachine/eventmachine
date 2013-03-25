@@ -126,5 +126,20 @@ class TestEpoll < Test::Unit::TestCase
     File.unlink(fn) if File.exist?(fn)
   end
 
+  def test_attach_detach
+    EM.epoll
+    EM.run {
+      EM.add_timer(0.01) { EM.stop }
+
+      r, w = IO.pipe
+
+      # This tests a regression where detach in the same tick as attach crashes EM
+      EM.watch(r) do |connection|
+        connection.detach
+      end
+    }
+
+    assert true
+  end
 end
 

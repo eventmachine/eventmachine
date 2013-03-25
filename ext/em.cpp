@@ -1399,6 +1399,14 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 	// Prevent the descriptor from being modified, in case DetachFD was called from a timer or next_tick
 	ModifiedDescriptors.erase (ed);
 
+	// Prevent the descriptor from being added, in case DetachFD was called in the same tick as AttachFD
+	for (size_t i = 0; i < NewDescriptors.size(); i++) {
+		if (ed == NewDescriptors[i]) {
+			NewDescriptors.erase(NewDescriptors.begin() + i);
+			break;
+		}
+	}
+
 	// Set MySocket = INVALID_SOCKET so ShouldDelete() is true (and the descriptor gets deleted and removed),
 	// and also to prevent anyone from calling close() on the detached fd
 	ed->SetSocketInvalid();
