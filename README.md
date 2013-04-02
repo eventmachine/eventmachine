@@ -46,8 +46,14 @@ for EventMachine, just with additional (and fixed) functionality.
 
 ## Features and changes ##
 
-The list of additions and improvements will grow over time. Currently
-the following features/fixes have been applied in EventMachine-LE:
+The list of additions and improvements will grow over time. Currently the following features/fixes have been applied in EventMachine-LE:
+
+
+### Version 1.1.5
+
+* Fix bug when the system time is changed to earlier time (which made EM to eat up the CPu cycle): [bug #428 in EM](https://github.com/eventmachine/eventmachine/issues/428#issuecomment-15760612).
+
+### Version 1.1.4 and below
 
 * Full IPv6 support for TCP and UDP, in both server and client mode ([cabo]([https://github.com/eventmachine/eventmachine/pull/297)).
 * Added robustness to datagram sockets, which now can optionally not to get destroyed on the first error by setting `EM::Connection#send_error_handling=mode` ([cabo]([https://github.com/eventmachine/eventmachine/pull/297)).

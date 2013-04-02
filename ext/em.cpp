@@ -343,16 +343,28 @@ EventMachine_t::_DispatchHeartbeats
 
 void EventMachine_t::_DispatchHeartbeats()
 {
-	while (true) {
-		multimap<uint64_t,EventableDescriptor*>::iterator i = Heartbeats.begin();
-		if (i == Heartbeats.end())
-			break;
-		if (i->first > MyCurrentLoopTime)
-			break;
-		EventableDescriptor *ed = i->second;
-		ed->Heartbeat();
-		QueueHeartbeat(ed);
-	}
+  // Store the first processed heartbeat descriptor and bail out if
+  // we see it again. This fixes an infinite loop in case the system time
+  // is changed out from underneath MyCurrentLoopTime.
+  const EventableDescriptor *head = NULL;
+
+  while (true) {
+    multimap<uint64_t,EventableDescriptor*>::iterator i = Heartbeats.begin();
+    if (i == Heartbeats.end())
+      break;
+    if (i->first > MyCurrentLoopTime)
+      break;
+
+    EventableDescriptor *ed = i->second;
+    if (ed == head)
+      break;
+
+    ed->Heartbeat();
+    QueueHeartbeat(ed);
+
+    if (head == NULL)
+      head = ed;
+  }
 }
 
 /******************************
