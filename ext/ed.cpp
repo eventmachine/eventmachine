@@ -464,6 +464,7 @@ ConnectionDescriptor::SetConnectPending
 void ConnectionDescriptor::SetConnectPending(bool f)
 {
 	bConnectPending = f;
+        MyEventMachine->QueueHeartbeat(this);
 	_UpdateEvents();
 }
 
