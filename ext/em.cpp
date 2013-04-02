@@ -671,7 +671,9 @@ timeval EventMachine_t::_TimeTilNextEvent()
 	
 	timeval tv;
 
-	if (next_event == 0 || NumCloseScheduled > 0) {
+	if (NumCloseScheduled > 0 || bTerminateSignalReceived) {
+                tv.tv_sec = tv.tv_usec = 0;
+        } else if (next_event == 0) {
 		tv = Quantum;
 	} else {
 		if (next_event > current_time) {
