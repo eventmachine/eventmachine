@@ -24,9 +24,13 @@ See the file COPYING for complete licensing information.
   #include <ruby.h>
   #define EmSelect rb_thread_select
 
+  #ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
+    #include <ruby/io.h>
+  #endif
+
   #if defined(HAVE_RBTRAP)
     #include <rubysig.h>
-  #elif defined(HAVE_RB_THREAD_CHECK_INTS)
+  #elif defined(HAVE_RB_ENABLE_INTERRUPT)
     extern "C" {
       void rb_enable_interrupt(void);
       void rb_disable_interrupt(void);
