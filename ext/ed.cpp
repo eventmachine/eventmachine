@@ -1453,14 +1453,15 @@ void AcceptorDescriptor::Read()
 			(*EventCallback) (GetBinding(), EM_CONNECTION_ACCEPTED, NULL, cd->GetBinding());
 		}
 		#ifdef HAVE_EPOLL
-		cd->GetEpollEvent()->events = EPOLLIN | (cd->SelectForWrite() ? EPOLLOUT : 0);
+		cd->GetEpollEvent()->events = (cd->SelectForRead() ? EPOLLIN : 0) | (cd->SelectForWrite() ? EPOLLOUT : 0);
 		#endif
 		assert (MyEventMachine);
 		MyEventMachine->Add (cd);
 		#ifdef HAVE_KQUEUE
 		if (cd->SelectForWrite())
 			MyEventMachine->ArmKqueueWriter (cd);
-		MyEventMachine->ArmKqueueReader (cd);
+                if (cd->SelectForRead())
+                        MyEventMachine->ArmKqueueReader (cd);
 		#endif
 	}
 
