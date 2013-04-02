@@ -54,6 +54,7 @@ The list of additions and improvements will grow over time. Currently the follow
 * Fix bug when the system time is changed to earlier time (which made EM to eat up the CPU cycle): [commit in EM](https://github.com/eventmachine/eventmachine/commit/1427a2c80c401d841194132a9af15baefd68b5ae).
 * Fix crash on attach/detach in the same tick ([pietern](https://github.com/eventmachine/eventmachine/pull/427)).
 * Fix `EM.system` when unicode characters used ([funny-falcon](https://github.com/eventmachine/eventmachine/pull/322)).
+* Fix SMTP server behaviour to reset mail transaction state after sending message ([jonasschneider](https://github.com/eventmachine/eventmachine/pull/351)).
 
 
 ### Version 1.1.4 and below
