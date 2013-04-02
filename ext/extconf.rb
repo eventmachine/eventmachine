@@ -160,7 +160,7 @@ TRY_LINK.sub!('$(CC)', '$(CXX)')
 add_define 'HAVE_MAKE_PAIR' if try_link(<<SRC, '-lstdc++')
   #include <utility>
   using namespace std;
-  int main(){ pair<int,int> tuple = make_pair(1,2); }
+  int main(){ pair<const int,int> tuple = make_pair(1,2); }
 SRC
 TRY_LINK.sub!('$(CXX)', '$(CC)')
 
