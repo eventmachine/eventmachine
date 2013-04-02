@@ -51,8 +51,9 @@ The list of additions and improvements will grow over time. Currently the follow
 
 ### Version 1.1.5
 
-* Fix bug when the system time is changed to earlier time (which made EM to eat up the CPu cycle): [bug #428 in EM](https://github.com/eventmachine/eventmachine/issues/428#issuecomment-15760612).
+* Fix bug when the system time is changed to earlier time (which made EM to eat up the CPu cycle): [commit in EM](https://github.com/eventmachine/eventmachine/commit/1427a2c80c401d841194132a9af15baefd68b5ae).
 * Fix crash on attach/detach in the same tick ([pietern](https://github.com/eventmachine/eventmachine/pull/427)).
+
 
 ### Version 1.1.4 and below
 
@@ -72,7 +73,7 @@ The list of additions and improvements will grow over time. Currently the follow
 
 ## Installation ##
 
-The Current stable version is eventmachine-le-1.1.4 (published as Ruby Gem), installable via:
+Install the current stable version of EventMachine-LE:
 <pre>
 gem install eventmachine-le
 </pre>
