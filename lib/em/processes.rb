@@ -114,7 +114,7 @@ module EventMachine
     init = args.pop if args.last.is_a? Proc
 
     # merge remaining arguments into the command
-    cmd = ([cmd] + args.map{|a|a.to_s.dump}).join(' ')
+    cmd = [cmd, *args] if args.any?
 
     EM.get_subprocess_pid(EM.popen(cmd, SystemCmd, cb) do |c|
       init[c] if init
