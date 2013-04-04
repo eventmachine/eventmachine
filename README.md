@@ -2,8 +2,7 @@
 
 EventMachine-LE (Live Edition) is a branch of [EventMachine](http://github.com/eventmachine/eventmachine) with fixes and more features.
 
-* Home page: http://ibc.github.com/EventMachine-LE/
-* Travis Build Status: [![Build Status](https://travis-ci.org/ibc/EventMachine-LE.png?branch=master)](https://travis-ci.org/ibc/EventMachine-LE)
+[![Build Status](https://travis-ci.org/ibc/EventMachine-LE.png?branch=master)](https://travis-ci.org/ibc/EventMachine-LE)
 
 
 ## What do you mean by "branch"? ##
