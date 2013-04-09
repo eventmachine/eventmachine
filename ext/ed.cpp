@@ -39,9 +39,10 @@ bool SetSocketNonblocking (SOCKET sd, bool set_cloexec)
 	#endif
 	
 	#ifdef OS_WIN32
-	if (set_cloexec) {
-		SetHandleInformation(reinterpret_cast<HANDLE>(sd), HANDLE_FLAG_INHERIT, 0);
-	}
+// Maybe this doesn't work when BUILD_FOR_RUBY??  Are SOCKET not really handles?
+//	if (set_cloexec) {
+//		SetHandleInformation(reinterpret_cast<HANDLE>(sd), HANDLE_FLAG_INHERIT, 0);
+//	}
 	#ifdef BUILD_FOR_RUBY
 	// 14Jun09 Ruby provides its own wrappers for ioctlsocket. On 1.8 this is a simple wrapper,
 	// however, 1.9 keeps its own state about the socket.
