@@ -60,6 +60,7 @@ public interface EventableChannel {
 	public void setCommInactivityTimeout (long seconds);
 
 	public Object[] getPeerName();
+	public Object[] getSockName();
 
 	public boolean isWatchOnly();
 

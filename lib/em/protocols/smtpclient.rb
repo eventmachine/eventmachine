@@ -31,38 +31,38 @@ module EventMachine
     # Simple SMTP client
     #
     # @example
-    #  email = EM::Protocols::SmtpClient.send(
-    #    :domain=>"example.com",
-    #    :host=>'localhost',
-    #    :port=>25, # optional, defaults 25
-    #    :starttls=>true, # use ssl
-    #    :from=>"sender@example.com",
-    #    :to=> ["to_1@example.com", "to_2@example.com"],
-    #    :header=> {"Subject" => "This is a subject line"},
-    #    :body=> "This is the body of the email"
-    #  )
-    #  email.callback{
-    #    puts 'Email sent!'
-    #  }
-    #  email.errback{ |e|
-    #    puts 'Email failed!'
-    #  }
+    #   email = EM::Protocols::SmtpClient.send(
+    #     :domain=>"example.com",
+    #     :host=>'localhost',
+    #     :port=>25, # optional, defaults 25
+    #     :starttls=>true, # use ssl
+    #     :from=>"sender@example.com",
+    #     :to=> ["to_1@example.com", "to_2@example.com"],
+    #     :header=> {"Subject" => "This is a subject line"},
+    #     :body=> "This is the body of the email"
+    #   )
+    #   email.callback{
+    #     puts 'Email sent!'
+    #   }
+    #   email.errback{ |e|
+    #     puts 'Email failed!'
+    #   }
     #
     # Sending generated emails (using mailfactory)
     #
-    #  mail = MailFactory.new
-    #  mail.to = 'someone@site.co'
-    #  mail.from = 'me@site.com'
-    #  mail.subject = 'hi!'
-    #  mail.text = 'hello world'
-    #  mail.html = '<h1>hello world</h1>'
+    #   mail = MailFactory.new
+    #   mail.to = 'someone@site.co'
+    #   mail.from = 'me@site.com'
+    #   mail.subject = 'hi!'
+    #   mail.text = 'hello world'
+    #   mail.html = '<h1>hello world</h1>'
     #
-    #  email = EM::P::SmtpClient.send(
-    #    :domain=>'site.com',
-    #    :from=>mail.from,
-    #    :to=>mail.to,
-    #    :content=>"#{mail.to_s}\r\n.\r\n"
-    #  )
+    #   email = EM::P::SmtpClient.send(
+    #     :domain=>'site.com',
+    #     :from=>mail.from,
+    #     :to=>mail.to,
+    #     :content=>"#{mail.to_s}\r\n.\r\n"
+    #   )
     #
     class SmtpClient < Connection
       include EventMachine::Deferrable
@@ -271,7 +271,7 @@ module EventMachine
               psw = psw.call
             end
             #str = Base64::encode64("\0#{@args[:auth][:username]}\0#{psw}").chomp
-            str = ["\0#{@args[:auth][:username]}\0#{psw}"].pack("m").chomp
+            str = ["\0#{@args[:auth][:username]}\0#{psw}"].pack("m").gsub(/\n/, '')
             send_data "AUTH PLAIN #{str}\r\n"
             @responder = :receive_auth_response
           else

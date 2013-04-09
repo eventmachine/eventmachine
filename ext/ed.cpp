@@ -64,12 +64,14 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	bCloseNow (false),
 	bCloseAfterWriting (false),
 	MySocket (sd),
+	bAttached (false),
 	bWatchOnly (false),
 	EventCallback (NULL),
 	bCallbackUnbind (true),
 	UnbindReasonCode (0),
 	ProxyTarget(NULL),
 	ProxiedFrom(NULL),
+	ProxiedBytes(0),
 	MaxOutboundBufSize(0),
 	MyEventMachine (em),
 	PendingConnectTimeout(20000000),
@@ -125,6 +127,7 @@ EventableDescriptor::~EventableDescriptor()
 		(*EventCallback)(ProxiedFrom->GetBinding(), EM_PROXY_TARGET_UNBOUND, NULL, 0);
 		ProxiedFrom->StopProxy();
 	}
+	MyEventMachine->NumCloseScheduled--;
 	StopProxy();
 	Close();
 }
@@ -189,7 +192,7 @@ void EventableDescriptor::Close()
 		MyEventMachine->Deregister (this);
 		
 		// Do not close STDIN, STDOUT, STDERR
-		if (MySocket > 2 && !bWatchOnly) {
+		if (MySocket > 2 && !bAttached) {
 			shutdown (MySocket, 1);
 			close (MySocket);
 		}
@@ -224,6 +227,7 @@ EventableDescriptor::ScheduleClose
 
 void EventableDescriptor::ScheduleClose (bool after_writing)
 {
+	MyEventMachine->NumCloseScheduled++;
 	// KEEP THIS SYNCHRONIZED WITH ::IsCloseScheduled.
 	if (after_writing)
 		bCloseAfterWriting = true;
@@ -254,6 +258,7 @@ void EventableDescriptor::StartProxy(const unsigned long to, const unsigned long
 		StopProxy();
 		ProxyTarget = ed;
 		BytesToProxy = length;
+		ProxiedBytes = 0;
 		ed->SetProxiedFrom(this, bufsize);
 		return;
 	}
@@ -300,6 +305,7 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 		if (BytesToProxy > 0) {
 			unsigned long proxied = min(BytesToProxy, (unsigned long) size);
 			ProxyTarget->SendOutboundData(buf, proxied);
+			ProxiedBytes += (unsigned long) proxied;
 			BytesToProxy -= proxied;
 			if (BytesToProxy == 0) {
 				StopProxy();
@@ -310,6 +316,7 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 			}
 		} else {
 			ProxyTarget->SendOutboundData(buf, size);
+			ProxiedBytes += (unsigned long) size;
 		}
 	} else {
 		(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf, size);
@@ -463,7 +470,18 @@ ConnectionDescriptor::SetConnectPending
 void ConnectionDescriptor::SetConnectPending(bool f)
 {
 	bConnectPending = f;
+	MyEventMachine->QueueHeartbeat(this);
 	_UpdateEvents();
+}
+
+
+/**********************************
+ConnectionDescriptor::SetAttached
+***********************************/
+
+void ConnectionDescriptor::SetAttached(bool state)
+{
+   bAttached = state;
 }
 
 
@@ -1438,14 +1456,16 @@ void AcceptorDescriptor::Read()
 			(*EventCallback) (GetBinding(), EM_CONNECTION_ACCEPTED, NULL, cd->GetBinding());
 		}
 		#ifdef HAVE_EPOLL
-		cd->GetEpollEvent()->events = EPOLLIN | (cd->SelectForWrite() ? EPOLLOUT : 0);
+		cd->GetEpollEvent()->events =
+			(cd->SelectForRead() ? EPOLLIN : 0) | (cd->SelectForWrite() ? EPOLLOUT : 0);
 		#endif
 		assert (MyEventMachine);
 		MyEventMachine->Add (cd);
 		#ifdef HAVE_KQUEUE
 		if (cd->SelectForWrite())
 			MyEventMachine->ArmKqueueWriter (cd);
-		MyEventMachine->ArmKqueueReader (cd);
+		if (cd->SelectForRead())
+			MyEventMachine->ArmKqueueReader (cd);
 		#endif
 	}
 

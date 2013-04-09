@@ -1,8 +1,8 @@
-if RUBY_PLATFORM =~ /java/
+if defined?(EventMachine.library_type) and EventMachine.library_type == :pure_ruby
+  # assume 'em/pure_ruby' was loaded already
+elsif RUBY_PLATFORM =~ /java/
   require 'java'
   require 'jeventmachine'
-elsif defined?(EventMachine.library_type) and EventMachine.library_type == :pure_ruby
-  # assume 'em/pure_ruby' was loaded already
 else
   begin
     require 'rubyeventmachine'
@@ -82,7 +82,8 @@ module EventMachine
   @reactor_running = false
   @next_tick_queue = []
   @tails = []
-  @threadpool = nil
+  @threadpool = @threadqueue = @resultqueue = nil
+  @all_threads_spawned = false
 
   # System errnos
   # @private
@@ -155,7 +156,13 @@ module EventMachine
     # will start without release_machine being called and will immediately throw
 
     #
-
+    if reactor_running? and @reactor_pid != Process.pid
+      # Reactor was started in a different parent, meaning we have forked.
+      # Clean up reactor state so a new reactor boots up in this child.
+      stop_event_loop
+      release_machine
+      @reactor_running = false
+    end
 
     tail and @tails.unshift(tail)
 
@@ -169,6 +176,7 @@ module EventMachine
       @next_tick_queue ||= []
       @tails ||= []
       begin
+        @reactor_pid = Process.pid
         @reactor_running = true
         initialize_event_machine
         (b = blk || block) and add_timer(0, b)
@@ -201,6 +209,7 @@ module EventMachine
             @threadqueue = nil
             @resultqueue = nil
             @threadpool = nil
+            @all_threads_spawned = false
           end
 
           @next_tick_queue = []
@@ -252,7 +261,7 @@ module EventMachine
       if self.reactor_running?
         self.stop_event_loop
         self.release_machine
-        self.instance_variable_set( '@reactor_running', false )
+        @reactor_running = false
       end
       self.run block
     end
@@ -425,7 +434,8 @@ module EventMachine
   # that you must define. When the network server that is started by
   # start_server accepts a new connection, it instantiates a new
   # object of an anonymous class that is inherited from {EventMachine::Connection},
-  # *into which your handler module have been included*.
+  # *into which your handler module have been included*. Arguments passed into start_server
+  # after the class name are passed into the constructor during the instantiation.
   #
   # Your handler module may override any of the methods in {EventMachine::Connection},
   # such as {EventMachine::Connection#receive_data}, in order to implement the specific behavior
@@ -736,6 +746,7 @@ module EventMachine
     c = klass.new s, *args
 
     c.instance_variable_set(:@io, io)
+    c.instance_variable_set(:@watch_mode, watch_mode)
     c.instance_variable_set(:@fd, fd)
 
     @conns[s] = c
@@ -761,7 +772,11 @@ module EventMachine
     #raise "still connected" if @conns.has_key?(handler.signature)
     return handler if @conns.has_key?(handler.signature)
 
-    s = connect_server server, port
+    s = if port
+          connect_server server, port
+        else
+          connect_unix_server server
+        end
     handler.signature = s
     @conns[s] = handler
     block_given? and yield handler
@@ -936,10 +951,21 @@ module EventMachine
       cback.call result if cback
     end
 
-    @next_tick_mutex.synchronize do
-      jobs, @next_tick_queue = @next_tick_queue, []
-      jobs
-    end.each { |j| j.call }
+    # Capture the size at the start of this tick...
+    size = @next_tick_mutex.synchronize { @next_tick_queue.size }
+    size.times do |i|
+      callback = @next_tick_mutex.synchronize { @next_tick_queue.shift }
+      begin
+        callback.call
+      ensure
+        # This is a little nasty. The problem is, if an exception occurs during
+        # the callback, then we need to send a signal to the reactor to actually
+        # do some work during the next_tick. The only mechanism we have from the
+        # ruby side is next_tick itself, although ideally, we'd just drop a byte
+        # on the loopback descriptor.
+        EM.next_tick {} if $!
+      end
+    end
   end
 
 
@@ -991,7 +1017,6 @@ module EventMachine
     # has no constructor.
 
     unless @threadpool
-      require 'thread'
       @threadpool = []
       @threadqueue = ::Queue.new
       @resultqueue = ::Queue.new
@@ -1016,6 +1041,19 @@ module EventMachine
       end
       @threadpool << thread
     end
+    @all_threads_spawned = true
+  end
+
+  ##
+  # Returns +true+ if all deferred actions are done executing and their
+  # callbacks have been fired.
+  #
+  def self.defers_finished?
+    return false if @threadpool and !@all_threads_spawned
+    return false if @threadqueue and not @threadqueue.empty?
+    return false if @resultqueue and not @resultqueue.empty?
+    return false if @threadpool and @threadqueue.num_waiting != @threadpool.size
+    return true
   end
 
   class << self
@@ -1118,7 +1156,12 @@ module EventMachine
     # Perhaps misnamed since the underlying function uses socketpair and is full-duplex.
 
     klass = klass_from_handler(Connection, handler, *args)
-    w = Shellwords::shellwords( cmd )
+    w = case cmd
+        when Array
+          cmd
+        when String
+          Shellwords::shellwords( cmd )
+        end
     w.unshift( w.first ) if w.first
     s = invoke_popen( w )
     c = klass.new s, *args
@@ -1391,10 +1434,18 @@ module EventMachine
     if opcode == ConnectionUnbound
       if c = @conns.delete( conn_binding )
         begin
-          if c.original_method(:unbind).arity == 1
+          if c.original_method(:unbind).arity != 0
             c.unbind(data == 0 ? nil : EventMachine::ERRNOS[data])
           else
             c.unbind
+          end
+          # If this is an attached (but not watched) connection, close the underlying io object.
+          if c.instance_variable_defined?(:@io) and !c.instance_variable_get(:@watch_mode)
+            io = c.instance_variable_get(:@io)
+            begin
+              io.close
+            rescue Errno::EBADF, IOError
+            end
           end
         rescue
           @wrapped_exception = $!

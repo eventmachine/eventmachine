@@ -121,7 +121,7 @@ module EventMachine
     # been completed, as a result of calling #start_tls to initiate SSL/TLS on the connection.
     #
     # This callback exists because {#post_init} and {#connection_completed} are **not** reliable
-    # for indicating when an SSL/TLS connection is ready to have it's certificate queried for.
+    # for indicating when an SSL/TLS connection is ready to have its certificate queried for.
     #
     # @see #get_peer_cert
     def ssl_handshake_completed
@@ -236,6 +236,12 @@ module EventMachine
     # A helper method for {EventMachine.disable_proxy}
     def stop_proxying
       EventMachine::disable_proxy(self)
+    end
+
+    # The number of bytes proxied to another connection. Reset to zero when
+    # EventMachine::Connection#proxy_incoming_to is called, and incremented whenever data is proxied.
+    def get_proxied_bytes
+      EventMachine::get_proxied_bytes(@signature)
     end
 
     # EventMachine::Connection#close_connection is called only by user code, and never
@@ -471,7 +477,7 @@ module EventMachine
     #  # -----END CERTIFICATE-----
     #
     # You can do whatever you want with the certificate String, such as load it
-    # as a certificate object using the OpenSSL library, and check it's fields.
+    # as a certificate object using the OpenSSL library, and check its fields.
     #
     # @return [String] the remote [X509 certificate](http://en.wikipedia.org/wiki/X.509), in the popular [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail),
     #                  if TLS is active on the connection
@@ -568,6 +574,11 @@ module EventMachine
     # @return [Integer]
     def get_status
       EventMachine::get_subprocess_status @signature
+    end
+
+    # The number of seconds since the last send/receive activity on this connection.
+    def get_idle_time
+      EventMachine::get_idle_time @signature
     end
 
     # comm_inactivity_timeout returns the current value (float in seconds) of the inactivity-timeout

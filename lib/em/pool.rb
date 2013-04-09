@@ -122,7 +122,10 @@ module EventMachine
 
     def failure resource
       if @on_error
+        @contents.delete resource
         @on_error.call resource
+        # Prevent users from calling a leak.
+        @removed.delete resource
       else
         requeue resource
       end
@@ -140,7 +143,9 @@ module EventMachine
       else
         raise ArgumentError, "deferrable expected from work"
       end
+    rescue Exception
+      failure resource
+      raise
     end
-
   end
 end

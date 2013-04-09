@@ -82,7 +82,8 @@ typedef int SOCKET;
 
 #ifdef OS_WIN32
 // 21Sep09: windows limits select() to 64 sockets by default, we increase it to 1024 here (before including winsock2.h)
-#define FD_SETSIZE 1024
+// 18Jun12: fd_setsize must be changed in the ruby binary (not in this extension). redefining it also causes segvs, see eventmachine/eventmachine#333
+//#define FD_SETSIZE 1024
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

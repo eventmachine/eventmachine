@@ -524,6 +524,10 @@ public class EmReactor {
 		return Connections.get(sig).getPeerName();
 	}
 
+	public Object[] getSockName (long sig) {
+		return Connections.get(sig).getSockName();
+	}
+
 	public long attachChannel (SocketChannel sc, boolean watch_mode) {
 		long b = createBinding();
 

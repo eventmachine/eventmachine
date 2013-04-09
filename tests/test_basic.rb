@@ -224,4 +224,71 @@ class TestBasic < Test::Unit::TestCase
       end
     end
   end
+  
+  def test_schedule_close
+    localhost, port = '127.0.0.1', 9000
+    timer_ran = false
+    num_close_scheduled = nil
+    EM.run do
+      assert_equal 0, EM.num_close_scheduled
+      EM.add_timer(1) { timer_ran = true; EM.stop }
+      EM.start_server localhost, port do |s|
+        s.close_connection
+        num_close_scheduled = EM.num_close_scheduled
+      end
+      EM.connect localhost, port do |c|
+        def c.unbind
+          EM.stop
+        end
+      end
+    end
+    assert !timer_ran
+    assert_equal 1, num_close_scheduled
+  end
+
+  def test_fork_safe
+    return unless cpid = fork { exit! } rescue false
+
+    read, write = IO.pipe
+    EM.run do
+      cpid = fork do
+        write.puts "forked"
+        EM.run do
+          EM.next_tick do
+            write.puts "EM ran"
+            exit!
+          end
+        end
+      end
+      EM.stop
+    end
+    Process.waitall
+    assert_equal "forked\n", read.readline
+    assert_equal "EM ran\n", read.readline
+  ensure
+    read.close rescue nil
+    write.close rescue nil
+  end
+
+  def test_error_handler_idempotent # issue 185
+    errors = []
+    ticks = []
+    EM.error_handler do |e|
+      errors << e
+    end
+
+    EM.run do
+      EM.next_tick do
+        ticks << :first
+        raise
+      end
+      EM.next_tick do
+        ticks << :second
+      end
+      EM.add_timer(0.001) { EM.stop }
+    end
+
+    assert_equal 1, errors.size
+    assert_equal [:first, :second], ticks
+  end
 end
