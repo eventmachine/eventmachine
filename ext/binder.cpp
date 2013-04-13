@@ -32,7 +32,7 @@ STATIC Bindable_t::CreateBinding
 unsigned long Bindable_t::CreateBinding()
 {
 	static unsigned long num = 0;
-	while(BindingBag[++num]);
+	while(BindingBag[++num]) {}
 	return num;
 }
 

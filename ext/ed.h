@@ -69,14 +69,14 @@ class EventableDescriptor: public Bindable_t
 		virtual bool GetSubprocessPid (pid_t*) {return false;}
 
 		virtual void StartTls() {}
-		virtual void SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer) {}
+		virtual void SetTlsParms (const char *, const char *, bool) {}
 
 		#ifdef WITH_SSL
 		virtual X509 *GetPeerCert() {return NULL;}
 		#endif
 
 		virtual uint64_t GetCommInactivityTimeout() {return 0;}
-		virtual int SetCommInactivityTimeout (uint64_t value) {return 0;}
+		virtual int SetCommInactivityTimeout (uint64_t) {return 0;}
 		uint64_t GetPendingConnectTimeout();
 		int SetPendingConnectTimeout (uint64_t value);
 		uint64_t GetLastActivity() { return LastActivity; }
@@ -215,7 +215,7 @@ class ConnectionDescriptor: public EventableDescriptor
 	protected:
 		struct OutboundPage {
 			OutboundPage (const char *b, int l, int o=0): Buffer(b), Length(l), Offset(o) {}
-			void Free() {if (Buffer) free ((char*)Buffer); }
+			void Free() {if (Buffer) free (const_cast<char*>(Buffer)); }
 			const char *Buffer;
 			int Length;
 			int Offset;
@@ -292,7 +292,7 @@ class DatagramDescriptor: public EventableDescriptor
 	protected:
 		struct OutboundPage {
 			OutboundPage (const char *b, int l, struct sockaddr_in f, int o=0): Buffer(b), Length(l), Offset(o), From(f) {}
-			void Free() {if (Buffer) free ((char*)Buffer); }
+			void Free() {if (Buffer) free (const_cast<char*>(Buffer)); }
 			const char *Buffer;
 			int Length;
 			int Offset;
@@ -354,7 +354,7 @@ class PipeDescriptor: public EventableDescriptor
 	protected:
 		struct OutboundPage {
 			OutboundPage (const char *b, int l, int o=0): Buffer(b), Length(l), Offset(o) {}
-			void Free() {if (Buffer) free ((char*)Buffer); }
+			void Free() {if (Buffer) free (const_cast<char*>(Buffer)); }
 			const char *Buffer;
 			int Length;
 			int Offset;
