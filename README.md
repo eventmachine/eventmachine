@@ -75,7 +75,7 @@ Here's a fully-functional echo server written with EventMachine:
 
        def unbind
          puts "-- someone disconnected from the echo server!"
-      end
+       end
     end
 
     # Note that this will block current thread.
