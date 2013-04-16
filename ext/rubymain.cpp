@@ -614,7 +614,6 @@ static VALUE t_set_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optna
 		break;
 	}
 
-
 	if (setsockopt(fd, level, option, (char *)v, len) < 0)
 		rb_sys_fail("setsockopt");
 

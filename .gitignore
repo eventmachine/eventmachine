@@ -4,10 +4,13 @@ Makefile
 
 *.bundle
 *.dll
+*.exp
+*.lib
 *.so
 *.jar
 *.class
 *.o
+*.obj
 *.log
 *.def
 *.pdb

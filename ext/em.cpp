@@ -1350,7 +1350,7 @@ const unsigned long EventMachine_t::AttachFD (int fd, bool watch_mode)
 	}
 
 	if (!watch_mode)
-		SetSocketNonblocking(fd);
+		SetSocketNonblocking(fd, /*set_cloexec=*/false);
 
 	ConnectionDescriptor *cd = new ConnectionDescriptor (fd, this);
 	if (!cd)
@@ -1949,7 +1949,7 @@ const char *EventMachine_t::Popen (const char *cmd, const char *mode)
 
 	// According to the pipe(2) manpage, descriptors returned from pipe have both
 	// CLOEXEC and NONBLOCK clear. Do NOT set CLOEXEC. DO set nonblocking.
-	if (!SetSocketNonblocking (fileno (fp))) {
+	if (!SetSocketNonblocking (fileno (fp), /*set_cloexec=*/false)) {
 		pclose (fp);
 		return NULL;
 	}
@@ -2000,7 +2000,7 @@ const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
 	// We don't care about the child side, and most child processes will expect their
 	// stdout to be blocking. Thanks to Duane Johnson and Bill Kelly for pointing this out.
 	// Obviously DON'T set CLOEXEC.
-	if (!SetSocketNonblocking (sv[0])) {
+	if (!SetSocketNonblocking (sv[0], /*set_cloexec=*/false)) {
 		close (sv[0]);
 		close (sv[1]);
 		return 0;
