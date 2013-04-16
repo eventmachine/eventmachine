@@ -765,7 +765,11 @@ void ConnectionDescriptor::Read()
 		
 
 		int r = read (sd, readbuffer, sizeof(readbuffer) - 1);
+#ifdef OS_WIN32
+		int e = WSAGetLastError();
+#else
 		int e = errno;
+#endif
 		//cerr << "<R:" << r << ">";
 
 		if (r > 0) {
@@ -1032,7 +1036,11 @@ void ConnectionDescriptor::_WriteOutboundData()
 	#endif
 
 	bool err = false;
+#ifdef OS_WIN32
+	int e = WSAGetLastError();
+#else
 	int e = errno;
+#endif
 	if (bytes_written < 0) {
 		err = true;
 		bytes_written = 0;
@@ -1663,7 +1671,11 @@ void DatagramDescriptor::Write()
 
 		// The nasty cast to (char*) is needed because Windows is brain-dead.
 		int s = sendto (sd, (char*)op->Buffer, op->Length, 0, (struct sockaddr*)&(op->From), sizeof(op->From));
+#ifdef OS_WIN32
+		int e = WSAGetLastError();
+#else
 		int e = errno;
+#endif
 
 		OutboundDataSize -= op->Length;
 		op->Free();
