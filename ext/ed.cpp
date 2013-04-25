@@ -402,6 +402,7 @@ ConnectionDescriptor::ConnectionDescriptor (SOCKET sd, EventMachine_t *em):
 	bHandshakeSignaled (false),
 	bSslVerifyPeer (false),
 	bSslPeerAccepted(false),
+	bSslV3Only(false),
 	#endif
 	#ifdef HAVE_KQUEUE
 	bGotExtraKqueueEvent(false),
@@ -1180,7 +1181,7 @@ void ConnectionDescriptor::StartTls()
 	if (SslBox)
 		throw std::runtime_error ("SSL/TLS already running on connection");
 
-	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, GetBinding());
+	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, bSslV3Only, GetBinding());
 	_DispatchCiphertext();
 
 }
@@ -1197,7 +1198,7 @@ ConnectionDescriptor::SetTlsParms
 *********************************/
 
 #ifdef WITH_SSL
-void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer)
+void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer, bool force_ssl_v3)
 {
 	if (SslBox)
 		throw std::runtime_error ("call SetTlsParms before calling StartTls");
@@ -1206,9 +1207,10 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 	if (certchain_filename && *certchain_filename)
 		CertChainFilename = certchain_filename;
 	bSslVerifyPeer = verify_peer;
+	bSslV3Only = force_ssl_v3;
 }
 #else
-void ConnectionDescriptor::SetTlsParms (const char *privkey_filename UNUSED, const char *certchain_filename UNUSED, bool verify_peer UNUSED)
+void ConnectionDescriptor::SetTlsParms (const char *privkey_filename UNUSED, const char *certchain_filename UNUSED, bool verify_peer UNUSED, bool force_ssl_v3 UNUSED)
 {
 	throw std::runtime_error ("Encryption not available on this event-machine");
 }
