@@ -239,6 +239,12 @@ module EventMachine
       EventMachine::disable_proxy(self)
     end
 
+    # The number of bytes proxied to another connection. Reset to zero when
+    # EventMachine::Connection#proxy_incoming_to is called, and incremented whenever data is proxied.
+    def get_proxied_bytes
+      EventMachine::get_proxied_bytes(@signature)
+    end
+
     # EventMachine::Connection#close_connection is called only by user code, and never
     # by the event loop. You may call this method against a connection object in any
     # callback handler, whether or not the callback was made against the connection
@@ -569,6 +575,11 @@ module EventMachine
     # @return [Integer]
     def get_status
       EventMachine::get_subprocess_status @signature
+    end
+
+    # The number of seconds since the last send/receive activity on this connection.
+    def get_idle_time
+      EventMachine::get_idle_time @signature
     end
 
     # comm_inactivity_timeout returns the current value (float in seconds) of the inactivity-timeout

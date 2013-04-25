@@ -234,7 +234,7 @@ static VALUE t_add_oneshot_timer (VALUE self, VALUE interval)
 {
 	const unsigned long f = evma_install_oneshot_timer (FIX2INT (interval));
 	if (!f)
-		rb_raise (rb_eRuntimeError, "ran out of timers; use #set_max_timers to increase limit");
+		rb_raise (rb_eRuntimeError, "%s", "ran out of timers; use #set_max_timers to increase limit");
 	return ULONG2NUM (f);
 }
 
@@ -247,7 +247,7 @@ static VALUE t_start_server (VALUE self, VALUE server, VALUE port)
 {
 	const unsigned long f = evma_create_tcp_server (StringValuePtr(server), FIX2INT(port));
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no acceptor (port is in use or requires root privileges)");
+		rb_raise (rb_eRuntimeError, "%s", "no acceptor (port is in use or requires root privileges)");
 	return ULONG2NUM (f);
 }
 
@@ -270,7 +270,7 @@ static VALUE t_start_unix_server (VALUE self, VALUE filename)
 {
 	const unsigned long f = evma_create_unix_domain_server (StringValuePtr(filename));
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no unix-domain acceptor");
+		rb_raise (rb_eRuntimeError, "%s", "no unix-domain acceptor");
 	return ULONG2NUM (f);
 }
 
@@ -333,7 +333,7 @@ static VALUE t_get_peer_cert (VALUE self, VALUE signature)
 		BIO_get_mem_ptr(out, &buf);
 		ret = rb_str_new(buf->data, buf->length);
 		X509_free(cert);
-		BUF_MEM_free(buf);
+		BIO_free(out);
 	}
 	#endif
 
@@ -505,10 +505,10 @@ static VALUE t_connect_server (VALUE self, VALUE server, VALUE port)
 	try {
 		const unsigned long f = evma_connect_to_server (NULL, 0, StringValuePtr(server), NUM2INT(port));
 		if (!f)
-			rb_raise (EM_eConnectionError, "no connection");
+			rb_raise (EM_eConnectionError, "%s", "no connection");
 		return ULONG2NUM (f);
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eConnectionError, e.what());
+		rb_raise (EM_eConnectionError, "%s", e.what());
 	}
 	return Qnil;
 }
@@ -526,10 +526,10 @@ static VALUE t_bind_connect_server (VALUE self, VALUE bind_addr, VALUE bind_port
 	try {
 		const unsigned long f = evma_connect_to_server (StringValuePtr(bind_addr), NUM2INT(bind_port), StringValuePtr(server), NUM2INT(port));
 		if (!f)
-			rb_raise (EM_eConnectionError, "no connection");
+			rb_raise (EM_eConnectionError, "%s", "no connection");
 		return ULONG2NUM (f);
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eConnectionError, e.what());
+		rb_raise (EM_eConnectionError, "%s", e.what());
 	}
 	return Qnil;
 }
@@ -542,7 +542,7 @@ static VALUE t_connect_unix_server (VALUE self, VALUE serversocket)
 {
 	const unsigned long f = evma_connect_to_unix_server (StringValuePtr(serversocket));
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no connection");
+		rb_raise (rb_eRuntimeError, "%s", "no connection");
 	return ULONG2NUM (f);
 }
 
@@ -554,7 +554,7 @@ static VALUE t_attach_fd (VALUE self, VALUE file_descriptor, VALUE watch_mode)
 {
 	const unsigned long f = evma_attach_fd (NUM2INT(file_descriptor), watch_mode == Qtrue);
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no connection");
+		rb_raise (rb_eRuntimeError, "%s", "no connection");
 	return ULONG2NUM (f);
 }
 
@@ -704,7 +704,7 @@ static VALUE t_open_udp_socket (VALUE self, VALUE server, VALUE port)
 {
 	const unsigned long f = evma_open_datagram_socket (StringValuePtr(server), FIX2INT(port));
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no datagram socket");
+		rb_raise (rb_eRuntimeError, "%s", "no datagram socket");
 	return ULONG2NUM (f);
 }
 
@@ -806,7 +806,7 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 		int len = RARRAY (cmd)->len;
 	#endif
 	if (len >= 2048)
-		rb_raise (rb_eRuntimeError, "too many arguments to popen");
+		rb_raise (rb_eRuntimeError, "%s", "too many arguments to popen");
 	char *strings [2048];
 	for (int i=0; i < len; i++) {
 		VALUE ix = INT2FIX (i);
@@ -835,7 +835,7 @@ static VALUE t_read_keyboard (VALUE self)
 {
 	const unsigned long f = evma_open_keyboard();
 	if (!f)
-		rb_raise (rb_eRuntimeError, "no keyboard reader");
+		rb_raise (rb_eRuntimeError, "%s", "no keyboard reader");
 	return ULONG2NUM (f);
 }
 
@@ -849,7 +849,7 @@ static VALUE t_watch_filename (VALUE self, VALUE fname)
 	try {
 		return ULONG2NUM(evma_watch_filename(StringValuePtr(fname)));
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eUnsupported, e.what());
+		rb_raise (EM_eUnsupported, "%s", e.what());
 	}
 	return Qnil;
 }
@@ -875,7 +875,7 @@ static VALUE t_watch_pid (VALUE self, VALUE pid)
 	try {
 		return ULONG2NUM(evma_watch_pid(NUM2INT(pid)));
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eUnsupported, e.what());
+		rb_raise (EM_eUnsupported, "%s", e.what());
 	}
 	return Qnil;
 }
@@ -922,7 +922,7 @@ t__epoll_set
 static VALUE t__epoll_set (VALUE self, VALUE val)
 {
 	if (t__epoll_p(self) == Qfalse)
-		rb_raise (EM_eUnsupported, "epoll is not supported on this platform");
+		rb_raise (EM_eUnsupported, "%s", "epoll is not supported on this platform");
 
 	evma_set_epoll (val == Qtrue ? 1 : 0);
 	return val;
@@ -959,7 +959,7 @@ t__kqueue_set
 static VALUE t__kqueue_set (VALUE self, VALUE val)
 {
 	if (t__kqueue_p(self) == Qfalse)
-		rb_raise (EM_eUnsupported, "kqueue is not supported on this platform");
+		rb_raise (EM_eUnsupported, "%s", "kqueue is not supported on this platform");
 
 	evma_set_kqueue (val == Qtrue ? 1 : 0);
 	return val;
@@ -997,7 +997,7 @@ static VALUE t_send_file_data (VALUE self, VALUE signature, VALUE filename)
 
 	int b = evma_send_file_data_to_connection (NUM2ULONG (signature), StringValuePtr(filename));
 	if (b == -1)
-		rb_raise(rb_eRuntimeError, "File too large.  send_file_data() supports files under 32k.");
+		rb_raise(rb_eRuntimeError, "%s", "File too large.  send_file_data() supports files under 32k.");
 	if (b > 0) {
 		char *err = strerror (b);
 		char buf[1024];
@@ -1075,7 +1075,7 @@ static VALUE t_start_proxy (VALUE self, VALUE from, VALUE to, VALUE bufsize, VAL
 	try {
 		evma_start_proxy(NUM2ULONG (from), NUM2ULONG (to), NUM2ULONG(bufsize), NUM2ULONG(length));
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eConnectionError, e.what());
+		rb_raise (EM_eConnectionError, "%s", e.what());
 	}
 	return Qnil;
 }
@@ -1090,11 +1090,49 @@ static VALUE t_stop_proxy (VALUE self, VALUE from)
 	try{
 		evma_stop_proxy(NUM2ULONG (from));
 	} catch (std::runtime_error e) {
-		rb_raise (EM_eConnectionError, e.what());
+		rb_raise (EM_eConnectionError, "%s", e.what());
 	}
 	return Qnil;
 }
 
+/***************
+t_proxied_bytes
+****************/
+
+static VALUE t_proxied_bytes (VALUE self, VALUE from)
+{
+	try{
+		return ULONG2NUM(evma_proxied_bytes(NUM2ULONG (from)));
+	} catch (std::runtime_error e) {
+		rb_raise (EM_eConnectionError, "%s", e.what());
+	}
+	return Qnil;
+}
+
+/***************
+t_get_idle_time
+****************/
+
+static VALUE t_get_idle_time (VALUE self, VALUE from)
+{
+	try{
+		uint64_t current_time = evma_get_current_loop_time();
+		uint64_t time = evma_get_last_activity_time(NUM2ULONG (from));
+		if (current_time != 0 && time != 0) {
+			if (time >= current_time)
+				return ULONG2NUM(0);
+			else {
+				uint64_t diff = current_time - time;
+				float seconds = diff / (1000.0*1000.0);
+				return rb_float_new(seconds);
+			}
+			return Qnil;
+		}
+	} catch (std::runtime_error e) {
+		rb_raise (EM_eConnectionError, "%s", e.what());
+	}
+	return Qnil;
+}
 
 /************************
 t_get_heartbeat_interval
@@ -1194,6 +1232,7 @@ extern "C" void Init_rubyeventmachine()
 
 	rb_define_module_function (EmModule, "start_proxy", (VALUE (*)(...))t_start_proxy, 4);
 	rb_define_module_function (EmModule, "stop_proxy", (VALUE (*)(...))t_stop_proxy, 1);
+	rb_define_module_function (EmModule, "get_proxied_bytes", (VALUE (*)(...))t_proxied_bytes, 1);
 
 	rb_define_module_function (EmModule, "watch_filename", (VALUE (*)(...))t_watch_filename, 1);
 	rb_define_module_function (EmModule, "unwatch_filename", (VALUE (*)(...))t_unwatch_filename, 1);
@@ -1217,6 +1256,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "send_file_data", (VALUE(*)(...))t_send_file_data, 2);
 	rb_define_module_function (EmModule, "get_heartbeat_interval", (VALUE(*)(...))t_get_heartbeat_interval, 0);
 	rb_define_module_function (EmModule, "set_heartbeat_interval", (VALUE(*)(...))t_set_heartbeat_interval, 1);
+	rb_define_module_function (EmModule, "get_idle_time", (VALUE(*)(...))t_get_idle_time, 1);
 
 	rb_define_module_function (EmModule, "get_peername", (VALUE(*)(...))t_get_peername, 1);
 	rb_define_module_function (EmModule, "get_sockname", (VALUE(*)(...))t_get_sockname, 1);

@@ -1,8 +1,8 @@
-if RUBY_PLATFORM =~ /java/
+if defined?(EventMachine.library_type) and EventMachine.library_type == :pure_ruby
+  # assume 'em/pure_ruby' was loaded already
+elsif RUBY_PLATFORM =~ /java/
   require 'java'
   require 'jeventmachine'
-elsif defined?(EventMachine.library_type) and EventMachine.library_type == :pure_ruby
-  # assume 'em/pure_ruby' was loaded already
 else
   begin
     require 'rubyeventmachine'
@@ -82,7 +82,8 @@ module EventMachine
   @reactor_running = false
   @next_tick_queue = []
   @tails = []
-  @threadpool = nil
+  @threadpool = @threadqueue = @resultqueue = nil
+  @all_threads_spawned = false
 
   # System errnos
   # @private
@@ -208,6 +209,7 @@ module EventMachine
             @threadqueue = nil
             @resultqueue = nil
             @threadpool = nil
+            @all_threads_spawned = false
           end
 
           @next_tick_queue = []
@@ -432,7 +434,8 @@ module EventMachine
   # that you must define. When the network server that is started by
   # start_server accepts a new connection, it instantiates a new
   # object of an anonymous class that is inherited from {EventMachine::Connection},
-  # *into which your handler module have been included*.
+  # *into which your handler module have been included*. Arguments passed into start_server
+  # after the class name are passed into the constructor during the instantiation.
   #
   # Your handler module may override any of the methods in {EventMachine::Connection},
   # such as {EventMachine::Connection#receive_data}, in order to implement the specific behavior
@@ -1014,7 +1017,6 @@ module EventMachine
     # has no constructor.
 
     unless @threadpool
-      require 'thread'
       @threadpool = []
       @threadqueue = ::Queue.new
       @resultqueue = ::Queue.new
@@ -1039,6 +1041,19 @@ module EventMachine
       end
       @threadpool << thread
     end
+    @all_threads_spawned = true
+  end
+
+  ##
+  # Returns +true+ if all deferred actions are done executing and their
+  # callbacks have been fired.
+  #
+  def self.defers_finished?
+    return false if @threadpool and !@all_threads_spawned
+    return false if @threadqueue and not @threadqueue.empty?
+    return false if @resultqueue and not @resultqueue.empty?
+    return false if @threadpool and @threadqueue.num_waiting != @threadpool.size
+    return true
   end
 
   class << self
@@ -1141,7 +1156,12 @@ module EventMachine
     # Perhaps misnamed since the underlying function uses socketpair and is full-duplex.
 
     klass = klass_from_handler(Connection, handler, *args)
-    w = Shellwords::shellwords( cmd )
+    w = case cmd
+        when Array
+          cmd
+        when String
+          Shellwords::shellwords( cmd )
+        end
     w.unshift( w.first ) if w.first
     s = invoke_popen( w )
     c = klass.new s, *args

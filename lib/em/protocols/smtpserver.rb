@@ -506,11 +506,13 @@ module EventMachine
       # Since we clear the chunk array every time we submit it, the caller needs to be
       # aware to do things like dup it if he wants to keep it around across calls.
       #
-      # DON'T reset the transaction upon disposition of the incoming message.
-      # This means another DATA command can be accepted with the same sender and recipients.
-      # If the client wants to reset, he can call RSET.
-      # Not sure whether the standard requires a transaction-reset at this point, but it
-      # appears not to.
+      # Resets the transaction upon disposition of the incoming message.
+      # RFC5321 says this about the MAIL FROM command:
+      #  "This command tells the SMTP-receiver that a new mail transaction is
+      #   starting and to reset all its state tables and buffers, including any
+      #   recipients or mail data."
+      #
+      # Equivalent behaviour is implemented by resetting after a completed transaction.
       #
       # User-written code can return a Deferrable as a response from receive_message.
       #
@@ -524,11 +526,12 @@ module EventMachine
 
           succeeded = proc {
             send_data "250 Message accepted\r\n"
+            reset_protocol_state
           }
           failed = proc {
             send_data "550 Message rejected\r\n"
+            reset_protocol_state
           }
-
           d = receive_message
 
           if d.respond_to?(:set_deferred_status)
@@ -541,7 +544,7 @@ module EventMachine
           @state.delete :data
         else
           # slice off leading . if any
-          ln.slice!(0...1) if ln[0] == 46
+          ln.slice!(0...1) if ln[0] == ?.
           @databuffer << ln
           if @databuffer.length > @@parms[:chunksize]
             receive_data_chunk @databuffer

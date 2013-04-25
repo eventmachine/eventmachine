@@ -469,7 +469,7 @@ extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 
 	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
 	result = (cd->VerifySslPeer(&ssl_verify_callback_data) == true ? 1 : 0);
-	BUF_MEM_free(buf);
+	BIO_free(out);
 
 	return result;
 }

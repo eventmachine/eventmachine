@@ -1,11 +1,14 @@
 # -*- encoding: utf-8 -*-
-require File.expand_path('../lib/em/version', __FILE__)
+$:.unshift File.expand_path("../lib", __FILE__)
+require "em/version"
+
 
 Gem::Specification.new do |s|
   s.name = 'eventmachine'
   s.version = EventMachine::VERSION
   s.homepage = 'http://rubyeventmachine.com'
   s.rubyforge_project = 'eventmachine'
+  s.licenses = ["Ruby", "GPL"]
 
   s.authors = ["Francis Cianfrocca", "Aman Gupta"]
   s.email   = ["garbagecat10@gmail.com", "aman@tmm1.net"]
@@ -13,9 +16,9 @@ Gem::Specification.new do |s|
   s.files = `git ls-files`.split("\n")
   s.extensions = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
 
-  s.add_development_dependency 'rake-compiler', '0.7.9'
-  s.add_development_dependency 'yard', ">= 0.7.2"
-  s.add_development_dependency 'bluecloth'
+  s.add_development_dependency 'rake-compiler', '~> 0.8.3'
+  s.add_development_dependency 'yard', ">= 0.8.5.2"
+  s.add_development_dependency 'bluecloth' unless RUBY_PLATFORM =~ /java/
 
   s.summary = 'Ruby/EventMachine library'
   s.description = "EventMachine implements a fast, single-threaded engine for arbitrary network

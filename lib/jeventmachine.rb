@@ -203,6 +203,11 @@ module EventMachine
       Socket.pack_sockaddr_in(*peer)
     end
   end
+  def self.get_sockname sig
+    if sockName = @em.getSockName(sig)
+      Socket.pack_sockaddr_in(*sockName)
+    end
+  end
   # @private
   def self.attach_fd fileno, watch_mode
     # 3Aug09: We could pass in the actual SocketChannel, but then it would be modified (set as non-blocking), and

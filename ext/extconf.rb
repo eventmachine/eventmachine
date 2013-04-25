@@ -40,7 +40,8 @@ def manual_ssl_config
 end
 
 if ENV['CROSS_COMPILING']
-  openssl_dir = File.expand_path("~/.rake-compiler/builds/openssl-1.0.0a/")
+  openssl_version = ENV.fetch("OPENSSL_VERSION", "1.0.0j")
+  openssl_dir = File.expand_path("~/.rake-compiler/builds/openssl-#{openssl_version}/")
   if File.exists?(openssl_dir)
     FileUtils.mkdir_p Dir.pwd+"/openssl/"
     FileUtils.cp Dir[openssl_dir+"/include/openssl/*.h"], Dir.pwd+"/openssl/", :verbose => true
@@ -70,13 +71,14 @@ add_define "HAVE_INOTIFY" if inotify = have_func('inotify_init', 'sys/inotify.h'
 add_define "HAVE_OLD_INOTIFY" if !inotify && have_macro('__NR_inotify_init', 'sys/syscall.h')
 add_define 'HAVE_WRITEV' if have_func('writev', 'sys/uio.h')
 
-have_func('rb_thread_check_ints')
+have_func('rb_wait_for_single_fd')
+have_func('rb_enable_interrupt')
 have_func('rb_time_new')
 
 # Minor platform details between *nix and Windows:
 
 if RUBY_PLATFORM =~ /(mswin|mingw|bccwin)/
-  GNU_CHAIN = ENV['CROSS_COMPILING'] or $1 == 'mingw'
+  GNU_CHAIN = ENV['CROSS_COMPILING'] || $1 == 'mingw'
   OS_WIN32 = true
   add_define "OS_WIN32"
 else
@@ -85,6 +87,15 @@ else
   add_define 'OS_UNIX'
 
   add_define "HAVE_KQUEUE" if have_header("sys/event.h") and have_header("sys/queue.h")
+end
+
+# Adjust number of file descriptors (FD) on Windows
+
+if RbConfig::CONFIG["host_os"] =~ /mingw/
+  found = RbConfig::CONFIG.values_at("CFLAGS", "CPPFLAGS").
+    any? { |v| v.include?("FD_SETSIZE") }
+
+  add_define "FD_SETSIZE=32767" unless found
 end
 
 # Main platform invariances:
@@ -159,7 +170,7 @@ TRY_LINK.sub!('$(CC)', '$(CXX)')
 add_define 'HAVE_MAKE_PAIR' if try_link(<<SRC, '-lstdc++')
   #include <utility>
   using namespace std;
-  int main(){ pair<int,int> tuple = make_pair(1,2); }
+  int main(){ pair<const int,int> tuple = make_pair(1,2); }
 SRC
 TRY_LINK.sub!('$(CXX)', '$(CC)')
 

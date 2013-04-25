@@ -17,13 +17,22 @@ add_define 'BUILD_FOR_RUBY'
 # Minor platform details between *nix and Windows:
 
 if RUBY_PLATFORM =~ /(mswin|mingw|bccwin)/
-  GNU_CHAIN = ENV['CROSS_COMPILING'] or $1 == 'mingw'
+  GNU_CHAIN = ENV['CROSS_COMPILING'] || $1 == 'mingw'
   OS_WIN32 = true
   add_define "OS_WIN32"
 else
   GNU_CHAIN = true
   OS_UNIX = true
   add_define 'OS_UNIX'
+end
+
+# Adjust number of file descriptors (FD) on Windows
+
+if RbConfig::CONFIG["host_os"] =~ /mingw/
+  found = RbConfig::CONFIG.values_at("CFLAGS", "CPPFLAGS").
+    any? { |v| v.include?("FD_SETSIZE") }
+
+  add_define "FD_SETSIZE=32767" unless found
 end
 
 # Main platform invariances:

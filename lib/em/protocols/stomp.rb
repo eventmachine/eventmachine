@@ -104,12 +104,15 @@ module EventMachine
 
       # @private
       def send_frame verb, headers={}, body=""
+        body = body.to_s
         ary = [verb, "\n"]
+        body_bytesize = body.bytesize if body.respond_to? :bytesize
+        body_bytesize ||= body.size
         headers.each {|k,v| ary << "#{k}:#{v}\n" }
-        ary << "content-length: #{body.to_s.length}\n"
+        ary << "content-length: #{body_bytesize}\n"
         ary << "content-type: text/plain; charset=UTF-8\n" unless headers.has_key? 'content-type'
         ary << "\n"
-        ary << body.to_s
+        ary << body
         ary << "\0"
         send_data ary.join
       end

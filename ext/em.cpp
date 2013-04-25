@@ -382,15 +382,27 @@ EventMachine_t::_DispatchHeartbeats
 
 void EventMachine_t::_DispatchHeartbeats()
 {
+	// Store the first processed heartbeat descriptor and bail out if
+	// we see it again. This fixes an infinite loop in case the system time
+	// is changed out from underneath MyCurrentLoopTime.
+	const EventableDescriptor *head = NULL;
+
 	while (true) {
 		multimap<uint64_t,EventableDescriptor*>::iterator i = Heartbeats.begin();
 		if (i == Heartbeats.end())
 			break;
 		if (i->first > MyCurrentLoopTime)
 			break;
+
 		EventableDescriptor *ed = i->second;
+		if (ed == head)
+			break;
+
 		ed->Heartbeat();
 		QueueHeartbeat(ed);
+
+		if (head == NULL)
+			head = ed;
 	}
 }
 
@@ -482,8 +494,7 @@ void EventMachine_t::Run()
 		_AddNewDescriptors();
 		_ModifyDescriptors();
 
-		if (!_RunOnce())
-			break;
+		_RunOnce();
 		if (bTerminateSignalReceived)
 			break;
 	}
@@ -494,27 +505,24 @@ void EventMachine_t::Run()
 EventMachine_t::_RunOnce
 ************************/
 
-bool EventMachine_t::_RunOnce()
+void EventMachine_t::_RunOnce()
 {
-	bool ret;
 	if (bEpoll)
-		ret = _RunEpollOnce();
+		_RunEpollOnce();
 	else if (bKqueue)
-		ret = _RunKqueueOnce();
+		_RunKqueueOnce();
 	else
-		ret = _RunSelectOnce();
+		_RunSelectOnce();
 	_DispatchHeartbeats();
 	_CleanupSockets();
-	return ret;
 }
-
 
 
 /*****************************
 EventMachine_t::_RunEpollOnce
 *****************************/
 
-bool EventMachine_t::_RunEpollOnce()
+void EventMachine_t::_RunEpollOnce()
 {
 	#ifdef HAVE_EPOLL
 	assert (epfd != -1);
@@ -524,17 +532,22 @@ bool EventMachine_t::_RunEpollOnce()
 
 	#ifdef BUILD_FOR_RUBY
 	int ret = 0;
+
+	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
+	if ((ret = rb_wait_for_single_fd(epfd, RB_WAITFD_IN|RB_WAITFD_PRI, &tv)) < 1) {
+	#else
 	fd_set fdreads;
 
 	FD_ZERO(&fdreads);
 	FD_SET(epfd, &fdreads);
 
 	if ((ret = rb_thread_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	#endif
 		if (ret == -1) {
 			assert(errno != EINVAL);
 			assert(errno != EBADF);
 		}
-		return true;
+		return;
 	}
 
 	TRAP_BEG;
@@ -572,8 +585,6 @@ bool EventMachine_t::_RunEpollOnce()
 		timeval tv = {0, ((errno == EINTR) ? 5 : 50) * 1000};
 		EmSelect (0, NULL, NULL, NULL, &tv);
 	}
-
-	return true;
 	#else
 	throw std::runtime_error ("epoll is not implemented on this platform");
 	#endif
@@ -584,7 +595,7 @@ bool EventMachine_t::_RunEpollOnce()
 EventMachine_t::_RunKqueueOnce
 ******************************/
 
-bool EventMachine_t::_RunKqueueOnce()
+void EventMachine_t::_RunKqueueOnce()
 {
 	#ifdef HAVE_KQUEUE
 	assert (kqfd != -1);
@@ -598,17 +609,22 @@ bool EventMachine_t::_RunKqueueOnce()
 
 	#ifdef BUILD_FOR_RUBY
 	int ret = 0;
+
+	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
+	if ((ret = rb_wait_for_single_fd(kqfd, RB_WAITFD_IN|RB_WAITFD_PRI, &tv)) < 1) {
+	#else
 	fd_set fdreads;
 
 	FD_ZERO(&fdreads);
 	FD_SET(kqfd, &fdreads);
 
 	if ((ret = rb_thread_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	#endif
 		if (ret == -1) {
 			assert(errno != EINVAL);
 			assert(errno != EBADF);
 		}
-		return true;
+		return;
 	}
 
 	TRAP_BEG;
@@ -659,8 +675,6 @@ bool EventMachine_t::_RunKqueueOnce()
 		rb_thread_schedule();
 	}
 	#endif
-
-	return true;
 	#else
 	throw std::runtime_error ("kqueue is not implemented on this platform");
 	#endif
@@ -673,7 +687,7 @@ EventMachine_t::_TimeTilNextEvent
 
 timeval EventMachine_t::_TimeTilNextEvent()
 {
-	// 29jul11: Changed calculation base from MyCurrentLoopTime to the 
+	// 29jul11: Changed calculation base from MyCurrentLoopTime to the
 	// real time. As MyCurrentLoopTime is set at the beginning of an
 	// iteration and this calculation is done at the end, evenmachine
 	// will potentially oversleep by the amount of time the iteration
@@ -695,10 +709,12 @@ timeval EventMachine_t::_TimeTilNextEvent()
 	if (!NewDescriptors.empty() || !ModifiedDescriptors.empty()) {
 		next_event = current_time;
 	}
-	
+
 	timeval tv;
 
-	if (next_event == 0 || NumCloseScheduled > 0) {
+	if (NumCloseScheduled > 0 || bTerminateSignalReceived) {
+		tv.tv_sec = tv.tv_usec = 0;
+	} else if (next_event == 0) {
 		tv = Quantum;
 	} else {
 		if (next_event > current_time) {
@@ -833,36 +849,16 @@ int SelectData_t::_Select()
 EventMachine_t::_RunSelectOnce
 ******************************/
 
-bool EventMachine_t::_RunSelectOnce()
+void EventMachine_t::_RunSelectOnce()
 {
 	// Crank the event machine once.
 	// If there are no descriptors to process, then sleep
 	// for a few hundred mills to avoid busy-looping.
-	// Return T/F to indicate whether we should continue.
 	// This is based on a select loop. Alternately provide epoll
 	// if we know we're running on a 2.6 kernel.
 	// epoll will be effective if we provide it as an alternative,
 	// however it has the same problem interoperating with Ruby
 	// threads that select does.
-
-	//cerr << "X";
-
-	/* This protection is now obsolete, because we will ALWAYS
-	 * have at least one descriptor (the loop-breaker) to read.
-	 */
-	/*
-	if (Descriptors.size() == 0) {
-		#ifdef OS_UNIX
-		timeval tv = {0, 200 * 1000};
-		EmSelect (0, NULL, NULL, NULL, &tv);
-		return true;
-		#endif
-		#ifdef OS_WIN32
-		Sleep (200);
-		return true;
-		#endif
-	}
-	*/
 
 	SelectData_t SelectData;
 	/*
@@ -965,8 +961,6 @@ bool EventMachine_t::_RunSelectOnce()
 			}
 		}
 	}
-
-	return true;
 }
 
 void EventMachine_t::_CleanBadDescriptors()
@@ -1418,6 +1412,14 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 
 	// Prevent the descriptor from being modified, in case DetachFD was called from a timer or next_tick
 	ModifiedDescriptors.erase (ed);
+
+	// Prevent the descriptor from being added, in case DetachFD was called in the same tick as AttachFD
+	for (size_t i = 0; i < NewDescriptors.size(); i++) {
+		if (ed == NewDescriptors[i]) {
+			NewDescriptors.erase(NewDescriptors.begin() + i);
+			break;
+		}
+	}
 
 	// Set MySocket = INVALID_SOCKET so ShouldDelete() is true (and the descriptor gets deleted and removed),
 	// and also to prevent anyone from calling close() on the detached fd

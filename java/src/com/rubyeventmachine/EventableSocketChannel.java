@@ -302,6 +302,12 @@ public class EventableSocketChannel implements EventableChannel {
 		return new Object[]{ sock.getPort(), sock.getInetAddress().getHostAddress() };
 	}
 
+	public Object[] getSockName () {
+		Socket sock = channel.socket();
+		return new Object[]{ sock.getLocalPort(),
+							 sock.getLocalAddress().getHostAddress() };
+	}
+
 	public void setWatchOnly() {
 		bWatchOnly = true;
 		updateEvents();
