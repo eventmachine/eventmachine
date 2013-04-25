@@ -145,13 +145,11 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 	}
 
 	bIsServer = is_server;
-	SSL_METHOD *method;
 	if (is_server) {
-		method = force_ssl_v3 ? SSLv3_server_method() : SSLv23_server_method();
+		pCtx = SSL_CTX_new (force_ssl_v3 ? SSLv3_server_method() : SSLv23_server_method());
 	} else {
-		method = force_ssl_v3 ? SSLv3_client_method() : SSLv23_client_method();
+		pCtx = SSL_CTX_new (force_ssl_v3 ? SSLv3_client_method() : SSLv23_client_method());
 	}
-	pCtx = SSL_CTX_new (method);
 	if (!pCtx)
 		throw std::runtime_error ("no SSL context");
 
