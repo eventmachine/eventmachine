@@ -376,7 +376,7 @@ module EventMachine
     #
     # @option args [String] :private_key_file (nil) local path of a readable file that must contain a private key in the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail).
     #
-    # @option args [String] :verify_peer (false)   indicates whether a server should request a certificate from a peer, to be verified by user code.
+    # @option args [Boolean] :verify_peer (false)   indicates whether a server should request a certificate from a peer, to be verified by user code.
     #                                               If true, the {#ssl_verify_peer} callback on the {EventMachine::Connection} object is called with each certificate
     #                                               in the certificate chain provided by the peer. See documentation on {#ssl_verify_peer} for how to use this.
     #
