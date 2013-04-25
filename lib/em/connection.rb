@@ -376,9 +376,11 @@ module EventMachine
     #
     # @option args [String] :private_key_file (nil) local path of a readable file that must contain a private key in the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail).
     #
-    # @option args [String] :verify_peer (false)    indicates whether a server should request a certificate from a peer, to be verified by user code.
+    # @option args [String] :verify_peer (false)   indicates whether a server should request a certificate from a peer, to be verified by user code.
     #                                               If true, the {#ssl_verify_peer} callback on the {EventMachine::Connection} object is called with each certificate
     #                                               in the certificate chain provided by the peer. See documentation on {#ssl_verify_peer} for how to use this.
+    #
+    # @option args [Boolean] :force_ssl_v3 (false)  If true, use SSLv3 only and disable SSLv2. Note that servers forcing SSLv3 require clients with the same setting.
     #
     # @example Using TLS with EventMachine
     #
@@ -404,7 +406,7 @@ module EventMachine
     #
     # @see #ssl_verify_peer
     def start_tls args={}
-      priv_key, cert_chain, verify_peer = args.values_at(:private_key_file, :cert_chain_file, :verify_peer)
+      priv_key, cert_chain, verify_peer, force_ssl_v3 = args.values_at(:private_key_file, :cert_chain_file, :verify_peer, :force_ssl_v3)
 
       [priv_key, cert_chain].each do |file|
         next if file.nil? or file.empty?
@@ -412,7 +414,7 @@ module EventMachine
         "Could not find #{file} for start_tls" unless File.exists? file
       end
 
-      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer)
+      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer, force_ssl_v3)
       EventMachine::start_tls @signature
     end
 
