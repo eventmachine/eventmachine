@@ -186,6 +186,7 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 			if (e <= 0) ERR_print_errors_fp(stderr);
 			assert (e > 0);
 		}
+
 		if (certchainfile.length() > 0) {
 			e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
 			if (e <= 0) ERR_print_errors_fp(stderr);
@@ -245,7 +246,7 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	SSL_set_ex_data(pSSL, 0, (void*) binding);
 
 	if (bVerifyPeer)
-		SSL_set_verify(pSSL, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, ssl_verify_wrapper);
+		SSL_set_verify(pSSL, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT | SSL_VERIFY_CLIENT_ONCE, ssl_verify_wrapper);
 
 	if (!bIsServer)
 		SSL_connect (pSSL);
@@ -447,8 +448,11 @@ extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 	BUF_MEM *buf;
 	BIO *out;
 	int result;
+	int err;
+	struct ssl_verify_callback ssl_verify_callback_data;
 
 	cert = X509_STORE_CTX_get_current_cert(ctx);
+	err = X509_STORE_CTX_get_error(ctx);
 	ssl = (SSL*) X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
 	binding = (unsigned long) SSL_get_ex_data(ssl, 0);
 
@@ -456,9 +460,15 @@ extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 	PEM_write_bio_X509(out, cert);
 	BIO_write(out, "\0", 1);
 	BIO_get_mem_ptr(out, &buf);
+	
+	ssl_verify_callback_data.preverify_ok = preverify_ok;
+	ssl_verify_callback_data.depth = X509_STORE_CTX_get_error_depth(ctx);
+	ssl_verify_callback_data.err = err;
+	ssl_verify_callback_data.cert = buf->data;
+	ssl_verify_callback_data.error_string = X509_verify_cert_error_string(err);
 
 	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
-	result = (cd->VerifySslPeer(buf->data) == true ? 1 : 0);
+	result = (cd->VerifySslPeer(&ssl_verify_callback_data) == true ? 1 : 0);
 	BIO_free(out);
 
 	return result;

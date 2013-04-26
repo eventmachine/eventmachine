@@ -142,7 +142,7 @@ module EventMachine
     #       start_tls(:verify_peer => true)
     #     end
     #
-    #     def ssl_verify_peer(cert)
+    #     def ssl_verify_peer(preverify_ok, cert, depth, err, error_string)
     #       true
     #     end
     #
@@ -159,7 +159,7 @@ module EventMachine
     #       start_tls(:verify_peer => true)
     #     end
     #
-    #     def ssl_verify_peer(cert)
+    #     def ssl_verify_peer(preverify_ok, cert, depth, err, error_string)
     #       # Do not accept the peer. This should now cause the connection to shut down
     #       # without the SSL handshake being completed.
     #       false
@@ -171,7 +171,8 @@ module EventMachine
     #   end
     #
     # @see #start_tls
-    def ssl_verify_peer(cert)
+    def ssl_verify_peer(preverify_ok, cert, depth, err, error_string)
+	  return preverify_ok
     end
 
     # called by the framework whenever a connection (either a server or client connection) is closed.
