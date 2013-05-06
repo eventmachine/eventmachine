@@ -1114,6 +1114,14 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 	setsockopt (sd, SOL_SOCKET, SO_REUSEADDR, (char*) &one, sizeof(one));
 
 	if (bind_addr) {
+	  
+#if defined(SO_BINDANY)
+		if( getuid() == 0 ){
+			int on = 1;
+			setsockopt(sd, SOL_SOCKET, SO_BINDANY, &on, sizeof(on));
+		}
+#endif
+	  
 		int bind_to_size, bind_to_family;
 		struct sockaddr *bind_to = name2address (bind_addr, bind_port, &bind_to_family, &bind_to_size);
 		if (!bind_to) {
@@ -1599,6 +1607,13 @@ const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int
 
 
 	if (address && *address) {
+#if defined(SO_BINDANY)    
+		if( getuid() == 0 ){
+			int on = 1;
+			setsockopt(sd, SOL_SOCKET, SO_BINDANY, &on, sizeof(on));
+		}
+#endif
+
 		sin.sin_addr.s_addr = inet_addr (address);
 		if (sin.sin_addr.s_addr == INADDR_NONE) {
 			hostent *hp = gethostbyname ((char*)address); // Windows requires the cast.
