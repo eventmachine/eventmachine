@@ -120,7 +120,7 @@ static void InitializeDefaultCredentials()
 SslContext_t::SslContext_t
 **************************/
 
-SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile):
+SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, SslMinVersion min_version):
 	pCtx (NULL),
 	PrivateKey (NULL),
 	Certificate (NULL)
@@ -150,7 +150,16 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 		throw std::runtime_error ("no SSL context");
 
 	SSL_CTX_set_options (pCtx, SSL_OP_ALL);
-	//SSL_CTX_set_options (pCtx, (SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3));
+	switch (min_version) {
+	case TLSv1:
+		SSL_CTX_set_options (pCtx, SSL_OP_NO_SSLv3);
+	case SSLv3:
+		SSL_CTX_set_options (pCtx, SSL_OP_NO_SSLv2);
+	case SSLv2:
+	default:
+		break;
+	}
+
 #ifdef SSL_MODE_RELEASE_BUFFERS
 	SSL_CTX_set_mode (pCtx, SSL_MODE_RELEASE_BUFFERS);
 #endif
@@ -216,7 +225,7 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const unsigned long binding):
+SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, SslMinVersion min_version, const unsigned long binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),
@@ -228,7 +237,7 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	 * a new one every time we come here.
 	 */
 
-	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile);
+	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile, min_version);
 	assert (Context);
 
 	pbioRead = BIO_new (BIO_s_mem());
