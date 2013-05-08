@@ -24,6 +24,7 @@ See the file COPYING for complete licensing information.
 class EventMachine_t; // forward reference
 #ifdef WITH_SSL
 class SslBox_t; // forward reference
+enum SslMinVersion { SSLv2, SSLv3, TLSv1 };
 #endif
 
 bool SetSocketNonblocking (SOCKET);
@@ -69,7 +70,7 @@ class EventableDescriptor: public Bindable_t
 		virtual bool GetSubprocessPid (pid_t*) {return false;}
 
 		virtual void StartTls() {}
-		virtual void SetTlsParms (const char *, const char *, bool, bool) {}
+		virtual void SetTlsParms (const char *, const char *, bool, SslMinVersion) {}
 
 		#ifdef WITH_SSL
 		virtual X509 *GetPeerCert() {return NULL;}
@@ -201,7 +202,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		virtual int GetOutboundDataSize() {return OutboundDataSize;}
 
 		virtual void StartTls();
-		virtual void SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer, bool force_ssl_v3=false);
+		virtual void SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer, SslMinVersion min_version=SSLv2);
 
 		#ifdef WITH_SSL
 		virtual X509 *GetPeerCert();
@@ -248,7 +249,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		bool bHandshakeSignaled;
 		bool bSslVerifyPeer;
 		bool bSslPeerAccepted;
-		bool bSslV3Only;
+		SslMinVersion eSslMinVersion;
 		#endif
 
 		#ifdef HAVE_KQUEUE
