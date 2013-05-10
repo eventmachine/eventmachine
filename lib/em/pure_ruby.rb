@@ -393,7 +393,7 @@ module EventMachine
       100.times {
         @loopbreak_port = rand(10000) + 40000
         begin
-          @loopbreak_reader.bind "localhost", @loopbreak_port
+          @loopbreak_reader.bind "127.0.0.1", @loopbreak_port
           bound = true
           break
         rescue
