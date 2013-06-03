@@ -259,6 +259,7 @@ evma_num_close_scheduled
 
 extern "C" int evma_num_close_scheduled ()
 {
+	ensure_eventmachine("evma_num_close_scheduled");
 	return EventMachine->NumCloseScheduled;
 }
 
