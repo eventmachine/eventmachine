@@ -957,13 +957,16 @@ module EventMachine
       callback = @next_tick_mutex.synchronize { @next_tick_queue.shift }
       begin
         callback.call
+      rescue
+        exception_raised = true
+        raise
       ensure
         # This is a little nasty. The problem is, if an exception occurs during
         # the callback, then we need to send a signal to the reactor to actually
         # do some work during the next_tick. The only mechanism we have from the
         # ruby side is next_tick itself, although ideally, we'd just drop a byte
         # on the loopback descriptor.
-        EM.next_tick {} if $!
+        EM.next_tick {} if exception_raised
       end
     end
   end
