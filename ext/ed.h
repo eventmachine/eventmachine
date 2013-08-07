@@ -339,6 +339,9 @@ class PipeDescriptor: public EventableDescriptor
 		PipeDescriptor (int, pid_t, EventMachine_t*);
 		virtual ~PipeDescriptor();
 
+		bool Pause();
+		bool Resume();
+
 		virtual void Read();
 		virtual void Write();
 		virtual void Heartbeat();
@@ -369,6 +372,7 @@ class PipeDescriptor: public EventableDescriptor
 		pid_t SubprocessPid;
 
 	private:
+		void _UpdateEvents();
 		void _DispatchInboundData (const char *buffer, int size);
 };
 #endif // OS_UNIX

@@ -299,7 +299,64 @@ bool PipeDescriptor::SelectForWrite()
 }
 
 
+/***************************
+PipeDescriptor::Pause
+***************************/
 
+bool PipeDescriptor::Pause()
+{
+        bool old = bPaused;
+        bPaused = true;
+        _UpdateEvents();
+        return old == false;
+}
+
+/****************************
+PipeDescriptor::Resume
+****************************/
+
+bool PipeDescriptor::Resume()
+{
+        bool old = bPaused;
+        bPaused = false;
+        _UpdateEvents();
+        return old == true;
+}
+
+/***********************************
+PipeDescriptor::_UpdateEvents
+************************************/
+void PipeDescriptor::_UpdateEvents()
+{
+        if (GetSocket() == INVALID_SOCKET)
+                return;
+
+        #ifdef HAVE_EPOLL
+        unsigned int old = EpollEvent.events;
+
+	if (SelectForRead())
+		EpollEvent.events |= EPOLLIN;
+	else
+		EpollEvent.events &= ~EPOLLIN;
+
+	if (SelectForWrite())
+		EpollEvent.events |= EPOLLOUT;
+	else
+		EpollEvent.events &= ~EPOLLOUT;
+
+        if (old != EpollEvent.events) {
+		assert (MyEventMachine);
+                MyEventMachine->Modify (this);
+	}
+        #endif
+
+        #ifdef HAVE_KQUEUE
+        if (read && SelectForRead())
+                MyEventMachine->ArmKqueueReader (this);
+        if (write && SelectForWrite())
+                MyEventMachine->ArmKqueueWriter (this);
+        #endif
+}
 
 /********************************
 PipeDescriptor::SendOutboundData
