@@ -156,7 +156,7 @@ module EventMachine
     # will start without release_machine being called and will immediately throw
 
     #
-    if reactor_running? and @reactor_pid != Process.pid
+    if @reactor_running and @reactor_pid != Process.pid
       # Reactor was started in a different parent, meaning we have forked.
       # Clean up reactor state so a new reactor boots up in this child.
       stop_event_loop
@@ -1181,7 +1181,7 @@ module EventMachine
   #
   # @return [Boolean] true if the EventMachine reactor loop is currently running
   def self.reactor_running?
-    (@reactor_running || false)
+    @reactor_running && Process.pid == @reactor_pid
   end
 
 
