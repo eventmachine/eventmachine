@@ -380,6 +380,9 @@ module EventMachine
     #                                               If true, the {#ssl_verify_peer} callback on the {EventMachine::Connection} object is called with each certificate
     #                                               in the certificate chain provided by the peer. See documentation on {#ssl_verify_peer} for how to use this.
     #
+    # @option args [String] :dh_params_file (nil)   local path of a readable file that contains Diffie Helman parameters to use in ephemeral DH key exchange.
+    #                                               Useful for forward secrecy. ( can be generated with: $ openssl dhparam -out dh2048.pem 2048 )
+    #
     # @example Using TLS with EventMachine
     #
     #  require 'rubygems'
@@ -404,15 +407,15 @@ module EventMachine
     #
     # @see #ssl_verify_peer
     def start_tls args={}
-      priv_key, cert_chain, verify_peer = args.values_at(:private_key_file, :cert_chain_file, :verify_peer)
+      priv_key, cert_chain, verify_peer, dh_params = args.values_at(:private_key_file, :cert_chain_file, :verify_peer, :dh_params_file)
 
-      [priv_key, cert_chain].each do |file|
+      [priv_key, cert_chain, dh_params].each do |file|
         next if file.nil? or file.empty?
         raise FileNotFoundException,
         "Could not find #{file} for start_tls" unless File.exists? file
       end
 
-      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer)
+      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', dh_params || '', verify_peer)
       EventMachine::start_tls @signature
     end
 
