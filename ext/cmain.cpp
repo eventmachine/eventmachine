@@ -433,12 +433,12 @@ extern "C" void evma_start_tls (const unsigned long binding)
 evma_set_tls_parms
 ******************/
 
-extern "C" void evma_set_tls_parms (const unsigned long binding, const char *privatekey_filename, const char *certchain_filename, int verify_peer)
+extern "C" void evma_set_tls_parms (const unsigned long binding, const char *privatekey_filename, const char *certchain_filename, const char *dhparams_filename, int verify_peer)
 {
 	ensure_eventmachine("evma_set_tls_parms");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed)
-		ed->SetTlsParms (privatekey_filename, certchain_filename, (verify_peer == 1 ? true : false));
+		ed->SetTlsParms (privatekey_filename, certchain_filename, dhparams_filename, (verify_peer == 1 ? true : false));
 }
 
 /******************

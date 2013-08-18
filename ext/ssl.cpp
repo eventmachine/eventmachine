@@ -120,7 +120,7 @@ static void InitializeDefaultCredentials()
 SslContext_t::SslContext_t
 **************************/
 
-SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile):
+SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &dhparamsfile):
 	pCtx (NULL),
 	PrivateKey (NULL),
 	Certificate (NULL)
@@ -178,6 +178,19 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 	if (is_server) {
 		SSL_CTX_sess_set_cache_size (pCtx, 128);
 		SSL_CTX_set_session_id_context (pCtx, (unsigned char*)"eventmachine", 12);
+
+    if (dhparamsfile.length() > 0) {
+      FILE *dhparamsf;
+      DH* dhparams;
+      if ((dhparamsf = fopen(dhparamsfile.c_str(), "r"))) {
+        dhparams = PEM_read_DHparams(dhparamsf, NULL, NULL, NULL);
+        SSL_CTX_set_options(pCtx, SSL_OP_SINGLE_DH_USE);
+        SSL_CTX_set_tmp_dh(pCtx, dhparams);
+        fclose(dhparamsf);
+      }
+    }
+    SSL_CTX_set_options(pCtx, SSL_OP_SINGLE_ECDH_USE);
+    SSL_CTX_set_tmp_ecdh(pCtx, EC_KEY_new_by_curve_name(NID_X9_62_prime256v1));
 	}
 	else {
 		int e;
@@ -216,7 +229,7 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const unsigned long binding):
+SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &dhparamsfile, bool verify_peer, const unsigned long binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),
@@ -228,7 +241,7 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	 * a new one every time we come here.
 	 */
 
-	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile);
+	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile, dhparamsfile);
 	assert (Context);
 
 	pbioRead = BIO_new (BIO_s_mem());
