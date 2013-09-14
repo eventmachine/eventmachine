@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.0.4
+* calling pause from receive_data takes effect immediately [#464]
+* reactor_running? returns false after fork [#455]
+* fix infinite loop on double close [edc4d0e6, #441, #445]
+* fix compilation issue on llvm [#433]
+* fix socket error codes on win32 [ff811a81]
+* fix EM.stop latency when timers exist [8b613d05, #426]
+* fix infinite loop when system time changes [1427a2c80, #428]
+* fix crash when callin attach/detach in the same tick [#427]
+* fix compilation issue on solaris [#416]
+
 ## 1.0.3 (March 8, 2013)
 * EM.system was broken in 1.0.2 release [#413]
 
