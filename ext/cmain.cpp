@@ -283,6 +283,16 @@ extern "C" const unsigned long evma_create_unix_domain_server (const char *filen
 	return EventMachine->CreateUnixDomainServer (filename);
 }
 
+/***********************
+evma_attach_sd
+************************/
+
+extern "C" const unsigned long evma_attach_sd (int sd)
+{
+	ensure_eventmachine("evma_attach_sd");
+	return EventMachine->AttachSD (sd);
+}
+
 /*************************
 evma_open_datagram_socket
 *************************/

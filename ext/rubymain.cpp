@@ -273,6 +273,17 @@ static VALUE t_start_unix_server (VALUE self, VALUE filename)
 	return ULONG2NUM (f);
 }
 
+/********************
+t_attach_sd
+********************/
+
+static VALUE t_attach_sd(VALUE self, VALUE sd)
+{
+	const unsigned long f = evma_attach_sd(FIX2INT(sd));
+	if (!f)
+		rb_raise (rb_eRuntimeError, "%s", "no socket descriptor acceptor");
+	return ULONG2NUM (f);
+}
 
 
 /***********
@@ -1204,6 +1215,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "start_tcp_server", (VALUE(*)(...))t_start_server, 2);
 	rb_define_module_function (EmModule, "stop_tcp_server", (VALUE(*)(...))t_stop_server, 1);
 	rb_define_module_function (EmModule, "start_unix_server", (VALUE(*)(...))t_start_unix_server, 1);
+	rb_define_module_function (EmModule, "attach_sd", (VALUE(*)(...))t_attach_sd, 1);
 	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 4);
 	rb_define_module_function (EmModule, "start_tls", (VALUE(*)(...))t_start_tls, 1);
 	rb_define_module_function (EmModule, "get_peer_cert", (VALUE(*)(...))t_get_peer_cert, 1);
