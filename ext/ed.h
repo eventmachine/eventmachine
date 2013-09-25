@@ -36,7 +36,7 @@ class EventableDescriptor
 class EventableDescriptor: public Bindable_t
 {
 	public:
-		EventableDescriptor (int, EventMachine_t*);
+		EventableDescriptor (int, EventMachine_t*, bool = true);
 		virtual ~EventableDescriptor();
 
 		int GetSocket() {return MySocket;}
@@ -100,6 +100,7 @@ class EventableDescriptor: public Bindable_t
 		virtual uint64_t GetNextHeartbeat();
 
 	private:
+		bool bAutoClose;
 		bool bCloseNow;
 		bool bCloseAfterWriting;
 
@@ -313,7 +314,7 @@ class AcceptorDescriptor
 class AcceptorDescriptor: public EventableDescriptor
 {
 	public:
-		AcceptorDescriptor (int, EventMachine_t*);
+		AcceptorDescriptor (int, EventMachine_t*, bool = true);
 		virtual ~AcceptorDescriptor();
 
 		virtual void Read();

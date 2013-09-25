@@ -49,6 +49,7 @@ extern "C" {
 
 	const unsigned long evma_attach_fd (int file_descriptor, int watch_mode);
 	int evma_detach_fd (const unsigned long binding);
+	const unsigned long evma_attach_server_fd (int file_descriptor);
 	int evma_get_file_descriptor (const unsigned long binding);
 	int evma_is_notify_readable (const unsigned long binding);
 	void evma_set_notify_readable (const unsigned long binding, int mode);

@@ -50,7 +50,8 @@ bool SetSocketNonblocking (SOCKET sd)
 EventableDescriptor::EventableDescriptor
 ****************************************/
 
-EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
+EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em, bool autoclose):
+	bAutoClose (autoclose),
 	bCloseNow (false),
 	bCloseAfterWriting (false),
 	MySocket (sd),
@@ -119,7 +120,9 @@ EventableDescriptor::~EventableDescriptor()
 	}
 	MyEventMachine->NumCloseScheduled--;
 	StopProxy();
-	Close();
+	if (bAutoClose) {
+		Close();
+	}
 }
 
 
@@ -1361,8 +1364,8 @@ void LoopbreakDescriptor::Write()
 AcceptorDescriptor::AcceptorDescriptor
 **************************************/
 
-AcceptorDescriptor::AcceptorDescriptor (int sd, EventMachine_t *parent_em):
-	EventableDescriptor (sd, parent_em)
+AcceptorDescriptor::AcceptorDescriptor (int sd, EventMachine_t *parent_em, bool autoclose):
+	EventableDescriptor (sd, parent_em, autoclose)
 {
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = EPOLLIN;
