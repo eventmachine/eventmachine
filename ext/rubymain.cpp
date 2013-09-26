@@ -577,6 +577,14 @@ static VALUE t_detach_fd (VALUE self, VALUE signature)
 	return INT2NUM(evma_detach_fd (NUM2ULONG (signature)));
 }
 
+/*********************
+t_get_file_descriptor
+*********************/
+static VALUE t_get_file_descriptor (VALUE self, VALUE signature)
+{
+	return INT2NUM(evma_get_file_descriptor (NUM2ULONG (signature)));
+}
+
 /**************
 t_get_sock_opt
 **************/
@@ -1229,6 +1237,7 @@ extern "C" void Init_rubyeventmachine()
 
 	rb_define_module_function (EmModule, "attach_fd", (VALUE (*)(...))t_attach_fd, 2);
 	rb_define_module_function (EmModule, "detach_fd", (VALUE (*)(...))t_detach_fd, 1);
+	rb_define_module_function (EmModule, "get_file_descriptor", (VALUE (*)(...))t_get_file_descriptor, 1);
 	rb_define_module_function (EmModule, "get_sock_opt", (VALUE (*)(...))t_get_sock_opt, 3);
 	rb_define_module_function (EmModule, "set_sock_opt", (VALUE (*)(...))t_set_sock_opt, 4);
 	rb_define_module_function (EmModule, "set_notify_readable", (VALUE (*)(...))t_set_notify_readable, 2);
