@@ -69,7 +69,7 @@ class TestAttach < Test::Unit::TestCase
   def test_attach_server
     $before = TCPServer.new("127.0.0.1", @port)
     EM.run {
-      EM.attach_server $before.fileno, EchoServer
+      EM.attach_server $before, EchoServer
 
       handler = Class.new(EM::Connection) do
         def initialize

@@ -533,15 +533,11 @@ module EventMachine
 
   # Attach to an existing socket's file descriptor. The socket may have been
   # started with {EventMachine.start_server}.
-  def self.attach_server sd, handler=nil, *args, &block
+  def self.attach_server sock, handler=nil, *args, &block
     klass = klass_from_handler(Connection, handler, *args)
+    sd = sock.respond_to?(:fileno) ? sock.fileno : sock
     s = attach_sd(sd)
-    @acceptors[s] = [klass,args,block]
-  end
-
-  # Attach to a socket server created outside of EventMachine.
-  def self.attach_socket_server sock, handler=nil, *args, &block
-    attach_server(sock.fileno, handler, *args, &block)
+    @acceptors[s] = [klass,args,block,sock]
   end
 
   # Stop a TCP server socket that was started with {EventMachine.start_server}.
