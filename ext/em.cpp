@@ -1513,8 +1513,6 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	if (!bind_here)
 		return 0;
 
-	unsigned long output_binding = 0;
-
 	//struct sockaddr_in sin;
 
 	int sd_accept = socket (family, SOCK_STREAM, 0);
@@ -1551,25 +1549,7 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 		goto fail;
 	}
 
-	{
-		// Set the acceptor non-blocking.
-		// THIS IS CRUCIALLY IMPORTANT because we read it in a select loop.
-		if (!SetSocketNonblocking (sd_accept)) {
-		//int val = fcntl (sd_accept, F_GETFL, 0);
-		//if (fcntl (sd_accept, F_SETFL, val | O_NONBLOCK) == -1) {
-			goto fail;
-		}
-	}
-
-	{ // Looking good.
-		AcceptorDescriptor *ad = new AcceptorDescriptor (sd_accept, this);
-		if (!ad)
-			throw std::runtime_error ("unable to allocate acceptor");
-		Add (ad);
-		output_binding = ad->GetBinding();
-	}
-
-	return output_binding;
+	return AttachSD(sd_accept);
 
 	fail:
 	if (sd_accept != INVALID_SOCKET)
@@ -1860,7 +1840,6 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 
 	// The whole rest of this function is only compiled on Unix systems.
 	#ifdef OS_UNIX
-	unsigned long output_binding = 0;
 
 	struct sockaddr_un s_sun;
 
@@ -1898,6 +1877,24 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 		goto fail;
 	}
 
+	return AttachSD(sd_accept);
+
+	fail:
+	if (sd_accept != INVALID_SOCKET)
+		close (sd_accept);
+	return 0;
+	#endif // OS_UNIX
+}
+
+
+/**************************************
+EventMachine_t::AttachSD
+**************************************/
+
+const unsigned long EventMachine_t::AttachSD (int sd_accept)
+{
+	unsigned long output_binding = 0;
+
 	{
 		// Set the acceptor non-blocking.
 		// THIS IS CRUCIALLY IMPORTANT because we read it in a select loop.
@@ -1922,7 +1919,6 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 	if (sd_accept != INVALID_SOCKET)
 		close (sd_accept);
 	return 0;
-	#endif // OS_UNIX
 }
 
 
