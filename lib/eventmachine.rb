@@ -538,6 +538,7 @@ module EventMachine
     sd = sock.respond_to?(:fileno) ? sock.fileno : sock
     s = attach_sd(sd)
     @acceptors[s] = [klass,args,block,sock]
+    s
   end
 
   # Stop a TCP server socket that was started with {EventMachine.start_server}.
