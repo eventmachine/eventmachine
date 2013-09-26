@@ -68,8 +68,9 @@ class TestAttach < Test::Unit::TestCase
 
   def test_attach_server
     $before = TCPServer.new("127.0.0.1", @port)
+    sig     = nil
     EM.run {
-      EM.attach_server $before, EchoServer
+      sig = EM.attach_server $before, EchoServer
 
       handler = Class.new(EM::Connection) do
         def initialize
@@ -83,6 +84,7 @@ class TestAttach < Test::Unit::TestCase
 
     assert_equal false, $before.closed?
     assert_equal "hello world", $received_data
+    assert sig.is_a?(Integer)
   end
 
   def test_attach_pipe
