@@ -50,6 +50,7 @@ module EventMachine
     #
     def initialize(list, concurrency = 1)
       raise ArgumentError, 'argument must be an array' unless list.respond_to?(:to_a)
+      raise ArgumentError, 'concurrency must be bigger than zero' unless (concurrency > 0)
       @list = list.to_a.dup
       @concurrency = concurrency
 
@@ -224,47 +225,7 @@ module EventMachine
   end
 end
 
-if __FILE__ == $0
-  $:.unshift File.join(File.dirname(__FILE__), '..')
-  require 'eventmachine'
-
-  # TODO: real tests
-  # TODO: pass in one object instead of two? .each{ |iter| puts iter.current; iter.next }
-  # TODO: support iter.pause/resume/stop/break/continue?
-  # TODO: create some exceptions instead of using RuntimeError
-  # TODO: support proc instead of enumerable? EM::Iterator.new(proc{ return queue.pop })
-
-  EM.run{
-    EM::Iterator.new(1..50).each{ |num,iter| p num; iter.next }
-    EM::Iterator.new([1,2,3], 10).each{ |num,iter| p num; iter.next }
-
-    i = EM::Iterator.new(1..100, 5)
-    i.each(proc{|num,iter|
-      p num.to_s
-      iter.next
-    }, proc{
-      p :done
-    })
-    EM.add_timer(0.03){
-      i.concurrency = 1
-    }
-    EM.add_timer(0.04){
-      i.concurrency = 3
-    }
-
-    EM::Iterator.new(100..150).map(proc{ |num,iter|
-      EM.add_timer(0.01){ iter.return(num) }
-    }, proc{ |results|
-      p results
-    })
-
-    EM::Iterator.new(%w[ pwd uptime uname date ], 2).inject({}, proc{ |hash,cmd,iter|
-      EM.system(cmd){ |output,status|
-        hash[cmd] = status.exitstatus == 0 ? output.strip : nil
-        iter.return(hash)
-      }
-    }, proc{ |results|
-      p results
-    })
-  }
-end
+# TODO: pass in one object instead of two? .each{ |iter| puts iter.current; iter.next }
+# TODO: support iter.pause/resume/stop/break/continue?
+# TODO: create some exceptions instead of using RuntimeError
+# TODO: support proc instead of enumerable? EM::Iterator.new(proc{ return queue.pop })
