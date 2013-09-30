@@ -50,6 +50,7 @@ module EventMachine
     #
     def initialize(list, concurrency = 1)
       raise ArgumentError, 'argument must be an array' unless list.respond_to?(:to_a)
+      raise ArgumentError, 'concurrency must be bigger than zero' unless (concurrency > 0)
       @list = list.to_a.dup
       @concurrency = concurrency
 
