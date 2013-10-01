@@ -235,6 +235,7 @@ public class EmReactor {
 
 			b = createBinding();
 			EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector);
+			ec.setServerMode();
 			Connections.put (b, ec);
 			NewConnections.add (b);
 
