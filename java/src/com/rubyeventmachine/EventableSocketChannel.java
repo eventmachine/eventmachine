@@ -40,10 +40,11 @@ import java.nio.channels.*;
 import java.nio.*;
 import java.io.*;
 import java.net.Socket;
+
 import javax.net.ssl.*;
 import javax.net.ssl.SSLEngineResult.*;
-import java.lang.reflect.Field;
 
+import java.lang.reflect.Field;
 import java.security.*;
 
 public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
@@ -251,6 +252,11 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 		}
 	}
 
+	public void setTlsParms(KeyStore keyStore, boolean verifyPeer) {
+		// TODO Auto-generated method stub
+		
+	}
+	
 	public void startTls() {
 		if (sslEngine == null) {
 			try {

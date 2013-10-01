@@ -440,6 +440,10 @@ public class EmReactor {
 			mySelector.wakeup();
 	}
 
+	public void setTlsParms(long sig, KeyStore keyStore, boolean verifyPeer) {
+		((EventableSocketChannel) Connections.get(sig)).setTlsParms(keyStore, verifyPeer);
+	}
+	
 	public void startTls (long sig) throws NoSuchAlgorithmException, KeyManagementException {
 		Connections.get(sig).startTls();
 	}
