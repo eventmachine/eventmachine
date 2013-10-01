@@ -40,10 +40,6 @@ import java.nio.channels.*;
 import java.nio.*;
 import java.io.*;
 import java.net.Socket;
-
-import javax.net.ssl.*;
-import javax.net.ssl.SSLEngineResult.*;
-
 import java.lang.reflect.Field;
 import java.security.*;
 
@@ -58,8 +54,9 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 	boolean bNotifyReadable;
 	boolean bNotifyWritable;
 	
-	SSLEngine sslEngine;
-	SSLContext sslContext;
+	SslBox sslBox;
+	private KeyStore keyStore;
+	private boolean verifyPeer;
 	private boolean bIsServer;
 
 	public EventableSocketChannel (SocketChannel sc, long _binding, Selector sel, EventCallback callback) {
@@ -150,20 +147,7 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 	
 	public void scheduleOutboundData (ByteBuffer bb) {
 		if (!bCloseScheduled && bb.remaining() > 0) {
-			if (sslEngine != null) {
-				try {
-					ByteBuffer b = ByteBuffer.allocate(32*1024); // TODO, preallocate this buffer.
-					sslEngine.wrap(bb, b);
-					b.flip();
-					outboundQ.addLast(b);
-				} catch (SSLException e) {
-					throw new RuntimeException ("ssl error");
-				}
-			}
-			else {
-				outboundQ.addLast(bb);
-			}
-
+			outboundQ.addLast( (sslBox != null) ? sslBox.encryptOutboundBuffer(bb) : bb ); 
 			updateEvents();
 		}
 	}
@@ -253,46 +237,19 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 	}
 
 	public void setTlsParms(KeyStore keyStore, boolean verifyPeer) {
-		// TODO Auto-generated method stub
-		
+		this.keyStore = keyStore;
+		this.verifyPeer = verifyPeer;
 	}
 	
 	public void startTls() {
-		if (sslEngine == null) {
-			try {
-				sslContext = SSLContext.getInstance("TLS");
-				sslContext.init(null, null, null); // TODO, fill in the parameters.
-				sslEngine = sslContext.createSSLEngine(); // TODO, should use the parameterized version, to get Kerb stuff and session re-use.
-				sslEngine.setUseClientMode(false);
-			} catch (NoSuchAlgorithmException e) {
-				throw new RuntimeException ("unable to start TLS"); // TODO, get rid of this.				
-			} catch (KeyManagementException e) {
-				throw new RuntimeException ("unable to start TLS"); // TODO, get rid of this.				
-			}
+		if (sslBox == null) {
+			Object[] peerName = getPeerName();
+			int port = (Integer) peerName[0];
+			String host = (String) peerName[1];
+			sslBox = new SslBox(bIsServer, keyStore, verifyPeer, host, port);
 		}
-		System.out.println ("Starting TLS");
 	}
 	
-	public ByteBuffer dispatchInboundData (ByteBuffer bb) throws SSLException {
-		if (sslEngine != null) {
-			if (true) throw new RuntimeException ("TLS currently unimplemented");
-			System.setProperty("javax.net.debug", "all");
-			ByteBuffer w = ByteBuffer.allocate(32*1024); // TODO, WRONG, preallocate this buffer.
-			SSLEngineResult res = sslEngine.unwrap(bb, w);
-			if (res.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
-				Runnable r;
-				while ((r = sslEngine.getDelegatedTask()) != null) {
-					r.run();
-				}
-			}
-			System.out.println (bb);
-			w.flip();
-			return w;
-		}
-		else
-			return bb;
-	}
-
 	public Object[] getPeerName () {
 		Socket sock = channel.socket();
 		return new Object[]{ sock.getPort(), sock.getInetAddress().getHostAddress() };
