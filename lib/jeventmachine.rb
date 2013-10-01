@@ -260,9 +260,9 @@ module EventMachine
     @em.getConnectionCount
   end
 
-  def self.set_tls_parms(sig, params)
-  end
-  def self.start_tls(sig)
+  def self.set_tls_parms(sig, privkeyfile, certchainfile, verify_peer)
+    keystore = KeyStoreBuilder.create privkeyfile, certchainfile unless (privkeyfile.empty? or certchainfile.empty?) 
+    @em.setTlsParms(sig, keystore, (!!verify_peer))
   end
   def self.send_file_data(sig, filename)
   end
@@ -274,3 +274,39 @@ module EventMachine
   end
 end
 
+module KeyStoreBuilder
+  require 'bouncy-castle-java'
+  java_import java.io.FileReader
+  java_import java.io.FileInputStream
+  java_import java.security.cert.Certificate
+  java_import java.security.cert.CertificateFactory
+  java_import java.security.KeyStore
+  java_import java.security.Security
+  java_import org.bouncycastle.openssl.PEMReader
+  java_import org.bouncycastle.jce.provider.BouncyCastleProvider
+  @name = 'em_java_tls_key' # TODO - find a correct value, or whether it even really matters.
+  @initialized = false
+
+  def self.init
+    unless @initialized
+      Security.add_provider BouncyCastleProvider.new
+      @initialized = true
+    end
+  end
+
+  def self.create(privkeyfile, certchainfile)
+    self.init
+    
+    key_reader = FileReader.new privkeyfile
+    key_pair = PEMReader.new(key_reader).read_object
+
+    cert_stream = FileInputStream.new certchainfile
+    certs = CertificateFactory.get_instance('X.509', 'BC').generate_certificates cert_stream
+
+    store = KeyStore.get_instance 'PKCS12', 'BC'
+    store.load nil, nil
+    store.set_key_entry @name, key_pair.get_private, nil, certs.to_array(Certificate[certs.size].new)
+
+    store
+  end
+end
