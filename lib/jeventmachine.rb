@@ -141,7 +141,7 @@ module EventMachine
     @em.startTls sig
   end
   def self.ssl?
-    false
+    true
   end
   def self.signal_loopbreak
     @em.signalLoopbreak
