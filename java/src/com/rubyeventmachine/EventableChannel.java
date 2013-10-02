@@ -32,13 +32,16 @@ package com.rubyeventmachine;
 import java.nio.ByteBuffer;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.Selector;
 
 
 public abstract class EventableChannel {	
 	protected final long binding;
+	protected final Selector selector;
 	
-	public EventableChannel(long binding) {
+	public EventableChannel(long binding, Selector selector) {
 		this.binding = binding;
+		this.selector = selector;
 	}
 
 	public abstract void scheduleOutboundData (ByteBuffer bb);

@@ -48,7 +48,6 @@ import java.lang.reflect.Field;
 import java.security.*;
 
 public class EventableSocketChannel extends EventableChannel {
-	Selector selector;
 	SelectionKey channelKey;
 	SocketChannel channel;
 
@@ -66,9 +65,8 @@ public class EventableSocketChannel extends EventableChannel {
 	private boolean bIsServer;
 
 	public EventableSocketChannel (SocketChannel sc, long _binding, Selector sel) {
-		super(_binding);
+		super(_binding, sel);
 		channel = sc;
-		selector = sel;
 		bCloseScheduled = false;
 		bConnectPending = false;
 		bWatchOnly = false;
