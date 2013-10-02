@@ -106,17 +106,12 @@ public class EmReactor {
 	}
 
 	void addNewConnections() {
-		ListIterator<EventableSocketChannel> iter = DetachedConnections.listIterator(0);
-		while (iter.hasNext()) {
-			EventableSocketChannel ec = iter.next();
+		for (EventableSocketChannel ec : DetachedConnections) {
 			ec.cleanup();
 		}
 		DetachedConnections.clear();
 
-		ListIterator<Long> iter2 = NewConnections.listIterator(0);
-		while (iter2.hasNext()) {
-			long b = iter2.next();
-
+        for (long b : NewConnections) {
 			EventableChannel ec = Connections.get(b);
 			if (ec != null) {
 				try {
@@ -130,10 +125,7 @@ public class EmReactor {
 	}
 
 	void removeUnboundConnections() {
-		ListIterator<Long> iter = UnboundConnections.listIterator(0);
-		while (iter.hasNext()) {
-			long b = iter.next();
-
+		for (long b : UnboundConnections) {
 			EventableChannel ec = Connections.remove(b);
 			if (ec != null) {
 				callback.trigger(b, EM_CONNECTION_UNBOUND, null, (long) 0);
@@ -179,7 +171,8 @@ public class EmReactor {
 		Iterator<SelectionKey> it = mySelector.selectedKeys().iterator();
 		while (it.hasNext()) {
 			SelectionKey k = it.next();
-			it.remove();
+			it.remove(); // TODO: do we need to remove() here? 
+			             // if not, this can be refactored to a foreach construct
 
 			if (k.isConnectable())
 				isConnectable(k);
@@ -295,10 +288,9 @@ public class EmReactor {
 		mySelector = null;
 
 		// run down open connections and sockets.
-		Iterator<ServerSocketChannel> i = Acceptors.values().iterator();
-		while (i.hasNext()) {
+		for (ServerSocketChannel c : Acceptors.values()) {
 			try {
-				i.next().close();
+				c.close();
 			} catch (IOException e) {}
 		}
 
@@ -308,18 +300,14 @@ public class EmReactor {
 		// XXX: The correct behavior here would be to latch the various reactor methods to return
 		// immediately if the reactor is shutting down.
 		ArrayList<EventableChannel> conns = new ArrayList<EventableChannel>();
-		Iterator<EventableChannel> i2 = Connections.values().iterator();
-		while (i2.hasNext()) {
-			EventableChannel ec = i2.next();
+		for (EventableChannel ec : Connections.values()) {
 			if (ec != null) {
 				conns.add (ec);
 			}
 		}
 		Connections.clear();
 
-		ListIterator<EventableChannel> i3 = conns.listIterator(0);
-		while (i3.hasNext()) {
-			EventableChannel ec = i3.next();
+		for (EventableChannel ec : conns) {
 			callback.trigger(ec.getBinding(), EM_CONNECTION_UNBOUND, null, (long) 0);
 			ec.close();
 
@@ -328,9 +316,7 @@ public class EmReactor {
 				DetachedConnections.add (sc);
 		}
 
-		ListIterator<EventableSocketChannel> i4 = DetachedConnections.listIterator(0);
-		while (i4.hasNext()) {
-			EventableSocketChannel ec = i4.next();
+		for (EventableSocketChannel ec : DetachedConnections) {
 			ec.cleanup();
 		}
 		DetachedConnections.clear();
@@ -358,9 +344,8 @@ public class EmReactor {
 			Timers.remove(k);
 
 			// Fire all timers at this timestamp
-			ListIterator<Long> iter = callbacks.listIterator(0);
-			while (iter.hasNext()) {
-				callback.trigger((long) 0, EM_TIMER_FIRED, null, iter.next().longValue());
+			for (long timerCallback : callbacks) {
+				callback.trigger((long) 0, EM_TIMER_FIRED, null, timerCallback);
 			}
 		}
 	}
