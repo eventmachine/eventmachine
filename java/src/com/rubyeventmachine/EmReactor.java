@@ -214,28 +214,15 @@ public class EmReactor {
 
 	void isReadable (SelectionKey k) {
 		EventableChannel<?> ec = (EventableChannel<?>) k.attachment();
-		try {
-			ec.read();
-		} catch (IOException e) {
+		if (!ec.read()) {
 			UnboundConnections.add (ec.getBinding());
 		}
 	}
 
 	void isWritable (SelectionKey k) {
 		EventableChannel<?> ec = (EventableChannel<?>) k.attachment();
-		long b = ec.getBinding();
-
-		if (ec.isWatchOnly()) {
-			if (ec.isNotifyWritable())
-				callback.trigger(b, EventCode.EM_CONNECTION_NOTIFY_WRITABLE, null, (long) 0);
-		}
-		else {
-			try {
-				if (!ec.writeOutboundData())
-					UnboundConnections.add (b);
-			} catch (IOException e) {
-				UnboundConnections.add (b);
-			}
+		if (!ec.write()) {
+			UnboundConnections.add (ec.getBinding());
 		}
 	}
 

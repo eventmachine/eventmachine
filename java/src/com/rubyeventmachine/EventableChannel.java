@@ -73,7 +73,7 @@ public abstract class EventableChannel<OutboundPacketType> {
 	 */
 	public abstract void close();
 
-	public abstract boolean writeOutboundData() throws IOException;
+	protected abstract boolean writeOutboundData() throws IOException;
 
 	public abstract void setCommInactivityTimeout(long seconds);
 
@@ -87,19 +87,39 @@ public abstract class EventableChannel<OutboundPacketType> {
 
 	public abstract boolean isNotifyWritable();
 
-	public void read() throws IOException {
+	public boolean read() {
 		if (isWatchOnly()) {
 			if (isNotifyReadable())
 				callback.trigger(binding, EventCode.EM_CONNECTION_NOTIFY_READABLE, null, 0);
+			return true;
 		} else {
 			readBuffer.clear();
 
-			readInboundData(readBuffer);
-			readBuffer.flip();
-			if (readBuffer.limit() > 0)
-				callback.trigger(binding, EventCode.EM_CONNECTION_READ,	readBuffer, 0);
+			try {
+				readInboundData(readBuffer);
+				readBuffer.flip();
+				if (readBuffer.limit() > 0)
+					callback.trigger(binding, EventCode.EM_CONNECTION_READ,	readBuffer, 0);
+				return true;
+			} catch (IOException e) {
+				return false;
+			}
 		}
 
+	}
+
+	public boolean write() {
+		if (isWatchOnly()) {
+			if (isNotifyWritable())
+				callback.trigger(binding, EventCode.EM_CONNECTION_NOTIFY_WRITABLE, null, 0);
+			return true;
+		} else {
+			try {
+				return writeOutboundData();
+			} catch (IOException e) {
+				return false;
+			}
+		}
 	}
 
 }
