@@ -43,8 +43,8 @@ public class EventableDatagramChannel extends EventableChannel<DatagramPacket> {
 	boolean bCloseScheduled;
 	SocketAddress returnAddress;
 
-	public EventableDatagramChannel (DatagramChannel dc, long _binding, Selector sel) throws ClosedChannelException {
-		super(_binding, sel);
+	public EventableDatagramChannel (DatagramChannel dc, long _binding, Selector sel, EventCallback callback) throws ClosedChannelException {
+		super(_binding, sel, callback);
 		channel = dc;
 		bCloseScheduled = false;
 		

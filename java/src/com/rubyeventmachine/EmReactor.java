@@ -48,7 +48,6 @@ public class EmReactor {
 	private boolean bRunReactor;
 	private long BindingIndex;
 	private AtomicBoolean loopBreaker;
-	private ByteBuffer myReadBuffer;
 	private int timerQuantum;
 	private EventCallback callback;
 
@@ -64,7 +63,6 @@ public class EmReactor {
 		BindingIndex = 0;
 		loopBreaker = new AtomicBoolean();
 		loopBreaker.set(false);
-		myReadBuffer = ByteBuffer.allocate(32*1024); // don't use a direct buffer. Ruby doesn't seem to like them.
 		timerQuantum = 98;
 	}
 
@@ -205,7 +203,7 @@ public class EmReactor {
 			}
 
 			b = createBinding();
-			EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector);
+			EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector, callback);
 			ec.setServerMode();
 			Connections.put (b, ec);
 			NewConnections.add (b);
@@ -216,22 +214,10 @@ public class EmReactor {
 
 	void isReadable (SelectionKey k) {
 		EventableChannel<?> ec = (EventableChannel<?>) k.attachment();
-		long b = ec.getBinding();
-
-		if (ec.isWatchOnly()) {
-			if (ec.isNotifyReadable())
-				callback.trigger(b, EventCode.EM_CONNECTION_NOTIFY_READABLE, null, (long) 0);
-		} else {
-			myReadBuffer.clear();
-
-			try {
-				ec.readInboundData (myReadBuffer);
-				myReadBuffer.flip();
-				if (myReadBuffer.limit() > 0)
-					callback.trigger(b, EventCode.EM_CONNECTION_READ, myReadBuffer, (long) 0);
-			} catch (IOException e) {
-				UnboundConnections.add (b);
-			}
+		try {
+			ec.read();
+		} catch (IOException e) {
+			UnboundConnections.add (ec.getBinding());
 		}
 	}
 
@@ -384,7 +370,7 @@ public class EmReactor {
 		dg.configureBlocking(false);
 		dg.socket().bind(address);
 		long b = createBinding();
-		EventableChannel<?> ec = new EventableDatagramChannel (dg, b, mySelector);
+		EventableChannel<?> ec = new EventableDatagramChannel (dg, b, mySelector, callback);
 		dg.register(mySelector, SelectionKey.OP_READ, ec);
 		Connections.put(b, ec);
 		return b;
@@ -427,7 +413,7 @@ public class EmReactor {
 			if (bindAddr != null)
 				sc.socket().bind(new InetSocketAddress (bindAddr, bindPort));
 
-			EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector);
+			EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector, callback);
 
 			if (sc.connect (new InetSocketAddress (address, port))) {
 				// Connection returned immediately. Can happen with localhost connections.
@@ -495,7 +481,7 @@ public class EmReactor {
 	public long attachChannel (SocketChannel sc, boolean watch_mode) {
 		long b = createBinding();
 
-		EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector);
+		EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector, callback);
 
 		ec.setAttached();
 		if (watch_mode)

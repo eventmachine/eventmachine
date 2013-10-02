@@ -61,8 +61,8 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 	SSLContext sslContext;
 	private boolean bIsServer;
 
-	public EventableSocketChannel (SocketChannel sc, long _binding, Selector sel) {
-		super(_binding, sel);
+	public EventableSocketChannel (SocketChannel sc, long _binding, Selector sel, EventCallback callback) {
+		super(_binding, sel, callback);
 		channel = sc;
 		bCloseScheduled = false;
 		bConnectPending = false;

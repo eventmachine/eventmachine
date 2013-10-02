@@ -26,7 +26,6 @@
  * 
  */
 
-
 package com.rubyeventmachine;
 
 import java.nio.ByteBuffer;
@@ -35,50 +34,72 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.Selector;
 import java.util.LinkedList;
 
-
-public abstract class EventableChannel<OutboundPacketType> {	
+public abstract class EventableChannel<OutboundPacketType> {
 	protected final long binding;
 	protected final Selector selector;
 	protected final LinkedList<OutboundPacketType> outboundQ;
-	
-	public EventableChannel(long binding, Selector selector) {
+	private final EventCallback callback;
+	private final ByteBuffer readBuffer;
+
+	public EventableChannel(long binding, Selector selector,
+			EventCallback callback) {
 		this.binding = binding;
 		this.selector = selector;
+		this.callback = callback;
 		this.outboundQ = new LinkedList<OutboundPacketType>();
+		this.readBuffer = ByteBuffer.allocate(32*1024); // don't use a direct buffer. Ruby doesn't seem to like them.
 	}
 
-	public abstract void scheduleOutboundData (ByteBuffer bb);
-	
-	public abstract void scheduleOutboundDatagram (ByteBuffer bb, String recipAddress, int recipPort);
-	
-	public abstract boolean scheduleClose (boolean afterWriting);
-	
+	public abstract void scheduleOutboundData(ByteBuffer bb);
+
+	public abstract void scheduleOutboundDatagram(ByteBuffer bb,
+			String recipAddress, int recipPort);
+
+	public abstract boolean scheduleClose(boolean afterWriting);
+
 	public abstract void startTls();
-	
+
 	public long getBinding() {
 		return binding;
 	}
-	
-	public abstract void readInboundData (ByteBuffer dst) throws IOException;
-	
+
+	protected abstract void readInboundData(ByteBuffer dst) throws IOException;
+
 	public abstract void register() throws ClosedChannelException;
 
 	/**
-	 * This is called by the reactor after it finishes running.
-	 * The idea is to free network resources.
+	 * This is called by the reactor after it finishes running. The idea is to
+	 * free network resources.
 	 */
 	public abstract void close();
-	
+
 	public abstract boolean writeOutboundData() throws IOException;
 
-	public abstract void setCommInactivityTimeout (long seconds);
+	public abstract void setCommInactivityTimeout(long seconds);
 
 	public abstract Object[] getPeerName();
+
 	public abstract Object[] getSockName();
 
 	public abstract boolean isWatchOnly();
 
 	public abstract boolean isNotifyReadable();
+
 	public abstract boolean isNotifyWritable();
+
+	public void read() throws IOException {
+		if (isWatchOnly()) {
+			if (isNotifyReadable())
+				callback.trigger(binding, EventCode.EM_CONNECTION_NOTIFY_READABLE, null, 0);
+		} else {
+			readBuffer.clear();
+
+			readInboundData(readBuffer);
+			readBuffer.flip();
+			if (readBuffer.limit() > 0)
+				callback.trigger(binding, EventCode.EM_CONNECTION_READ,	readBuffer, 0);
+		}
+
+	}
 
 }
