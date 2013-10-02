@@ -47,7 +47,7 @@ import java.lang.reflect.Field;
 
 import java.security.*;
 
-public class EventableSocketChannel implements EventableChannel {
+public class EventableSocketChannel extends EventableChannel {
 	Selector selector;
 	SelectionKey channelKey;
 	SocketChannel channel;

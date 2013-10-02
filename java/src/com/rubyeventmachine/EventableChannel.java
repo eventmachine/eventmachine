@@ -33,38 +33,38 @@ import java.nio.ByteBuffer;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 
-public interface EventableChannel {
+
+public abstract class EventableChannel {
+	public abstract void scheduleOutboundData (ByteBuffer bb);
 	
-	public void scheduleOutboundData (ByteBuffer bb);
+	public abstract void scheduleOutboundDatagram (ByteBuffer bb, String recipAddress, int recipPort);
 	
-	public void scheduleOutboundDatagram (ByteBuffer bb, String recipAddress, int recipPort);
+	public abstract boolean scheduleClose (boolean afterWriting);
 	
-	public boolean scheduleClose (boolean afterWriting);
+	public abstract void startTls();
 	
-	public void startTls();
+	public abstract long getBinding();
 	
-	public long getBinding();
+	public abstract void readInboundData (ByteBuffer dst) throws IOException;
 	
-	public void readInboundData (ByteBuffer dst) throws IOException;
-	
-	public void register() throws ClosedChannelException;
+	public abstract void register() throws ClosedChannelException;
 
 	/**
 	 * This is called by the reactor after it finishes running.
 	 * The idea is to free network resources.
 	 */
-	public void close();
+	public abstract void close();
 	
-	public boolean writeOutboundData() throws IOException;
+	public abstract boolean writeOutboundData() throws IOException;
 
-	public void setCommInactivityTimeout (long seconds);
+	public abstract void setCommInactivityTimeout (long seconds);
 
-	public Object[] getPeerName();
-	public Object[] getSockName();
+	public abstract Object[] getPeerName();
+	public abstract Object[] getSockName();
 
-	public boolean isWatchOnly();
+	public abstract boolean isWatchOnly();
 
-	public boolean isNotifyReadable();
-	public boolean isNotifyWritable();
+	public abstract boolean isNotifyReadable();
+	public abstract boolean isNotifyWritable();
 
 }

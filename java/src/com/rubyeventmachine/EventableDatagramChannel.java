@@ -38,7 +38,7 @@ import java.util.LinkedList;
 import java.io.*;
 import java.net.*;
 
-public class EventableDatagramChannel implements EventableChannel {
+public class EventableDatagramChannel extends EventableChannel {
 	
 	class Packet {
 		public ByteBuffer bb;
