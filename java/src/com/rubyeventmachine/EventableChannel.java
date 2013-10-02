@@ -33,15 +33,18 @@ import java.nio.ByteBuffer;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.Selector;
+import java.util.LinkedList;
 
 
-public abstract class EventableChannel {	
+public abstract class EventableChannel<OutboundPacketType> {	
 	protected final long binding;
 	protected final Selector selector;
+	protected final LinkedList<OutboundPacketType> outboundQ;
 	
 	public EventableChannel(long binding, Selector selector) {
 		this.binding = binding;
 		this.selector = selector;
+		this.outboundQ = new LinkedList<OutboundPacketType>();
 	}
 
 	public abstract void scheduleOutboundData (ByteBuffer bb);

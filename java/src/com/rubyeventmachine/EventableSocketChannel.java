@@ -38,7 +38,6 @@ package com.rubyeventmachine;
 
 import java.nio.channels.*;
 import java.nio.*;
-import java.util.*;
 import java.io.*;
 import java.net.Socket;
 import javax.net.ssl.*;
@@ -47,11 +46,9 @@ import java.lang.reflect.Field;
 
 import java.security.*;
 
-public class EventableSocketChannel extends EventableChannel {
+public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 	SelectionKey channelKey;
 	SocketChannel channel;
-
-	LinkedList<ByteBuffer> outboundQ;
 
 	boolean bCloseScheduled;
 	boolean bConnectPending;
@@ -74,7 +71,6 @@ public class EventableSocketChannel extends EventableChannel {
 		bNotifyReadable = false;
 		bNotifyWritable = false;
 		bIsServer = false;
-		outboundQ = new LinkedList<ByteBuffer>();
 	}
 	
 	public SocketChannel getChannel() {

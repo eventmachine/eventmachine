@@ -39,7 +39,7 @@ import java.security.*;
 public class EmReactor {
 	private Selector mySelector;
 	private TreeMap<Long, ArrayList<Long>> Timers;
-	private HashMap<Long, EventableChannel> Connections;
+	private HashMap<Long, EventableChannel<?>> Connections;
 	private HashMap<Long, ServerSocketChannel> Acceptors;
 	private ArrayList<Long> NewConnections;
 	private ArrayList<Long> UnboundConnections;
@@ -55,7 +55,7 @@ public class EmReactor {
 	public EmReactor(EventCallback callback) {
 		this.callback = callback;
 		Timers = new TreeMap<Long, ArrayList<Long>>();
-		Connections = new HashMap<Long, EventableChannel>();
+		Connections = new HashMap<Long, EventableChannel<?>>();
 		Acceptors = new HashMap<Long, ServerSocketChannel>();
 		NewConnections = new ArrayList<Long>();
 		UnboundConnections = new ArrayList<Long>();
@@ -99,7 +99,7 @@ public class EmReactor {
 		DetachedConnections.clear();
 
         for (long b : NewConnections) {
-			EventableChannel ec = Connections.get(b);
+			EventableChannel<?> ec = Connections.get(b);
 			if (ec != null) {
 				try {
 					ec.register();
@@ -113,7 +113,7 @@ public class EmReactor {
 
 	void removeUnboundConnections() {
 		for (long b : UnboundConnections) {
-			EventableChannel ec = Connections.remove(b);
+			EventableChannel<?> ec = Connections.remove(b);
 			if (ec != null) {
 				callback.trigger(b, EventCode.EM_CONNECTION_UNBOUND, null, (long) 0);
 				ec.close();
@@ -215,7 +215,7 @@ public class EmReactor {
 	}
 
 	void isReadable (SelectionKey k) {
-		EventableChannel ec = (EventableChannel) k.attachment();
+		EventableChannel<?> ec = (EventableChannel<?>) k.attachment();
 		long b = ec.getBinding();
 
 		if (ec.isWatchOnly()) {
@@ -236,7 +236,7 @@ public class EmReactor {
 	}
 
 	void isWritable (SelectionKey k) {
-		EventableChannel ec = (EventableChannel) k.attachment();
+		EventableChannel<?> ec = (EventableChannel<?>) k.attachment();
 		long b = ec.getBinding();
 
 		if (ec.isWatchOnly()) {
@@ -286,15 +286,15 @@ public class EmReactor {
 		// which will add to the Connections HashMap, causing a ConcurrentModificationException.
 		// XXX: The correct behavior here would be to latch the various reactor methods to return
 		// immediately if the reactor is shutting down.
-		ArrayList<EventableChannel> conns = new ArrayList<EventableChannel>();
-		for (EventableChannel ec : Connections.values()) {
+		ArrayList<EventableChannel<?>> conns = new ArrayList<EventableChannel<?>>();
+		for (EventableChannel<?> ec : Connections.values()) {
 			if (ec != null) {
 				conns.add (ec);
 			}
 		}
 		Connections.clear();
 
-		for (EventableChannel ec : conns) {
+		for (EventableChannel<?> ec : conns) {
 			callback.trigger(ec.getBinding(), EventCode.EM_CONNECTION_UNBOUND, null, (long) 0);
 			ec.close();
 
@@ -384,7 +384,7 @@ public class EmReactor {
 		dg.configureBlocking(false);
 		dg.socket().bind(address);
 		long b = createBinding();
-		EventableChannel ec = new EventableDatagramChannel (dg, b, mySelector);
+		EventableChannel<?> ec = new EventableDatagramChannel (dg, b, mySelector);
 		dg.register(mySelector, SelectionKey.OP_READ, ec);
 		Connections.put(b, ec);
 		return b;
@@ -458,7 +458,7 @@ public class EmReactor {
 	}
 
 	public void closeConnection (long sig, boolean afterWriting) {
-		EventableChannel ec = Connections.get(sig);
+		EventableChannel<?> ec = Connections.get(sig);
 		if (ec != null)
 			if (ec.scheduleClose (afterWriting))
 				UnboundConnections.add (sig);

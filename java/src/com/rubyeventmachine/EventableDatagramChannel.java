@@ -34,32 +34,19 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.DatagramChannel;
-import java.util.LinkedList;
 import java.io.*;
 import java.net.*;
 
-public class EventableDatagramChannel extends EventableChannel {
-	
-	class Packet {
-		public ByteBuffer bb;
-		public SocketAddress recipient;
-		public Packet (ByteBuffer _bb, SocketAddress _recipient) {
-			bb = _bb;
-			recipient = _recipient;
-		}
-	}
+public class EventableDatagramChannel extends EventableChannel<DatagramPacket> {
 	
 	DatagramChannel channel;
 	boolean bCloseScheduled;
-	LinkedList<Packet> outboundQ;
 	SocketAddress returnAddress;
-	
 
 	public EventableDatagramChannel (DatagramChannel dc, long _binding, Selector sel) throws ClosedChannelException {
 		super(_binding, sel);
 		channel = dc;
 		bCloseScheduled = false;
-		outboundQ = new LinkedList<Packet>();
 		
 		dc.register(selector, SelectionKey.OP_READ, this);
 	}
@@ -67,7 +54,7 @@ public class EventableDatagramChannel extends EventableChannel {
 	public void scheduleOutboundData (ByteBuffer bb) {
  		try {
 			if ((!bCloseScheduled) && (bb.remaining() > 0)) {
-				outboundQ.addLast(new Packet(bb, returnAddress));
+				outboundQ.addLast(new DatagramPacket(bb, returnAddress));
  				channel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ, this);
 			}
 		} catch (ClosedChannelException e) {
@@ -78,7 +65,7 @@ public class EventableDatagramChannel extends EventableChannel {
 	public void scheduleOutboundDatagram (ByteBuffer bb, String recipAddress, int recipPort) {
  		try {
 			if ((!bCloseScheduled) && (bb.remaining() > 0)) {
-				outboundQ.addLast(new Packet (bb, new InetSocketAddress (recipAddress, recipPort)));
+				outboundQ.addLast(new DatagramPacket (bb, new InetSocketAddress (recipAddress, recipPort)));
  				channel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ, this);
 			}
 		} catch (ClosedChannelException e) {
@@ -124,7 +111,7 @@ public class EventableDatagramChannel extends EventableChannel {
 	
 	public boolean writeOutboundData() {
 		while (!outboundQ.isEmpty()) {
-			Packet p = outboundQ.getFirst();
+			DatagramPacket p = outboundQ.getFirst();
 			int written = 0;
 			try {
 				// With a datagram socket, it's ok to send an empty buffer.
