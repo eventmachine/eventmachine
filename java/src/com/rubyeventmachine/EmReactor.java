@@ -37,19 +37,6 @@ import java.util.concurrent.atomic.*;
 import java.security.*;
 
 public class EmReactor {
-	public final int EM_TIMER_FIRED = 100;
-	public final int EM_CONNECTION_READ = 101;
-	public final int EM_CONNECTION_UNBOUND = 102;
-	public final int EM_CONNECTION_ACCEPTED = 103;
-	public final int EM_CONNECTION_COMPLETED = 104;
-	public final int EM_LOOPBREAK_SIGNAL = 105;
-	public final int EM_CONNECTION_NOTIFY_READABLE = 106;
-	public final int EM_CONNECTION_NOTIFY_WRITABLE = 107;
-	public final int EM_SSL_HANDSHAKE_COMPLETED = 108;
-	public final int EM_SSL_VERIFY = 109;
-	public final int EM_PROXY_TARGET_UNBOUND = 110;
-    public final int EM_PROXY_COMPLETED = 111;
-
 	private Selector mySelector;
 	private TreeMap<Long, ArrayList<Long>> Timers;
 	private HashMap<Long, EventableChannel> Connections;
@@ -128,7 +115,7 @@ public class EmReactor {
 		for (long b : UnboundConnections) {
 			EventableChannel ec = Connections.remove(b);
 			if (ec != null) {
-				callback.trigger(b, EM_CONNECTION_UNBOUND, null, (long) 0);
+				callback.trigger(b, EventCode.EM_CONNECTION_UNBOUND, null, (long) 0);
 				ec.close();
 
 				EventableSocketChannel sc = (EventableSocketChannel) ec;
@@ -223,7 +210,7 @@ public class EmReactor {
 			Connections.put (b, ec);
 			NewConnections.add (b);
 
-			callback.trigger(((Long)k.attachment()).longValue(), EM_CONNECTION_ACCEPTED, null, b);
+			callback.trigger(((Long)k.attachment()).longValue(), EventCode.EM_CONNECTION_ACCEPTED, null, b);
 		}
 	}
 
@@ -233,7 +220,7 @@ public class EmReactor {
 
 		if (ec.isWatchOnly()) {
 			if (ec.isNotifyReadable())
-				callback.trigger(b, EM_CONNECTION_NOTIFY_READABLE, null, (long) 0);
+				callback.trigger(b, EventCode.EM_CONNECTION_NOTIFY_READABLE, null, (long) 0);
 		} else {
 			myReadBuffer.clear();
 
@@ -241,7 +228,7 @@ public class EmReactor {
 				ec.readInboundData (myReadBuffer);
 				myReadBuffer.flip();
 				if (myReadBuffer.limit() > 0)
-					callback.trigger(b, EM_CONNECTION_READ, myReadBuffer, (long) 0);
+					callback.trigger(b, EventCode.EM_CONNECTION_READ, myReadBuffer, (long) 0);
 			} catch (IOException e) {
 				UnboundConnections.add (b);
 			}
@@ -254,7 +241,7 @@ public class EmReactor {
 
 		if (ec.isWatchOnly()) {
 			if (ec.isNotifyWritable())
-				callback.trigger(b, EM_CONNECTION_NOTIFY_WRITABLE, null, (long) 0);
+				callback.trigger(b, EventCode.EM_CONNECTION_NOTIFY_WRITABLE, null, (long) 0);
 		}
 		else {
 			try {
@@ -272,7 +259,7 @@ public class EmReactor {
 
 		try {
 			if (ec.finishConnecting())
-				callback.trigger(b, EM_CONNECTION_COMPLETED, null, (long) 0);
+				callback.trigger(b, EventCode.EM_CONNECTION_COMPLETED, null, (long) 0);
 			else
 				UnboundConnections.add (b);
 		} catch (IOException e) {
@@ -308,7 +295,7 @@ public class EmReactor {
 		Connections.clear();
 
 		for (EventableChannel ec : conns) {
-			callback.trigger(ec.getBinding(), EM_CONNECTION_UNBOUND, null, (long) 0);
+			callback.trigger(ec.getBinding(), EventCode.EM_CONNECTION_UNBOUND, null, (long) 0);
 			ec.close();
 
 			EventableSocketChannel sc = (EventableSocketChannel) ec;
@@ -324,7 +311,7 @@ public class EmReactor {
 
 	void runLoopbreaks() {
 		if (loopBreaker.getAndSet(false)) {
-			callback.trigger((long) 0, EM_LOOPBREAK_SIGNAL, null, (long) 0);
+			callback.trigger((long) 0, EventCode.EM_LOOPBREAK_SIGNAL, null, (long) 0);
 		}
 	}
 
@@ -345,7 +332,7 @@ public class EmReactor {
 
 			// Fire all timers at this timestamp
 			for (long timerCallback : callbacks) {
-				callback.trigger((long) 0, EM_TIMER_FIRED, null, timerCallback);
+				callback.trigger((long) 0, EventCode.EM_TIMER_FIRED, null, timerCallback);
 			}
 		}
 	}

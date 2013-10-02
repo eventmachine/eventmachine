@@ -89,7 +89,7 @@ module EventMachine
   def self.initialize_event_machine
     @em = com.rubyeventmachine.EmReactor.new do |sig, event, buf, data|
       s = String.from_java_bytes(buf.array[buf.position...buf.limit]) if buf
-      EventMachine::event_callback sig, event, s || data
+      EventMachine::event_callback sig, event.int_value, s || data
       nil
     end
   end
