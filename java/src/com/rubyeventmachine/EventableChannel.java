@@ -38,7 +38,7 @@ public abstract class EventableChannel<OutboundPacketType> {
 	protected final long binding;
 	protected final Selector selector;
 	protected final LinkedList<OutboundPacketType> outboundQ;
-	private final EventCallback callback;
+	protected final EventCallback callback;
 	private final ByteBuffer readBuffer;
 
 	public EventableChannel(long binding, Selector selector,

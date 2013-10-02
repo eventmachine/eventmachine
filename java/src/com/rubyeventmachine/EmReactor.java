@@ -228,15 +228,8 @@ public class EmReactor {
 
 	void isConnectable (SelectionKey k) {
 		EventableSocketChannel ec = (EventableSocketChannel) k.attachment();
-		long b = ec.getBinding();
-
-		try {
-			if (ec.finishConnecting())
-				callback.trigger(b, EventCode.EM_CONNECTION_COMPLETED, null, (long) 0);
-			else
-				UnboundConnections.add (b);
-		} catch (IOException e) {
-			UnboundConnections.add (b);
+		if (!ec.finishConnecting()) {
+			UnboundConnections.add (ec.getBinding());
 		}
 	}
 

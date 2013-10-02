@@ -225,12 +225,16 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 	 * Called by the reactor when we have selected connectable.
 	 * Return false to indicate an error that should cause the connection to close.
 	 */
-	public boolean finishConnecting() throws IOException {
-		channel.finishConnect();
-
-		bConnectPending = false;
-		updateEvents();
-		return true;
+	public boolean finishConnecting() {
+		try {
+			channel.finishConnect();
+			bConnectPending = false;
+			updateEvents();
+			callback.trigger(binding, EventCode.EM_CONNECTION_COMPLETED, null, 0);
+			return true;
+		} catch (IOException e) {
+			return false;
+		}
 	}
 	
 	public boolean scheduleClose (boolean afterWriting) {
