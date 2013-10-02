@@ -109,7 +109,7 @@ public class EventableDatagramChannel extends EventableChannel<DatagramPacket> {
 		}
 	}
 	
-	public boolean writeOutboundData() {
+	protected boolean writeOutboundData() {
 		while (!outboundQ.isEmpty()) {
 			DatagramPacket p = outboundQ.getFirst();
 			int written = 0;
@@ -147,11 +147,6 @@ public class EventableDatagramChannel extends EventableChannel<DatagramPacket> {
 		// If anyone wants to close immediately, they're responsible for clearing
 		// the outbound queue.
 		return (bCloseScheduled && outboundQ.isEmpty()) ? false : true;
-	}
-
-	public void setCommInactivityTimeout (long seconds) {
-		// TODO
-		System.out.println ("DATAGRAM: SET COMM INACTIVITY UNIMPLEMENTED " + seconds);
 	}
 
 	public Object[] getPeerName () {

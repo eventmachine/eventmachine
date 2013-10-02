@@ -191,7 +191,7 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 	 * Ought to be a big performance enhancer.
 	 * @return
 	 */
-	public boolean writeOutboundData() throws IOException {
+	protected boolean writeOutboundData() throws IOException {
 		while (!outboundQ.isEmpty()) {
 			ByteBuffer b = outboundQ.getFirst();
 			if (b.remaining() > 0)
@@ -285,11 +285,6 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 		}
 		else
 			return bb;
-	}
-
-	public void setCommInactivityTimeout (long seconds) {
-		// TODO
-		System.out.println ("SOCKET: SET COMM INACTIVITY UNIMPLEMENTED " + seconds);
 	}
 
 	public Object[] getPeerName () {
