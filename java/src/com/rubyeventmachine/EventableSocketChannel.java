@@ -52,7 +52,6 @@ public class EventableSocketChannel extends EventableChannel {
 	SelectionKey channelKey;
 	SocketChannel channel;
 
-	long binding;
 	LinkedList<ByteBuffer> outboundQ;
 
 	boolean bCloseScheduled;
@@ -67,8 +66,8 @@ public class EventableSocketChannel extends EventableChannel {
 	private boolean bIsServer;
 
 	public EventableSocketChannel (SocketChannel sc, long _binding, Selector sel) {
+		super(_binding);
 		channel = sc;
-		binding = _binding;
 		selector = sel;
 		bCloseScheduled = false;
 		bConnectPending = false;
@@ -80,10 +79,6 @@ public class EventableSocketChannel extends EventableChannel {
 		outboundQ = new LinkedList<ByteBuffer>();
 	}
 	
-	public long getBinding() {
-		return binding;
-	}
-
 	public SocketChannel getChannel() {
 		return channel;
 	}

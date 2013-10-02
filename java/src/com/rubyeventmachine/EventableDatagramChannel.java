@@ -50,7 +50,6 @@ public class EventableDatagramChannel extends EventableChannel {
 	}
 	
 	DatagramChannel channel;
-	long binding;
 	Selector selector;
 	boolean bCloseScheduled;
 	LinkedList<Packet> outboundQ;
@@ -58,8 +57,8 @@ public class EventableDatagramChannel extends EventableChannel {
 	
 
 	public EventableDatagramChannel (DatagramChannel dc, long _binding, Selector sel) throws ClosedChannelException {
+		super(_binding);
 		channel = dc;
-		binding = _binding;
 		selector = sel;
 		bCloseScheduled = false;
 		outboundQ = new LinkedList<Packet>();
@@ -96,10 +95,6 @@ public class EventableDatagramChannel extends EventableChannel {
 	
 	public void startTls() {
 		throw new RuntimeException ("TLS is unimplemented on this Channel");
-	}
-	
-	public long getBinding() {
-		return binding;
 	}
 
 	public void register() throws ClosedChannelException {

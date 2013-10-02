@@ -34,7 +34,13 @@ import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 
 
-public abstract class EventableChannel {
+public abstract class EventableChannel {	
+	protected final long binding;
+	
+	public EventableChannel(long binding) {
+		this.binding = binding;
+	}
+
 	public abstract void scheduleOutboundData (ByteBuffer bb);
 	
 	public abstract void scheduleOutboundDatagram (ByteBuffer bb, String recipAddress, int recipPort);
@@ -43,7 +49,9 @@ public abstract class EventableChannel {
 	
 	public abstract void startTls();
 	
-	public abstract long getBinding();
+	public long getBinding() {
+		return binding;
+	}
 	
 	public abstract void readInboundData (ByteBuffer dst) throws IOException;
 	
