@@ -63,8 +63,10 @@ public class EmReactor {
 	private AtomicBoolean loopBreaker;
 	private ByteBuffer myReadBuffer;
 	private int timerQuantum;
+	private EventCallback callback;
 
-	public EmReactor() {
+	public EmReactor(EventCallback callback) {
+		this.callback = callback;
 		Timers = new TreeMap<Long, ArrayList<Long>>();
 		Connections = new HashMap<Long, EventableChannel>();
 		Acceptors = new HashMap<Long, ServerSocketChannel>();
@@ -78,17 +80,6 @@ public class EmReactor {
 		myReadBuffer = ByteBuffer.allocate(32*1024); // don't use a direct buffer. Ruby doesn't seem to like them.
 		timerQuantum = 98;
 	}
-
-	/**
-	 * This is a no-op stub, intended to be overridden in user code.
-	 */
-	public void eventCallback (long sig, int eventType, ByteBuffer data, long data2) {
-		System.out.println ("Default callback: "+sig+" "+eventType+" "+data+" "+data2);
-	}
-	public void eventCallback (long sig, int eventType, ByteBuffer data) {
-		eventCallback (sig, eventType, data, 0);
-	}
-
 
 	public void run() {
 		try {
@@ -145,7 +136,7 @@ public class EmReactor {
 
 			EventableChannel ec = Connections.remove(b);
 			if (ec != null) {
-				eventCallback (b, EM_CONNECTION_UNBOUND, null);
+				callback.trigger(b, EM_CONNECTION_UNBOUND, null, (long) 0);
 				ec.close();
 
 				EventableSocketChannel sc = (EventableSocketChannel) ec;
@@ -239,7 +230,7 @@ public class EmReactor {
 			Connections.put (b, ec);
 			NewConnections.add (b);
 
-			eventCallback (((Long)k.attachment()).longValue(), EM_CONNECTION_ACCEPTED, null, b);
+			callback.trigger(((Long)k.attachment()).longValue(), EM_CONNECTION_ACCEPTED, null, b);
 		}
 	}
 
@@ -249,7 +240,7 @@ public class EmReactor {
 
 		if (ec.isWatchOnly()) {
 			if (ec.isNotifyReadable())
-				eventCallback (b, EM_CONNECTION_NOTIFY_READABLE, null);
+				callback.trigger(b, EM_CONNECTION_NOTIFY_READABLE, null, (long) 0);
 		} else {
 			myReadBuffer.clear();
 
@@ -257,7 +248,7 @@ public class EmReactor {
 				ec.readInboundData (myReadBuffer);
 				myReadBuffer.flip();
 				if (myReadBuffer.limit() > 0)
-					eventCallback (b, EM_CONNECTION_READ, myReadBuffer);
+					callback.trigger(b, EM_CONNECTION_READ, myReadBuffer, (long) 0);
 			} catch (IOException e) {
 				UnboundConnections.add (b);
 			}
@@ -270,7 +261,7 @@ public class EmReactor {
 
 		if (ec.isWatchOnly()) {
 			if (ec.isNotifyWritable())
-				eventCallback (b, EM_CONNECTION_NOTIFY_WRITABLE, null);
+				callback.trigger(b, EM_CONNECTION_NOTIFY_WRITABLE, null, (long) 0);
 		}
 		else {
 			try {
@@ -288,7 +279,7 @@ public class EmReactor {
 
 		try {
 			if (ec.finishConnecting())
-				eventCallback (b, EM_CONNECTION_COMPLETED, null);
+				callback.trigger(b, EM_CONNECTION_COMPLETED, null, (long) 0);
 			else
 				UnboundConnections.add (b);
 		} catch (IOException e) {
@@ -329,7 +320,7 @@ public class EmReactor {
 		ListIterator<EventableChannel> i3 = conns.listIterator(0);
 		while (i3.hasNext()) {
 			EventableChannel ec = i3.next();
-			eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
+			callback.trigger(ec.getBinding(), EM_CONNECTION_UNBOUND, null, (long) 0);
 			ec.close();
 
 			EventableSocketChannel sc = (EventableSocketChannel) ec;
@@ -347,7 +338,7 @@ public class EmReactor {
 
 	void runLoopbreaks() {
 		if (loopBreaker.getAndSet(false)) {
-			eventCallback (0, EM_LOOPBREAK_SIGNAL, null);
+			callback.trigger((long) 0, EM_LOOPBREAK_SIGNAL, null, (long) 0);
 		}
 	}
 
@@ -369,7 +360,7 @@ public class EmReactor {
 			// Fire all timers at this timestamp
 			ListIterator<Long> iter = callbacks.listIterator(0);
 			while (iter.hasNext()) {
-				eventCallback (0, EM_TIMER_FIRED, null, iter.next().longValue());
+				callback.trigger((long) 0, EM_TIMER_FIRED, null, iter.next().longValue());
 			}
 		}
 	}

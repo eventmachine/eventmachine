@@ -86,22 +86,12 @@ module EventMachine
   class UnknownTimerFired < RuntimeError; end
   class Unsupported < RuntimeError; end
 
-  # This thunk class used to be called EM, but that caused conflicts with
-  # the alias "EM" for module EventMachine. (FC, 20Jun08)
-  class JEM < com.rubyeventmachine.EmReactor
-    def eventCallback a1, a2, a3, a4
-      s = String.from_java_bytes(a3.array[a3.position...a3.limit]) if a3
-      EventMachine::event_callback a1, a2, s || a4
+  def self.initialize_event_machine
+    @em = com.rubyeventmachine.EmReactor.new do |sig, event, buf, data|
+      s = String.from_java_bytes(buf.array[buf.position...buf.limit]) if buf
+      EventMachine::event_callback sig, event, s || data
       nil
     end
-  end
-  # class Connection < com.rubyeventmachine.Connection
-  #   def associate_callback_target sig
-  #     # No-op for the time being.
-  #   end
-  # end
-  def self.initialize_event_machine
-    @em = JEM.new
   end
   def self.release_machine
     @em = nil
