@@ -86,14 +86,16 @@ public abstract class EventableChannel<OutboundPacketType> {
 
 	public abstract boolean isNotifyWritable();
 	
+	protected abstract boolean handshakeNeeded();
+	protected abstract boolean performHandshake();
 	
 	protected abstract void readInboundData(ByteBuffer dst) throws IOException;
 
 	public boolean read() {
-		if (isWatchOnly()) {
-			if (isNotifyReadable())
-				callback.trigger(binding, EventCode.EM_CONNECTION_NOTIFY_READABLE, null, 0);
-			return true;
+		if (handshakeNeeded()) {
+			return performHandshake();
+		} else if (isWatchOnly() && isNotifyReadable()) {
+			callback.trigger(binding, EventCode.EM_CONNECTION_NOTIFY_READABLE, null, 0);
 		} else {
 			readBuffer.clear();
 
@@ -102,21 +104,20 @@ public abstract class EventableChannel<OutboundPacketType> {
 				readBuffer.flip();
 				if (readBuffer.limit() > 0)
 					callback.trigger(binding, EventCode.EM_CONNECTION_READ,	readBuffer, 0);
-				return true;
 			} catch (IOException e) {
 				return false;
 			}
 		}
-
+		return true;
 	}
 
 	protected abstract boolean writeOutboundData() throws IOException;
 
 	public boolean write() {
-		if (isWatchOnly()) {
-			if (isNotifyWritable())
-				callback.trigger(binding, EventCode.EM_CONNECTION_NOTIFY_WRITABLE, null, 0);
-			return true;
+		if (handshakeNeeded()) {
+			return performHandshake();
+		} else if (isWatchOnly() || isNotifyWritable()) {
+			callback.trigger(binding, EventCode.EM_CONNECTION_NOTIFY_WRITABLE, null, 0);
 		} else {
 			try {
 				return writeOutboundData();
@@ -124,6 +125,6 @@ public abstract class EventableChannel<OutboundPacketType> {
 				return false;
 			}
 		}
+		return true;
 	}
-
 }

@@ -156,15 +156,13 @@ public class EmReactor {
 		Iterator<SelectionKey> it = mySelector.selectedKeys().iterator();
 		while (it.hasNext()) {
 			SelectionKey k = it.next();
-			it.remove(); // TODO: do we need to remove() here? 
-			             // if not, this can be refactored to a foreach construct
-
-			if (k.isConnectable())
+			it.remove(); 
+			if (k.isConnectable()) {
 				isConnectable(k);
-
-			else if (k.isAcceptable())
+			}
+			else if (k.isAcceptable()) {
 				isAcceptable(k);
-
+			}
 			else {
 				if (k.isWritable())
 					isWritable(k);

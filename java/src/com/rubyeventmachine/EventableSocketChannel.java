@@ -147,7 +147,8 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 	
 	public void scheduleOutboundData (ByteBuffer bb) {
 		if (!bCloseScheduled && bb.remaining() > 0) {
-			outboundQ.addLast( (sslBox != null) ? sslBox.encryptOutboundBuffer(bb) : bb ); 
+//			outboundQ.addLast( (sslBox != null) ? sslBox.encryptOutboundBuffer(bb) : bb ); 
+			outboundQ.addLast( bb ); 
 			updateEvents();
 		}
 	}
@@ -246,7 +247,9 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 			Object[] peerName = getPeerName();
 			int port = (Integer) peerName[0];
 			String host = (String) peerName[1];
-			sslBox = new SslBox(bIsServer, keyStore, verifyPeer, host, port);
+			sslBox = new SslBox(bIsServer, channel, keyStore, verifyPeer, host, port);
+			outboundQ.push(SslBox.emptyBuf);
+			updateEvents();
 		}
 	}
 	
@@ -323,5 +326,23 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 
 	public void setServerMode() {
 		bIsServer = true;
+	}
+
+	@Override
+	protected boolean handshakeNeeded() {
+		return sslBox != null && sslBox.handshakeNeeded();
+	}
+
+	@Override
+	protected boolean performHandshake() {
+		if (sslBox == null) return true;
+		
+		if (sslBox.handshake(channelKey)) {
+			if (!sslBox.handshakeNeeded()) {
+				callback.trigger(binding, EventCode.EM_SSL_HANDSHAKE_COMPLETED, null, 0);
+			}
+			return true;
+		}
+		return false;
 	}
 }

@@ -167,4 +167,14 @@ public class EventableDatagramChannel extends EventableChannel<DatagramPacket> {
 	public boolean isWatchOnly() { return false; }
 	public boolean isNotifyReadable() { return false; }
 	public boolean isNotifyWritable() { return false; }
+
+	@Override
+	protected boolean handshakeNeeded() {
+		return false;
+	}
+
+	@Override
+	protected boolean performHandshake() {
+		return true;
+	}
 }
