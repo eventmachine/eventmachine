@@ -9,19 +9,17 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
+import javax.net.ssl.SSLEngineResult.HandshakeStatus;
+import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import javax.net.ssl.SSLEngineResult.HandshakeStatus;
-import javax.net.ssl.SSLEngineResult.Status;
 
 public class SslBox {
 
@@ -30,47 +28,48 @@ public class SslBox {
 	
     private final ByteBuffer netInBuffer;
     private final ByteBuffer netOutBuffer;
+    private final ByteBuffer anotherBuffer;
+
     public static ByteBuffer emptyBuf = ByteBuffer.allocate(0);
     private final SocketChannel sc;
 
 	private boolean handshakeComplete;
     protected HandshakeStatus handshakeStatus; //gets set by handshake
+    
+	public SslBox(boolean isServer, SocketChannel channel, KeyStore keyStore, X509TrustManager tm, boolean verifyPeer, String host, int port) {
+		try {
+			sslContext = SSLContext.getInstance("TLS");
+			KeyManager[] keyManagers = null;
 
-	public SslBox(boolean isServer, SocketChannel channel, KeyStore keyStore, boolean verifyPeer, String host, int port) {
-			try {
-				sslContext = SSLContext.getInstance("TLS");
-				KeyManager[] keyManagers = null;
-				TrustManager[] trustManagers = null;
-
-				if (keyStore != null) {
-					KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
-					kmf.init(keyStore, null);
-					keyManagers = kmf.getKeyManagers();
-				}
-
-				if (verifyPeer) {
-					trustManagers = new TrustManager[] { new CallbackBasedTrustManager() };
-				}
-
-				sslContext.init(keyManagers, trustManagers, null);
-				sslEngine = sslContext.createSSLEngine(host, port);
-				sslEngine.setUseClientMode(!isServer);
-				sc = channel;
-		        int netBufSize = sslEngine.getSession().getPacketBufferSize();
-		        netInBuffer = ByteBuffer.allocate(netBufSize);
-		        netOutBuffer = ByteBuffer.allocate(netBufSize);
-		        reset();
-			} catch (NoSuchAlgorithmException e) {
-				throw new RuntimeException("unable to start TLS: " + e.getMessage(), e);
-			} catch (UnrecoverableKeyException e) {
-				throw new RuntimeException("unable to start TLS: " + e.getMessage(), e);
-			} catch (KeyStoreException e) {
-				throw new RuntimeException("unable to start TLS: " + e.getMessage(), e);
-			} catch (KeyManagementException e) {
-				throw new RuntimeException("unable to start TLS: " + e.getMessage(), e);
-			} catch (IOException e) {
-				throw new RuntimeException("unable to start TLS: " + e.getMessage(), e);
+			if (keyStore != null) {
+				KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
+				kmf.init(keyStore, null);
+				keyManagers = kmf.getKeyManagers();
 			}
+
+			sslContext.init(keyManagers, new TrustManager[] { tm }, null);
+			sslEngine = sslContext.createSSLEngine(host, port);
+			sslEngine.setUseClientMode(!isServer);
+			sslEngine.setNeedClientAuth(verifyPeer);
+			
+			sc = channel;
+			
+			int netBufSize = sslEngine.getSession().getPacketBufferSize();
+			netInBuffer = ByteBuffer.allocate(netBufSize);
+			netOutBuffer = ByteBuffer.allocate(netBufSize);
+			anotherBuffer = ByteBuffer.allocate(netBufSize);
+			reset();
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException("unable to start TLS: " + e.getMessage(), e);
+		} catch (UnrecoverableKeyException e) {
+			throw new RuntimeException("unable to start TLS: " + e.getMessage(), e);
+		} catch (KeyStoreException e) {
+			throw new RuntimeException("unable to start TLS: " + e.getMessage(), e);
+		} catch (KeyManagementException e) {
+			throw new RuntimeException("unable to start TLS: " + e.getMessage(), e);
+		} catch (IOException e) {
+			throw new RuntimeException("unable to start TLS: " + e.getMessage(), e);
+		}
 	}
 
     public void reset() throws IOException {
@@ -83,20 +82,6 @@ public class SslBox {
         sslEngine.beginHandshake();
         handshakeStatus = sslEngine.getHandshakeStatus();
     }
-
-	private class CallbackBasedTrustManager implements X509TrustManager {
-		public void checkClientTrusted(X509Certificate[] chain, String authType)
-				throws CertificateException {
-		}
-
-		public void checkServerTrusted(X509Certificate[] chain, String authType)
-				throws CertificateException {
-		}
-
-		public X509Certificate[] getAcceptedIssuers() {
-			return null;
-		}
-	}
 
 	public ByteBuffer encryptOutboundBuffer(ByteBuffer bb) {
 		ByteBuffer b = ByteBuffer.allocate(bb.limit());
@@ -226,7 +211,7 @@ public class SslBox {
             //prepare the buffer with the incoming data
             netInBuffer.flip();
             //call unwrap
-            result = sslEngine.unwrap(netInBuffer, emptyBuf);
+            result = sslEngine.unwrap(netInBuffer, anotherBuffer);
             //compact the buffer, this is an optional method, wonder what would happen if we didn't
             netInBuffer.compact();
             //read in the status

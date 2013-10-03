@@ -30,6 +30,7 @@
 require 'java'
 require 'rubyeventmachine'
 require 'socket'
+require 'openssl'
 
 java_import java.io.FileDescriptor
 java_import java.nio.channels.SocketChannel
@@ -142,6 +143,10 @@ module EventMachine
   end
   def self.ssl?
     true
+  end
+  def self.ssl_verify_peer conn, der_data
+    data = OpenSSL::X509::Certificate.new(der_data).to_pem
+    @em.acceptSslPeer conn.signature if conn.ssl_verify_peer data
   end
   def self.signal_loopbreak
     @em.signalLoopbreak

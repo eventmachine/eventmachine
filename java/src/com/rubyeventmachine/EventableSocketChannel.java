@@ -42,6 +42,10 @@ import java.io.*;
 import java.net.Socket;
 import java.lang.reflect.Field;
 import java.security.*;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
+import javax.net.ssl.X509TrustManager;
 
 public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 	SelectionKey channelKey;
@@ -58,6 +62,7 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 	private KeyStore keyStore;
 	private boolean verifyPeer;
 	private boolean bIsServer;
+	private boolean shouldAcceptSslPeer = false; 	
 
 	public EventableSocketChannel (SocketChannel sc, long _binding, Selector sel, EventCallback callback) {
 		super(_binding, sel, callback);
@@ -247,7 +252,8 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 			Object[] peerName = getPeerName();
 			int port = (Integer) peerName[0];
 			String host = (String) peerName[1];
-			sslBox = new SslBox(bIsServer, channel, keyStore, verifyPeer, host, port);
+			X509TrustManager tm = new CallbackBasedTrustManager();
+			sslBox = new SslBox(bIsServer, channel, keyStore, tm, verifyPeer, host, port);
 			outboundQ.push(SslBox.emptyBuf);
 			updateEvents();
 		}
@@ -345,4 +351,36 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 		}
 		return false;
 	}
+
+	public void acceptSslPeer() {
+		this.shouldAcceptSslPeer = true;
+	}
+	
+	public class CallbackBasedTrustManager implements X509TrustManager {
+		public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+			if (verifyPeer) fireEvent(chain[0]);
+		}
+
+		public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+			if (verifyPeer) fireEvent(chain[0]);
+		}
+
+		public X509Certificate[] getAcceptedIssuers() {
+			return new X509Certificate[0];
+		}
+
+		private void fireEvent(X509Certificate cert) throws CertificateException {
+			
+			ByteBuffer data = ByteBuffer.wrap(cert.getEncoded());
+			
+			callback.trigger(binding, EventCode.EM_SSL_VERIFY, data, 0);
+			
+			// If we should accept, the trigger will ultimately call our acceptSslPeer method. 
+			if (! shouldAcceptSslPeer) {
+				throw new CertificateException("JRuby trigger was not fired");
+			}
+		}
+	}
+
+
 }

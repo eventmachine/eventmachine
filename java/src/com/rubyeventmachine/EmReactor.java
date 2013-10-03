@@ -445,6 +445,11 @@ public class EmReactor {
 	public void startTls (long sig) throws NoSuchAlgorithmException, KeyManagementException {
 		Connections.get(sig).startTls();
 	}
+	
+	public void acceptSslPeer (long sig) {
+		EventableSocketChannel sc = (EventableSocketChannel) Connections.get(sig);
+		sc.acceptSslPeer();
+	}
 
 	public void setTimerQuantum (int mills) {
 		if (mills < 5 || mills > 2500)

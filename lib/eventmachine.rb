@@ -1505,7 +1505,7 @@ module EventMachine
       c.ssl_handshake_completed
     when SslVerify
       c = @conns[conn_binding] or raise ConnectionNotBound
-      c.ssl_verify_peer data
+      EventMachine::ssl_verify_peer c, data
     end
   end
 
