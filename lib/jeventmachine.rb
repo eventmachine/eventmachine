@@ -148,6 +148,10 @@ module EventMachine
     data = OpenSSL::X509::Certificate.new(der_data).to_pem
     @em.acceptSslPeer conn.signature if conn.ssl_verify_peer data
   end
+  def self.get_peer_cert sig
+    der_data = @em.getPeerCert sig
+    OpenSSL::X509::Certificate.new(String.from_java_bytes(der_data)).to_pem
+  end
   def self.signal_loopbreak
     @em.signalLoopbreak
   end

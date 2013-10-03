@@ -382,5 +382,16 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 		}
 	}
 
+	public byte[] getPeerCert() {
+		if (sslBox != null) {
+			try {
+				javax.security.cert.X509Certificate peerCert = sslBox.getPeerCert();
+				return peerCert.getEncoded();
+			} catch (Exception e) {
+			}
+		}
+		return null;
+	}
+
 
 }

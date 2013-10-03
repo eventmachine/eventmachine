@@ -18,6 +18,7 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
@@ -249,4 +250,8 @@ public class SslBox {
             return true;
         }
     }
+
+	public javax.security.cert.X509Certificate getPeerCert() throws SSLPeerUnverifiedException {
+		return sslEngine.getSession().getPeerCertificateChain()[0];
+	}
 }

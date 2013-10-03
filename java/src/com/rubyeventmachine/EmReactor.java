@@ -450,6 +450,11 @@ public class EmReactor {
 		EventableSocketChannel sc = (EventableSocketChannel) Connections.get(sig);
 		sc.acceptSslPeer();
 	}
+	
+	public byte[] getPeerCert (long sig) {
+		EventableSocketChannel sc = (EventableSocketChannel) Connections.get(sig);
+		return sc.getPeerCert();
+	}
 
 	public void setTimerQuantum (int mills) {
 		if (mills < 5 || mills > 2500)
