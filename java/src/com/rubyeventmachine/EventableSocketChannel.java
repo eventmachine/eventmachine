@@ -258,7 +258,6 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 			String host = (String) peerName[1];
 			X509TrustManager tm = new CallbackBasedTrustManager();
 			sslBox = new SslBox(bIsServer, channel, keyStore, tm, verifyPeer, host, port);
-			outboundQ.push(SslBox.emptyBuf);
 			updateEvents();
 		}
 	}
@@ -326,7 +325,7 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 			else {
 				events |= SelectionKey.OP_READ;
 
-				if (!outboundQ.isEmpty())
+				if (!outboundQ.isEmpty() || (sslBox != null && sslBox.handshakeNeeded()))
 					events |= SelectionKey.OP_WRITE;
 			}
 		}
@@ -350,6 +349,7 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 		if (sslBox.handshake(channelKey)) {
 			if (!sslBox.handshakeNeeded()) {
 				callback.trigger(binding, EventCode.EM_SSL_HANDSHAKE_COMPLETED, null, 0);
+				updateEvents();
 			}
 			return true;
 		}
