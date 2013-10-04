@@ -36,12 +36,16 @@ package com.rubyeventmachine;
  *
  */
 
-import java.nio.channels.*;
-import java.nio.*;
-import java.io.*;
-import java.net.Socket;
+import java.io.FileDescriptor;
+import java.io.IOException;
 import java.lang.reflect.Field;
-import java.security.*;
+import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+import java.security.KeyStore;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 

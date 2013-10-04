@@ -28,13 +28,25 @@
 
 package com.rubyeventmachine;
 
-import java.io.*;
-import java.nio.channels.*;
-import java.util.*;
-import java.nio.*;
-import java.net.*;
-import java.util.concurrent.atomic.*;
-import java.security.*;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class EmReactor {
 	private Selector mySelector;
