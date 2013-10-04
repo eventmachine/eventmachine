@@ -156,8 +156,7 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 	
 	public void scheduleOutboundData (ByteBuffer bb) {
 		if (!bCloseScheduled && bb.remaining() > 0) {
-//			outboundQ.addLast( (sslBox != null) ? sslBox.encryptOutboundBuffer(bb) : bb ); 
-			outboundQ.addLast( bb ); 
+			outboundQ.addLast( bb );
 			updateEvents();
 		}
 	}
@@ -170,7 +169,8 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 	 * Called by the reactor when we have selected readable.
 	 */
 	public void readInboundData (ByteBuffer bb) throws IOException {
-		if (channel.read(bb) == -1)
+		int bytesRead = (sslBox != null) ? sslBox.read(bb) : channel.read(bb);
+		if (bytesRead == -1)
 			throw new IOException ("eof");
 	}
 
@@ -189,8 +189,12 @@ public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 	protected boolean writeOutboundData() throws IOException {
 		while (!outboundQ.isEmpty()) {
 			ByteBuffer b = outboundQ.getFirst();
-			if (b.remaining() > 0)
-				channel.write(b);
+			if (b.remaining() > 0) {
+				if (sslBox != null) 
+					sslBox.write(b);
+				else
+					channel.write(b);
+			}
 
 			// Did we consume the whole outbound buffer? If yes,
 			// pop it off and keep looping. If no, the outbound network

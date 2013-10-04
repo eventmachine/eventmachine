@@ -17,7 +17,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLEngineResult.Status;
-import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -32,7 +31,7 @@ public class SslBox {
     private final ByteBuffer anotherBuffer;
 
     public static ByteBuffer emptyBuf = ByteBuffer.allocate(0);
-    private final SocketChannel sc;
+    private final SocketChannel channel;
 
 	private boolean handshakeComplete;
     protected HandshakeStatus handshakeStatus; //gets set by handshake
@@ -53,7 +52,7 @@ public class SslBox {
 			sslEngine.setUseClientMode(!isServer);
 			sslEngine.setNeedClientAuth(verifyPeer);
 			
-			sc = channel;
+			this.channel = channel;
 			
 			int netBufSize = sslEngine.getSession().getPacketBufferSize();
 			netInBuffer = ByteBuffer.allocate(netBufSize);
@@ -83,17 +82,6 @@ public class SslBox {
         sslEngine.beginHandshake();
         handshakeStatus = sslEngine.getHandshakeStatus();
     }
-
-	public ByteBuffer encryptOutboundBuffer(ByteBuffer bb) {
-		ByteBuffer b = ByteBuffer.allocate(bb.limit());
-		try {
-			sslEngine.wrap(bb, b);
-		} catch (SSLException e) {
-			throw new RuntimeException("unable to encrypt outbound data", e);
-		}
-		b.flip();
-		return b;
-	}
 
 	public boolean handshake(SelectionKey channelKey) {
 		try {
@@ -202,7 +190,7 @@ public class SslBox {
         }
         if ( doread )  {
             //if we have data to read, read it
-            int read = sc.read(netInBuffer);
+            int read = channel.read(netInBuffer);
             if (read == -1) throw new IOException("EOF encountered during handshake.");
         }
         SSLEngineResult result;
@@ -244,7 +232,7 @@ public class SslBox {
     protected boolean flush(ByteBuffer buf) throws IOException {
         int remaining = buf.remaining();
         if ( remaining > 0 ) {
-            int written = sc.write(buf);
+            int written = channel.write(buf);
             return written >= remaining;
         }else {
             return true;
@@ -254,4 +242,69 @@ public class SslBox {
 	public javax.security.cert.X509Certificate getPeerCert() throws SSLPeerUnverifiedException {
 		return sslEngine.getSession().getPeerCertificateChain()[0];
 	}
+	
+    public int write(ByteBuffer src) throws IOException {
+        if (!flush(netOutBuffer)) return 0;
+
+        netOutBuffer.clear();
+
+        SSLEngineResult result = sslEngine.wrap(src, netOutBuffer);
+        int written = result.bytesConsumed();
+        netOutBuffer.flip();
+
+        if (result.getStatus() == Status.OK) {
+        	if (result.getHandshakeStatus() == HandshakeStatus.NEED_TASK)
+        		tasks();
+        } else {
+            throw new IOException("Unable to wrap data, invalid engine state: " +result.getStatus());
+        }
+
+        //force a flush
+        flush(netOutBuffer);
+
+        return written;
+    }
+    
+    public int read(ByteBuffer dst) throws IOException {
+        //did we finish our handshake?
+        if (!handshakeComplete) throw new IllegalStateException("Handshake incomplete, you must complete handshake before reading data.");
+
+        //read from the network
+        int netread = channel.read(netInBuffer);
+        //did we reach EOF? if so send EOF up one layer.
+        if (netread == -1) return -1;
+
+        //the data read
+        int read = 0;
+        //the SSL engine result
+        SSLEngineResult unwrap;
+        do {
+            //prepare the buffer
+            netInBuffer.flip();
+            //unwrap the data
+            unwrap = sslEngine.unwrap(netInBuffer, dst);
+            //compact the buffer
+            netInBuffer.compact();
+
+            if ( unwrap.getStatus()==Status.OK || unwrap.getStatus()==Status.BUFFER_UNDERFLOW ) {
+                //we did receive some data, add it to our total
+                read += unwrap.bytesProduced();
+                //perform any tasks if needed
+                if (unwrap.getHandshakeStatus() == HandshakeStatus.NEED_TASK) tasks();
+                //if we need more network data, then bail out for now.
+                if ( unwrap.getStatus() == Status.BUFFER_UNDERFLOW ) break;
+            }else if ( unwrap.getStatus()==Status.BUFFER_OVERFLOW && read>0 ) {
+                //buffer overflow can happen, if we have read data, then
+                //empty out the dst buffer before we do another read
+                break;
+            }else {
+                //here we should trap BUFFER_OVERFLOW and call expand on the buffer
+                //for now, throw an exception, as we initialized the buffers
+                //in the constructor
+                throw new IOException("Unable to unwrap data, invalid status: " + unwrap.getStatus());
+            }
+        } while ( (netInBuffer.position() != 0)); //continue to unwrapping as long as the input buffer has stuff
+        return (read);
+    }
+
 }
