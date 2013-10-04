@@ -113,11 +113,16 @@ class TestHttpClient2 < Test::Unit::TestCase
     }
   end
 
+  # This test fails under JRuby - but not if you use google.com instead of apple.com
+  # Since this client is deprecated, it's probably not worth investigating further
   def test_https_get
     d = nil
     EM.run {
       http = silent { EM::P::HttpClient2.connect :host => 'www.apple.com', :port => 443, :ssl => true }
       d = http.get "/"
+      d.errback {
+        fail "Request failed"
+      }
       d.callback {
         EM.stop
       }
