@@ -49,6 +49,11 @@ for EventMachine, just with additional (and fixed) functionality.
 The list of additions and improvements will grow over time. Currently the following features/fixes have been applied in EventMachine-LE:
 
 
+### Version 1.1.6
+
+* Avoid CPU at 100% when calling `close_connection` after a connection has been `unbind`: [ept](https://github.com/ibc/EventMachine-LE/pull/18).
+
+
 ### Version 1.1.5
 
 * Fix bug when the system time is changed to earlier time (which made EM to eat up the CPU cycle): [commit in EM](https://github.com/eventmachine/eventmachine/commit/1427a2c80c401d841194132a9af15baefd68b5ae).
