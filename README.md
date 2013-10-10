@@ -1,4 +1,4 @@
-# About EventMachine #
+# About EventMachine  [![Code Climate](https://codeclimate.com/github/eventmachine/eventmachine.png)](https://codeclimate.com/github/eventmachine/eventmachine)
 
 
 ## What is EventMachine ##
