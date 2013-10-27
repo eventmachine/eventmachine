@@ -53,13 +53,14 @@ when /solaris/
   add_define 'OS_SOLARIS8'
   check_libs(%w[nsl socket], true)
 
-  if CONFIG['CC'] == 'cc' and `cc -flags 2>&1` =~ /Sun/ # detect SUNWspro compiler
+  if CONFIG['CC'] == 'cc' and `cc -flags 2>&1` =~ /sun/i # detect SUNWspro compiler
     # SUN CHAIN
     add_define 'CC_SUNWspro'
     $preload = ["\nCXX = CC"] # hack a CXX= line into the makefile
     $CFLAGS = CONFIG['CFLAGS'] = "-KPIC"
     CONFIG['CCDLFLAGS'] = "-KPIC"
     CONFIG['LDSHARED'] = "$(CXX) -G -KPIC -lCstd"
+    CONFIG['LDSHAREDXX'] = "$(CXX) -G -KPIC -lCstd"
   else
     # GNU CHAIN
     # on Unix we need a g++ link, not gcc.
