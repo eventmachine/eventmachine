@@ -169,9 +169,9 @@ public class EmReactor {
 			if (diff <= 0)
 				timeout = -1; // don't wait, just poll once
 			else
-				timeout = diff;
+				timeout = diff > timerQuantum ? timerQuantum : diff;
 		} else {
-			timeout = 0; // wait indefinitely
+			timeout = timerQuantum;
 		}
 
 		try {
