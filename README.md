@@ -105,5 +105,9 @@ Copyright: (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
 
 ## Alternatives ##
 
-If you are unhappy with EventMachine and want to use Ruby, check out [Cool.io](http://coolio.github.com/).
-One caveat: by May 2011, it did not support JRuby and Windows.
+If you are unhappy with EventMachine and want to use Ruby, check out:
+
+1. [UV-Rays](https://github.com/cotag/uv-rays)
+   * Based on [Libuv Bindings for Ruby](https://github.com/cotag/libuv)
+1. [Cool.io](http://coolio.github.com/).
+   * One caveat: by May 2011, it did not support JRuby and Windows.
