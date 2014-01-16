@@ -52,4 +52,30 @@ class TestResolver < Test::Unit::TestCase
       }
     }
   end
+
+  def test_timer_cleanup
+    EM.run {
+      d = EM::DNS::Resolver.resolve "google.com"
+      d.errback { assert false }
+      d.callback { |r|
+        # This isn't a great test, but it's hard to get more canonical
+        # confirmation that the timer is cancelled
+        assert_nil(EM::DNS::Resolver.socket.instance_variable_get(:@timer))
+
+        EM.stop
+      }
+    }
+  end
+
+  def test_failure_timer_cleanup
+    EM.run {
+      d = EM::DNS::Resolver.resolve "asdfasdf"
+      d.callback { assert false }
+      d.errback {
+        assert_nil(EM::DNS::Resolver.socket.instance_variable_get(:@timer))
+
+        EM.stop
+      }
+    }
+  end
 end
