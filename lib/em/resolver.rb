@@ -66,7 +66,15 @@ module EventMachine
 
       def post_init
         @requests = {}
-        EM.add_periodic_timer(0.1, &method(:tick))
+      end
+
+      def start_timer
+        @timer ||= EM.add_periodic_timer(0.1, &method(:tick))
+      end
+
+      def stop_timer
+        EM.cancel_timer(@timer)
+        @timer = nil
       end
 
       def unbind
@@ -84,6 +92,13 @@ module EventMachine
         else
           @requests[id] = req
         end
+
+        start_timer
+      end
+
+      def deregister_request(id, req)
+        @requests.delete(id)
+        stop_timer if @requests.length == 0
       end
 
       def send_packet(pkt)
@@ -109,6 +124,7 @@ module EventMachine
           req = @requests[msg.id]
           if req
             @requests.delete(msg.id)
+            stop_timer if @requests.length == 0
             req.receive_answer(msg)
           end
         end
@@ -140,6 +156,7 @@ module EventMachine
         if @tries < @max_tries
           send
         else
+          @socket.deregister_request(@id, self)
           fail 'retries exceeded'
         end
       end
