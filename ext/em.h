@@ -20,8 +20,11 @@ See the file COPYING for complete licensing information.
 #ifndef __EventMachine__H_
 #define __EventMachine__H_
 
-#ifdef BUILD_FOR_RUBY
-  #include <ruby.h>
+#if defined(BUILD_FOR_RUBY)
+#include <ruby.h>
+#endif
+
+#if defined(BUILD_FOR_RUBY) && !defined(BUILD_FOR_MAGLEV)
   #define EmSelect rb_thread_select
 
   #ifdef HAVE_RB_WAIT_FOR_SINGLE_FD

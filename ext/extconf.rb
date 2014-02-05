@@ -77,6 +77,10 @@ have_func('rb_time_new')
 
 # Minor platform details between *nix and Windows:
 
+if defined? RUBY_ENGINE and RUBY_ENGINE =~ /maglev/
+  add_define 'BUILD_FOR_MAGLEV'
+end
+
 if RUBY_PLATFORM =~ /(mswin|mingw|bccwin)/
   GNU_CHAIN = ENV['CROSS_COMPILING'] || $1 == 'mingw'
   OS_WIN32 = true
