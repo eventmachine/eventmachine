@@ -94,7 +94,7 @@ typedef int SOCKET;
 #include <assert.h>
 
 typedef int socklen_t;
-#ifn_def _PID_T_
+#ifndef _PID_T_
 #define _PID_T_
 typedef int pid_t;
 #endif /* _PID_T_ */
