@@ -98,6 +98,17 @@ if RbConfig::CONFIG["host_os"] =~ /mingw/
   add_define "FD_SETSIZE=32767" unless found
 end
 
+if enable_config('debug')
+  puts '[INFO] enabling debug library build configuration.'
+  if RUBY_VERSION < '1.9'
+    $CFLAGS = CONFIG['CFLAGS'].gsub(/\s\-O\d?\s/, ' -O0 ')
+    $CFLAGS.gsub!(/\s?\-g\w*\s/, ' -ggdb3 ')
+    CONFIG['LDSHARED'] = CONFIG['LDSHARED'].gsub(/\s\-s(\s|\z)/, ' ')
+  else
+    CONFIG['debugflags'] << ' -ggdb3 -O0'
+  end
+end
+
 # Main platform invariances:
 
 case RUBY_PLATFORM

@@ -1022,11 +1022,10 @@ void ConnectionDescriptor::_WriteOutboundData()
 	}
 	#endif
 
-	// We should never have gotten here if there were no data to write,
-	// so assert that as a sanity check.
-	// Don't bother to make sure nbytes is less than output_buffer because
+  // Don't bother to make sure nbytes is less than output_buffer because
 	// if it were we probably would have crashed already.
-	assert (nbytes > 0);
+	// Zero byte writes should do nothing and thus be safe.
+	assert (nbytes >= 0);
 
 	assert (GetSocket() != INVALID_SOCKET);
 	#ifdef HAVE_WRITEV
