@@ -8,24 +8,25 @@ module EventMachine
   # throughout ticks in order to maintain response times. It is also useful for
   # simple repeated checks and metrics.
   # 
-  #   # Here we run through an array one item per tick until it is empty, 
-  #   # printing each element.
-  #   # When the array is empty, we return :stop from the callback, and the
-  #   # loop will terminate.
-  #   # When the loop terminates, the on_stop callbacks will be called.
-  #   EM.run do
-  #     array = (1..100).to_a
+  #     # Here we run through an array one item per tick until it is empty, 
+  #     # printing each element.
+  #     # When the array is empty, we return :stop from the callback, and the
+  #     # loop will terminate.
+  #     # When the loop terminates, the on_stop callbacks will be called.
+  #
+  #     EM.run do
+  #       array = (1..100).to_a
   #   
-  #     tickloop = EM.tick_loop do
-  #       if array.empty?
-  #         :stop
-  #       else
-  #         puts array.shift
+  #       tickloop = EM.tick_loop do
+  #         if array.empty?
+  #           :stop
+  #         else
+  #           puts array.shift
+  #         end
   #       end
+  #    
+  #       tickloop.on_stop { EM.stop }
   #     end
-  #   
-  #     tickloop.on_stop { EM.stop }
-  #   end
   #
   class TickLoop
 
