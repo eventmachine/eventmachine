@@ -13,6 +13,7 @@ module EventMachine
   #   # When the array is empty, we return :stop from the callback, and the
   #   # loop will terminate.
   #   # When the loop terminates, the on_stop callbacks will be called.
+  #
   #   EM.run do
   #     array = (1..100).to_a
   #   
