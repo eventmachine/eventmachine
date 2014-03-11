@@ -22,12 +22,7 @@ See the file COPYING for complete licensing information.
 
 #ifdef BUILD_FOR_RUBY
   #include <ruby.h>
-
-  #ifdef HAVE_RB_THREAD_FD_SELECT
-    #define EmSelect rb_thread_fd_select
-  #else
-    #define EmSelect rb_thread_select
-  #endif
+  #define EmSelect rb_thread_fd_select
 
   #ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
    #include <ruby/thread.h>
@@ -66,7 +61,7 @@ See the file COPYING for complete licensing information.
     #define RSTRING_LENINT(str) RSTRING_LEN(str)
   #endif
 #else
-  #define EmSelect select
+  #define EmSelect rb_fd_select
 #endif
 
 class EventableDescriptor;
@@ -243,9 +238,9 @@ struct SelectData_t
 	int _Select();
 
 	int maxsocket;
-	fd_set fdreads;
-	fd_set fdwrites;
-	fd_set fderrors;
+	rb_fdset_t fdreads;
+	rb_fdset_t fdwrites;
+	rb_fdset_t fderrors;
 	timeval tv;
 	int nSockets;
 };
