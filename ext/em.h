@@ -64,6 +64,27 @@ See the file COPYING for complete licensing information.
   #define EmSelect rb_fd_select
 #endif
 
+#ifndef rb_fd_max
+#define fd_check(n) (((n) < FD_SETSIZE) ? 1 : 0*fprintf(stderr, "fd %d too large for select\n", (n)))
+typedef fd_set rb_fdset_t;
+#define rb_fd_zero(f) FD_ZERO(f)
+#define rb_fd_set(n, f) do { if (fd_check(n)) FD_SET((n), (f)); } while(0)
+#define rb_fd_clr(n, f) do { if (fd_check(n)) FD_CLR((n), (f)); } while(0)
+#define rb_fd_isset(n, f) (fd_check(n) ? FD_ISSET((n), (f)) : 0)
+#define rb_fd_copy(d, s, n) (*(d) = *(s))
+#define rb_fd_dup(d, s) (*(d) = *(s))
+#define rb_fd_resize(n, f)  ((void)(f))
+#define rb_fd_ptr(f)  (f)
+#define rb_fd_init(f) FD_ZERO(f)
+#define rb_fd_init_copy(d, s) (*(d) = *(s))
+#define rb_fd_term(f) ((void)(f))
+#define rb_fd_max(f)  FD_SETSIZE
+#define rb_fd_select(n, rfds, wfds, efds, timeout)  \
+  select(fd_check((n)-1) ? (n) : FD_SETSIZE, (rfds), (wfds), (efds), (timeout))
+#define rb_thread_fd_select(n, rfds, wfds, efds, timeout)  \
+  rb_thread_select(fd_check((n)-1) ? (n) : FD_SETSIZE, (rfds), (wfds), (efds), (timeout))
+#endif
+
 class EventableDescriptor;
 class InotifyDescriptor;
 
