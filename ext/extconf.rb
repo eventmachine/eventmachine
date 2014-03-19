@@ -71,7 +71,6 @@ add_define "HAVE_RB_THREAD_CALL_WITHOUT_GVL" if have_func('rb_thread_call_withou
 add_define "HAVE_INOTIFY" if inotify = have_func('inotify_init', 'sys/inotify.h')
 add_define "HAVE_OLD_INOTIFY" if !inotify && have_macro('__NR_inotify_init', 'sys/syscall.h')
 add_define 'HAVE_WRITEV' if have_func('writev', 'sys/uio.h')
-add_define 'HAVE_RB_THREAD_SELECT' if have_func('rb_thread_select')
 add_define 'HAVE_RB_THREAD_FD_SELECT' if have_func('rb_thread_fd_select')
 
 have_func('rb_wait_for_single_fd')

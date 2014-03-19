@@ -832,15 +832,15 @@ SelectData_t::_Select
 
 int SelectData_t::_Select()
 {
-#if defined(HAVE_TBR)
-  rb_thread_blocking_region (_SelectDataSelect, (void*)this, RUBY_UBF_IO, 0);
-  return nSockets;
-#elif defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL)
-  rb_thread_call_without_gvl ((void *(*)(void *))_SelectDataSelect, (void*)this, RUBY_UBF_IO, 0);
-  return nSockets;
-#else
+	#if defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL)
+	rb_thread_call_without_gvl ((void *(*)(void *))_SelectDataSelect, (void*)this, RUBY_UBF_IO, 0);
+	return nSockets;
+	#elif defined(HAVE_TBR)
+	rb_thread_blocking_region (_SelectDataSelect, (void*)this, RUBY_UBF_IO, 0);
+	return nSockets;
+	#else
 	return EmSelect (maxsocket+1, &fdreads, &fdwrites, &fderrors, &tv);
-#endif
+	#endif
 }
 #endif
 
