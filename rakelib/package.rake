@@ -31,10 +31,12 @@ else
   def hack_cross_compilation(ext)
     # inject 1.8/1.9 pure-ruby entry point
     # HACK: add these dependencies to the task instead of using cross_compiling
-    ext.cross_platform.each do |platform|
-      task = "native:#{GEMSPEC.name}:#{platform}"
-      if Rake::Task.task_defined?(task)
-        Rake::Task[task].prerequisites.unshift "lib/#{ext.name}.rb"
+    if ext.cross_platform.is_a?(Array)
+      ext.cross_platform.each do |platform|
+        task = "native:#{GEMSPEC.name}:#{platform}"
+        if Rake::Task.task_defined?(task)
+          Rake::Task[task].prerequisites.unshift "lib/#{ext.name}.rb"
+        end
       end
     end
   end

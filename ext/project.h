@@ -93,9 +93,14 @@ typedef int SOCKET;
 #include <fcntl.h>
 #include <assert.h>
 
+#define close closesocket
+
 typedef int socklen_t;
+#ifndef _PID_T_
+#define _PID_T_
 typedef int pid_t;
-#endif
+#endif /* _PID_T_ */
+#endif /* OS_WIN32 */
 
 #if !defined(_MSC_VER) || _MSC_VER > 1500
 #include <stdint.h>
