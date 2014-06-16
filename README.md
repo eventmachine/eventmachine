@@ -1,4 +1,4 @@
-# About EventMachine  [![Code Climate](https://codeclimate.com/github/eventmachine/eventmachine.png)](https://codeclimate.com/github/eventmachine/eventmachine)
+# About EventMachine  [![Code Climate](https://codeclimate.com/github/eventmachine/eventmachine.png)](https://codeclimate.com/github/eventmachine/eventmachine) [![Bountysource](https://www.bountysource.com/badge/tracker?tracker_id=255)](https://www.bountysource.com/trackers/255-eventmachine?utm_source=255&utm_medium=shield&utm_campaign=TRACKER_BADGE)
 
 
 ## What is EventMachine ##
