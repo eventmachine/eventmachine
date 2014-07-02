@@ -217,8 +217,14 @@ EventableDescriptor::ScheduleClose
 
 void EventableDescriptor::ScheduleClose (bool after_writing)
 {
-	if (IsCloseScheduled())
+	if (IsCloseScheduled()) {
+		if (!after_writing) {
+			// If closing has become more urgent, then upgrade the scheduled
+			// after_writing close to one NOW.
+			bCloseNow = true;
+		}
 		return;
+	}
 	MyEventMachine->NumCloseScheduled++;
 	// KEEP THIS SYNCHRONIZED WITH ::IsCloseScheduled.
 	if (after_writing)
