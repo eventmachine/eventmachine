@@ -841,6 +841,7 @@ void ConnectionDescriptor::_DispatchInboundData (const char *buffer, int size)
 
 		// If our SSL handshake had a problem, shut down the connection.
 		if (s == -2) {
+			UnbindReasonCode = EPROTO;
 			ScheduleClose(false);
 			return;
 		}

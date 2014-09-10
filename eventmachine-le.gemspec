@@ -20,9 +20,9 @@ Gem::Specification.new do |s|
   s.extensions = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
 
   s.required_ruby_version = ">= 1.8.7"
-  s.add_development_dependency 'rake-compiler', '~> 0.8.3'
-  s.add_development_dependency 'yard', ">= 0.8.5.2"
-  s.add_development_dependency 'bluecloth' unless RUBY_PLATFORM =~ /java/
+  s.add_development_dependency 'rake-compiler', '~> 0.8', '>= 0.8.3'
+  s.add_development_dependency 'yard', '~> 0.8', '>= 0.8.5.2'
+  s.add_development_dependency 'bluecloth', '~> 0' unless RUBY_PLATFORM =~ /java/
 
   s.summary = "EventMachine LE (Live Edition)"
   s.description = "EventMachine-LE (Live Edition) is a branch of EventMachine (https://github.com/eventmachine/eventmachine).
