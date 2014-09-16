@@ -271,6 +271,12 @@ module EventMachine
         @state ||= []
       end
 
+      def init_auth_state method_name
+        @auth_data = []
+        @auth_method_name = method_name
+        @state << :auth_incomplete
+      end
+
 
       #--
       # EHLO/HELO is always legal, per the standard. On success
@@ -297,7 +303,7 @@ module EventMachine
             send_data "250-STARTTLS\r\n"
           end
           if @@parms[:auth]
-            send_data "250-AUTH PLAIN\r\n"
+            send_data "250-AUTH PLAIN LOGIN\r\n"
           end
           send_data "250-NO-SOLICITING\r\n"
           # TODO, size needs to be configurable.
@@ -333,38 +339,81 @@ module EventMachine
       end
 
       #--
-      # So far, only AUTH PLAIN is supported but we should do at least LOGIN as well.
       # TODO, support clients that send AUTH PLAIN with no parameter, expecting a 3xx
       # response and a continuation of the auth conversation.
       #
       def process_auth str
         if @state.include?(:auth)
           send_data "503 auth already issued\r\n"
-        elsif str =~ /\APLAIN\s?/i
-          if $'.length == 0
-            # we got a partial response, so let the client know to send the rest
-            @state << :auth_incomplete
-            send_data("334 \r\n")
-          else
-            # we got the initial response, so go ahead & process it
-            process_auth_line($')
-          end
-          #elsif str =~ /\ALOGIN\s+/i
         else
-          send_data "504 auth mechanism not available\r\n"
+          method_name, line = str.split(/\s+/, 2)
+          method_name = "do_auth_" + method_name.downcase
+
+          if respond_to? method_name
+            init_auth_state method_name
+            process_auth_line line
+          else
+            send_data "504 auth mechanism not available\r\n"
+          end
         end
       end
 
-      def process_auth_line(line)
+      def do_auth_plain line
+        if line.nil? or line.length == 0
+          # we got a partial response, so let the client know to send the rest
+          return "334 \r\n"
+        end
+
+        # we got the initial response, so go ahead & process it
         plain = line.unpack("m").first
         _,user,psw = plain.split("\000")
-        if receive_plain_auth user,psw
-          send_data "235 authentication ok\r\n"
-          @state << :auth
-        else
-          send_data "535 invalid authentication\r\n"
+
+        if receive_plain_auth(user, psw)
+          return 235
         end
-        @state.delete :auth_incomplete
+
+        return 535
+      end
+
+      def do_auth_login line
+        require 'base64'
+
+        # no username supplied in auth line return a request for username
+        if @auth_data.length == 0 and (line.nil? or line.length == 0)
+          return "334 VXNlcm5hbWU6\r\n"
+        end
+
+        # add the line to @auth_data
+        @auth_data << Base64.decode64 line
+
+        # only received a username send a request for password
+        if @auth_data.length == 1
+          return "334 UGFzc3dvcmQ6\r\n"
+        end
+
+        if receive_login_auth(@auth_data[0], @auth_data[1])
+          return 235
+        end
+
+        return 535
+      end
+
+      def process_auth_line(line)
+        result = send(@auth_method_name, line)
+
+        if result.is_a? Integer
+          @state.delete :auth_incomplete
+          if result == 235
+            @state << :auth
+            send_data "235 authentication ok\r\n"
+          elsif result == 535
+            send_data "535 invalid authentication\r\n"
+          end
+        else
+          # consumer is responsible for their own continuation messages
+          # to the client
+          send_data result
+        end
       end
 
       #--
@@ -576,6 +625,11 @@ module EventMachine
 
       # Return true or false to indicate that the authentication is acceptable.
       def receive_plain_auth user, password
+        true
+      end
+
+      # Return true or false to indicate that the authentication is acceptable.
+      def receive_login_auth user, password
         true
       end
 
