@@ -384,7 +384,7 @@ module EventMachine
         end
 
         # add the line to @auth_data
-        @auth_data << Base64.decode64 line
+        @auth_data << Base64.decode64(line)
 
         # only received a username send a request for password
         if @auth_data.length == 1
