@@ -86,7 +86,7 @@ Here's a fully-functional echo server written with EventMachine:
 
 ## EventMachine documentation ##
 
-Currently we only have [reference documentation](http://eventmachine.rubyforge.org) and a [wiki](https://github.com/eventmachine/eventmachine/wiki).
+Currently we only have [reference documentation](http://rdoc.info/github/eventmachine/eventmachine/frames) and a [wiki](https://github.com/eventmachine/eventmachine/wiki).
 
 
 ## Community and where to get help ##
