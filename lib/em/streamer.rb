@@ -36,6 +36,7 @@ module EventMachine
     def initialize connection, filename, args = {}
       @connection = connection
       @http_chunks = args[:http_chunks]
+      @position = args[:offset] || 0
 
       if File.exist?(filename)
         @size = File.size(filename)
@@ -53,10 +54,10 @@ module EventMachine
     def stream_without_mapping filename
       if @http_chunks
         @connection.send_data "#{@size.to_s(16)}\r\n"
-        @connection.send_file_data filename
+        @connection.send_file_data filename, @position
         @connection.send_data "\r\n0\r\n\r\n"
       else
-        @connection.send_file_data filename
+        @connection.send_file_data filename, @position
       end
       succeed
     end
@@ -66,7 +67,6 @@ module EventMachine
     def stream_with_mapping filename
       ensure_mapping_extension_is_present
 
-      @position = 0
       @mapping = EventMachine::FastFileReader::Mapper.new filename
       stream_one_chunk
     end

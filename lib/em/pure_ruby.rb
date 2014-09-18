@@ -190,12 +190,12 @@ module EventMachine
     end
 
     # @private
-    def send_file_data sig, filename
+    def send_file_data sig, filename, offset = 0
       sz = File.size(filename)
       raise "file too large" if sz > 32*1024
       data =
         begin
-          File.read filename
+          File.read filename, sz, offset
         rescue
           ""
         end

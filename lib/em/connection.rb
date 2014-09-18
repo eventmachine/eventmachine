@@ -638,8 +638,8 @@ module EventMachine
     #
     # @see #send_data
     # @author Kirk Haines
-    def send_file_data filename
-      EventMachine::send_file_data @signature, filename
+    def send_file_data filename, offset = 0
+      EventMachine::send_file_data @signature, filename, offset
     end
 
     # Open a file on the filesystem and send it to the remote peer. This returns an
