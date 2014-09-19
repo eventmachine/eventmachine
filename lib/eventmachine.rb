@@ -1521,9 +1521,9 @@ module EventMachine
       raise ArgumentError, "must provide module or subclass of #{klass.name}" unless klass >= handler
       handler
     elsif handler
-      begin
+      if defined?(handler::EM_CONNECTION_CLASS)
         handler::EM_CONNECTION_CLASS
-      rescue NameError
+      else
         handler::const_set(:EM_CONNECTION_CLASS, Class.new(klass) {include handler})
       end
     else
