@@ -1984,7 +1984,8 @@ const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
 		return 0;
 	}
 
-	pid_t f = fork();
+	//pid_t f = fork();
+	pid_t f = -1; // TEMPORARY FOR TESTING
 	if (f > 0) {
 		close (sv[1]);
 		PipeDescriptor *pd = new PipeDescriptor (sv[0], f, this);
