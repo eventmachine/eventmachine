@@ -815,7 +815,6 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 	strings[len] = NULL;
 
 	unsigned long f = 0;
-	char buf[100];
 	try {
 		f = evma_popen (strings);
 	} catch(std::runtime_error exc) {
