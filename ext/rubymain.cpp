@@ -814,7 +814,18 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 	}
 	strings[len] = NULL;
 
-	const unsigned long f = evma_popen (strings);
+	unsigned long f = 0;
+	char buf[100];
+	try {
+		f = evma_popen (strings);
+	} catch(std::runtime_error exc) {
+		char *err = strerror (errno);
+		char buf[100];
+		buf[sizeof(buf)-1] = 0;
+		snprintf (buf, sizeof(buf)-1, "EventMachine fork failed: errno %d(%s)",
+				  errno, err ? err : "<reason unknown>");
+		rb_raise (rb_eRuntimeError, "%s", buf);
+	}
 	if (!f) {
 		char *err = strerror (errno);
 		char buf[100];
