@@ -12,7 +12,7 @@ Gem::Specification.new do |s|
   s.authors = ["Francis Cianfrocca", "Aman Gupta"]
   s.email   = ["garbagecat10@gmail.com", "aman@tmm1.net"]
 
-  s.files = `git ls-files`.split("\n")
+  s.files = `git ls-files`.split("\n") - ['.gitignore',]
   s.extensions = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
 
   s.add_development_dependency 'rake-compiler', '~> 0.8.3'
