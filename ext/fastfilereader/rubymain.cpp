@@ -68,8 +68,8 @@ static VALUE mapper_get_chunk (VALUE self, VALUE start, VALUE length)
 		rb_raise (rb_eException, "No Mapper Object");
 
 	// TODO, what if some moron sends us a negative start value?
-	unsigned _start = NUM2INT (start);
-	unsigned _length = NUM2INT (length);
+	unsigned long _start = NUM2ULONG (start);
+	unsigned long _length = NUM2ULONG (length);
 	if ((_start + _length) > m->GetFileSize())
 		rb_raise (rb_eException, "Mapper Range Error");
 
@@ -103,7 +103,7 @@ static VALUE mapper_size (VALUE self)
 	Data_Get_Struct (self, Mapper_t, m);
 	if (!m)
 		rb_raise (rb_eException, "No Mapper Object");
-	return INT2NUM (m->GetFileSize());
+	return ULONG2NUM (m->GetFileSize());
 }
 
 
