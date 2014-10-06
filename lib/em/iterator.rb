@@ -41,6 +41,8 @@ module EventMachine
   #   end
   #
   class Iterator
+    include EventMachine::Deferrable
+
     # Create a new parallel async iterator with specified concurrency.
     #
     #   i = EM::Iterator.new(1..100, 10)
@@ -54,6 +56,8 @@ module EventMachine
       @list = list.to_a.dup
       @concurrency = concurrency
 
+      @results = []
+      @failures = []
       @started = false
       @ended = false
     end
@@ -84,55 +88,12 @@ module EventMachine
     #   )
     #
     def each(foreach=nil, after=nil, &blk)
-      raise ArgumentError, 'proc or block required for iteration' unless foreach ||= blk
-      raise RuntimeError, 'cannot iterate over an iterator more than once' if @started or @ended
-
-      @started = true
-      @pending = 0
-      @workers = 0
-
-      all_done = proc{
-        after.call if after and @ended and @pending == 0
+      all_done = proc {
+        after.call if after
+        @failures.length > 0 ? self.fail(*@failures) : self.succeed(*@results)
       }
 
-      @process_next = proc{
-        # p [:process_next, :pending=, @pending, :workers=, @workers, :ended=, @ended, :concurrency=, @concurrency, :list=, @list]
-        unless @ended or @workers > @concurrency
-          if @list.empty?
-            @ended = true
-            @workers -= 1
-            all_done.call
-          else
-            item = @list.shift
-            @pending += 1
-
-            is_done = false
-            on_done = proc{
-              raise RuntimeError, 'already completed this iteration' if is_done
-              is_done = true
-
-              @pending -= 1
-
-              if @ended
-                all_done.call
-              else
-                EM.next_tick(@process_next)
-              end
-            }
-            class << on_done
-              alias :next :call
-            end
-
-            foreach.call(item, on_done)
-          end
-        else
-          @workers -= 1
-        end
-      }
-
-      spawn_workers
-
-      self
+      internal_each(foreach, all_done, &blk)
     end
 
     # Collect the results of an asynchronous iteration into an array.
@@ -185,7 +146,7 @@ module EventMachine
     #   })
     #
     def inject(obj, foreach, after)
-      each(proc{ |item,iter|
+      internal_each(proc{ |item,iter|
         is_done = false
         on_done = proc{ |res|
           raise RuntimeError, 'already returned a value for this iteration' if is_done
@@ -201,7 +162,13 @@ module EventMachine
           end
         end
 
-        foreach.call(obj, item, on_done)
+        defer = foreach.call(obj, item, on_done)
+        if defer.respond_to?(:callback) && defer.respond_to?(:errback)
+          defer.callback { |*a| on_done.return(*a) }
+          defer.errback { |*a| self.fail(*(a+[obj])) }
+        end
+
+        nil
       }, proc{
         after.call(obj)
       })
@@ -223,6 +190,64 @@ module EventMachine
       nil
     end
   end
+
+  def internal_each(foreach=nil, after=nil, &blk)
+      raise ArgumentError, 'proc or block required for iteration' unless foreach ||= blk
+      raise RuntimeError, 'cannot iterate over an iterator more than once' if @started or @ended
+
+      @started = true
+      @pending = 0
+      @workers = 0
+
+      all_done = proc{
+        after.call if after and @ended and @pending == 0
+      }
+
+      @process_next = proc{
+        # p [:process_next, :pending=, @pending, :workers=, @workers, :ended=, @ended, :concurrency=, @concurrency, :list=, @list]
+        unless @ended or @workers > @concurrency
+          if @list.empty?
+            @ended = true
+            @workers -= 1
+            all_done.call
+          else
+            item = @list.shift
+            @pending += 1
+
+            is_done = false
+            on_done = proc{
+              raise RuntimeError, 'already completed this iteration' if is_done
+              is_done = true
+
+              @pending -= 1
+
+              if @ended
+                all_done.call
+              else
+                EM.next_tick(@process_next)
+              end
+            }
+            class << on_done
+              alias :next :call
+            end
+
+            defer = foreach.call(item, on_done)
+            if defer.respond_to?(:callback) && defer.respond_to?(:errback)
+              defer.callback { |*a| @results << a; on_done.next }
+              defer.errback { |*a| @failures << a; on_done.next }
+            end
+          end
+        else
+          @workers -= 1
+        end
+      }
+
+      spawn_workers
+
+      self
+    end
+
+
 end
 
 # TODO: pass in one object instead of two? .each{ |iter| puts iter.current; iter.next }
