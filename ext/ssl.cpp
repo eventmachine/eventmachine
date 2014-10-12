@@ -394,7 +394,7 @@ int SslBox_t::PutPlaintext (const char *buf, int bufsize)
 	bool did_work = false;
     int pending =  BIO_pending(pbioWrite);
 
-	while (OutboundQ.HasPages() && pending < SSLBOX_OUTPUT_CHUNKSIZE) {
+	while (OutboundQ.HasPages() && pending < SSLBOX_WRITE_BUFFER_SIZE) {
 		const char *page;
 		int length;
 		OutboundQ.Front (&page, &length);
