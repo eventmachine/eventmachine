@@ -32,7 +32,7 @@ EventMachine has been around since the early 2000s and is a mature and battle te
 
 ## What platforms are supported by EventMachine? ##
 
-EventMachine supports Ruby 1.8.7, 1.9.2, REE, JRuby and **works well on Windows** as well
+EventMachine supports Ruby 1.8.7, 1.9.2, 2.0.0, 2.1.2, REE, JRuby and **works well on Windows** as well
 as many operating systems from the Unix family (Linux, Mac OS X, BSD flavors).
 
 
