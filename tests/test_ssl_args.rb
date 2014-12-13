@@ -45,7 +45,7 @@ class TestSslArgs < Test::Unit::TestCase
   def test_tls_params_file_doesnt_exist
     priv_file, cert_file = 'foo_priv_key', 'bar_cert_file'
     [priv_file, cert_file].all? do |f|
-      assert(!File.exists?(f), "Cert file #{f} seems to exist, and should not for the tests")
+      assert(!File.exist?(f), "Cert file #{f} seems to exist, and should not for the tests")
     end
     
     # associate_callback_target is a pain! (build!)

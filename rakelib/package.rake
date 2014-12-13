@@ -65,7 +65,7 @@ end
   require "\#{$1}/#{File.basename(t.name, '.rb')}"
       eoruby
     end
-    at_exit{ FileUtils.rm t.name if File.exists?(t.name) }
+    at_exit{ FileUtils.rm t.name if File.exist?(t.name) }
   end
 end
 
