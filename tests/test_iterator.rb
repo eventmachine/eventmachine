@@ -18,7 +18,7 @@ class TestIterator < Test::Unit::TestCase
       }, proc {EM.stop})
     }
     assert_equal(10, items.keys.size)
-    assert_equal((list).to_a, items.values.flatten)
+    assert_equal(list.to_a.sort, items.values.flatten.sort)
   end
 
   def test_concurrency_bigger_than_list_size
@@ -33,7 +33,7 @@ class TestIterator < Test::Unit::TestCase
       }, proc {EM.stop})
     }
     assert_equal(1, items.keys.size)
-    assert_equal((list).to_a, items.values.flatten)
+    assert_equal(list.to_a.sort, items.values.flatten.sort)
   end
 
 
@@ -56,7 +56,7 @@ class TestIterator < Test::Unit::TestCase
       }
     }
     assert_equal(9, items.keys.size)
-    assert_equal((list).to_a, items.values.flatten)
+    assert_equal(list.to_a.sort, items.values.flatten.sort)
   end
 
   def test_map
@@ -65,7 +65,7 @@ class TestIterator < Test::Unit::TestCase
       EM::Iterator.new(list).map(proc{ |num,iter|
         EM.add_timer(0.01){ iter.return(num) }
       }, proc{ |results|
-        assert_equal((list).to_a.size, results.size)
+        assert_equal(list.to_a.size, results.size)
        EM.stop
       })
     }
@@ -80,7 +80,7 @@ class TestIterator < Test::Unit::TestCase
           iter.return(hash)
         }
       }, proc{ |results|
-        assert_equal(results.keys, list)
+        assert_equal(results.keys.sort, list.sort)
         EM.stop
       })
     }
