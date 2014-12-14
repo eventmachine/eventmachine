@@ -409,8 +409,12 @@ module EventMachine
       #--
       # STARTTLS may not be issued before EHLO, or unless the user has chosen
       # to support it.
-      # TODO, must support user-supplied certificates.
       #
+      # If :starttls_options is present and :starttls is set in the parms
+      # pass the options in :starttls_options to start_tls. Do this if you want to use
+      # your own certificate
+      # e.g. {:cert_chain_file => "/etc/ssl/cert.pem", :private_key_file => "/etc/ssl/private/cert.key"}
+
       def process_starttls
         if @@parms[:starttls]
           if @state.include?(:starttls)
@@ -419,7 +423,7 @@ module EventMachine
             send_data "503 EHLO required before STARTTLS\r\n"
           else
             send_data "220 Start TLS negotiation\r\n"
-            start_tls
+            start_tls(@@parms[:starttls_options] || {})
             @state << :starttls
           end
         else
