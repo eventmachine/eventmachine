@@ -1,6 +1,14 @@
 # Changelog
 
-## 1.0.4
+## 1.0.4 (December 19, 2014)
+* add starttls_options to smtp server [#552]
+* fix closesocket on windows [#497]
+* fix build on ruby 2.2 [#503]
+* fix build error on ruby 1.9 [#508]
+* fix timer leak during dns resolution [#489]
+* add concurrency validation to EM::Iterator [#468]
+* add get_file_descriptor to get fd for a signature [#467]
+* add EM.attach_server and EM.attach_socket_server [#465, #466]
 * calling pause from receive_data takes effect immediately [#464]
 * reactor_running? returns false after fork [#455]
 * fix infinite loop on double close [edc4d0e6, #441, #445]
