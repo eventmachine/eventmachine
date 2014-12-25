@@ -566,11 +566,25 @@ int ConnectionDescriptor::SendOutboundData (const char *data, int length)
 	#ifdef WITH_SSL
 	if (SslBox) {
 		if (length > 0) {
-			int w = SslBox->PutPlaintext (data, length);
-			if (w < 0)
-				ScheduleClose (false);
-			else
-				_DispatchCiphertext();
+			int writed = 0;
+			char *p = (char*)data;
+
+			while (writed < length) {
+				int to_write = SSLBOX_INPUT_CHUNKSIZE;
+				int remaining = length - writed;
+
+				if (remaining < SSLBOX_INPUT_CHUNKSIZE)
+					to_write = remaining;
+
+				int w = SslBox->PutPlaintext (p, to_write);
+				if (w < 0) {
+					ScheduleClose (false);
+				}else
+					_DispatchCiphertext();
+
+				p += to_write;
+				writed += to_write;
+			}
 		}
 		// TODO: What's the correct return value?
 		return 1; // That's a wild guess, almost certainly wrong.
@@ -602,7 +616,6 @@ int ConnectionDescriptor::_SendRawOutboundData (const char *data, int length)
 
 	if (IsCloseScheduled())
 		return 0;
-
 	// 25Mar10: Ignore 0 length packets as they are not meaningful in TCP (as opposed to UDP)
 	// and can cause the assert(nbytes>0) to fail when OutboundPages has a bunch of 0 length pages.
 	if (length == 0)
@@ -1226,7 +1239,7 @@ void ConnectionDescriptor::_DispatchCiphertext()
 	assert (SslBox);
 
 
-	char BigBuf [2048];
+	char BigBuf [SSLBOX_OUTPUT_CHUNKSIZE];
 	bool did_work;
 
 	do {

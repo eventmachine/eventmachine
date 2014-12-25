@@ -54,6 +54,10 @@ class SslContext_t
 class SslBox_t
 **************/
 
+#define SSLBOX_INPUT_CHUNKSIZE 2019
+#define SSLBOX_OUTPUT_CHUNKSIZE 2048
+#define SSLBOX_WRITE_BUFFER_SIZE 8192 // (SSLBOX_OUTPUT_CHUNKSIZE * 4)
+
 class SslBox_t
 {
 	public:
