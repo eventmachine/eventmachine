@@ -112,7 +112,7 @@ class TestProcesses < Test::Unit::TestCase
       end
 
       EM.run{
-        EM.popen('cat /dev/random', test_client)
+        EM.popen('cat /dev/urandom', test_client)
       }
 
       assert_equal 1, c_rx
