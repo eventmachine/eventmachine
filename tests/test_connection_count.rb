@@ -43,6 +43,7 @@ class TestConnectionCount < Test::Unit::TestCase
   end
 
   def test_num_close_scheduled
+    omit_if(jruby?)
     EM.run {
       assert_equal(0, EM.num_close_scheduled)
       EM.connect("127.0.0.1", 9999, DoubleCloseClient) # nothing listening on 9999
