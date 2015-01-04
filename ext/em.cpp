@@ -1923,47 +1923,6 @@ const unsigned long EventMachine_t::AttachSD (int sd_accept)
 }
 
 
-/*********************
-EventMachine_t::Popen
-*********************/
-#if OBSOLETE
-const char *EventMachine_t::Popen (const char *cmd, const char *mode)
-{
-	#ifdef OS_WIN32
-	throw std::runtime_error ("popen is currently unavailable on this platform");
-	#endif
-
-	// The whole rest of this function is only compiled on Unix systems.
-	// Eventually we need this functionality (or a full-duplex equivalent) on Windows.
-	#ifdef OS_UNIX
-	const char *output_binding = NULL;
-
-	FILE *fp = popen (cmd, mode);
-	if (!fp)
-		return NULL;
-
-	// From here, all early returns must pclose the stream.
-
-	// According to the pipe(2) manpage, descriptors returned from pipe have both
-	// CLOEXEC and NONBLOCK clear. Do NOT set CLOEXEC. DO set nonblocking.
-	if (!SetSocketNonblocking (fileno (fp))) {
-		pclose (fp);
-		return NULL;
-	}
-
-	{ // Looking good.
-		PipeDescriptor *pd = new PipeDescriptor (fp, this);
-		if (!pd)
-			throw std::runtime_error ("unable to allocate pipe");
-		Add (pd);
-		output_binding = pd->GetBinding();
-	}
-
-	return output_binding;
-	#endif
-}
-#endif // OBSOLETE
-
 /**************************
 EventMachine_t::Socketpair
 **************************/
