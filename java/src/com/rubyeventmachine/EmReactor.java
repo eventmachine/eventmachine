@@ -569,6 +569,18 @@ public class EmReactor {
 		return Connections.get(sig).isNotifyWritable();
 	}
 
+	public boolean pauseConnection (long sig) {
+		return ((EventableSocketChannel) Connections.get(sig)).pause();
+	}
+	
+	public boolean resumeConnection (long sig) {
+		return ((EventableSocketChannel) Connections.get(sig)).resume();
+	}
+
+	public long getOutboundDataSize (long sig) {
+		return Connections.get(sig).getOutboundDataSize();
+	}
+	
 	public int getConnectionCount() {
 	  return Connections.size() + Acceptors.size();
 	}
