@@ -31,7 +31,7 @@ class TestSentData < Test::Unit::TestCase
     @send_socket.notify_sent_data = true
     EM.add_timer(0.01){
       @send_socket.send_data BLOB
-      EM.add_timer(0.01) {
+      EM.add_timer(0.02) {
         assert_equal 0, @send_socket.get_outbound_data_size
         EM.next_tick{ EM.stop }
       }

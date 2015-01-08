@@ -62,6 +62,8 @@ public class EventableSocketChannel implements EventableChannel {
 	boolean bAttached;
 	boolean bNotifyReadable;
 	boolean bNotifyWritable;
+	boolean bNotifySentData;
+	boolean bSentData;
 	boolean bPaused;
 	
 	SSLEngine sslEngine;
@@ -77,6 +79,8 @@ public class EventableSocketChannel implements EventableChannel {
 		bAttached = false;
 		bNotifyReadable = false;
 		bNotifyWritable = false;
+		bNotifySentData = false;
+		bPaused = false;
 		outboundQ = new LinkedList<ByteBuffer>();
 		outboundS = 0;
 	}
@@ -193,6 +197,8 @@ public class EventableSocketChannel implements EventableChannel {
 			throw new IOException ("eof");
 	}
 
+	public boolean wereSentData() { return bSentData; }
+
 	public long getOutboundDataSize() { return outboundS; }
 
 	/**
@@ -208,12 +214,15 @@ public class EventableSocketChannel implements EventableChannel {
 	 * @return
 	 */
 	public boolean writeOutboundData() throws IOException {
+		bSentData = false;
 		while (!outboundQ.isEmpty()) {
 			ByteBuffer b = outboundQ.getFirst();
 			long written = 0;
 			if (b.remaining() > 0)
 				written = channel.write(b);
 
+			if (written > 0)
+				bSentData = true;
 			outboundS -= written;
 			// Did we consume the whole outbound buffer? If yes,
 			// pop it off and keep looping. If no, the outbound network
@@ -341,6 +350,11 @@ public class EventableSocketChannel implements EventableChannel {
 		updateEvents();
 	}
 	public boolean isNotifyWritable() { return bNotifyWritable; }
+
+	public void setNotifySentData (boolean mode) {
+		bNotifySentData = mode;
+	}
+	public boolean isNotifySentData() { return bNotifySentData; }
 
 	public boolean pause() {
 		if (bWatchOnly) {
