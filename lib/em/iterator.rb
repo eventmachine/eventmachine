@@ -230,6 +230,41 @@ module EventMachine
       @worker = InjectQueue.new(obj, foreach, after, @concurrency)
       _iterate
     end
+
+    class WithObjectQueue < EachQueue # :nodoc:
+      class Worker < EachQueue::Worker # :nodoc:
+        def call
+          @callback.call(@master._obj, @value, self)
+        end
+      end
+
+      attr_reader :_obj
+      def initialize(obj, foreach, after, concurrency)
+        @_obj = obj
+        _after = proc{ after.call(@_obj) }
+        super foreach, _after, concurrency
+      end
+    end
+
+    # Inject the results of an asynchronous iteration onto a given object.
+    #
+    #   EM::Iterator.new(%w[ pwd uptime uname date ], 2).with_object({}, proc{ |hash,cmd,iter|
+    #     EM.system(cmd){ |output,status|
+    #       hash[cmd] = status.exitstatus == 0 ? output.strip : nil
+    #       iter.next
+    #     }
+    #   }, proc{ |results|
+    #     p results
+    #   })
+    #
+    def with_object(obj, foreach, after = nil, &blk)
+      foreach, after = blk, foreach  if after.nil? && blk
+      raise ArgumentError, 'proc required for iteration' unless foreach ||= blk
+      raise RuntimeError, 'cannot iterate over an iterator more than once' if @worker && @worker.closed?
+
+      @worker = WithObjectQueue.new(obj, foreach, after, @concurrency)
+      _iterate
+    end
   end
 end
 
