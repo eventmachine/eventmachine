@@ -82,14 +82,19 @@ class TestPause < Test::Unit::TestCase
         end
       end
 
+      buf = 'a' * 1024
+
       EM.run do
         EM.start_server "127.0.0.1", @port, test_server
         cli = EM.connect "127.0.0.1", @port
-        cli.send_data 'a'*(17*1024)
+        128.times do
+          cli.send_data buf
+        end
       end
 
       assert_equal 1, incoming.size
-      assert_equal 16*1024, incoming[0].bytesize
+      assert incoming[0].bytesize > buf.bytesize
+      assert incoming[0].bytesize < buf.bytesize * 128
     end
   else
     warn "EM.pause_connection not implemented, skipping tests in #{__FILE__}"

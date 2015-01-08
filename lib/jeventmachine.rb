@@ -268,6 +268,20 @@ module EventMachine
     @em.getConnectionCount
   end
 
+  def self.pause_connection(sig)
+    @em.pauseConnection(sig)
+  end
+  def self.resume_connection(sig)
+    @em.resumeConnection(sig)
+  end
+  def self.connection_paused?(sig)
+    @em.isConnectionPaused(sig)
+  end
+  def self._get_outbound_data_size(sig)
+    @em.getOutboundDataSize(sig)
+  end
+
+
   def self.set_tls_parms(sig, params)
   end
   def self.start_tls(sig)
@@ -278,6 +292,9 @@ module EventMachine
   class Connection
     def associate_callback_target sig
       # No-op for the time being
+    end
+    def get_outbound_data_size
+      EM._get_outbound_data_size @signature
     end
   end
 end
