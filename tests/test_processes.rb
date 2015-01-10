@@ -111,9 +111,9 @@ class TestProcesses < Test::Unit::TestCase
         end
       end
 
-      EM.run{
-        EM.popen('cat /dev/random', test_client)
-      }
+      EM.run do
+        EM.popen('echo 1', test_client)
+      end
 
       assert_equal 1, c_rx
     end
