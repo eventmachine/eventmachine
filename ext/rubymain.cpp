@@ -408,8 +408,22 @@ static VALUE t_get_subprocess_status (VALUE self, VALUE signature)
 	if (evma_get_subprocess_status (NUM2ULONG (signature), &status)) {
 		if (evma_get_subprocess_pid (NUM2ULONG (signature), &pid)) {
 			proc_status = rb_obj_alloc(rb_cProcStatus);
+
+			/* MRI Ruby uses hidden instance vars */
 			rb_iv_set(proc_status, "status", INT2FIX(status));
 			rb_iv_set(proc_status, "pid", INT2FIX(pid));
+
+#ifdef RUBINIUS
+			/* Rubinius uses standard instance vars */
+			rb_iv_set(proc_status, "@pid", INT2FIX(pid));
+			if (WIFEXITED(status)) {
+				rb_iv_set(proc_status, "@status", INT2FIX(WEXITSTATUS(status)));
+			} else if(WIFSIGNALED(status)) {
+				rb_iv_set(proc_status, "@termsig", INT2FIX(WTERMSIG(status)));
+			} else if(WIFSTOPPED(status)){
+				rb_iv_set(proc_status, "@stopsig", INT2FIX(WSTOPSIG(status)));
+			}
+#endif
 		}
 	}
 
