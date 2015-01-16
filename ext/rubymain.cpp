@@ -833,7 +833,12 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 	}
 	strings[len] = NULL;
 
-	const unsigned long f = evma_popen (strings);
+	unsigned long f = 0;
+	try {
+		f = evma_popen (strings);
+	} catch (std::runtime_error e) {
+		f = 0; // raise exception below
+	}
 	if (!f) {
 		char *err = strerror (errno);
 		char buf[100];
