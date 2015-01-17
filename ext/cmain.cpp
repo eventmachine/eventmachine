@@ -762,8 +762,11 @@ extern "C" int evma_send_file_data_to_connection (const unsigned long binding, c
 
 	ensure_eventmachine("evma_send_file_data_to_connection");
 
+#if defined(OS_WIN32)
+	int Fd = open (filename, O_RDONLY|O_BINARY);
+#else
 	int Fd = open (filename, O_RDONLY);
-
+#endif
 	if (Fd < 0)
 		return errno;
 	// From here on, all early returns MUST close Fd.
@@ -784,7 +787,6 @@ extern "C" int evma_send_file_data_to_connection (const unsigned long binding, c
 		close (Fd);
 		return -1;
 	}
-
 
 	r = read (Fd, data, filesize);
 	if (r != filesize) {
