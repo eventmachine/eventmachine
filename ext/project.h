@@ -78,6 +78,11 @@ typedef int SOCKET;
 #endif
 #endif /* _AIX */
 
+#ifdef OS_DARWIN
+#include <mach/mach.h>
+#include <mach/mach_time.h>
+#endif /* OS_DARWIN */
+
 #endif /* OS_UNIX */
 
 #ifdef OS_WIN32
@@ -85,7 +90,9 @@ typedef int SOCKET;
 // 18Jun12: fd_setsize must be changed in the ruby binary (not in this extension). redefining it also causes segvs, see eventmachine/eventmachine#333
 //#define FD_SETSIZE 1024
 
+// WIN32_LEAN_AND_MEAN excludes APIs such as Cryptography, DDE, RPC, Shell, and Windows Sockets.
 #define WIN32_LEAN_AND_MEAN
+
 #include <windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>

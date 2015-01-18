@@ -85,6 +85,11 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	Quantum.tv_sec = 0;
 	Quantum.tv_usec = 90000;
 
+	/* Initialize monotonic timekeeping on OS X before the first call to GetRealTime */
+	#ifdef OS_DARWIN
+	(void) mach_timebase_info(&mach_timebase);
+	#endif
+
 	// Make sure the current loop time is sane, in case we do any initializations of
 	// objects before we start running.
 	_UpdateTime();
@@ -352,16 +357,49 @@ void EventMachine_t::_UpdateTime()
 EventMachine_t::GetRealTime
 ***************************/
 
+// Two great writeups of cross-platform monotonic time are at:
+// http://www.python.org/dev/peps/pep-0418
+// http://nadeausoftware.com/articles/2012/04/c_c_tip_how_measure_elapsed_real_time_benchmarking
+// Uncomment the #pragma messages to confirm which compile-time option was used
 uint64_t EventMachine_t::GetRealTime()
 {
 	uint64_t current_time;
 
-	#if defined(OS_UNIX)
+	#if defined(HAVE_CONST_CLOCK_MONOTONIC_RAW)
+	// #pragma message "GetRealTime: clock_gettime CLOCK_MONOTONIC_RAW"
+	// Linux 2.6.28 and above
+	struct timespec tv;
+	clock_gettime (CLOCK_MONOTONIC_RAW, &tv);
+	current_time = (((uint64_t)(tv.tv_sec)) * 1000000LL) + ((uint64_t)((tv.tv_nsec)/1000));
+
+	#elif defined(HAVE_CONST_CLOCK_MONOTONIC)
+	// #pragma message "GetRealTime: clock_gettime CLOCK_MONOTONIC"
+	// Linux, FreeBSD 5.0 and above, Solaris 8 and above, OpenBSD, NetBSD, DragonflyBSD
+	struct timespec tv;
+	clock_gettime (CLOCK_MONOTONIC, &tv);
+	current_time = (((uint64_t)(tv.tv_sec)) * 1000000LL) + ((uint64_t)((tv.tv_nsec)/1000));
+
+	#elif defined(HAVE_GETHRTIME)
+	// #pragma message "GetRealTime: gethrtime"
+	// Solaris and HP-UX
+	current_time = (uint64_t)gethrtime() / 1000;
+
+	#elif defined(OS_DARWIN)
+	// #pragma message "GetRealTime: mach_absolute_time"
+	// Mac OS X
+	// https://developer.apple.com/library/mac/qa/qa1398/_index.html
+	current_time = mach_absolute_time() * mach_timebase.numer / mach_timebase.denom / 1000;
+
+	#elif defined(OS_UNIX)
+	// #pragma message "GetRealTime: gettimeofday"
+	// Unix fallback
 	struct timeval tv;
 	gettimeofday (&tv, NULL);
 	current_time = (((uint64_t)(tv.tv_sec)) * 1000000LL) + ((uint64_t)(tv.tv_usec));
 
 	#elif defined(OS_WIN32)
+	// #pragma message "GetRealTime: GetTickCount"
+	// Future improvement: use GetTickCount64 in Windows Vista / Server 2008
 	unsigned tick = GetTickCount();
 	if (tick < LastTickCount)
 		TickCountTickover += 1;
@@ -370,6 +408,8 @@ uint64_t EventMachine_t::GetRealTime()
 	current_time *= 1000; // convert to microseconds
 
 	#else
+	// #pragma message "GetRealTime: time"
+	// Universal fallback
 	current_time = (uint64_t)time(NULL) * 1000000LL;
 	#endif
 

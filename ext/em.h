@@ -232,6 +232,10 @@ class EventMachine_t
 		unsigned LastTickCount;
 		#endif
 
+		#ifdef OS_DARWIN
+		mach_timebase_info_data_t mach_timebase;
+		#endif
+
 	private:
 		bool bTerminateSignalReceived;
 
