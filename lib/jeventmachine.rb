@@ -126,6 +126,9 @@ module EventMachine
   def self.send_data sig, data, length
     @em.sendData sig, data.to_java_bytes
   end
+  def self.get_outbound_data_size sig
+    @em.getOutboundDataSize sig
+  end
   def self.send_datagram sig, data, length, address, port
     @em.sendDatagram sig, data.to_java_bytes, length, address, port
   end

@@ -169,6 +169,10 @@ public class EventableDatagramChannel implements EventableChannel {
 		return (bCloseScheduled && outboundQ.isEmpty()) ? false : true;
 	}
 
+	public int getOutboundDataSize() {
+	        throw new UnsupportedOperationException();
+	}
+
 	public void setCommInactivityTimeout (long seconds) {
 		// TODO
 		System.out.println ("DATAGRAM: SET COMM INACTIVITY UNIMPLEMENTED " + seconds);

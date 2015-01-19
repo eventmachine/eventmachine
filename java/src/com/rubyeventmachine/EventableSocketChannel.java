@@ -156,6 +156,14 @@ public class EventableSocketChannel implements EventableChannel {
 		channel = null;
 	}
 	
+	public int getOutboundDataSize() {
+	       int size = 0;
+	       for (ByteBuffer b : outboundQ) {
+	               size += b.remaining();
+	       }
+	       return size;
+	}
+
 	public void scheduleOutboundData (ByteBuffer bb) {
 		if (!bCloseScheduled && bb.remaining() > 0) {
 			if (sslEngine != null) {
