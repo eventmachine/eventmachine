@@ -93,13 +93,10 @@ typedef int SOCKET;
 #include <fcntl.h>
 #include <assert.h>
 
-#define close closesocket
-
-typedef int socklen_t;
-#ifndef _PID_T_
-#define _PID_T_
-typedef int pid_t;
-#endif /* _PID_T_ */
+// Use the Win32 wrapper library that Ruby owns to be able to close sockets with the close() function
+#define RUBY_EXPORT
+#include <ruby/defines.h>
+#include <ruby/win32.h>
 #endif /* OS_WIN32 */
 
 #if !defined(_MSC_VER) || _MSC_VER > 1500
