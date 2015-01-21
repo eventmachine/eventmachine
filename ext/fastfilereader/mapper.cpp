@@ -195,7 +195,7 @@ void Mapper_t::Close()
 	}
 	if (hFile != INVALID_HANDLE_VALUE) {
 		CloseHandle (hFile);
-		hMapping = INVALID_HANDLE_VALUE;
+		hFile = INVALID_HANDLE_VALUE;
 	}
 }
 
