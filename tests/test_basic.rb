@@ -246,22 +246,20 @@ class TestBasic < Test::Unit::TestCase
 
   def test_fork_safe
     omit_if(jruby?)
-    return unless cpid = fork { exit! } rescue false
 
     read, write = IO.pipe
     EM.run do
-      cpid = fork do
+      fork do
         write.puts "forked"
         EM.run do
           EM.next_tick do
             write.puts "EM ran"
-            exit!
+            EM.stop
           end
         end
       end
       EM.stop
     end
-    Process.waitall
     assert_equal "forked\n", read.readline
     assert_equal "EM ran\n", read.readline
   ensure
