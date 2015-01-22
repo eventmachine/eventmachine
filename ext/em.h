@@ -66,6 +66,9 @@ See the file COPYING for complete licensing information.
 
 #ifndef rb_fd_max
 #define fd_check(n) (((n) < FD_SETSIZE) ? 1 : 0*fprintf(stderr, "fd %d too large for select\n", (n)))
+// These definitions are cribbed from include/ruby/intern.h in Ruby 1.9.3,
+// with this change: any macros that read or write the nth element of an
+// fdset first call fd_check to make sure n is in bounds.
 typedef fd_set rb_fdset_t;
 #define rb_fd_zero(f) FD_ZERO(f)
 #define rb_fd_set(n, f) do { if (fd_check(n)) FD_SET((n), (f)); } while(0)
