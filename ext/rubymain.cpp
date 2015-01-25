@@ -1007,7 +1007,7 @@ static VALUE t__ssl_p (VALUE self)
 t_send_file_data
 ****************/
 
-static VALUE t_send_file_data (VALUE self, VALUE signature, VALUE filename)
+static VALUE t_send_file_data (VALUE self, VALUE signature, VALUE filename, VALUE offset)
 {
 
 	/* The current implementation of evma_send_file_data_to_connection enforces a strict
@@ -1018,7 +1018,7 @@ static VALUE t_send_file_data (VALUE self, VALUE signature, VALUE filename)
 	 * do this. For one thing it's ugly. For another, we can't be sure zero is never a real errno.
 	 */
 
-	int b = evma_send_file_data_to_connection (NUM2ULONG (signature), StringValuePtr(filename));
+	int b = evma_send_file_data_to_connection (NUM2ULONG (signature), StringValuePtr(filename), NUM2ULONG(offset));
 	if (b == -1)
 		rb_raise(rb_eRuntimeError, "%s", "File too large.  send_file_data() supports files under 32k.");
 	if (b > 0) {
@@ -1278,7 +1278,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "set_max_timer_count", (VALUE(*)(...))t_set_max_timer_count, 1);
 	rb_define_module_function (EmModule, "setuid_string", (VALUE(*)(...))t_setuid_string, 1);
 	rb_define_module_function (EmModule, "invoke_popen", (VALUE(*)(...))t_invoke_popen, 1);
-	rb_define_module_function (EmModule, "send_file_data", (VALUE(*)(...))t_send_file_data, 2);
+	rb_define_module_function (EmModule, "send_file_data", (VALUE(*)(...))t_send_file_data, 3);
 	rb_define_module_function (EmModule, "get_heartbeat_interval", (VALUE(*)(...))t_get_heartbeat_interval, 0);
 	rb_define_module_function (EmModule, "set_heartbeat_interval", (VALUE(*)(...))t_set_heartbeat_interval, 1);
 	rb_define_module_function (EmModule, "get_idle_time", (VALUE(*)(...))t_get_idle_time, 1);

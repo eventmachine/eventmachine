@@ -738,7 +738,7 @@ extern "C" int evma_set_rlimit_nofile (int nofiles)
 evma_send_file_data_to_connection
 *********************************/
 
-extern "C" int evma_send_file_data_to_connection (const unsigned long binding, const char *filename)
+extern "C" int evma_send_file_data_to_connection (const unsigned long binding, const char *filename, unsigned long offset)
 {
 	/* This is a sugaring over send_data_to_connection that reads a file into a
 	 * locally-allocated buffer, and sends the file data to the remote peer.
@@ -787,6 +787,9 @@ extern "C" int evma_send_file_data_to_connection (const unsigned long binding, c
 		close (Fd);
 		return -1;
 	}
+
+	// seek to the offset first
+	lseek(Fd, offset, SEEK_SET);
 
 	r = read (Fd, data, filesize);
 	if (r != filesize) {
