@@ -30,6 +30,7 @@
 require 'java'
 require 'rubyeventmachine'
 require 'socket'
+require 'openssl'
 
 java_import java.io.FileDescriptor
 java_import java.nio.channels.SocketChannel
@@ -77,6 +78,8 @@ module EventMachine
   ConnectionNotifyWritable = 107
   # @private
   SslHandshakeCompleted = 108
+  # @private
+  SslVerify = 109
 
   # Exceptions that are defined in rubymain.cpp
   class ConnectionError < RuntimeError; end
@@ -84,22 +87,12 @@ module EventMachine
   class UnknownTimerFired < RuntimeError; end
   class Unsupported < RuntimeError; end
 
-  # This thunk class used to be called EM, but that caused conflicts with
-  # the alias "EM" for module EventMachine. (FC, 20Jun08)
-  class JEM < com.rubyeventmachine.EmReactor
-    def eventCallback a1, a2, a3, a4
-      s = String.from_java_bytes(a3.array[a3.position...a3.limit]) if a3
-      EventMachine::event_callback a1, a2, s || a4
+  def self.initialize_event_machine
+    @em = com.rubyeventmachine.EmReactor.new do |sig, event, buf, data|
+      s = String.from_java_bytes(buf.array[buf.position...buf.limit]) if buf
+      EventMachine::event_callback sig, event.int_value, s || data
       nil
     end
-  end
-  # class Connection < com.rubyeventmachine.Connection
-  #   def associate_callback_target sig
-  #     # No-op for the time being.
-  #   end
-  # end
-  def self.initialize_event_machine
-    @em = JEM.new
   end
   def self.release_machine
     @em = nil
@@ -149,7 +142,15 @@ module EventMachine
     @em.startTls sig
   end
   def self.ssl?
-    false
+    true
+  end
+  def self.ssl_verify_peer conn, der_data
+    data = OpenSSL::X509::Certificate.new(der_data).to_pem
+    @em.acceptSslPeer conn.signature if conn.ssl_verify_peer data
+  end
+  def self.get_peer_cert sig
+    der_data = @em.getPeerCert sig
+    OpenSSL::X509::Certificate.new(String.from_java_bytes(der_data)).to_pem
   end
   def self.signal_loopbreak
     @em.signalLoopbreak
@@ -268,9 +269,9 @@ module EventMachine
     @em.getConnectionCount
   end
 
-  def self.set_tls_parms(sig, params)
-  end
-  def self.start_tls(sig)
+  def self.set_tls_parms(sig, privkeyfile, certchainfile, verify_peer)
+    keystore = KeyStoreBuilder.create privkeyfile, certchainfile unless (privkeyfile.empty? or certchainfile.empty?) 
+    @em.setTlsParms(sig, keystore, (!!verify_peer))
   end
   def self.send_file_data(sig, filename)
   end
@@ -282,3 +283,39 @@ module EventMachine
   end
 end
 
+module KeyStoreBuilder
+  require 'bouncy-castle-java'
+  java_import java.io.FileReader
+  java_import java.io.FileInputStream
+  java_import java.security.cert.Certificate
+  java_import java.security.cert.CertificateFactory
+  java_import java.security.KeyStore
+  java_import java.security.Security
+  java_import org.bouncycastle.openssl.PEMReader
+  java_import org.bouncycastle.jce.provider.BouncyCastleProvider
+  @name = 'em_java_tls_key' # TODO - find a correct value, or whether it even really matters.
+  @initialized = false
+
+  def self.init
+    unless @initialized
+      Security.add_provider BouncyCastleProvider.new
+      @initialized = true
+    end
+  end
+
+  def self.create(privkeyfile, certchainfile)
+    self.init
+    
+    key_reader = FileReader.new privkeyfile
+    key_pair = PEMReader.new(key_reader).read_object
+
+    cert_stream = FileInputStream.new certchainfile
+    certs = CertificateFactory.get_instance('X.509', 'BC').generate_certificates cert_stream
+
+    store = KeyStore.get_instance 'PKCS12', 'BC'
+    store.load nil, nil
+    store.set_key_entry @name, key_pair.get_private, nil, certs.to_array(Certificate[certs.size].new)
+
+    store
+  end
+end

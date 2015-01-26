@@ -34,35 +34,19 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.DatagramChannel;
-import java.util.LinkedList;
 import java.io.*;
 import java.net.*;
 
-public class EventableDatagramChannel implements EventableChannel {
-	
-	class Packet {
-		public ByteBuffer bb;
-		public SocketAddress recipient;
-		public Packet (ByteBuffer _bb, SocketAddress _recipient) {
-			bb = _bb;
-			recipient = _recipient;
-		}
-	}
+public class EventableDatagramChannel extends EventableChannel<DatagramPacket> {
 	
 	DatagramChannel channel;
-	long binding;
-	Selector selector;
 	boolean bCloseScheduled;
-	LinkedList<Packet> outboundQ;
 	SocketAddress returnAddress;
-	
 
-	public EventableDatagramChannel (DatagramChannel dc, long _binding, Selector sel) throws ClosedChannelException {
+	public EventableDatagramChannel (DatagramChannel dc, long _binding, Selector sel, EventCallback callback) throws ClosedChannelException {
+		super(_binding, sel, callback);
 		channel = dc;
-		binding = _binding;
-		selector = sel;
 		bCloseScheduled = false;
-		outboundQ = new LinkedList<Packet>();
 		
 		dc.register(selector, SelectionKey.OP_READ, this);
 	}
@@ -70,7 +54,7 @@ public class EventableDatagramChannel implements EventableChannel {
 	public void scheduleOutboundData (ByteBuffer bb) {
  		try {
 			if ((!bCloseScheduled) && (bb.remaining() > 0)) {
-				outboundQ.addLast(new Packet(bb, returnAddress));
+				outboundQ.addLast(new DatagramPacket(bb, returnAddress));
  				channel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ, this);
 			}
 		} catch (ClosedChannelException e) {
@@ -81,7 +65,7 @@ public class EventableDatagramChannel implements EventableChannel {
 	public void scheduleOutboundDatagram (ByteBuffer bb, String recipAddress, int recipPort) {
  		try {
 			if ((!bCloseScheduled) && (bb.remaining() > 0)) {
-				outboundQ.addLast(new Packet (bb, new InetSocketAddress (recipAddress, recipPort)));
+				outboundQ.addLast(new DatagramPacket (bb, new InetSocketAddress (recipAddress, recipPort)));
  				channel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ, this);
 			}
 		} catch (ClosedChannelException e) {
@@ -96,10 +80,6 @@ public class EventableDatagramChannel implements EventableChannel {
 	
 	public void startTls() {
 		throw new RuntimeException ("TLS is unimplemented on this Channel");
-	}
-	
-	public long getBinding() {
-		return binding;
 	}
 
 	public void register() throws ClosedChannelException {
@@ -129,9 +109,9 @@ public class EventableDatagramChannel implements EventableChannel {
 		}
 	}
 	
-	public boolean writeOutboundData() {
+	protected boolean writeOutboundData() {
 		while (!outboundQ.isEmpty()) {
-			Packet p = outboundQ.getFirst();
+			DatagramPacket p = outboundQ.getFirst();
 			int written = 0;
 			try {
 				// With a datagram socket, it's ok to send an empty buffer.
@@ -169,11 +149,6 @@ public class EventableDatagramChannel implements EventableChannel {
 		return (bCloseScheduled && outboundQ.isEmpty()) ? false : true;
 	}
 
-	public void setCommInactivityTimeout (long seconds) {
-		// TODO
-		System.out.println ("DATAGRAM: SET COMM INACTIVITY UNIMPLEMENTED " + seconds);
-	}
-
 	public Object[] getPeerName () {
 		if (returnAddress != null) {
 			InetSocketAddress inetAddr = (InetSocketAddress) returnAddress;
@@ -192,4 +167,14 @@ public class EventableDatagramChannel implements EventableChannel {
 	public boolean isWatchOnly() { return false; }
 	public boolean isNotifyReadable() { return false; }
 	public boolean isNotifyWritable() { return false; }
+
+	@Override
+	protected boolean handshakeNeeded() {
+		return false;
+	}
+
+	@Override
+	protected boolean performHandshake() {
+		return true;
+	}
 }

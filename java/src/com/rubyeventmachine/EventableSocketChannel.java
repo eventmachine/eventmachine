@@ -36,24 +36,24 @@ package com.rubyeventmachine;
  *
  */
 
-import java.nio.channels.*;
-import java.nio.*;
-import java.util.*;
-import java.io.*;
-import java.net.Socket;
-import javax.net.ssl.*;
-import javax.net.ssl.SSLEngineResult.*;
+import java.io.FileDescriptor;
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+import java.security.KeyStore;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 
-import java.security.*;
+import javax.net.ssl.X509TrustManager;
 
-public class EventableSocketChannel implements EventableChannel {
-	Selector selector;
+public class EventableSocketChannel extends EventableChannel<ByteBuffer> {
 	SelectionKey channelKey;
 	SocketChannel channel;
-
-	long binding;
-	LinkedList<ByteBuffer> outboundQ;
 
 	boolean bCloseScheduled;
 	boolean bConnectPending;
@@ -62,26 +62,24 @@ public class EventableSocketChannel implements EventableChannel {
 	boolean bNotifyReadable;
 	boolean bNotifyWritable;
 	
-	SSLEngine sslEngine;
-	SSLContext sslContext;
+	SslBox sslBox;
+	private KeyStore keyStore;
+	private boolean verifyPeer;
+	private boolean bIsServer;
+	private boolean shouldAcceptSslPeer = false; 	
 
-	public EventableSocketChannel (SocketChannel sc, long _binding, Selector sel) {
+	public EventableSocketChannel (SocketChannel sc, long _binding, Selector sel, EventCallback callback) {
+		super(_binding, sel, callback);
 		channel = sc;
-		binding = _binding;
-		selector = sel;
 		bCloseScheduled = false;
 		bConnectPending = false;
 		bWatchOnly = false;
 		bAttached = false;
 		bNotifyReadable = false;
 		bNotifyWritable = false;
-		outboundQ = new LinkedList<ByteBuffer>();
+		bIsServer = false;
 	}
 	
-	public long getBinding() {
-		return binding;
-	}
-
 	public SocketChannel getChannel() {
 		return channel;
 	}
@@ -158,20 +156,7 @@ public class EventableSocketChannel implements EventableChannel {
 	
 	public void scheduleOutboundData (ByteBuffer bb) {
 		if (!bCloseScheduled && bb.remaining() > 0) {
-			if (sslEngine != null) {
-				try {
-					ByteBuffer b = ByteBuffer.allocate(32*1024); // TODO, preallocate this buffer.
-					sslEngine.wrap(bb, b);
-					b.flip();
-					outboundQ.addLast(b);
-				} catch (SSLException e) {
-					throw new RuntimeException ("ssl error");
-				}
-			}
-			else {
-				outboundQ.addLast(bb);
-			}
-
+			outboundQ.addLast( bb );
 			updateEvents();
 		}
 	}
@@ -184,7 +169,8 @@ public class EventableSocketChannel implements EventableChannel {
 	 * Called by the reactor when we have selected readable.
 	 */
 	public void readInboundData (ByteBuffer bb) throws IOException {
-		if (channel.read(bb) == -1)
+		int bytesRead = (sslBox != null) ? sslBox.read(bb) : channel.read(bb);
+		if (bytesRead == -1)
 			throw new IOException ("eof");
 	}
 
@@ -200,11 +186,15 @@ public class EventableSocketChannel implements EventableChannel {
 	 * Ought to be a big performance enhancer.
 	 * @return
 	 */
-	public boolean writeOutboundData() throws IOException {
+	protected boolean writeOutboundData() throws IOException {
 		while (!outboundQ.isEmpty()) {
 			ByteBuffer b = outboundQ.getFirst();
-			if (b.remaining() > 0)
-				channel.write(b);
+			if (b.remaining() > 0) {
+				if (sslBox != null) 
+					sslBox.write(b);
+				else
+					channel.write(b);
+			}
 
 			// Did we consume the whole outbound buffer? If yes,
 			// pop it off and keep looping. If no, the outbound network
@@ -234,12 +224,16 @@ public class EventableSocketChannel implements EventableChannel {
 	 * Called by the reactor when we have selected connectable.
 	 * Return false to indicate an error that should cause the connection to close.
 	 */
-	public boolean finishConnecting() throws IOException {
-		channel.finishConnect();
-
-		bConnectPending = false;
-		updateEvents();
-		return true;
+	public boolean finishConnecting() {
+		try {
+			channel.finishConnect();
+			bConnectPending = false;
+			updateEvents();
+			callback.trigger(binding, EventCode.EM_CONNECTION_COMPLETED, null, 0);
+			return true;
+		} catch (IOException e) {
+			return false;
+		}
 	}
 	
 	public boolean scheduleClose (boolean afterWriting) {
@@ -256,47 +250,22 @@ public class EventableSocketChannel implements EventableChannel {
 		}
 	}
 
-	public void startTls() {
-		if (sslEngine == null) {
-			try {
-				sslContext = SSLContext.getInstance("TLS");
-				sslContext.init(null, null, null); // TODO, fill in the parameters.
-				sslEngine = sslContext.createSSLEngine(); // TODO, should use the parameterized version, to get Kerb stuff and session re-use.
-				sslEngine.setUseClientMode(false);
-			} catch (NoSuchAlgorithmException e) {
-				throw new RuntimeException ("unable to start TLS"); // TODO, get rid of this.				
-			} catch (KeyManagementException e) {
-				throw new RuntimeException ("unable to start TLS"); // TODO, get rid of this.				
-			}
-		}
-		System.out.println ("Starting TLS");
+	public void setTlsParms(KeyStore keyStore, boolean verifyPeer) {
+		this.keyStore = keyStore;
+		this.verifyPeer = verifyPeer;
 	}
 	
-	public ByteBuffer dispatchInboundData (ByteBuffer bb) throws SSLException {
-		if (sslEngine != null) {
-			if (true) throw new RuntimeException ("TLS currently unimplemented");
-			System.setProperty("javax.net.debug", "all");
-			ByteBuffer w = ByteBuffer.allocate(32*1024); // TODO, WRONG, preallocate this buffer.
-			SSLEngineResult res = sslEngine.unwrap(bb, w);
-			if (res.getHandshakeStatus() == HandshakeStatus.NEED_TASK) {
-				Runnable r;
-				while ((r = sslEngine.getDelegatedTask()) != null) {
-					r.run();
-				}
-			}
-			System.out.println (bb);
-			w.flip();
-			return w;
+	public void startTls() {
+		if (sslBox == null) {
+			Object[] peerName = getPeerName();
+			int port = (Integer) peerName[0];
+			String host = (String) peerName[1];
+			X509TrustManager tm = new CallbackBasedTrustManager();
+			sslBox = new SslBox(bIsServer, channel, keyStore, tm, verifyPeer, host, port);
+			updateEvents();
 		}
-		else
-			return bb;
 	}
-
-	public void setCommInactivityTimeout (long seconds) {
-		// TODO
-		System.out.println ("SOCKET: SET COMM INACTIVITY UNIMPLEMENTED " + seconds);
-	}
-
+	
 	public Object[] getPeerName () {
 		Socket sock = channel.socket();
 		return new Object[]{ sock.getPort(), sock.getInetAddress().getHostAddress() };
@@ -360,11 +329,77 @@ public class EventableSocketChannel implements EventableChannel {
 			else {
 				events |= SelectionKey.OP_READ;
 
-				if (!outboundQ.isEmpty())
+				if (!outboundQ.isEmpty() || (sslBox != null && sslBox.handshakeNeeded()))
 					events |= SelectionKey.OP_WRITE;
 			}
 		}
 
 		return events;
 	}
+
+	public void setServerMode() {
+		bIsServer = true;
+	}
+
+	@Override
+	protected boolean handshakeNeeded() {
+		return sslBox != null && sslBox.handshakeNeeded();
+	}
+
+	@Override
+	protected boolean performHandshake() {
+		if (sslBox == null) return true;
+		
+		if (sslBox.handshake(channelKey)) {
+			if (!sslBox.handshakeNeeded()) {
+				callback.trigger(binding, EventCode.EM_SSL_HANDSHAKE_COMPLETED, null, 0);
+				updateEvents();
+			}
+			return true;
+		}
+		return false;
+	}
+
+	public void acceptSslPeer() {
+		this.shouldAcceptSslPeer = true;
+	}
+	
+	public class CallbackBasedTrustManager implements X509TrustManager {
+		public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+			if (verifyPeer) fireEvent(chain[0]);
+		}
+
+		public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+			if (verifyPeer) fireEvent(chain[0]);
+		}
+
+		public X509Certificate[] getAcceptedIssuers() {
+			return new X509Certificate[0];
+		}
+
+		private void fireEvent(X509Certificate cert) throws CertificateException {
+			
+			ByteBuffer data = ByteBuffer.wrap(cert.getEncoded());
+			
+			callback.trigger(binding, EventCode.EM_SSL_VERIFY, data, 0);
+			
+			// If we should accept, the trigger will ultimately call our acceptSslPeer method. 
+			if (! shouldAcceptSslPeer) {
+				throw new CertificateException("JRuby trigger was not fired");
+			}
+		}
+	}
+
+	public byte[] getPeerCert() {
+		if (sslBox != null) {
+			try {
+				javax.security.cert.X509Certificate peerCert = sslBox.getPeerCert();
+				return peerCert.getEncoded();
+			} catch (Exception e) {
+			}
+		}
+		return null;
+	}
+
+
 }

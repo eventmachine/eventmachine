@@ -1440,7 +1440,8 @@ module EventMachine
     # runs down open connections). It should go on the other calls to user
     # code, but the performance impact may be too large.
     #
-    if opcode == ConnectionUnbound
+    case opcode
+    when ConnectionUnbound
       if c = @conns.delete( conn_binding )
         begin
           if c.original_method(:unbind).arity != 0
@@ -1470,7 +1471,7 @@ module EventMachine
           raise ConnectionNotBound, "received ConnectionUnbound for an unknown signature: #{conn_binding}"
         end
       end
-    elsif opcode == ConnectionAccepted
+    when ConnectionAccepted
       accep,args,blk = @acceptors[conn_binding]
       raise NoHandlerForAcceptedConnection unless accep
       c = accep.new data, *args
@@ -1480,25 +1481,31 @@ module EventMachine
       ##
       # The remaining code is a fallback for the pure ruby and java reactors.
       # In the C++ reactor, these events are handled in the C event_callback() in rubymain.cpp
-    elsif opcode == ConnectionCompleted
+    when ConnectionCompleted
       c = @conns[conn_binding] or raise ConnectionNotBound, "received ConnectionCompleted for unknown signature: #{conn_binding}"
       c.connection_completed
-    elsif opcode == TimerFired
+    when TimerFired
       t = @timers.delete( data )
       return if t == false # timer cancelled
       t or raise UnknownTimerFired, "timer data: #{data}"
       t.call
-    elsif opcode == ConnectionData
+    when ConnectionData
       c = @conns[conn_binding] or raise ConnectionNotBound, "received data #{data} for unknown signature: #{conn_binding}"
       c.receive_data data
-    elsif opcode == LoopbreakSignalled
+    when LoopbreakSignalled
       run_deferred_callbacks
-    elsif opcode == ConnectionNotifyReadable
+    when ConnectionNotifyReadable
       c = @conns[conn_binding] or raise ConnectionNotBound
       c.notify_readable
-    elsif opcode == ConnectionNotifyWritable
+    when ConnectionNotifyWritable
       c = @conns[conn_binding] or raise ConnectionNotBound
       c.notify_writable
+    when SslHandshakeCompleted
+      c = @conns[conn_binding] or raise ConnectionNotBound
+      c.ssl_handshake_completed
+    when SslVerify
+      c = @conns[conn_binding] or raise ConnectionNotBound
+      EventMachine::ssl_verify_peer c, data
     end
   end
 

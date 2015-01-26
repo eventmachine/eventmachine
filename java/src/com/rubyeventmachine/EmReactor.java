@@ -28,31 +28,30 @@
 
 package com.rubyeventmachine;
 
-import java.io.*;
-import java.nio.channels.*;
-import java.util.*;
-import java.nio.*;
-import java.net.*;
-import java.util.concurrent.atomic.*;
-import java.security.*;
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
+import java.nio.channels.DatagramChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class EmReactor {
-	public final int EM_TIMER_FIRED = 100;
-	public final int EM_CONNECTION_READ = 101;
-	public final int EM_CONNECTION_UNBOUND = 102;
-	public final int EM_CONNECTION_ACCEPTED = 103;
-	public final int EM_CONNECTION_COMPLETED = 104;
-	public final int EM_LOOPBREAK_SIGNAL = 105;
-	public final int EM_CONNECTION_NOTIFY_READABLE = 106;
-	public final int EM_CONNECTION_NOTIFY_WRITABLE = 107;
-	public final int EM_SSL_HANDSHAKE_COMPLETED = 108;
-	public final int EM_SSL_VERIFY = 109;
-	public final int EM_PROXY_TARGET_UNBOUND = 110;
-    public final int EM_PROXY_COMPLETED = 111;
-
 	private Selector mySelector;
 	private TreeMap<Long, ArrayList<Long>> Timers;
-	private HashMap<Long, EventableChannel> Connections;
+	private HashMap<Long, EventableChannel<?>> Connections;
 	private HashMap<Long, ServerSocketChannel> Acceptors;
 	private ArrayList<Long> NewConnections;
 	private ArrayList<Long> UnboundConnections;
@@ -61,12 +60,13 @@ public class EmReactor {
 	private boolean bRunReactor;
 	private long BindingIndex;
 	private AtomicBoolean loopBreaker;
-	private ByteBuffer myReadBuffer;
 	private int timerQuantum;
+	private EventCallback callback;
 
-	public EmReactor() {
+	public EmReactor(EventCallback callback) {
+		this.callback = callback;
 		Timers = new TreeMap<Long, ArrayList<Long>>();
-		Connections = new HashMap<Long, EventableChannel>();
+		Connections = new HashMap<Long, EventableChannel<?>>();
 		Acceptors = new HashMap<Long, ServerSocketChannel>();
 		NewConnections = new ArrayList<Long>();
 		UnboundConnections = new ArrayList<Long>();
@@ -75,20 +75,8 @@ public class EmReactor {
 		BindingIndex = 0;
 		loopBreaker = new AtomicBoolean();
 		loopBreaker.set(false);
-		myReadBuffer = ByteBuffer.allocate(32*1024); // don't use a direct buffer. Ruby doesn't seem to like them.
 		timerQuantum = 98;
 	}
-
-	/**
-	 * This is a no-op stub, intended to be overridden in user code.
-	 */
-	public void eventCallback (long sig, int eventType, ByteBuffer data, long data2) {
-		System.out.println ("Default callback: "+sig+" "+eventType+" "+data+" "+data2);
-	}
-	public void eventCallback (long sig, int eventType, ByteBuffer data) {
-		eventCallback (sig, eventType, data, 0);
-	}
-
 
 	public void run() {
 		try {
@@ -115,18 +103,13 @@ public class EmReactor {
 	}
 
 	void addNewConnections() {
-		ListIterator<EventableSocketChannel> iter = DetachedConnections.listIterator(0);
-		while (iter.hasNext()) {
-			EventableSocketChannel ec = iter.next();
+		for (EventableSocketChannel ec : DetachedConnections) {
 			ec.cleanup();
 		}
 		DetachedConnections.clear();
 
-		ListIterator<Long> iter2 = NewConnections.listIterator(0);
-		while (iter2.hasNext()) {
-			long b = iter2.next();
-
-			EventableChannel ec = Connections.get(b);
+        for (long b : NewConnections) {
+			EventableChannel<?> ec = Connections.get(b);
 			if (ec != null) {
 				try {
 					ec.register();
@@ -139,13 +122,10 @@ public class EmReactor {
 	}
 
 	void removeUnboundConnections() {
-		ListIterator<Long> iter = UnboundConnections.listIterator(0);
-		while (iter.hasNext()) {
-			long b = iter.next();
-
-			EventableChannel ec = Connections.remove(b);
+		for (long b : UnboundConnections) {
+			EventableChannel<?> ec = Connections.remove(b);
 			if (ec != null) {
-				eventCallback (b, EM_CONNECTION_UNBOUND, null);
+				callback.trigger(b, EventCode.EM_CONNECTION_UNBOUND, null, (long) 0);
 				ec.close();
 
 				EventableSocketChannel sc = (EventableSocketChannel) ec;
@@ -188,14 +168,13 @@ public class EmReactor {
 		Iterator<SelectionKey> it = mySelector.selectedKeys().iterator();
 		while (it.hasNext()) {
 			SelectionKey k = it.next();
-			it.remove();
-
-			if (k.isConnectable())
+			it.remove(); 
+			if (k.isConnectable()) {
 				isConnectable(k);
-
-			else if (k.isAcceptable())
+			}
+			else if (k.isAcceptable()) {
 				isAcceptable(k);
-
+			}
 			else {
 				if (k.isWritable())
 					isWritable(k);
@@ -234,64 +213,33 @@ public class EmReactor {
 			}
 
 			b = createBinding();
-			EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector);
+			EventableSocketChannel ec = new EventableSocketChannel (sn, b, mySelector, callback);
+			ec.setServerMode();
 			Connections.put (b, ec);
 			NewConnections.add (b);
 
-			eventCallback (((Long)k.attachment()).longValue(), EM_CONNECTION_ACCEPTED, null, b);
+			callback.trigger(((Long)k.attachment()).longValue(), EventCode.EM_CONNECTION_ACCEPTED, null, b);
 		}
 	}
 
 	void isReadable (SelectionKey k) {
-		EventableChannel ec = (EventableChannel) k.attachment();
-		long b = ec.getBinding();
-
-		if (ec.isWatchOnly()) {
-			if (ec.isNotifyReadable())
-				eventCallback (b, EM_CONNECTION_NOTIFY_READABLE, null);
-		} else {
-			myReadBuffer.clear();
-
-			try {
-				ec.readInboundData (myReadBuffer);
-				myReadBuffer.flip();
-				if (myReadBuffer.limit() > 0)
-					eventCallback (b, EM_CONNECTION_READ, myReadBuffer);
-			} catch (IOException e) {
-				UnboundConnections.add (b);
-			}
+		EventableChannel<?> ec = (EventableChannel<?>) k.attachment();
+		if (!ec.read()) {
+			UnboundConnections.add (ec.getBinding());
 		}
 	}
 
 	void isWritable (SelectionKey k) {
-		EventableChannel ec = (EventableChannel) k.attachment();
-		long b = ec.getBinding();
-
-		if (ec.isWatchOnly()) {
-			if (ec.isNotifyWritable())
-				eventCallback (b, EM_CONNECTION_NOTIFY_WRITABLE, null);
-		}
-		else {
-			try {
-				if (!ec.writeOutboundData())
-					UnboundConnections.add (b);
-			} catch (IOException e) {
-				UnboundConnections.add (b);
-			}
+		EventableChannel<?> ec = (EventableChannel<?>) k.attachment();
+		if (!ec.write()) {
+			UnboundConnections.add (ec.getBinding());
 		}
 	}
 
 	void isConnectable (SelectionKey k) {
 		EventableSocketChannel ec = (EventableSocketChannel) k.attachment();
-		long b = ec.getBinding();
-
-		try {
-			if (ec.finishConnecting())
-				eventCallback (b, EM_CONNECTION_COMPLETED, null);
-			else
-				UnboundConnections.add (b);
-		} catch (IOException e) {
-			UnboundConnections.add (b);
+		if (!ec.finishConnecting()) {
+			UnboundConnections.add (ec.getBinding());
 		}
 	}
 
@@ -303,10 +251,9 @@ public class EmReactor {
 		mySelector = null;
 
 		// run down open connections and sockets.
-		Iterator<ServerSocketChannel> i = Acceptors.values().iterator();
-		while (i.hasNext()) {
+		for (ServerSocketChannel c : Acceptors.values()) {
 			try {
-				i.next().close();
+				c.close();
 			} catch (IOException e) {}
 		}
 
@@ -315,20 +262,16 @@ public class EmReactor {
 		// which will add to the Connections HashMap, causing a ConcurrentModificationException.
 		// XXX: The correct behavior here would be to latch the various reactor methods to return
 		// immediately if the reactor is shutting down.
-		ArrayList<EventableChannel> conns = new ArrayList<EventableChannel>();
-		Iterator<EventableChannel> i2 = Connections.values().iterator();
-		while (i2.hasNext()) {
-			EventableChannel ec = i2.next();
+		ArrayList<EventableChannel<?>> conns = new ArrayList<EventableChannel<?>>();
+		for (EventableChannel<?> ec : Connections.values()) {
 			if (ec != null) {
 				conns.add (ec);
 			}
 		}
 		Connections.clear();
 
-		ListIterator<EventableChannel> i3 = conns.listIterator(0);
-		while (i3.hasNext()) {
-			EventableChannel ec = i3.next();
-			eventCallback (ec.getBinding(), EM_CONNECTION_UNBOUND, null);
+		for (EventableChannel<?> ec : conns) {
+			callback.trigger(ec.getBinding(), EventCode.EM_CONNECTION_UNBOUND, null, (long) 0);
 			ec.close();
 
 			EventableSocketChannel sc = (EventableSocketChannel) ec;
@@ -336,9 +279,7 @@ public class EmReactor {
 				DetachedConnections.add (sc);
 		}
 
-		ListIterator<EventableSocketChannel> i4 = DetachedConnections.listIterator(0);
-		while (i4.hasNext()) {
-			EventableSocketChannel ec = i4.next();
+		for (EventableSocketChannel ec : DetachedConnections) {
 			ec.cleanup();
 		}
 		DetachedConnections.clear();
@@ -346,7 +287,7 @@ public class EmReactor {
 
 	void runLoopbreaks() {
 		if (loopBreaker.getAndSet(false)) {
-			eventCallback (0, EM_LOOPBREAK_SIGNAL, null);
+			callback.trigger((long) 0, EventCode.EM_LOOPBREAK_SIGNAL, null, (long) 0);
 		}
 	}
 
@@ -366,9 +307,8 @@ public class EmReactor {
 			Timers.remove(k);
 
 			// Fire all timers at this timestamp
-			ListIterator<Long> iter = callbacks.listIterator(0);
-			while (iter.hasNext()) {
-				eventCallback (0, EM_TIMER_FIRED, null, iter.next().longValue());
+			for (long timerCallback : callbacks) {
+				callback.trigger((long) 0, EventCode.EM_TIMER_FIRED, null, timerCallback);
 			}
 		}
 	}
@@ -420,7 +360,7 @@ public class EmReactor {
 		dg.configureBlocking(false);
 		dg.socket().bind(address);
 		long b = createBinding();
-		EventableChannel ec = new EventableDatagramChannel (dg, b, mySelector);
+		EventableChannel<?> ec = new EventableDatagramChannel (dg, b, mySelector, callback);
 		dg.register(mySelector, SelectionKey.OP_READ, ec);
 		Connections.put(b, ec);
 		return b;
@@ -463,7 +403,7 @@ public class EmReactor {
 			if (bindAddr != null)
 				sc.socket().bind(new InetSocketAddress (bindAddr, bindPort));
 
-			EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector);
+			EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector, callback);
 
 			if (sc.connect (new InetSocketAddress (address, port))) {
 				// Connection returned immediately. Can happen with localhost connections.
@@ -494,7 +434,7 @@ public class EmReactor {
 	}
 
 	public void closeConnection (long sig, boolean afterWriting) {
-		EventableChannel ec = Connections.get(sig);
+		EventableChannel<?> ec = Connections.get(sig);
 		if (ec != null)
 			if (ec.scheduleClose (afterWriting))
 				UnboundConnections.add (sig);
@@ -510,8 +450,22 @@ public class EmReactor {
 			mySelector.wakeup();
 	}
 
+	public void setTlsParms(long sig, KeyStore keyStore, boolean verifyPeer) {
+		((EventableSocketChannel) Connections.get(sig)).setTlsParms(keyStore, verifyPeer);
+	}
+	
 	public void startTls (long sig) throws NoSuchAlgorithmException, KeyManagementException {
 		Connections.get(sig).startTls();
+	}
+	
+	public void acceptSslPeer (long sig) {
+		EventableSocketChannel sc = (EventableSocketChannel) Connections.get(sig);
+		sc.acceptSslPeer();
+	}
+	
+	public byte[] getPeerCert (long sig) {
+		EventableSocketChannel sc = (EventableSocketChannel) Connections.get(sig);
+		return sc.getPeerCert();
 	}
 
 	public void setTimerQuantum (int mills) {
@@ -531,7 +485,7 @@ public class EmReactor {
 	public long attachChannel (SocketChannel sc, boolean watch_mode) {
 		long b = createBinding();
 
-		EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector);
+		EventableSocketChannel ec = new EventableSocketChannel (sc, b, mySelector, callback);
 
 		ec.setAttached();
 		if (watch_mode)
