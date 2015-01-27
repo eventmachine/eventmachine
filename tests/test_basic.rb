@@ -179,18 +179,15 @@ class TestBasic < Test::Unit::TestCase
     assert x
   end
 
-  if EM.respond_to? :set_heartbeat_interval
-    def test_set_heartbeat_interval
-      interval = 0.5
-      EM.run {
-        EM.set_heartbeat_interval interval
-        $interval = EM.get_heartbeat_interval
-        EM.stop
-      }
-      assert_equal(interval, $interval)
-    end
-  else
-    warn "EM.set_heartbeat_interval not implemented, skipping a test in #{__FILE__}"
+  def test_set_heartbeat_interval
+    omit_if(jruby?)
+    interval = 0.5
+    EM.run {
+      EM.set_heartbeat_interval interval
+      $interval = EM.get_heartbeat_interval
+      EM.stop
+    }
+    assert_equal(interval, $interval)
   end
   
   module PostInitRaiser
@@ -226,6 +223,7 @@ class TestBasic < Test::Unit::TestCase
   end
   
   def test_schedule_close
+    omit_if(jruby?)
     localhost, port = '127.0.0.1', 9000
     timer_ran = false
     num_close_scheduled = nil
@@ -247,22 +245,21 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_fork_safe
-    return unless cpid = fork { exit! } rescue false
+    omit_if(jruby?)
 
     read, write = IO.pipe
     EM.run do
-      cpid = fork do
+      fork do
         write.puts "forked"
         EM.run do
           EM.next_tick do
             write.puts "EM ran"
-            exit!
+            EM.stop
           end
         end
       end
       EM.stop
     end
-    Process.waitall
     assert_equal "forked\n", read.readline
     assert_equal "EM ran\n", read.readline
   ensure

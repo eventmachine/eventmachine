@@ -1042,7 +1042,12 @@ module EventMachine
       thread = Thread.new do
         Thread.current.abort_on_exception = true
         while true
-          op, cback = *@threadqueue.pop
+          begin
+            op, cback = *@threadqueue.pop
+          rescue ThreadError
+            $stderr.puts $!.message
+            break # Ruby 2.0 may fail at Queue.pop
+          end
           result = op.call
           @resultqueue << [result, cback]
           EventMachine.signal_loopbreak

@@ -25,19 +25,16 @@ class TestEpoll < Test::Unit::TestCase
   end
 
 
-  if windows? || jruby?
-    warn "EM.set_descriptor_table_size not implemented, skipping test in #{__FILE__}"
-  else
-    # We can set the rlimit/nofile of a process but we can only set it
-    # higher if we're running as root.
-    # On most systems, the default value is 1024.
-    def test_rlimit
-      unless EM.set_descriptor_table_size >= 1024
-        a = EM.set_descriptor_table_size
-        assert( a <= 1024 )
-        a = EM.set_descriptor_table_size( 1024 )
-        assert( a == 1024 )
-      end
+  # We can set the rlimit/nofile of a process but we can only set it
+  # higher if we're running as root.
+  # On most systems, the default value is 1024.
+  def test_rlimit
+    omit_if(windows? || jruby?)
+    unless EM.set_descriptor_table_size >= 1024
+      a = EM.set_descriptor_table_size
+      assert( a <= 1024 )
+      a = EM.set_descriptor_table_size( 1024 )
+      assert( a == 1024 )
     end
   end
 
@@ -97,7 +94,7 @@ class TestEpoll < Test::Unit::TestCase
     assert_equal( "abcdefghij", $out )
   end
 
-  # XXX this test fails randomly..
+  # XXX this test fails randomly...
   def _test_unix_domain
     fn = "/tmp/xxx.chain"
     EM.epoll

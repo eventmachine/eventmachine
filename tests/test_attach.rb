@@ -67,6 +67,7 @@ class TestAttach < Test::Unit::TestCase
   end
 
   def test_attach_server
+    omit_if(jruby?)
     $before = TCPServer.new("127.0.0.1", @port)
     sig     = nil
     EM.run {

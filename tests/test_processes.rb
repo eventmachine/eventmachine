@@ -37,8 +37,8 @@ class TestProcesses < Test::Unit::TestCase
       }
 
       assert( $out.length > 0 )
-      assert_equal($status.exitstatus, 0)
-      assert_equal($status.class, Process::Status)
+      assert_equal(0, $status.exitstatus)
+      assert_kind_of(Process::Status, $status)
     end
 
     def test_em_system_pid
@@ -57,8 +57,8 @@ class TestProcesses < Test::Unit::TestCase
       }
 
       assert( $out.length > 0 )
-      assert_equal($status.exitstatus, 0)
-      assert_equal($status.class, Process::Status)
+      assert_equal(0, $status.exitstatus)
+      assert_kind_of(Process::Status, $status)
     end
 
     def test_em_system_with_two_procs
@@ -111,9 +111,9 @@ class TestProcesses < Test::Unit::TestCase
         end
       end
 
-      EM.run{
-        EM.popen('cat /dev/random', test_client)
-      }
+      EM.run do
+        EM.popen('echo 1', test_client)
+      end
 
       assert_equal 1, c_rx
     end

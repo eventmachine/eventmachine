@@ -16,6 +16,7 @@ Gem::Specification.new do |s|
   s.files = `git ls-files`.split("\n")
   s.extensions = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
 
+  s.add_development_dependency 'test-unit', '~> 2.0'
   s.add_development_dependency 'rake-compiler', '~> 0.8.3'
   s.add_development_dependency 'yard', ">= 0.8.5.2"
   s.add_development_dependency 'bluecloth' unless RUBY_PLATFORM =~ /java/

@@ -33,7 +33,7 @@ class TestResolver < Test::Unit::TestCase
       d = EM::DNS::Resolver.resolve "google.com"
       d.errback { assert false }
       d.callback { |r|
-        assert_equal(Array, r.class)
+        assert_kind_of(Array, r)
         assert r.size > 1
         EM.stop
       }
@@ -45,8 +45,8 @@ class TestResolver < Test::Unit::TestCase
       d = EM::DNS::Resolver.resolve "localhost"
       d.errback { assert false }
       d.callback { |r|
-        assert_equal("127.0.0.1", r.first)
-        assert_equal(Array, r.class)
+        assert_include(["127.0.0.1", "::1"], r.first)
+        assert_kind_of(Array, r)
 
         EM.stop
       }
