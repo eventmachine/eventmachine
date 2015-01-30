@@ -536,12 +536,12 @@ void EventMachine_t::_RunEpollOnce()
 	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
 	if ((ret = rb_wait_for_single_fd(epfd, RB_WAITFD_IN|RB_WAITFD_PRI, &tv)) < 1) {
 	#else
-	fd_set fdreads;
+	rb_fdset_t fdreads;
 
-	FD_ZERO(&fdreads);
-	FD_SET(epfd, &fdreads);
+	rb_fd_init(&fdreads);
+	rb_fd_set(epfd, &fdreads);
 
-	if ((ret = rb_thread_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	if ((ret = rb_thread_fd_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
 	#endif
 		if (ret == -1) {
 			assert(errno != EINVAL);
@@ -613,12 +613,12 @@ void EventMachine_t::_RunKqueueOnce()
 	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
 	if ((ret = rb_wait_for_single_fd(kqfd, RB_WAITFD_IN|RB_WAITFD_PRI, &tv)) < 1) {
 	#else
-	fd_set fdreads;
+	rb_fdset_t fdreads;
 
-	FD_ZERO(&fdreads);
-	FD_SET(kqfd, &fdreads);
+	rb_fd_init(&fdreads);
+	rb_fd_set(kqfd, &fdreads);
 
-	if ((ret = rb_thread_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	if ((ret = rb_thread_fd_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
 	#endif
 		if (ret == -1) {
 			assert(errno != EINVAL);
@@ -806,9 +806,9 @@ SelectData_t::SelectData_t
 SelectData_t::SelectData_t()
 {
 	maxsocket = 0;
-	FD_ZERO (&fdreads);
-	FD_ZERO (&fdwrites);
-	FD_ZERO (&fderrors);
+	rb_fd_init (&fdreads);
+	rb_fd_init (&fdwrites);
+	rb_fd_init (&fderrors);
 }
 
 
@@ -821,7 +821,7 @@ _SelectDataSelect
 static VALUE _SelectDataSelect (void *v)
 {
 	SelectData_t *sd = (SelectData_t*)v;
-	sd->nSockets = select (sd->maxsocket+1, &(sd->fdreads), &(sd->fdwrites), &(sd->fderrors), &(sd->tv));
+	sd->nSockets = rb_fd_select (sd->maxsocket+1, &(sd->fdreads), &(sd->fdwrites), &(sd->fderrors), &(sd->tv));
 	return Qnil;
 }
 #endif
@@ -863,9 +863,9 @@ void EventMachine_t::_RunSelectOnce()
 
 	SelectData_t SelectData;
 	/*
-	fd_set fdreads, fdwrites;
-	FD_ZERO (&fdreads);
-	FD_ZERO (&fdwrites);
+	rb_fdset_t fdreads, fdwrites;
+	rb_fd_init (&fdreads);
+	rb_fd_init (&fdwrites);
 
 	int maxsocket = 0;
 	*/
@@ -875,7 +875,7 @@ void EventMachine_t::_RunSelectOnce()
 	// running on localhost with a randomly-chosen port. (*Puke*)
 	// Windows has a version of the Unix pipe() library function, but it doesn't
 	// give you back descriptors that are selectable.
-	FD_SET (LoopBreakerReader, &(SelectData.fdreads));
+	rb_fd_set (LoopBreakerReader, &(SelectData.fdreads));
 	if (SelectData.maxsocket < LoopBreakerReader)
 		SelectData.maxsocket = LoopBreakerReader;
 
@@ -890,15 +890,15 @@ void EventMachine_t::_RunSelectOnce()
 		assert (sd != INVALID_SOCKET);
 
 		if (ed->SelectForRead())
-			FD_SET (sd, &(SelectData.fdreads));
+			rb_fd_set (sd, &(SelectData.fdreads));
 		if (ed->SelectForWrite())
-			FD_SET (sd, &(SelectData.fdwrites));
+			rb_fd_set (sd, &(SelectData.fdwrites));
 
 		#ifdef OS_WIN32
 		/* 21Sep09: on windows, a non-blocking connect() that fails does not come up as writable.
 		   Instead, it is added to the error set. See http://www.mail-archive.com/openssl-users@openssl.org/msg58500.html
 		*/
-		FD_SET (sd, &(SelectData.fderrors));
+		rb_fd_set (sd, &(SelectData.fderrors));
 		#endif
 
 		if (SelectData.maxsocket < sd)
@@ -933,15 +933,15 @@ void EventMachine_t::_RunSelectOnce()
 					continue;
 				assert (sd != INVALID_SOCKET);
 
-				if (FD_ISSET (sd, &(SelectData.fdwrites)))
+				if (rb_fd_isset (sd, &(SelectData.fdwrites)))
 					ed->Write();
-				if (FD_ISSET (sd, &(SelectData.fdreads)))
+				if (rb_fd_isset (sd, &(SelectData.fdreads)))
 					ed->Read();
-				if (FD_ISSET (sd, &(SelectData.fderrors)))
+				if (rb_fd_isset (sd, &(SelectData.fderrors)))
 					ed->HandleError();
 			}
 
-			if (FD_ISSET (LoopBreakerReader, &(SelectData.fdreads)))
+			if (rb_fd_isset (LoopBreakerReader, &(SelectData.fdreads)))
 				_ReadLoopBreaker();
 		}
 		else if (s < 0) {
@@ -979,11 +979,11 @@ void EventMachine_t::_CleanBadDescriptors()
 		tv.tv_sec = 0;
 		tv.tv_usec = 0;
 
-		fd_set fds;
-		FD_ZERO(&fds);
-		FD_SET(sd, &fds);
+		rb_fdset_t fds;
+		rb_fd_init(&fds);
+		rb_fd_set(sd, &fds);
 
-		int ret = select(sd + 1, &fds, NULL, NULL, &tv);
+		int ret = rb_fd_select(sd + 1, &fds, NULL, NULL, &tv);
 
 		if (ret == -1) {
 			if (errno == EBADF)
