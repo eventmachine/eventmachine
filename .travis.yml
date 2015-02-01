@@ -16,3 +16,6 @@ matrix:
   allow_failures:
     - rvm: rbx
     - rvm: jruby
+  include:
+    - rvm: 2.0.0
+      os: osx

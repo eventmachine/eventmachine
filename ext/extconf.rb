@@ -139,6 +139,8 @@ when /openbsd/
   CONFIG['LDSHAREDXX'] = "$(CXX) -shared -lstdc++ -fPIC"
 
 when /darwin/
+  add_define 'OS_DARWIN'
+
   # on Unix we need a g++ link, not gcc.
   # Ff line contributed by Daniel Harple.
   CONFIG['LDSHARED'] = "$(CXX) " + CONFIG['LDSHARED'].split[1..-1].join(' ')
@@ -166,6 +168,14 @@ else
   CONFIG['LDSHARED'] = "$(CXX) -shared"
 end
 
+# Platform-specific time functions
+if have_func('clock_gettime')
+  # clock_gettime is POSIX, but the monotonic clocks are not
+  have_const('CLOCK_MONOTONIC_RAW', 'time.h') # Linux
+  have_const('CLOCK_MONOTONIC', 'time.h') # Linux, Solaris, BSDs
+else
+  have_func('gethrtime') # Older Solaris and HP-UX
+end
 
 # solaris c++ compiler doesn't have make_pair()
 TRY_LINK.sub!('$(CC)', '$(CXX)')
