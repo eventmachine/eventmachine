@@ -170,7 +170,20 @@ class TestBasic < Test::Unit::TestCase
     end
     assert x
   end
-  
+
+  def test_schedule_from_rescue
+    x = true
+    begin
+      raise 'foo'
+    rescue
+      t = Thread.new { EM.run }
+      EM.schedule { x = $!.nil? }
+    end
+    # t.join
+    EM.reactor_thread.join
+    assert_false x
+  end
+
   def test_schedule_from_thread
     x = false
     EM.run do
