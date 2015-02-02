@@ -55,6 +55,7 @@ static VALUE Intern_notify_writable;
 static VALUE Intern_proxy_target_unbound;
 static VALUE Intern_proxy_completed;
 static VALUE Intern_connection_completed;
+static VALUE Intern_sent_data;
 
 static VALUE rb_cProcStatus;
 
@@ -120,6 +121,12 @@ static inline void event_callback (struct em_event* e)
 		{
 			VALUE conn = ensure_conn(signature);
 			rb_funcall (conn, Intern_notify_writable, 0);
+			return;
+		}
+		case EM_CONNECTION_NOTIFY_SENT_DATA:
+		{
+			VALUE conn = ensure_conn(signature);
+			rb_funcall (conn, Intern_sent_data, 0);
 			return;
 		}
 		case EM_LOOPBREAK_SIGNAL:
@@ -678,6 +685,25 @@ static VALUE t_set_notify_writable (VALUE self, VALUE signature, VALUE mode)
 	return Qnil;
 }
 
+/********************
+t_is_notify_sent_data
+********************/
+
+static VALUE t_is_notify_sent_data (VALUE self, VALUE signature)
+{
+	return evma_is_notify_sent_data(NUM2ULONG (signature)) ? Qtrue : Qfalse;
+}
+
+/*********************
+t_set_notify_sent_data
+*********************/
+
+static VALUE t_set_notify_sent_data (VALUE self, VALUE signature, VALUE mode)
+{
+	evma_set_notify_sent_data(NUM2ULONG (signature), mode == Qtrue);
+	return Qnil;
+}
+
 /*******
 t_pause
 *******/
@@ -1208,6 +1234,7 @@ extern "C" void Init_rubyeventmachine()
 	Intern_proxy_target_unbound = rb_intern ("proxy_target_unbound");
 	Intern_proxy_completed = rb_intern ("proxy_completed");
 	Intern_connection_completed = rb_intern ("connection_completed");
+	Intern_sent_data = rb_intern ("sent_data");
 
 	// INCOMPLETE, we need to define class Connections inside module EventMachine
 	// run_machine and run_machine_without_threads are now identical.
@@ -1247,8 +1274,10 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "set_sock_opt", (VALUE (*)(...))t_set_sock_opt, 4);
 	rb_define_module_function (EmModule, "set_notify_readable", (VALUE (*)(...))t_set_notify_readable, 2);
 	rb_define_module_function (EmModule, "set_notify_writable", (VALUE (*)(...))t_set_notify_writable, 2);
+	rb_define_module_function (EmModule, "set_notify_sent_data", (VALUE (*)(...))t_set_notify_sent_data, 2);
 	rb_define_module_function (EmModule, "is_notify_readable", (VALUE (*)(...))t_is_notify_readable, 1);
 	rb_define_module_function (EmModule, "is_notify_writable", (VALUE (*)(...))t_is_notify_writable, 1);
+	rb_define_module_function (EmModule, "is_notify_sent_data", (VALUE (*)(...))t_is_notify_sent_data, 1);
 
 	rb_define_module_function (EmModule, "pause_connection", (VALUE (*)(...))t_pause, 1);
 	rb_define_module_function (EmModule, "resume_connection", (VALUE (*)(...))t_resume, 1);

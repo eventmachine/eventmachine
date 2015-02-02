@@ -376,6 +376,7 @@ ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	bConnectPending (false),
 	bNotifyReadable (false),
 	bNotifyWritable (false),
+	bNotifySentData (false),
 	bReadAttemptedAfterClose (false),
 	bWriteAttemptedAfterClose (false),
 	OutboundDataSize (0),
@@ -548,6 +549,19 @@ void ConnectionDescriptor::SetNotifyWritable(bool writable)
 
 	bNotifyWritable = writable;
 	_UpdateEvents(false, true);
+}
+
+
+/***************************************
+ConnectionDescriptor::SetNotifySentData
+****************************************/
+
+void ConnectionDescriptor::SetNotifySentData(bool sent_data)
+{
+	if (bWatchOnly)
+		throw std::runtime_error ("sent_data must not be on 'watch only' connections");
+
+	bNotifySentData = sent_data;
 }
 
 
@@ -1112,6 +1126,12 @@ void ConnectionDescriptor::_WriteOutboundData()
 			UnbindReasonCode = e;
 			Close();
 		}
+	}
+	else if (bNotifySentData && bytes_written > 0) {
+		if (EventCallback)
+			(*EventCallback)(GetBinding(), EM_CONNECTION_NOTIFY_SENT_DATA, NULL, 0);
+
+		return;
 	}
 }
 

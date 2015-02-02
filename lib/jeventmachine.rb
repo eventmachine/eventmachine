@@ -77,6 +77,8 @@ module EventMachine
   ConnectionNotifyWritable = 107
   # @private
   SslHandshakeCompleted = 108
+  # @private
+  ConnectionNotifySentData = 112
 
   # Exceptions that are defined in rubymain.cpp
   class ConnectionError < RuntimeError; end
@@ -264,9 +266,28 @@ module EventMachine
   def self.is_notify_writable sig
     @em.isNotifyWritable(sig)
   end
+
+  def self.set_notify_sent_data sig, mode
+    @em.setNotifySentData(sig, mode)
+  end
+  def self.is_notify_sent_data sig
+    @em.isNotifySentData(sig)
+  end
+
   def self.get_connection_count
     @em.getConnectionCount
   end
+
+  def self.pause_connection(sig)
+    @em.pauseConnection(sig)
+  end
+  def self.resume_connection(sig)
+    @em.resumeConnection(sig)
+  end
+  def self._get_outbound_data_size(sig)
+    @em.getOutboundDataSize(sig)
+  end
+
 
   def self.set_tls_parms(sig, params)
   end
@@ -278,6 +299,9 @@ module EventMachine
   class Connection
     def associate_callback_target sig
       # No-op for the time being
+    end
+    def get_outbound_data_size
+      EM._get_outbound_data_size @signature
     end
   end
 end

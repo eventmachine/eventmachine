@@ -1504,6 +1504,9 @@ module EventMachine
     elsif opcode == ConnectionNotifyWritable
       c = @conns[conn_binding] or raise ConnectionNotBound
       c.notify_writable
+    elsif opcode == ConnectionNotifySentData
+      c = @conns[conn_binding] or raise ConnectionNotBound
+      c.sent_data
     end
   end
 

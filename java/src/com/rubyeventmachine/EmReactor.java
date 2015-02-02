@@ -49,6 +49,7 @@ public class EmReactor {
 	public final int EM_SSL_VERIFY = 109;
 	public final int EM_PROXY_TARGET_UNBOUND = 110;
     public final int EM_PROXY_COMPLETED = 111;
+	public final int EM_CONNECTION_NOTIFY_SENT_DATA = 112;
 
 	private Selector mySelector;
 	private TreeMap<Long, ArrayList<Long>> Timers;
@@ -275,6 +276,11 @@ public class EmReactor {
 			try {
 				if (!ec.writeOutboundData())
 					UnboundConnections.add (b);
+				else if (ec instanceof EventableSocketChannel) {
+					EventableSocketChannel es = (EventableSocketChannel)ec;
+					if (es.isNotifySentData() && es.wereSentData())
+						eventCallback(b, EM_CONNECTION_NOTIFY_SENT_DATA, null);
+				}
 			} catch (IOException e) {
 				UnboundConnections.add (b);
 			}
@@ -561,6 +567,10 @@ public class EmReactor {
 		((EventableSocketChannel) Connections.get(sig)).setNotifyWritable(mode);
 	}
 
+	public void setNotifySentData (long sig, boolean mode) {
+		((EventableSocketChannel) Connections.get(sig)).setNotifySentData(mode);
+	}
+
 	public boolean isNotifyReadable (long sig) {
 		return Connections.get(sig).isNotifyReadable();
 	}
@@ -568,7 +578,23 @@ public class EmReactor {
 	public boolean isNotifyWritable (long sig) {
 		return Connections.get(sig).isNotifyWritable();
 	}
+	
+	public boolean isNotifySentData (long sig) {
+		return ((EventableSocketChannel)Connections.get(sig)).isNotifySentData();
+	}
 
+	public boolean pauseConnection (long sig) {
+		return ((EventableSocketChannel) Connections.get(sig)).pause();
+	}
+	
+	public boolean resumeConnection (long sig) {
+		return ((EventableSocketChannel) Connections.get(sig)).resume();
+	}
+
+	public long getOutboundDataSize (long sig) {
+		return Connections.get(sig).getOutboundDataSize();
+	}
+	
 	public int getConnectionCount() {
 	  return Connections.size() + Acceptors.size();
 	}
