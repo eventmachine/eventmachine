@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.5
+## 1.0.5 (February 2, 2015)
 * use monotonic clocks on Linux, OS X, Solaris, and Windows [#563]
 * use the rb_fd_* API to get autosized fd_sets [#502]
 * add basic tests that the DNS resolver isn't leaking timers [#571]
