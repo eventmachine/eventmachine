@@ -25,7 +25,20 @@ class TestFileWatch < Test::Unit::TestCase
       end
     end
 
+    module DirWatcherINotify
+      def file_modified(file = nil)
+        $modified << file
+      end
+      def unbind
+        $unbind = true
+        EM.stop
+      end
+    end
+
     def setup
+      $modified = []
+      $deleted = nil
+      $unbind = nil
       EM.kqueue = true if EM.kqueue?
     end
 
@@ -53,6 +66,55 @@ class TestFileWatch < Test::Unit::TestCase
       assert($modified)
       assert($deleted)
       assert($unbind)
+    end
+
+    if linux?
+      def test_directory
+        path = File.expand_path('../test_watch_dir', __FILE__)
+        EM.run {
+          Dir.mkdir(path)
+
+          watch = EM.watch_file(path, DirWatcherINotify)
+
+          file = File.join(path, 'test_file')
+          file1 = File.join(path, 'test_file1')
+          dir = File.join(path, 'test_dir')
+          File.open(file, 'w') do end
+
+          EM.add_timer(0.01){ 
+            File.open(file, 'w') do end
+            File.rename(file, file1)
+            Dir.mkdir(dir)
+            EM.add_timer(0.01){
+              File.unlink(file1)
+              Dir.unlink(dir)
+              EM.add_timer(0.01) {
+                Dir.rmdir(path)
+              }
+            }
+          }
+        }
+        expected = [
+          ['test_file', :create, :appear],
+          ['test_file', :modify],
+          ['test_file', :moved_from, :disappear],
+          ['test_file1', :moved_to, :appear],
+          ['test_dir', :create, :appear, :is_dir],
+          ['test_file1', :delete, :disappear],
+          ['test_dir', :delete, :disappear, :is_dir]
+          ]
+        assert_equal(expected, $modified)
+      rescue
+        Dir[path+'/*'].each{|f|
+          if File.directory?(f)
+            Dir.unlink(f)
+          else
+            File.unlink(f)
+          end
+        }
+        Dir.rmdir(path)
+        raise
+      end
     end
   else
     warn "EM.watch_file not implemented, skipping tests in #{__FILE__}"

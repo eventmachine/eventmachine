@@ -45,6 +45,10 @@ class Test::Unit::TestCase
     def jruby?
       defined? JRUBY_VERSION
     end
+
+    def linux?
+      RbConfig::CONFIG['host_os'] =~ /linux/
+    end
   end
 
   include PlatformHelper
