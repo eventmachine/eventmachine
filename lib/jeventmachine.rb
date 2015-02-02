@@ -138,12 +138,19 @@ module EventMachine
   def self.close_connection sig, after_writing
     @em.closeConnection sig, after_writing
   end
+  def self.get_comm_inactivity_timeout sig
+    @em.getCommInactivityTimeout sig
+  end
   def self.set_comm_inactivity_timeout sig, interval
     @em.setCommInactivityTimeout sig, interval
   end
   def self.set_pending_connect_timeout sig, val
   end
+  def self.get_heartbeat_interval
+    @em.getHeartbeatInterval
+  end
   def self.set_heartbeat_interval val
+    @em.setHeartbeatInterval val
   end
   def self.start_tls sig
     @em.startTls sig

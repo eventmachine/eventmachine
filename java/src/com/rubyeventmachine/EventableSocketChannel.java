@@ -47,7 +47,7 @@ import java.lang.reflect.Field;
 
 import java.security.*;
 
-public class EventableSocketChannel implements EventableChannel {
+public class EventableSocketChannel extends AbstractEventableChannel {
 	Selector selector;
 	SelectionKey channelKey;
 	SocketChannel channel;
@@ -61,7 +61,7 @@ public class EventableSocketChannel implements EventableChannel {
 	boolean bAttached;
 	boolean bNotifyReadable;
 	boolean bNotifyWritable;
-	
+
 	SSLEngine sslEngine;
 	SSLContext sslContext;
 
@@ -77,7 +77,7 @@ public class EventableSocketChannel implements EventableChannel {
 		bNotifyWritable = false;
 		outboundQ = new LinkedList<ByteBuffer>();
 	}
-	
+
 	public long getBinding() {
 		return binding;
 	}
@@ -229,7 +229,11 @@ public class EventableSocketChannel implements EventableChannel {
 		bConnectPending = true;
 		updateEvents();
 	}
-	
+
+	public boolean isConnectPending() {
+		return bConnectPending;
+	}
+
 	/**
 	 * Called by the reactor when we have selected connectable.
 	 * Return false to indicate an error that should cause the connection to close.
@@ -239,6 +243,7 @@ public class EventableSocketChannel implements EventableChannel {
 
 		bConnectPending = false;
 		updateEvents();
+		lastActivityTime = System.currentTimeMillis();
 		return true;
 	}
 	
@@ -290,11 +295,6 @@ public class EventableSocketChannel implements EventableChannel {
 		}
 		else
 			return bb;
-	}
-
-	public void setCommInactivityTimeout (long seconds) {
-		// TODO
-		System.out.println ("SOCKET: SET COMM INACTIVITY UNIMPLEMENTED " + seconds);
 	}
 
 	public Object[] getPeerName () {

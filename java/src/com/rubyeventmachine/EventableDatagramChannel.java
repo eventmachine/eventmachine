@@ -38,7 +38,7 @@ import java.util.LinkedList;
 import java.io.*;
 import java.net.*;
 
-public class EventableDatagramChannel implements EventableChannel {
+public class EventableDatagramChannel extends AbstractEventableChannel {
 	
 	class Packet {
 		public ByteBuffer bb;
@@ -167,11 +167,6 @@ public class EventableDatagramChannel implements EventableChannel {
 		// If anyone wants to close immediately, they're responsible for clearing
 		// the outbound queue.
 		return (bCloseScheduled && outboundQ.isEmpty()) ? false : true;
-	}
-
-	public void setCommInactivityTimeout (long seconds) {
-		// TODO
-		System.out.println ("DATAGRAM: SET COMM INACTIVITY UNIMPLEMENTED " + seconds);
 	}
 
 	public Object[] getPeerName () {
