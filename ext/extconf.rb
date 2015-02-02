@@ -39,6 +39,9 @@ def manual_ssl_config
   check_libs(libs) and check_heads(heads)
 end
 
+# Eager check devs tools
+have_devel?
+
 if ENV['CROSS_COMPILING']
   openssl_version = ENV.fetch("OPENSSL_VERSION", "1.0.1i")
   openssl_dir = File.expand_path("~/.rake-compiler/builds/openssl-#{openssl_version}/")
