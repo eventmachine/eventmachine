@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.5
+* use monotonic clocks on Linux, OS X, Solaris, and Windows [#563]
+* use the rb_fd_* API to get autosized fd_sets [#502]
+* add basic tests that the DNS resolver isn't leaking timers [#571]
+* update to test-unit 2.x and improve various unit tests [#551]
+* remove EventMachine_t::Popen code marked by ifdef OBSOLETE [#551]
+* ruby 2.0 may fail at Queue.pop, so rescue and complain to $stderr [#551]
+* set file handle to INVALID_HANDLE_VALUE after closing the file [#565]
+* use `defined?` instead of rescuing NameError for flow control [#535]
+* fix closing files and sockets on Windows [#564]
+* fix file uploads in Windows [#562]
+* catch failure to fork [#539]
+* use chunks for SSL write [#545]
+
 ## 1.0.4 (December 19, 2014)
 * add starttls_options to smtp server [#552]
 * fix closesocket on windows [#497]
