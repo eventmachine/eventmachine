@@ -40,7 +40,7 @@ def manual_ssl_config
 end
 
 # Eager check devs tools
-have_devel?
+have_devel? if respond_to?(:have_devel?)
 
 if ENV['CROSS_COMPILING']
   openssl_version = ENV.fetch("OPENSSL_VERSION", "1.0.1i")
