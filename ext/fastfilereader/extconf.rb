@@ -12,6 +12,9 @@ def add_define(name)
   $defs.push("-D#{name}")
 end
 
+# Eager check devs tools
+have_devel? if respond_to?(:have_devel?)
+
 add_define 'BUILD_FOR_RUBY'
 
 # Minor platform details between *nix and Windows:
