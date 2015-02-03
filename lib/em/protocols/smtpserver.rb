@@ -227,18 +227,26 @@ module EventMachine
           process_unknown
         end
       end
-
-      # TODO - implement this properly, the implementation is a stub!
-      def process_vrfy
-        send_data "250 Ok, but unimplemented\r\n"
-      end
+      
       # TODO - implement this properly, the implementation is a stub!
       def process_help
         send_data "250 Ok, but unimplemented\r\n"
       end
+      
+      # RFC2821, 3.5.3 Meaning of VRFY or EXPN Success Response:
+      #   A server MUST NOT return a 250 code in response to a VRFY or EXPN
+      #   command unless it has actually verified the address.  In particular,
+      #   a server MUST NOT return 250 if all it has done is to verify that the
+      #   syntax given is valid.  In that case, 502 (Command not implemented)
+      #   or 500 (Syntax error, command unrecognized) SHOULD be returned.
+      #
+      # TODO - implement this properly, the implementation is a stub!
+      def process_vrfy
+        send_data "502 Command not implemented\r\n"
+      end
       # TODO - implement this properly, the implementation is a stub!
       def process_expn
-        send_data "250 Ok, but unimplemented\r\n"
+        send_data "502 Command not implemented\r\n"
       end
 
       #--
@@ -358,12 +366,23 @@ module EventMachine
       def process_auth_line(line)
         plain = line.unpack("m").first
         _,user,psw = plain.split("\000")
-        if receive_plain_auth user,psw
+        
+        succeeded = proc {
           send_data "235 authentication ok\r\n"
           @state << :auth
-        else
+        }
+        failed = proc {
           send_data "535 invalid authentication\r\n"
+        }
+        auth = receive_plain_auth user,psw
+        
+        if auth.respond_to?(:callback)
+          auth.callback(&succeeded)
+          auth.errback(&failed)
+        else
+          (auth ? succeeded : failed).call
         end
+        
         @state.delete :auth_incomplete
       end
 
