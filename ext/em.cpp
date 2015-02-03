@@ -973,8 +973,12 @@ void EventMachine_t::_RunSelectOnce()
 					continue;
 				assert (sd != INVALID_SOCKET);
 
-				if (rb_fd_isset (sd, &(SelectData.fdwrites)))
-					ed->Write();
+				if (rb_fd_isset (sd, &(SelectData.fdwrites))) {
+					// Double-check SelectForWrite() still returns true. If not, one of the callbacks must have
+					// modified some value since we checked SelectForWrite() earlier in this method.
+					if (ed->SelectForWrite())
+						ed->Write();
+				}
 				if (rb_fd_isset (sd, &(SelectData.fdreads)))
 					ed->Read();
 				if (rb_fd_isset (sd, &(SelectData.fderrors)))
