@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.0.6
+* add support for Rubinius Process::Status [#568]
+
 ## 1.0.5 (February 2, 2015)
 * use monotonic clocks on Linux, OS X, Solaris, and Windows [#563]
 * use the rb_fd_* API to get autosized fd_sets [#502]

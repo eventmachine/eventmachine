@@ -27,6 +27,7 @@ class TestSSLMethods < Test::Unit::TestCase
 
   def test_ssl_methods
     omit_unless(EM.ssl?)
+    omit_if(rbx?)
     $server_called_back, $client_called_back = false, false
     $server_cert_value, $client_cert_value = nil, nil
 

@@ -45,6 +45,10 @@ class Test::Unit::TestCase
     def jruby?
       defined? JRUBY_VERSION
     end
+
+    def rbx?
+      defined?(RUBY_ENGINE) && RUBY_ENGINE == 'rbx'
+    end
   end
 
   include PlatformHelper
