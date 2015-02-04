@@ -54,16 +54,19 @@ EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
 	bCloseNow (false),
 	bCloseAfterWriting (false),
 	MySocket (sd),
+	bAttached (false),
 	bWatchOnly (false),
 	EventCallback (NULL),
 	bCallbackUnbind (true),
 	UnbindReasonCode (0),
 	ProxyTarget(NULL),
 	ProxiedFrom(NULL),
+	ProxiedBytes(0),
 	MaxOutboundBufSize(0),
 	MyEventMachine (em),
 	PendingConnectTimeout(20000000),
-	InactivityTimeout (0)
+	InactivityTimeout (0),
+	bPaused (false)
 {
 	/* There are three ways to close a socket, all of which should
 	 * automatically signal to the event machine that this object
@@ -114,6 +117,7 @@ EventableDescriptor::~EventableDescriptor()
 		(*EventCallback)(ProxiedFrom->GetBinding(), EM_PROXY_TARGET_UNBOUND, NULL, 0);
 		ProxiedFrom->StopProxy();
 	}
+	MyEventMachine->NumCloseScheduled--;
 	StopProxy();
 	Close();
 }
@@ -135,10 +139,54 @@ EventableDescriptor::Close
 
 void EventableDescriptor::Close()
 {
+	/* EventMachine relies on the fact that when close(fd)
+	 * is called that the fd is removed from any
+	 * epoll event queues.
+	 *
+	 * However, this is not *always* the behavior of close(fd)
+	 *
+	 * See man 4 epoll Q6/A6 and then consider what happens
+	 * when using pipes with eventmachine.
+	 * (As is often done when communicating with a subprocess)
+	 *
+	 * The pipes end up looking like:
+	 *
+	 * ls -l /proc/<pid>/fd
+	 * ...
+	 * lr-x------ 1 root root 64 2011-08-19 21:31 3 -> pipe:[940970]
+	 * l-wx------ 1 root root 64 2011-08-19 21:31 4 -> pipe:[940970]
+	 *
+	 * This meets the critera from man 4 epoll Q6/A4 for not
+	 * removing fds from epoll event queues until all fds
+	 * that reference the underlying file have been removed.
+	 *
+	 * If the EventableDescriptor associated with fd 3 is deleted,
+	 * its dtor will call EventableDescriptor::Close(),
+	 * which will call ::close(int fd).
+	 *
+	 * However, unless the EventableDescriptor associated with fd 4 is
+	 * also deleted before the next call to epoll_wait, events may fire
+	 * for fd 3 that were registered with an already deleted
+	 * EventableDescriptor.
+	 *
+	 * Therefore, it is necessary to notify EventMachine that
+	 * the fd associated with this EventableDescriptor is
+	 * closing.
+	 *
+	 * EventMachine also never closes fds for STDIN, STDOUT and 
+	 * STDERR (0, 1 & 2)
+	 */
+
 	// Close the socket right now. Intended for emergencies.
-	if (MySocket != INVALID_SOCKET && !bWatchOnly) {
-		shutdown (MySocket, 1);
-		close (MySocket);
+	if (MySocket != INVALID_SOCKET) {
+		MyEventMachine->Deregister (this);
+		
+		// Do not close STDIN, STDOUT, STDERR
+		if (MySocket > 2 && !bAttached) {
+			shutdown (MySocket, 1);
+			close (MySocket);
+		}
+		
 		MySocket = INVALID_SOCKET;
 	}
 }
@@ -169,6 +217,9 @@ EventableDescriptor::ScheduleClose
 
 void EventableDescriptor::ScheduleClose (bool after_writing)
 {
+	if (IsCloseScheduled())
+		return;
+	MyEventMachine->NumCloseScheduled++;
 	// KEEP THIS SYNCHRONIZED WITH ::IsCloseScheduled.
 	if (after_writing)
 		bCloseAfterWriting = true;
@@ -199,6 +250,7 @@ void EventableDescriptor::StartProxy(const unsigned long to, const unsigned long
 		StopProxy();
 		ProxyTarget = ed;
 		BytesToProxy = length;
+		ProxiedBytes = 0;
 		ed->SetProxiedFrom(this, bufsize);
 		return;
 	}
@@ -245,6 +297,7 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 		if (BytesToProxy > 0) {
 			unsigned long proxied = min(BytesToProxy, (unsigned long) size);
 			ProxyTarget->SendOutboundData(buf, proxied);
+			ProxiedBytes += (unsigned long) proxied;
 			BytesToProxy -= proxied;
 			if (BytesToProxy == 0) {
 				StopProxy();
@@ -255,6 +308,7 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 			}
 		} else {
 			ProxyTarget->SendOutboundData(buf, size);
+			ProxiedBytes += (unsigned long) size;
 		}
 	} else {
 		(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf, size);
@@ -319,7 +373,6 @@ ConnectionDescriptor::ConnectionDescriptor
 
 ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
 	EventableDescriptor (sd, em),
-	bPaused (false),
 	bConnectPending (false),
 	bNotifyReadable (false),
 	bNotifyWritable (false),
@@ -409,7 +462,18 @@ ConnectionDescriptor::SetConnectPending
 void ConnectionDescriptor::SetConnectPending(bool f)
 {
 	bConnectPending = f;
+	MyEventMachine->QueueHeartbeat(this);
 	_UpdateEvents();
+}
+
+
+/**********************************
+ConnectionDescriptor::SetAttached
+***********************************/
+
+void ConnectionDescriptor::SetAttached(bool state)
+{
+   bAttached = state;
 }
 
 
@@ -502,11 +566,25 @@ int ConnectionDescriptor::SendOutboundData (const char *data, int length)
 	#ifdef WITH_SSL
 	if (SslBox) {
 		if (length > 0) {
-			int w = SslBox->PutPlaintext (data, length);
-			if (w < 0)
-				ScheduleClose (false);
-			else
-				_DispatchCiphertext();
+			int writed = 0;
+			char *p = (char*)data;
+
+			while (writed < length) {
+				int to_write = SSLBOX_INPUT_CHUNKSIZE;
+				int remaining = length - writed;
+
+				if (remaining < SSLBOX_INPUT_CHUNKSIZE)
+					to_write = remaining;
+
+				int w = SslBox->PutPlaintext (p, to_write);
+				if (w < 0) {
+					ScheduleClose (false);
+				}else
+					_DispatchCiphertext();
+
+				p += to_write;
+				writed += to_write;
+			}
 		}
 		// TODO: What's the correct return value?
 		return 1; // That's a wild guess, almost certainly wrong.
@@ -538,7 +616,6 @@ int ConnectionDescriptor::_SendRawOutboundData (const char *data, int length)
 
 	if (IsCloseScheduled())
 		return 0;
-
 	// 25Mar10: Ignore 0 length packets as they are not meaningful in TCP (as opposed to UDP)
 	// and can cause the assert(nbytes>0) to fail when OutboundPages has a bunch of 0 length pages.
 	if (length == 0)
@@ -703,7 +780,11 @@ void ConnectionDescriptor::Read()
 		
 
 		int r = read (sd, readbuffer, sizeof(readbuffer) - 1);
+#ifdef OS_WIN32
+		int e = WSAGetLastError();
+#else
 		int e = errno;
+#endif
 		//cerr << "<R:" << r << ">";
 
 		if (r > 0) {
@@ -717,6 +798,8 @@ void ConnectionDescriptor::Read()
 			// a security guard against buffer overflows.
 			readbuffer [r] = 0;
 			_DispatchInboundData (readbuffer, r);
+			if (bPaused)
+				break;
 		}
 		else if (r == 0) {
 			break;
@@ -919,11 +1002,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 	// Max of 16 outbound pages at a time
 	if (iovcnt > 16) iovcnt = 16;
 
-	#ifdef CC_SUNWspro
-	struct iovec iov[16];
-	#else
-	struct iovec iov[ iovcnt ];
-	#endif
+	iovec iov[16];
 
 	for(int i = 0; i < iovcnt; i++){
 		OutboundPage *op = &(OutboundPages[i]);
@@ -970,7 +1049,11 @@ void ConnectionDescriptor::_WriteOutboundData()
 	#endif
 
 	bool err = false;
+#ifdef OS_WIN32
+	int e = WSAGetLastError();
+#else
 	int e = errno;
+#endif
 	if (bytes_written < 0) {
 		err = true;
 		bytes_written = 0;
@@ -1156,7 +1239,7 @@ void ConnectionDescriptor::_DispatchCiphertext()
 	assert (SslBox);
 
 
-	char BigBuf [2048];
+	char BigBuf [SSLBOX_OUTPUT_CHUNKSIZE];
 	bool did_work;
 
 	do {
@@ -1384,14 +1467,16 @@ void AcceptorDescriptor::Read()
 			(*EventCallback) (GetBinding(), EM_CONNECTION_ACCEPTED, NULL, cd->GetBinding());
 		}
 		#ifdef HAVE_EPOLL
-		cd->GetEpollEvent()->events = EPOLLIN | (cd->SelectForWrite() ? EPOLLOUT : 0);
+		cd->GetEpollEvent()->events =
+			(cd->SelectForRead() ? EPOLLIN : 0) | (cd->SelectForWrite() ? EPOLLOUT : 0);
 		#endif
 		assert (MyEventMachine);
 		MyEventMachine->Add (cd);
 		#ifdef HAVE_KQUEUE
 		if (cd->SelectForWrite())
 			MyEventMachine->ArmKqueueWriter (cd);
-		MyEventMachine->ArmKqueueReader (cd);
+		if (cd->SelectForRead())
+			MyEventMachine->ArmKqueueReader (cd);
 		#endif
 	}
 
@@ -1599,7 +1684,11 @@ void DatagramDescriptor::Write()
 
 		// The nasty cast to (char*) is needed because Windows is brain-dead.
 		int s = sendto (sd, (char*)op->Buffer, op->Length, 0, (struct sockaddr*)&(op->From), sizeof(op->From));
+#ifdef OS_WIN32
+		int e = WSAGetLastError();
+#else
 		int e = errno;
+#endif
 
 		OutboundDataSize -= op->Length;
 		op->Free();

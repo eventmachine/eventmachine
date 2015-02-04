@@ -1,0 +1,21 @@
+script: bundle exec rake compile test
+env:
+  global:
+    - TESTOPTS=-v
+language: ruby
+sudo: false
+rvm:
+  - 1.8.7
+  - 1.9.3
+  - 2.0.0
+  - 2.1
+  - 2.2
+  - rbx
+  - jruby
+matrix:
+  allow_failures:
+    - rvm: rbx
+    - rvm: jruby
+  include:
+    - rvm: 2.0.0
+      os: osx

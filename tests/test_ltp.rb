@@ -87,12 +87,8 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
 
   def test_lines_and_text
     output = ''
-    lines_received = []
-    text_received = []
     EM.run {
-      EM.start_server( "127.0.0.1", @port, LineAndTextTest ) do |conn|
-        conn.instance_eval "@lines = lines_received; @text = text_received"
-      end
+      EM.start_server( "127.0.0.1", @port, LineAndTextTest )
       setup_timeout
 
       EM.connect "127.0.0.1", @port, StopClient do |c|
@@ -125,12 +121,8 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
 
   def test_binary_text
     output = ''
-    lines_received = []
-    text_received = []
     EM.run {
-      EM.start_server( "127.0.0.1", @port, BinaryTextTest ) do |conn|
-        conn.instance_eval "@lines = lines_received; @text = text_received"
-      end
+      EM.start_server( "127.0.0.1", @port, BinaryTextTest )
       setup_timeout
 
       EM.connect "127.0.0.1", @port, StopClient do |c|

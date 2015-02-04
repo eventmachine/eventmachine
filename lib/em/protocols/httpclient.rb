@@ -3,7 +3,7 @@
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com
 # Date:: 16 July 2006
-# 
+#
 # See EventMachine and EventMachine::Connection for documentation and
 # usage examples.
 #
@@ -11,27 +11,24 @@
 #
 # Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
 # Gmail: blackhedd
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of either: 1) the GNU General Public License
 # as published by the Free Software Foundation; either version 2 of the
 # License, or (at your option) any later version; or 2) Ruby's License.
-# 
+#
 # See the file COPYING for complete licensing information.
 #
 #---------------------------------------------------------------------------
 #
-# 
-
-
+#
 
 module EventMachine
   module Protocols
 
     # <b>Note:</b> This class is deprecated and will be removed. Please use EM-HTTP-Request instead.
     #
-    # === Usage
-    #
+    # @example
     #  EventMachine.run {
     #    http = EventMachine::Protocols::HttpClient.request(
     #      :host => server,
@@ -53,7 +50,6 @@ module EventMachine
     # DNS: Some way to cache DNS lookups for hostnames we connect to. Ruby's
     # DNS lookups are unbelievably slow.
     # HEAD requests.
-    # Chunked transfer encoding.
     # Convenience methods for requests. get, post, url, etc.
     # SSL.
     # Handle status codes like 304, 100, etc.
@@ -65,14 +61,20 @@ module EventMachine
       MaxPostContentLength = 20 * 1024 * 1024
 
       def initialize
-        STDERR.puts "HttpClient is deprecated and will be removed. EM-Http-Request should be used instead."
+        warn "HttpClient is deprecated and will be removed. EM-Http-Request should be used instead."
       end
 
-      # === Arg list
-      # :host => 'ip/dns', :port => fixnum, :verb => 'GET', :request => 'path',
-      # :basic_auth => {:username => '', :password => ''}, :content => 'content',
-      # :contenttype => 'text/plain', :query_string => '', :host_header => '',
-      # :cookie => ''
+      # @param args [Hash] The request arguments
+      # @option args [String] :host The host IP/DNS name
+      # @option args [Integer] :port The port to connect too
+      # @option args [String] :verb The request type [GET | POST | DELETE | PUT]
+      # @option args [String] :request The request path
+      # @option args [Hash] :basic_auth The basic auth credentials (:username and :password)
+      # @option args [String] :content The request content
+      # @option args [String] :contenttype The content type (e.g. text/plain)
+      # @option args [String] :query_string The query string
+      # @option args [String] :host_header The host header to set
+      # @option args [String] :cookie Cookies to set
       def self.request( args = {} )
         args[:port] ||= 80
         EventMachine.connect( args[:host], args[:port], self ) {|c|
@@ -122,7 +124,7 @@ module EventMachine
         # Allow an override for the host header if it's not the connect-string.
         host = args[:host_header] || args[:host] || "_"
         # For now, ALWAYS tuck in the port string, although we may want to omit it if it's the default.
-        port = args[:port]
+        port = args[:port].to_i != 80 ? ":#{args[:port]}" : ""
 
         # POST items.
         postcontenttype = args[:contenttype] || "application/octet-stream"
@@ -133,7 +135,7 @@ module EventMachine
         # TODO: We ASSUME the caller wants to send a 1.1 request. May not be a good assumption.
         req = [
           "#{verb} #{request}#{qs} HTTP/#{version}",
-          "Host: #{host}:#{port}",
+          "Host: #{host}#{port}",
           "User-agent: Ruby EventMachine",
         ]
 
@@ -179,6 +181,8 @@ module EventMachine
             @content_length = nil # not zero
             @content = ""
             @status = nil
+            @chunked = false
+            @chunk_length = nil
             @read_state = :header
             @connection_close = nil
           when :header
@@ -186,7 +190,7 @@ module EventMachine
             if ary.length == 2
               data = ary.last
               if ary.first == ""
-                if (@content_length and @content_length > 0) || @connection_close
+                if (@content_length and @content_length > 0) || @chunked || @connection_close
                   @read_state = :content
                 else
                   dispatch_response
@@ -206,6 +210,8 @@ module EventMachine
                   @content_length ||= $'.to_i
                 elsif ary.first =~ /\Aconnection:\s*close/i
                   @connection_close = true
+                elsif ary.first =~ /\Atransfer-encoding:\s*chunked/i
+                  @chunked = true
                 end
               end
             else
@@ -213,12 +219,32 @@ module EventMachine
               data = ""
             end
           when :content
-            # If there was no content-length header, we have to wait until the connection
-            # closes. Everything we get until that point is content.
-            # TODO: Must impose a content-size limit, and also must implement chunking.
-            # Also, must support either temporary files for large content, or calling
-            # a content-consumer block supplied by the user.
-            if @content_length
+            if @chunked && @chunk_length
+              bytes_needed = @chunk_length - @chunk_read
+              new_data = data[0, bytes_needed]
+              @chunk_read += new_data.length
+              @content += new_data
+              data = data[bytes_needed..-1] || ""
+              if @chunk_length == @chunk_read && data[0,2] == "\r\n"
+                @chunk_length = nil
+                data = data[2..-1]
+              end
+            elsif @chunked
+              if (m = data.match(/\A(\S*)\r\n/m))
+                data = data[m[0].length..-1]
+                @chunk_length = m[1].to_i(16)
+                @chunk_read = 0
+                if @chunk_length == 0
+                  dispatch_response
+                  @read_state = :base
+                end
+              end
+            elsif @content_length
+              # If there was no content-length header, we have to wait until the connection
+              # closes. Everything we get until that point is content.
+              # TODO: Must impose a content-size limit, and also must implement chunking.
+              # Also, must support either temporary files for large content, or calling
+              # a content-consumer block supplied by the user.
               bytes_needed = @content_length - @content.length
               @content += data[0, bytes_needed]
               data = data[bytes_needed..-1] || ""
@@ -269,6 +295,5 @@ module EventMachine
         end
       end
     end
-
   end
 end

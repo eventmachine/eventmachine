@@ -25,7 +25,7 @@ end
 def manual_ssl_config
   ssl_libs_heads_args = {
     :unix => [%w[ssl crypto], %w[openssl/ssl.h openssl/err.h]],
-    :mswin => [%w[ssleay32 libeay32], %w[openssl/ssl.h openssl/err.h]],
+    :mswin => [%w[ssleay32 eay32], %w[openssl/ssl.h openssl/err.h]],
   }
 
   dc_flags = ['ssl']
@@ -39,9 +39,13 @@ def manual_ssl_config
   check_libs(libs) and check_heads(heads)
 end
 
+# Eager check devs tools
+have_devel? if respond_to?(:have_devel?)
+
 if ENV['CROSS_COMPILING']
-  openssl_dir = File.expand_path("~/.rake-compiler/builds/openssl-1.0.0a/")
-  if File.exists?(openssl_dir)
+  openssl_version = ENV.fetch("OPENSSL_VERSION", "1.0.1i")
+  openssl_dir = File.expand_path("~/.rake-compiler/builds/openssl-#{openssl_version}/")
+  if File.exist?(openssl_dir)
     FileUtils.mkdir_p Dir.pwd+"/openssl/"
     FileUtils.cp Dir[openssl_dir+"/include/openssl/*.h"], Dir.pwd+"/openssl/", :verbose => true
     FileUtils.cp Dir[openssl_dir+"/lib*.a"], Dir.pwd, :verbose => true
@@ -57,7 +61,7 @@ if ENV['CROSS_COMPILING']
 end
 
 # Try to use pkg_config first, fixes #73
-if pkg_config('openssl') || manual_ssl_config
+if (!ENV['CROSS_COMPILING'] and pkg_config('openssl')) || manual_ssl_config
   add_define "WITH_SSL"
 else
   add_define "WITHOUT_SSL"
@@ -66,17 +70,20 @@ end
 add_define 'BUILD_FOR_RUBY'
 add_define 'HAVE_RBTRAP' if have_var('rb_trap_immediate', ['ruby.h', 'rubysig.h'])
 add_define "HAVE_TBR" if have_func('rb_thread_blocking_region')# and have_macro('RUBY_UBF_IO', 'ruby.h')
+add_define "HAVE_RB_THREAD_CALL_WITHOUT_GVL" if have_header('ruby/thread.h') && have_func('rb_thread_call_without_gvl', 'ruby/thread.h')
 add_define "HAVE_INOTIFY" if inotify = have_func('inotify_init', 'sys/inotify.h')
 add_define "HAVE_OLD_INOTIFY" if !inotify && have_macro('__NR_inotify_init', 'sys/syscall.h')
 add_define 'HAVE_WRITEV' if have_func('writev', 'sys/uio.h')
+add_define 'HAVE_RB_THREAD_FD_SELECT' if have_func('rb_thread_fd_select')
 
-have_func('rb_thread_check_ints')
+have_func('rb_wait_for_single_fd')
+have_func('rb_enable_interrupt')
 have_func('rb_time_new')
 
 # Minor platform details between *nix and Windows:
 
 if RUBY_PLATFORM =~ /(mswin|mingw|bccwin)/
-  GNU_CHAIN = $1 == 'mingw'
+  GNU_CHAIN = ENV['CROSS_COMPILING'] || $1 == 'mingw'
   OS_WIN32 = true
   add_define "OS_WIN32"
 else
@@ -87,6 +94,15 @@ else
   add_define "HAVE_KQUEUE" if have_header("sys/event.h") and have_header("sys/queue.h")
 end
 
+# Adjust number of file descriptors (FD) on Windows
+
+if RbConfig::CONFIG["host_os"] =~ /mingw/
+  found = RbConfig::CONFIG.values_at("CFLAGS", "CPPFLAGS").
+    any? { |v| v.include?("FD_SETSIZE") }
+
+  add_define "FD_SETSIZE=32767" unless found
+end
+
 # Main platform invariances:
 
 case RUBY_PLATFORM
@@ -95,7 +111,7 @@ when /mswin32/, /mingw32/, /bccwin32/
   check_libs(%w[kernel32 rpcrt4 gdi32], true)
 
   if GNU_CHAIN
-    CONFIG['LDSHARED'] = "$(CXX) -shared -lstdc++"
+    CONFIG['LDSHAREDXX'] = "$(CXX) -shared -static-libgcc -static-libstdc++"
   else
     $defs.push "-EHs"
     $defs.push "-GR"
@@ -126,6 +142,8 @@ when /openbsd/
   CONFIG['LDSHAREDXX'] = "$(CXX) -shared -lstdc++ -fPIC"
 
 when /darwin/
+  add_define 'OS_DARWIN'
+
   # on Unix we need a g++ link, not gcc.
   # Ff line contributed by Daniel Harple.
   CONFIG['LDSHARED'] = "$(CXX) " + CONFIG['LDSHARED'].split[1..-1].join(' ')
@@ -139,18 +157,35 @@ when /linux/
 when /aix/
   CONFIG['LDSHARED'] = "$(CXX) -shared -Wl,-G -Wl,-brtl"
 
+when /cygwin/
+  # For rubies built with Cygwin, CXX may be set to CC, which is just
+  # a wrapper for gcc.
+  # This will compile, but it will not link to the C++ std library.
+  # Explicitly set CXX to use g++.
+  CONFIG['CXX'] = "g++"
+  # on Unix we need a g++ link, not gcc.
+  CONFIG['LDSHARED'] = "$(CXX) -shared"
+
 else
   # on Unix we need a g++ link, not gcc.
   CONFIG['LDSHARED'] = "$(CXX) -shared"
 end
 
+# Platform-specific time functions
+if have_func('clock_gettime')
+  # clock_gettime is POSIX, but the monotonic clocks are not
+  have_const('CLOCK_MONOTONIC_RAW', 'time.h') # Linux
+  have_const('CLOCK_MONOTONIC', 'time.h') # Linux, Solaris, BSDs
+else
+  have_func('gethrtime') # Older Solaris and HP-UX
+end
 
 # solaris c++ compiler doesn't have make_pair()
 TRY_LINK.sub!('$(CC)', '$(CXX)')
 add_define 'HAVE_MAKE_PAIR' if try_link(<<SRC, '-lstdc++')
   #include <utility>
   using namespace std;
-  int main(){ pair<int,int> tuple = make_pair(1,2); }
+  int main(){ pair<const int,int> tuple = make_pair(1,2); }
 SRC
 TRY_LINK.sub!('$(CXX)', '$(CC)')
 

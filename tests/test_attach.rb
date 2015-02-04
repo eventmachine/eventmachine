@@ -4,6 +4,7 @@ require 'socket'
 class TestAttach < Test::Unit::TestCase
   class EchoServer < EM::Connection
     def receive_data data
+      $received_data << data
       send_data data
     end
   end
@@ -31,12 +32,14 @@ class TestAttach < Test::Unit::TestCase
   def setup
     @port = next_port
     $read, $r, $w, $fd = nil
+    $received_data = ""
   end
 
   def teardown
     [$r, $w].each do |io|
       io.close rescue nil
     end
+    $received_data = nil
   end
 
   def test_attach
@@ -61,6 +64,28 @@ class TestAttach < Test::Unit::TestCase
       $read = $r.readline
       EM.stop
     end
+  end
+
+  def test_attach_server
+    omit_if(jruby?)
+    $before = TCPServer.new("127.0.0.1", @port)
+    sig     = nil
+    EM.run {
+      sig = EM.attach_server $before, EchoServer
+
+      handler = Class.new(EM::Connection) do
+        def initialize
+          send_data "hello world"
+          close_connection_after_writing
+          EM.add_timer(0.1) { EM.stop }
+        end
+      end
+      EM.connect("127.0.0.1", @port, handler)
+    }
+
+    assert_equal false, $before.closed?
+    assert_equal "hello world", $received_data
+    assert sig.is_a?(Integer)
   end
 
   def test_attach_pipe

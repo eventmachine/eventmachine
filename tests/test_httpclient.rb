@@ -16,7 +16,7 @@ class TestHttpClient < Test::Unit::TestCase
   def test_http_client
     ok = false
     EM.run {
-      c = EM::P::HttpClient.send :request, :host => "www.google.com", :port => 80
+      c = silent { EM::P::HttpClient.send :request, :host => "www.google.com", :port => 80 }
       c.callback {
         ok = true
         EM.stop
@@ -31,7 +31,7 @@ class TestHttpClient < Test::Unit::TestCase
   def test_http_client_1
     ok = false
     EM.run {
-      c = EM::P::HttpClient.send :request, :host => "www.google.com", :port => 80
+      c = silent { EM::P::HttpClient.send :request, :host => "www.google.com", :port => 80 }
       c.callback {ok = true; EM.stop}
       c.errback {EM.stop}
     }
@@ -43,7 +43,7 @@ class TestHttpClient < Test::Unit::TestCase
   def test_http_client_2
     ok = false
     EM.run {
-      c = EM::P::HttpClient.send :request, :host => "www.google.com", :port => 80
+      c = silent { EM::P::HttpClient.send :request, :host => "www.google.com", :port => 80 }
       c.callback {|result|
         ok = true;
         EM.stop
@@ -75,7 +75,7 @@ class TestHttpClient < Test::Unit::TestCase
       ok = false
       EM.run {
         EM.start_server "127.0.0.1", 9701, EmptyContent
-        c = EM::P::HttpClient.send :request, :host => "127.0.0.1", :port => 9701
+        c = silent { EM::P::HttpClient.send :request, :host => "127.0.0.1", :port => 9701 }
         c.callback {|result|
           ok = true
           EM.stop
@@ -134,14 +134,14 @@ class TestHttpClient < Test::Unit::TestCase
       EM.run {
         EM.start_server Localhost, Localport, PostContent
         setup_timeout(2)
-        c = EM::P::HttpClient.request(
+        c = silent { EM::P::HttpClient.request(
           :host=>Localhost,
           :port=>Localport,
           :method=>:post,
           :request=>"/aaa",
           :content=>"XYZ",
           :content_type=>"text/plain"
-        )
+        )}
         c.callback {|r|
           response = r
           EM.stop
@@ -158,7 +158,7 @@ class TestHttpClient < Test::Unit::TestCase
   def test_cookie
     ok = false
     EM.run {
-      c = EM::Protocols::HttpClient.send :request, :host => "www.google.com", :port => 80, :cookie=>"aaa=bbb"
+      c = silent { EM::Protocols::HttpClient.send :request, :host => "www.google.com", :port => 80, :cookie=>"aaa=bbb" }
       c.callback {|result|
         ok = true;
         EM.stop
@@ -173,11 +173,11 @@ class TestHttpClient < Test::Unit::TestCase
   def test_version_1_0
     ok = false
     EM.run {
-      c = EM::P::HttpClient.request(
+      c = silent { EM::P::HttpClient.request(
         :host => "www.google.com",
         :port => 80,
         :version => "1.0"
-      )
+      )}
       c.callback {|result|
         ok = true;
         EM.stop
@@ -187,4 +187,47 @@ class TestHttpClient < Test::Unit::TestCase
     assert ok
   end
 
+  #-----------------------------------------
+
+  # Test a server that returns chunked encoding
+  #
+  class ChunkedEncodingContent < EventMachine::Connection
+    def initialize *args
+      super
+    end
+    def receive_data data
+      send_data ["HTTP/1.1 200 OK",
+                "Server: nginx/0.7.67", 
+                "Date: Sat, 23 Oct 2010 16:41:32 GMT",
+                "Content-Type: application/json",
+                "Transfer-Encoding: chunked",
+                "Connection: keep-alive",
+                "", 
+                "1800",
+                "chunk1" * 1024,
+                "5a",
+                "chunk2" * 15,
+                "0",
+                ""].join("\r\n")
+      close_connection_after_writing
+    end
+  end
+
+  def test_http_chunked_encoding_content
+    ok = false
+    EventMachine.run {
+      EventMachine.start_server "127.0.0.1", 9701, ChunkedEncodingContent
+      c = EventMachine::Protocols::HttpClient.send :request, :host => "127.0.0.1", :port => 9701
+      c.callback {|result|
+        if result[:content] == "chunk1" * 1024 + "chunk2" * 15
+          ok = true
+        end
+        EventMachine.stop
+      }
+    }
+    assert ok
+  end
+
 end
+
+

@@ -3,7 +3,6 @@ require 'em_test_helper'
 class TestSSLMethods < Test::Unit::TestCase
 
   module ServerHandler
-
     def post_init
       start_tls
     end
@@ -12,11 +11,9 @@ class TestSSLMethods < Test::Unit::TestCase
       $server_called_back = true
       $server_cert_value = get_peer_cert
     end
-
   end
 
   module ClientHandler
-
     def post_init
       start_tls
     end
@@ -26,10 +23,11 @@ class TestSSLMethods < Test::Unit::TestCase
       $client_cert_value = get_peer_cert
       EM.stop_event_loop
     end
-
   end
 
   def test_ssl_methods
+    omit_unless(EM.ssl?)
+    omit_if(rbx?)
     $server_called_back, $client_called_back = false, false
     $server_cert_value, $client_cert_value = nil, nil
 
@@ -45,4 +43,4 @@ class TestSSLMethods < Test::Unit::TestCase
     assert($client_cert_value.is_a?(String))
   end
 
-end if EM.ssl?
+end

@@ -11,11 +11,12 @@ module EventMachine
     #  end
     #
     module LineProtocol
-      def receive_data data # :nodoc:
+      # @private
+      def receive_data data
         (@buf ||= '') << data
 
-        while line = @buf.slice!(/(.*)\r?\n/)
-          receive_line(line)
+        while @buf.slice!(/(.*?)\r?\n/)
+          receive_line($1)
         end
       end
 

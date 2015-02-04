@@ -39,7 +39,8 @@ module EventMachine
   class DeferrableChildProcess < EventMachine::Connection
     include EventMachine::Deferrable
 
-    def initialize # :nodoc:
+    # @private
+    def initialize
       super
       @data = []
     end
@@ -60,16 +61,19 @@ module EventMachine
       EventMachine.popen( cmd, DeferrableChildProcess )
     end
 
-    def receive_data data # :nodoc:
+    # @private
+    def receive_data data
       @data << data
     end
 
-    def unbind # :nodoc:
+    # @private
+    def unbind
       succeed( @data.join )
     end
   end
 
-  class SystemCmd < EventMachine::Connection # :nodoc:
+  # @private
+  class SystemCmd < EventMachine::Connection
     def initialize cb
       @cb = cb
       @output = []
@@ -110,7 +114,7 @@ module EventMachine
     init = args.pop if args.last.is_a? Proc
 
     # merge remaining arguments into the command
-    cmd = ([cmd] + args.map{|a|a.to_s.dump}).join(' ')
+    cmd = [cmd, *args] if args.any?
 
     EM.get_subprocess_pid(EM.popen(cmd, SystemCmd, cb) do |c|
       init[c] if init

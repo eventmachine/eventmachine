@@ -282,7 +282,7 @@ bool PipeDescriptor::SelectForRead()
 	 * a pending state, so this is simpler than for the
 	 * ConnectionDescriptor object.
 	 */
-	return true;
+	return bPaused ? false : true;
 }
 
 /******************************
@@ -295,7 +295,7 @@ bool PipeDescriptor::SelectForWrite()
 	 * a pending state, so this is simpler than for the
 	 * ConnectionDescriptor object.
 	 */
-	return (GetOutboundDataSize() > 0);
+	return (GetOutboundDataSize() > 0) && !bPaused ? true : false;
 }
 
 

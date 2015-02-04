@@ -27,6 +27,8 @@ if EM.kqueue?
     end
 
     def test_events
+      omit_if(rbx?)
+      omit_if(jruby?)
       EM.run{
         # watch ourselves for a fork notification
         EM.watch_process(Process.pid, ParentProcessWatcher)

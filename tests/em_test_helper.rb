@@ -1,9 +1,9 @@
-require 'lib/eventmachine'
+require 'eventmachine'
 require 'test/unit'
 require 'rbconfig'
 require 'socket'
 
-Test::Unit::TestCase.class_eval do
+class Test::Unit::TestCase
   class EMTestTimeout < StandardError ; end
 
   def setup_timeout(timeout = TIMEOUT_INTERVAL)
@@ -38,12 +38,16 @@ Test::Unit::TestCase.class_eval do
   module PlatformHelper
     # http://blog.emptyway.com/2009/11/03/proper-way-to-detect-windows-platform-in-ruby/
     def windows?
-      Config::CONFIG['host_os'] =~ /mswin|mingw/
+      RbConfig::CONFIG['host_os'] =~ /mswin|mingw/
     end
 
     # http://stackoverflow.com/questions/1342535/how-can-i-tell-if-im-running-from-jruby-vs-ruby/1685970#1685970
     def jruby?
       defined? JRUBY_VERSION
+    end
+
+    def rbx?
+      defined?(RUBY_ENGINE) && RUBY_ENGINE == 'rbx'
     end
   end
 
@@ -52,4 +56,13 @@ Test::Unit::TestCase.class_eval do
 
   # Tests run significantly slower on windows. YMMV
   TIMEOUT_INTERVAL = windows? ? 1 : 0.25
+
+  def silent
+    backup, $VERBOSE = $VERBOSE, nil
+    begin
+      yield
+    ensure
+      $VERBOSE = backup
+    end
+  end
 end

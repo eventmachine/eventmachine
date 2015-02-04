@@ -32,7 +32,6 @@ module EventMachine
     # for a version which is optimized for correctness with regard to binary text blocks
     # that can switch back to line mode.
     class LineAndTextProtocol < Connection
-      MaxLineLength = 16*1024
       MaxBinaryLength = 32*1024*1024
 
       def initialize *args
@@ -42,7 +41,7 @@ module EventMachine
       def receive_data data
         if @lbp_mode == :lines
           begin
-            @lpb_buffer.extract(data).each do |line| 
+            @lpb_buffer.extract(data).each do |line|
               receive_line(line.chomp) if respond_to?(:receive_line)
             end
           rescue Exception
@@ -116,7 +115,7 @@ module EventMachine
       #--
       # For internal use, establish protocol baseline for handling lines.
       def lbp_init_line_state
-        @lpb_buffer = BufferedTokenizer.new("\n", MaxLineLength)
+        @lpb_buffer = BufferedTokenizer.new("\n")
         @lbp_mode = :lines
       end
       private :lbp_init_line_state

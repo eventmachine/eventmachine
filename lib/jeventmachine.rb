@@ -59,14 +59,23 @@ SocketChannel.send :include, JavaFields
 module EventMachine
   # TODO: These event numbers are defined in way too many places.
   # DRY them up.
+  # @private
   TimerFired = 100
+  # @private
   ConnectionData = 101
+  # @private
   ConnectionUnbound = 102
+  # @private
   ConnectionAccepted = 103
+  # @private
   ConnectionCompleted = 104
+  # @private
   LoopbreakSignalled = 105
+  # @private
   ConnectionNotifyReadable = 106
+  # @private
   ConnectionNotifyWritable = 107
+  # @private
   SslHandshakeCompleted = 108
 
   # Exceptions that are defined in rubymain.cpp
@@ -194,6 +203,12 @@ module EventMachine
       Socket.pack_sockaddr_in(*peer)
     end
   end
+  def self.get_sockname sig
+    if sockName = @em.getSockName(sig)
+      Socket.pack_sockaddr_in(*sockName)
+    end
+  end
+  # @private
   def self.attach_fd fileno, watch_mode
     # 3Aug09: We could pass in the actual SocketChannel, but then it would be modified (set as non-blocking), and
     # we would need some logic to make sure detach_fd below didn't clobber it. For now, we just always make a new
@@ -253,6 +268,20 @@ module EventMachine
     @em.getConnectionCount
   end
 
+  def self.pause_connection(sig)
+    @em.pauseConnection(sig)
+  end
+  def self.resume_connection(sig)
+    @em.resumeConnection(sig)
+  end
+  def self.connection_paused?(sig)
+    @em.isConnectionPaused(sig)
+  end
+  def self._get_outbound_data_size(sig)
+    @em.getOutboundDataSize(sig)
+  end
+
+
   def self.set_tls_parms(sig, params)
   end
   def self.start_tls(sig)
@@ -263,6 +292,9 @@ module EventMachine
   class Connection
     def associate_callback_target sig
       # No-op for the time being
+    end
+    def get_outbound_data_size
+      EM._get_outbound_data_size @signature
     end
   end
 end

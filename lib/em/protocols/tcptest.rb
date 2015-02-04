@@ -27,7 +27,8 @@
 module EventMachine
   module Protocols
 
-    class TcpConnectTester < Connection # :nodoc:
+    # @private
+    class TcpConnectTester < Connection
       include EventMachine::Deferrable
 
       def self.test( host, port )

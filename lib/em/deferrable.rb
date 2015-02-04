@@ -25,6 +25,7 @@
 
 module EventMachine
   module Deferrable
+    autoload :Pool, 'em/deferrable/pool'
 
     # Specify a block to be executed if and when the Deferrable object receives
     # a status of :succeeded. See #set_deferred_status for more information.

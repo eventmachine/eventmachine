@@ -137,7 +137,7 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 		bLibraryInitialized = true;
 		SSL_library_init();
 		OpenSSL_add_ssl_algorithms();
-	        OpenSSL_add_all_algorithms();
+		OpenSSL_add_all_algorithms();
 		SSL_load_error_strings();
 		ERR_load_crypto_strings();
 
@@ -151,6 +151,9 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 
 	SSL_CTX_set_options (pCtx, SSL_OP_ALL);
 	//SSL_CTX_set_options (pCtx, (SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3));
+#ifdef SSL_MODE_RELEASE_BUFFERS
+	SSL_CTX_set_mode (pCtx, SSL_MODE_RELEASE_BUFFERS);
+#endif
 
 	if (is_server) {
 		// The SSL_CTX calls here do NOT allocate memory.
@@ -159,11 +162,14 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 			e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
 		else
 			e = SSL_CTX_use_PrivateKey (pCtx, DefaultPrivateKey);
+		if (e <= 0) ERR_print_errors_fp(stderr);
 		assert (e > 0);
+
 		if (certchainfile.length() > 0)
 			e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
 		else
 			e = SSL_CTX_use_certificate (pCtx, DefaultCertificate);
+		if (e <= 0) ERR_print_errors_fp(stderr);
 		assert (e > 0);
 	}
 
@@ -177,10 +183,12 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 		int e;
 		if (privkeyfile.length() > 0) {
 			e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
+			if (e <= 0) ERR_print_errors_fp(stderr);
 			assert (e > 0);
 		}
 		if (certchainfile.length() > 0) {
 			e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
+			if (e <= 0) ERR_print_errors_fp(stderr);
 			assert (e > 0);
 		}
 	}
@@ -384,13 +392,16 @@ int SslBox_t::PutPlaintext (const char *buf, int bufsize)
 
 	bool fatal = false;
 	bool did_work = false;
+	int pending =  BIO_pending(pbioWrite);
 
-	while (OutboundQ.HasPages()) {
+	while (OutboundQ.HasPages() && pending < SSLBOX_WRITE_BUFFER_SIZE) {
 		const char *page;
 		int length;
 		OutboundQ.Front (&page, &length);
 		assert (page && (length > 0));
 		int n = SSL_write (pSSL, page, length);
+		pending =  BIO_pending(pbioWrite);
+
 		if (n > 0) {
 			did_work = true;
 			OutboundQ.PopFront();
@@ -451,7 +462,7 @@ extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 
 	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
 	result = (cd->VerifySslPeer(buf->data) == true ? 1 : 0);
-	BUF_MEM_free(buf);
+	BIO_free(out);
 
 	return result;
 }

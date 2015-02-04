@@ -74,6 +74,7 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	LoopBreakerReader (-1),
 	LoopBreakerWriter (-1),
 	OneShotOnly(false),
+	NumCloseScheduled (0),
 	bTerminateSignalReceived (false),
 	bEpoll (false),
 	epfd (-1),
@@ -84,6 +85,11 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	// Default time-slice is just smaller than one hundred mills.
 	Quantum.tv_sec = 0;
 	Quantum.tv_usec = 90000;
+
+	/* Initialize monotonic timekeeping on OS X before the first call to GetRealTime */
+	#ifdef OS_DARWIN
+	(void) mach_timebase_info(&mach_timebase);
+	#endif
 
 	// Make sure the current loop time is sane, in case we do any initializations of
 	// objects before we start running.
@@ -198,10 +204,9 @@ EventMachine_t::SetTimerQuantum
 void EventMachine_t::SetTimerQuantum (int interval)
 {
 	/* We get a timer-quantum expressed in milliseconds.
-	 * Don't set a quantum smaller than 5 or larger than 2500.
 	 */
 
-	if ((interval < 5) || (interval > 2500))
+	if ((interval < 5) || (interval > 5*60*1000))
 		throw std::runtime_error ("invalid timer-quantum");
 
 	Quantum.tv_sec = interval / 1000;
@@ -353,16 +358,49 @@ void EventMachine_t::_UpdateTime()
 EventMachine_t::GetRealTime
 ***************************/
 
+// Two great writeups of cross-platform monotonic time are at:
+// http://www.python.org/dev/peps/pep-0418
+// http://nadeausoftware.com/articles/2012/04/c_c_tip_how_measure_elapsed_real_time_benchmarking
+// Uncomment the #pragma messages to confirm which compile-time option was used
 uint64_t EventMachine_t::GetRealTime()
 {
 	uint64_t current_time;
 
-	#if defined(OS_UNIX)
+	#if defined(HAVE_CONST_CLOCK_MONOTONIC_RAW)
+	// #pragma message "GetRealTime: clock_gettime CLOCK_MONOTONIC_RAW"
+	// Linux 2.6.28 and above
+	struct timespec tv;
+	clock_gettime (CLOCK_MONOTONIC_RAW, &tv);
+	current_time = (((uint64_t)(tv.tv_sec)) * 1000000LL) + ((uint64_t)((tv.tv_nsec)/1000));
+
+	#elif defined(HAVE_CONST_CLOCK_MONOTONIC)
+	// #pragma message "GetRealTime: clock_gettime CLOCK_MONOTONIC"
+	// Linux, FreeBSD 5.0 and above, Solaris 8 and above, OpenBSD, NetBSD, DragonflyBSD
+	struct timespec tv;
+	clock_gettime (CLOCK_MONOTONIC, &tv);
+	current_time = (((uint64_t)(tv.tv_sec)) * 1000000LL) + ((uint64_t)((tv.tv_nsec)/1000));
+
+	#elif defined(HAVE_GETHRTIME)
+	// #pragma message "GetRealTime: gethrtime"
+	// Solaris and HP-UX
+	current_time = (uint64_t)gethrtime() / 1000;
+
+	#elif defined(OS_DARWIN)
+	// #pragma message "GetRealTime: mach_absolute_time"
+	// Mac OS X
+	// https://developer.apple.com/library/mac/qa/qa1398/_index.html
+	current_time = mach_absolute_time() * mach_timebase.numer / mach_timebase.denom / 1000;
+
+	#elif defined(OS_UNIX)
+	// #pragma message "GetRealTime: gettimeofday"
+	// Unix fallback
 	struct timeval tv;
 	gettimeofday (&tv, NULL);
 	current_time = (((uint64_t)(tv.tv_sec)) * 1000000LL) + ((uint64_t)(tv.tv_usec));
 
 	#elif defined(OS_WIN32)
+	// #pragma message "GetRealTime: GetTickCount"
+	// Future improvement: use GetTickCount64 in Windows Vista / Server 2008
 	unsigned tick = GetTickCount();
 	if (tick < LastTickCount)
 		TickCountTickover += 1;
@@ -371,6 +409,8 @@ uint64_t EventMachine_t::GetRealTime()
 	current_time *= 1000; // convert to microseconds
 
 	#else
+	// #pragma message "GetRealTime: time"
+	// Universal fallback
 	current_time = (uint64_t)time(NULL) * 1000000LL;
 	#endif
 
@@ -383,15 +423,27 @@ EventMachine_t::_DispatchHeartbeats
 
 void EventMachine_t::_DispatchHeartbeats()
 {
+	// Store the first processed heartbeat descriptor and bail out if
+	// we see it again. This fixes an infinite loop in case the system time
+	// is changed out from underneath MyCurrentLoopTime.
+	const EventableDescriptor *head = NULL;
+
 	while (true) {
 		multimap<uint64_t,EventableDescriptor*>::iterator i = Heartbeats.begin();
 		if (i == Heartbeats.end())
 			break;
 		if (i->first > MyCurrentLoopTime)
 			break;
+
 		EventableDescriptor *ed = i->second;
+		if (ed == head)
+			break;
+
 		ed->Heartbeat();
 		QueueHeartbeat(ed);
+
+		if (head == NULL)
+			head = ed;
 	}
 }
 
@@ -474,8 +526,7 @@ int EventMachine_t::Run()
 
 	while (true) {
 		_UpdateTime();
-		if (!_RunTimers())
-			break;
+		_RunTimers();
 
 		/* _Add must precede _Modify because the same descriptor might
 		 * be on both lists during the same pass through the machine,
@@ -484,8 +535,7 @@ int EventMachine_t::Run()
 		_AddNewDescriptors();
 		_ModifyDescriptors();
 
-		if (!_RunOnce())
-			break;
+		_RunOnce();
 		if (bTerminateSignalReceived)
 			break;
 		if (OneShotOnly)
@@ -500,27 +550,24 @@ int EventMachine_t::Run()
 EventMachine_t::_RunOnce
 ************************/
 
-bool EventMachine_t::_RunOnce()
+void EventMachine_t::_RunOnce()
 {
-	bool ret;
 	if (bEpoll)
-		ret = _RunEpollOnce();
+		_RunEpollOnce();
 	else if (bKqueue)
-		ret = _RunKqueueOnce();
+		_RunKqueueOnce();
 	else
-		ret = _RunSelectOnce();
+		_RunSelectOnce();
 	_DispatchHeartbeats();
 	_CleanupSockets();
-	return ret;
 }
-
 
 
 /*****************************
 EventMachine_t::_RunEpollOnce
 *****************************/
 
-bool EventMachine_t::_RunEpollOnce()
+void EventMachine_t::_RunEpollOnce()
 {
 	#ifdef HAVE_EPOLL
 	assert (epfd != -1);
@@ -530,17 +577,22 @@ bool EventMachine_t::_RunEpollOnce()
 
 	#ifdef BUILD_FOR_RUBY
 	int ret = 0;
-	fd_set fdreads;
 
-	FD_ZERO(&fdreads);
-	FD_SET(epfd, &fdreads);
+	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
+	if ((ret = rb_wait_for_single_fd(epfd, RB_WAITFD_IN|RB_WAITFD_PRI, &tv)) < 1) {
+	#else
+	rb_fdset_t fdreads;
 
-	if ((ret = rb_thread_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	rb_fd_init(&fdreads);
+	rb_fd_set(epfd, &fdreads);
+
+	if ((ret = rb_thread_fd_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	#endif
 		if (ret == -1) {
 			assert(errno != EINVAL);
 			assert(errno != EBADF);
 		}
-		return true;
+		return;
 	}
 
 	TRAP_BEG;
@@ -578,8 +630,6 @@ bool EventMachine_t::_RunEpollOnce()
 		timeval tv = {0, ((errno == EINTR) ? 5 : 50) * 1000};
 		EmSelect (0, NULL, NULL, NULL, &tv);
 	}
-
-	return true;
 	#else
 	throw std::runtime_error ("epoll is not implemented on this platform");
 	#endif
@@ -590,7 +640,7 @@ bool EventMachine_t::_RunEpollOnce()
 EventMachine_t::_RunKqueueOnce
 ******************************/
 
-bool EventMachine_t::_RunKqueueOnce()
+void EventMachine_t::_RunKqueueOnce()
 {
 	#ifdef HAVE_KQUEUE
 	assert (kqfd != -1);
@@ -604,17 +654,22 @@ bool EventMachine_t::_RunKqueueOnce()
 
 	#ifdef BUILD_FOR_RUBY
 	int ret = 0;
-	fd_set fdreads;
 
-	FD_ZERO(&fdreads);
-	FD_SET(kqfd, &fdreads);
+	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
+	if ((ret = rb_wait_for_single_fd(kqfd, RB_WAITFD_IN|RB_WAITFD_PRI, &tv)) < 1) {
+	#else
+	rb_fdset_t fdreads;
 
-	if ((ret = rb_thread_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	rb_fd_init(&fdreads);
+	rb_fd_set(kqfd, &fdreads);
+
+	if ((ret = rb_thread_fd_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	#endif
 		if (ret == -1) {
 			assert(errno != EINVAL);
 			assert(errno != EBADF);
 		}
-		return true;
+		return;
 	}
 
 	TRAP_BEG;
@@ -665,8 +720,6 @@ bool EventMachine_t::_RunKqueueOnce()
 		rb_thread_schedule();
 	}
 	#endif
-
-	return true;
 	#else
 	throw std::runtime_error ("kqueue is not implemented on this platform");
 	#endif
@@ -679,7 +732,13 @@ EventMachine_t::_TimeTilNextEvent
 
 timeval EventMachine_t::_TimeTilNextEvent()
 {
+	// 29jul11: Changed calculation base from MyCurrentLoopTime to the
+	// real time. As MyCurrentLoopTime is set at the beginning of an
+	// iteration and this calculation is done at the end, evenmachine
+	// will potentially oversleep by the amount of time the iteration
+	// took to execute.
 	uint64_t next_event = 0;
+	uint64_t current_time = GetRealTime();
 
 	if (!Heartbeats.empty()) {
 		multimap<uint64_t,EventableDescriptor*>::iterator heartbeats = Heartbeats.begin();
@@ -693,16 +752,18 @@ timeval EventMachine_t::_TimeTilNextEvent()
 	}
 
 	if (!NewDescriptors.empty() || !ModifiedDescriptors.empty()) {
-		next_event = MyCurrentLoopTime;
+		next_event = current_time;
 	}
 
 	timeval tv;
 
-	if (next_event == 0) {
+	if (NumCloseScheduled > 0 || bTerminateSignalReceived) {
+		tv.tv_sec = tv.tv_usec = 0;
+	} else if (next_event == 0) {
 		tv = Quantum;
 	} else {
-		if (next_event > MyCurrentLoopTime) {
-			uint64_t duration = next_event - MyCurrentLoopTime;
+		if (next_event > current_time) {
+			uint64_t duration = next_event - current_time;
 			tv.tv_sec = duration / 1000000;
 			tv.tv_usec = duration % 1000000;
 		} else {
@@ -790,9 +851,9 @@ SelectData_t::SelectData_t
 SelectData_t::SelectData_t()
 {
 	maxsocket = 0;
-	FD_ZERO (&fdreads);
-	FD_ZERO (&fdwrites);
-	FD_ZERO (&fderrors);
+	rb_fd_init (&fdreads);
+	rb_fd_init (&fdwrites);
+	rb_fd_init (&fderrors);
 }
 
 
@@ -801,11 +862,11 @@ SelectData_t::SelectData_t()
 _SelectDataSelect
 *****************/
 
-#ifdef HAVE_TBR
+#if defined(HAVE_TBR) || defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL)
 static VALUE _SelectDataSelect (void *v)
 {
 	SelectData_t *sd = (SelectData_t*)v;
-	sd->nSockets = select (sd->maxsocket+1, &(sd->fdreads), &(sd->fdwrites), &(sd->fderrors), &(sd->tv));
+	sd->nSockets = rb_fd_select (sd->maxsocket+1, &(sd->fdreads), &(sd->fdwrites), &(sd->fderrors), &(sd->tv));
 	return Qnil;
 }
 #endif
@@ -816,12 +877,13 @@ SelectData_t::_Select
 
 int SelectData_t::_Select()
 {
-	#ifdef HAVE_TBR
+	#if defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL)
+	rb_thread_call_without_gvl ((void *(*)(void *))_SelectDataSelect, (void*)this, RUBY_UBF_IO, 0);
+	return nSockets;
+	#elif defined(HAVE_TBR)
 	rb_thread_blocking_region (_SelectDataSelect, (void*)this, RUBY_UBF_IO, 0);
 	return nSockets;
-	#endif
-
-	#ifndef HAVE_TBR
+	#else
 	return EmSelect (maxsocket+1, &fdreads, &fdwrites, &fderrors, &tv);
 	#endif
 }
@@ -833,42 +895,22 @@ int SelectData_t::_Select()
 EventMachine_t::_RunSelectOnce
 ******************************/
 
-bool EventMachine_t::_RunSelectOnce()
+void EventMachine_t::_RunSelectOnce()
 {
 	// Crank the event machine once.
 	// If there are no descriptors to process, then sleep
 	// for a few hundred mills to avoid busy-looping.
-	// Return T/F to indicate whether we should continue.
 	// This is based on a select loop. Alternately provide epoll
 	// if we know we're running on a 2.6 kernel.
 	// epoll will be effective if we provide it as an alternative,
 	// however it has the same problem interoperating with Ruby
 	// threads that select does.
 
-	//cerr << "X";
-
-	/* This protection is now obsolete, because we will ALWAYS
-	 * have at least one descriptor (the loop-breaker) to read.
-	 */
-	/*
-	if (Descriptors.size() == 0) {
-		#ifdef OS_UNIX
-		timeval tv = {0, 200 * 1000};
-		EmSelect (0, NULL, NULL, NULL, &tv);
-		return true;
-		#endif
-		#ifdef OS_WIN32
-		Sleep (200);
-		return true;
-		#endif
-	}
-	*/
-
 	SelectData_t SelectData;
 	/*
-	fd_set fdreads, fdwrites;
-	FD_ZERO (&fdreads);
-	FD_ZERO (&fdwrites);
+	rb_fdset_t fdreads, fdwrites;
+	rb_fd_init (&fdreads);
+	rb_fd_init (&fdwrites);
 
 	int maxsocket = 0;
 	*/
@@ -878,7 +920,7 @@ bool EventMachine_t::_RunSelectOnce()
 	// running on localhost with a randomly-chosen port. (*Puke*)
 	// Windows has a version of the Unix pipe() library function, but it doesn't
 	// give you back descriptors that are selectable.
-	FD_SET (LoopBreakerReader, &(SelectData.fdreads));
+	rb_fd_set (LoopBreakerReader, &(SelectData.fdreads));
 	if (SelectData.maxsocket < LoopBreakerReader)
 		SelectData.maxsocket = LoopBreakerReader;
 
@@ -893,15 +935,16 @@ bool EventMachine_t::_RunSelectOnce()
 		assert (sd != INVALID_SOCKET);
 
 		if (ed->SelectForRead())
-			FD_SET (sd, &(SelectData.fdreads));
+			rb_fd_set (sd, &(SelectData.fdreads));
 		if (ed->SelectForWrite())
-			FD_SET (sd, &(SelectData.fdwrites));
+			rb_fd_set (sd, &(SelectData.fdwrites));
 
 		#ifdef OS_WIN32
 		/* 21Sep09: on windows, a non-blocking connect() that fails does not come up as writable.
 		   Instead, it is added to the error set. See http://www.mail-archive.com/openssl-users@openssl.org/msg58500.html
 		*/
-		FD_SET (sd, &(SelectData.fderrors));
+		if (ed->IsConnectPending())
+			rb_fd_set (sd, &(SelectData.fderrors));
 		#endif
 
 		if (SelectData.maxsocket < sd)
@@ -936,15 +979,19 @@ bool EventMachine_t::_RunSelectOnce()
 					continue;
 				assert (sd != INVALID_SOCKET);
 
-				if (FD_ISSET (sd, &(SelectData.fdwrites)))
-					ed->Write();
-				if (FD_ISSET (sd, &(SelectData.fdreads)))
+				if (rb_fd_isset (sd, &(SelectData.fdwrites))) {
+					// Double-check SelectForWrite() still returns true. If not, one of the callbacks must have
+					// modified some value since we checked SelectForWrite() earlier in this method.
+					if (ed->SelectForWrite())
+						ed->Write();
+				}
+				if (rb_fd_isset (sd, &(SelectData.fdreads)))
 					ed->Read();
-				if (FD_ISSET (sd, &(SelectData.fderrors)))
+				if (rb_fd_isset (sd, &(SelectData.fderrors)))
 					ed->HandleError();
 			}
 
-			if (FD_ISSET (LoopBreakerReader, &(SelectData.fdreads)))
+			if (rb_fd_isset (LoopBreakerReader, &(SelectData.fdreads)))
 				_ReadLoopBreaker();
 		}
 		else if (s < 0) {
@@ -965,8 +1012,6 @@ bool EventMachine_t::_RunSelectOnce()
 			}
 		}
 	}
-
-	return true;
 }
 
 void EventMachine_t::_CleanBadDescriptors()
@@ -984,11 +1029,11 @@ void EventMachine_t::_CleanBadDescriptors()
 		tv.tv_sec = 0;
 		tv.tv_usec = 0;
 
-		fd_set fds;
-		FD_ZERO(&fds);
-		FD_SET(sd, &fds);
+		rb_fdset_t fds;
+		rb_fd_init(&fds);
+		rb_fd_set(sd, &fds);
 
-		int ret = select(sd + 1, &fds, NULL, NULL, &tv);
+		int ret = rb_fd_select(sd + 1, &fds, NULL, NULL, &tv);
 
 		if (ret == -1) {
 			if (errno == EBADF)
@@ -1018,10 +1063,9 @@ void EventMachine_t::_ReadLoopBreaker()
 EventMachine_t::_RunTimers
 **************************/
 
-bool EventMachine_t::_RunTimers()
+void EventMachine_t::_RunTimers()
 {
 	// These are caller-defined timer handlers.
-	// Return T/F to indicate whether we should continue the main loop.
 	// We rely on the fact that multimaps sort by their keys to avoid
 	// inspecting the whole list every time we come here.
 	// Just keep inspecting and processing the list head until we hit
@@ -1037,7 +1081,6 @@ bool EventMachine_t::_RunTimers()
 			(*EventCallback) (0, EM_TIMER_FIRED, NULL, i->second.GetBinding());
 		Timers.erase (i);
 	}
-	return true;
 }
 
 
@@ -1265,7 +1308,7 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 
 	#ifdef OS_WIN32
 	throw std::runtime_error ("unix-domain connection unavailable on this platform");
-	return NULL;
+	return 0;
 	#endif
 
 	// The whole rest of this function is only compiled on Unix systems.
@@ -1364,6 +1407,7 @@ const unsigned long EventMachine_t::AttachFD (int fd, bool watch_mode)
 	if (!cd)
 		throw std::runtime_error ("no connection allocated");
 
+	cd->SetAttached(true);
 	cd->SetWatchOnly(watch_mode);
 	cd->SetConnectPending (false);
 
@@ -1403,7 +1447,11 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 	if (bKqueue) {
 		// remove any read/write events for this fd
 		struct kevent k;
+#ifdef __NetBSD__
+		EV_SET (&k, ed->GetSocket(), EVFILT_READ | EVFILT_WRITE, EV_DELETE, 0, 0, (intptr_t)ed);
+#else
 		EV_SET (&k, ed->GetSocket(), EVFILT_READ | EVFILT_WRITE, EV_DELETE, 0, 0, ed);
+#endif
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
 		if (t < 0 && (errno != ENOENT) && (errno != EBADF)) {
 			char buf [200];
@@ -1415,6 +1463,14 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 
 	// Prevent the descriptor from being modified, in case DetachFD was called from a timer or next_tick
 	ModifiedDescriptors.erase (ed);
+
+	// Prevent the descriptor from being added, in case DetachFD was called in the same tick as AttachFD
+	for (size_t i = 0; i < NewDescriptors.size(); i++) {
+		if (ed == NewDescriptors[i]) {
+			NewDescriptors.erase(NewDescriptors.begin() + i);
+			break;
+		}
+	}
 
 	// Set MySocket = INVALID_SOCKET so ShouldDelete() is true (and the descriptor gets deleted and removed),
 	// and also to prevent anyone from calling close() on the detached fd
@@ -1508,8 +1564,6 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 	if (!bind_here)
 		return 0;
 
-	unsigned long output_binding = 0;
-
 	//struct sockaddr_in sin;
 
 	int sd_accept = socket (family, SOCK_STREAM, 0);
@@ -1546,25 +1600,7 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 		goto fail;
 	}
 
-	{
-		// Set the acceptor non-blocking.
-		// THIS IS CRUCIALLY IMPORTANT because we read it in a select loop.
-		if (!SetSocketNonblocking (sd_accept)) {
-		//int val = fcntl (sd_accept, F_GETFL, 0);
-		//if (fcntl (sd_accept, F_SETFL, val | O_NONBLOCK) == -1) {
-			goto fail;
-		}
-	}
-
-	{ // Looking good.
-		AcceptorDescriptor *ad = new AcceptorDescriptor (sd_accept, this);
-		if (!ad)
-			throw std::runtime_error ("unable to allocate acceptor");
-		Add (ad);
-		output_binding = ad->GetBinding();
-	}
-
-	return output_binding;
+	return AttachSD(sd_accept);
 
 	fail:
 	if (sd_accept != INVALID_SOCKET)
@@ -1659,7 +1695,11 @@ void EventMachine_t::ArmKqueueWriter (EventableDescriptor *ed)
 		if (!ed)
 			throw std::runtime_error ("added bad descriptor");
 		struct kevent k;
+#ifdef __NetBSD__
+		EV_SET (&k, ed->GetSocket(), EVFILT_WRITE, EV_ADD | EV_ONESHOT, 0, 0, (intptr_t)ed);
+#else
 		EV_SET (&k, ed->GetSocket(), EVFILT_WRITE, EV_ADD | EV_ONESHOT, 0, 0, ed);
+#endif
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
 		if (t < 0) {
 			char buf [200];
@@ -1681,7 +1721,11 @@ void EventMachine_t::ArmKqueueReader (EventableDescriptor *ed)
 		if (!ed)
 			throw std::runtime_error ("added bad descriptor");
 		struct kevent k;
+#ifdef __NetBSD__
+		EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_ADD, 0, 0, (intptr_t)ed);
+#else
 		EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_ADD, 0, 0, ed);
+#endif
 		int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
 		if (t < 0) {
 			char buf [200];
@@ -1732,7 +1776,11 @@ void EventMachine_t::_AddNewDescriptors()
 			// INCOMPLETE. Some descriptors don't want to be readable.
 			assert (kqfd != -1);
 			struct kevent k;
+#ifdef __NetBSD__
+			EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_ADD, 0, 0, (intptr_t)ed);
+#else
 			EV_SET (&k, ed->GetSocket(), EVFILT_READ, EV_ADD, 0, 0, ed);
+#endif
 			int t = kevent (kqfd, &k, 1, NULL, 0, NULL);
 			assert (t == 0);
 		}
@@ -1796,6 +1844,34 @@ void EventMachine_t::Modify (EventableDescriptor *ed)
 }
 
 
+/***********************
+EventMachine_t::Deregister
+***********************/
+
+void EventMachine_t::Deregister (EventableDescriptor *ed)
+{
+	if (!ed)
+		throw std::runtime_error ("modified bad descriptor");
+	#ifdef HAVE_EPOLL
+	// cut/paste from _CleanupSockets().  The error handling could be
+	// refactored out of there, but it is cut/paste all over the
+	// file already.
+	if (bEpoll) {
+		assert (epfd != -1);
+		assert (ed->GetSocket() != INVALID_SOCKET);
+		int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
+		// ENOENT or EBADF are not errors because the socket may be already closed when we get here.
+		if (e && (errno != ENOENT) && (errno != EBADF) && (errno != EPERM)) {
+			char buf [200];
+			snprintf (buf, sizeof(buf)-1, "unable to delete epoll event: %s", strerror(errno));
+			throw std::runtime_error (buf);
+		}
+		ModifiedDescriptors.erase(ed);
+	}
+	#endif
+}
+
+
 /**************************************
 EventMachine_t::CreateUnixDomainServer
 **************************************/
@@ -1815,7 +1891,6 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 
 	// The whole rest of this function is only compiled on Unix systems.
 	#ifdef OS_UNIX
-	unsigned long output_binding = 0;
 
 	struct sockaddr_un s_sun;
 
@@ -1853,6 +1928,24 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 		goto fail;
 	}
 
+	return AttachSD(sd_accept);
+
+	fail:
+	if (sd_accept != INVALID_SOCKET)
+		close (sd_accept);
+	return 0;
+	#endif // OS_UNIX
+}
+
+
+/**************************************
+EventMachine_t::AttachSD
+**************************************/
+
+const unsigned long EventMachine_t::AttachSD (int sd_accept)
+{
+	unsigned long output_binding = 0;
+
 	{
 		// Set the acceptor non-blocking.
 		// THIS IS CRUCIALLY IMPORTANT because we read it in a select loop.
@@ -1877,50 +1970,8 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 	if (sd_accept != INVALID_SOCKET)
 		close (sd_accept);
 	return 0;
-	#endif // OS_UNIX
 }
 
-
-/*********************
-EventMachine_t::Popen
-*********************/
-#if OBSOLETE
-const char *EventMachine_t::Popen (const char *cmd, const char *mode)
-{
-	#ifdef OS_WIN32
-	throw std::runtime_error ("popen is currently unavailable on this platform");
-	#endif
-
-	// The whole rest of this function is only compiled on Unix systems.
-	// Eventually we need this functionality (or a full-duplex equivalent) on Windows.
-	#ifdef OS_UNIX
-	const char *output_binding = NULL;
-
-	FILE *fp = popen (cmd, mode);
-	if (!fp)
-		return NULL;
-
-	// From here, all early returns must pclose the stream.
-
-	// According to the pipe(2) manpage, descriptors returned from pipe have both
-	// CLOEXEC and NONBLOCK clear. Do NOT set CLOEXEC. DO set nonblocking.
-	if (!SetSocketNonblocking (fileno (fp))) {
-		pclose (fp);
-		return NULL;
-	}
-
-	{ // Looking good.
-		PipeDescriptor *pd = new PipeDescriptor (fp, this);
-		if (!pd)
-			throw std::runtime_error ("unable to allocate pipe");
-		Add (pd);
-		output_binding = pd->GetBinding();
-	}
-
-	return output_binding;
-	#endif
-}
-#endif // OBSOLETE
 
 /**************************
 EventMachine_t::Socketpair

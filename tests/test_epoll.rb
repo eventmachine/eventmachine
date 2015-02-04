@@ -25,19 +25,16 @@ class TestEpoll < Test::Unit::TestCase
   end
 
 
-  if windows? || jruby?
-    warn "EM.set_descriptor_table_size not implemented, skipping test in #{__FILE__}"
-  else
-    # We can set the rlimit/nofile of a process but we can only set it
-    # higher if we're running as root.
-    # On most systems, the default value is 1024.
-    def test_rlimit
-      unless EM.set_descriptor_table_size >= 1024
-        a = EM.set_descriptor_table_size
-        assert( a <= 1024 )
-        a = EM.set_descriptor_table_size( 1024 )
-        assert( a == 1024 )
-      end
+  # We can set the rlimit/nofile of a process but we can only set it
+  # higher if we're running as root.
+  # On most systems, the default value is 1024.
+  def test_rlimit
+    omit_if(windows? || jruby?)
+    unless EM.set_descriptor_table_size >= 1024
+      a = EM.set_descriptor_table_size
+      assert( a <= 1024 )
+      a = EM.set_descriptor_table_size( 1024 )
+      assert( a == 1024 )
     end
   end
 
@@ -49,7 +46,7 @@ class TestEpoll < Test::Unit::TestCase
   # XXX this test causes all sort of weird issues on OSX (when run as part of the suite)
   def _test_descriptors
     EM.epoll
-    s = EM.set_descriptor_table_size 60000
+    EM.set_descriptor_table_size 60000
     EM.run {
       EM.start_server "127.0.0.1", 9800, TestEchoServer
       $n = 0
@@ -97,11 +94,11 @@ class TestEpoll < Test::Unit::TestCase
     assert_equal( "abcdefghij", $out )
   end
 
-  # XXX this test fails randomly..
+  # XXX this test fails randomly...
   def _test_unix_domain
     fn = "/tmp/xxx.chain"
     EM.epoll
-    s = EM.set_descriptor_table_size 60000
+    EM.set_descriptor_table_size 60000
     EM.run {
       # The pure-Ruby version won't let us open the socket if the node already exists.
       # Not sure, that actually may be correct and the compiled version is wrong.
@@ -126,5 +123,20 @@ class TestEpoll < Test::Unit::TestCase
     File.unlink(fn) if File.exist?(fn)
   end
 
+  def test_attach_detach
+    EM.epoll
+    EM.run {
+      EM.add_timer(0.01) { EM.stop }
+
+      r, w = IO.pipe
+
+      # This tests a regression where detach in the same tick as attach crashes EM
+      EM.watch(r) do |connection|
+        connection.detach
+      end
+    }
+
+    assert true
+  end
 end
 

@@ -227,18 +227,26 @@ module EventMachine
           process_unknown
         end
       end
-
-      # TODO - implement this properly, the implementation is a stub!
-      def process_vrfy
-        send_data "250 Ok, but unimplemented\r\n"
-      end
+      
       # TODO - implement this properly, the implementation is a stub!
       def process_help
         send_data "250 Ok, but unimplemented\r\n"
       end
+      
+      # RFC2821, 3.5.3 Meaning of VRFY or EXPN Success Response:
+      #   A server MUST NOT return a 250 code in response to a VRFY or EXPN
+      #   command unless it has actually verified the address.  In particular,
+      #   a server MUST NOT return 250 if all it has done is to verify that the
+      #   syntax given is valid.  In that case, 502 (Command not implemented)
+      #   or 500 (Syntax error, command unrecognized) SHOULD be returned.
+      #
+      # TODO - implement this properly, the implementation is a stub!
+      def process_vrfy
+        send_data "502 Command not implemented\r\n"
+      end
       # TODO - implement this properly, the implementation is a stub!
       def process_expn
-        send_data "250 Ok, but unimplemented\r\n"
+        send_data "502 Command not implemented\r\n"
       end
 
       #--
@@ -357,13 +365,24 @@ module EventMachine
 
       def process_auth_line(line)
         plain = line.unpack("m").first
-        discard,user,psw = plain.split("\000")
-        if receive_plain_auth user,psw
+        _,user,psw = plain.split("\000")
+        
+        succeeded = proc {
           send_data "235 authentication ok\r\n"
           @state << :auth
-        else
+        }
+        failed = proc {
           send_data "535 invalid authentication\r\n"
+        }
+        auth = receive_plain_auth user,psw
+        
+        if auth.respond_to?(:callback)
+          auth.callback(&succeeded)
+          auth.errback(&failed)
+        else
+          (auth ? succeeded : failed).call
         end
+        
         @state.delete :auth_incomplete
       end
 
@@ -409,8 +428,12 @@ module EventMachine
       #--
       # STARTTLS may not be issued before EHLO, or unless the user has chosen
       # to support it.
-      # TODO, must support user-supplied certificates.
       #
+      # If :starttls_options is present and :starttls is set in the parms
+      # pass the options in :starttls_options to start_tls. Do this if you want to use
+      # your own certificate
+      # e.g. {:cert_chain_file => "/etc/ssl/cert.pem", :private_key_file => "/etc/ssl/private/cert.key"}
+
       def process_starttls
         if @@parms[:starttls]
           if @state.include?(:starttls)
@@ -419,7 +442,7 @@ module EventMachine
             send_data "503 EHLO required before STARTTLS\r\n"
           else
             send_data "220 Start TLS negotiation\r\n"
-            start_tls
+            start_tls(@@parms[:starttls_options] || {})
             @state << :starttls
           end
         else
@@ -506,11 +529,13 @@ module EventMachine
       # Since we clear the chunk array every time we submit it, the caller needs to be
       # aware to do things like dup it if he wants to keep it around across calls.
       #
-      # DON'T reset the transaction upon disposition of the incoming message.
-      # This means another DATA command can be accepted with the same sender and recipients.
-      # If the client wants to reset, he can call RSET.
-      # Not sure whether the standard requires a transaction-reset at this point, but it
-      # appears not to.
+      # Resets the transaction upon disposition of the incoming message.
+      # RFC5321 says this about the MAIL FROM command:
+      #  "This command tells the SMTP-receiver that a new mail transaction is
+      #   starting and to reset all its state tables and buffers, including any
+      #   recipients or mail data."
+      #
+      # Equivalent behaviour is implemented by resetting after a completed transaction.
       #
       # User-written code can return a Deferrable as a response from receive_message.
       #
@@ -524,11 +549,12 @@ module EventMachine
 
           succeeded = proc {
             send_data "250 Message accepted\r\n"
+            reset_protocol_state
           }
           failed = proc {
             send_data "550 Message rejected\r\n"
+            reset_protocol_state
           }
-
           d = receive_message
 
           if d.respond_to?(:set_deferred_status)
@@ -541,7 +567,7 @@ module EventMachine
           @state.delete :data
         else
           # slice off leading . if any
-          ln.slice!(0...1) if ln[0] == 46
+          ln.slice!(0...1) if ln[0] == ?.
           @databuffer << ln
           if @databuffer.length > @@parms[:chunksize]
             receive_data_chunk @databuffer

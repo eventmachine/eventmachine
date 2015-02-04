@@ -30,4 +30,25 @@ class TestConnectionCount < Test::Unit::TestCase
     assert_equal(1, $server_conns)
     assert_equal(4, $client_conns + $server_conns)
   end
+
+  module DoubleCloseClient
+    def unbind
+      close_connection
+      $num_close_scheduled_1 = EM.num_close_scheduled
+      EM.next_tick do
+        $num_close_scheduled_2 = EM.num_close_scheduled
+        EM.stop
+      end
+    end
+  end
+
+  def test_num_close_scheduled
+    omit_if(jruby?)
+    EM.run {
+      assert_equal(0, EM.num_close_scheduled)
+      EM.connect("127.0.0.1", 9999, DoubleCloseClient) # nothing listening on 9999
+    }
+    assert_equal(1, $num_close_scheduled_1)
+    assert_equal(0, $num_close_scheduled_2)
+  end
 end

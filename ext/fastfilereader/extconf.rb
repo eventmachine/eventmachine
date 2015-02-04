@@ -12,18 +12,30 @@ def add_define(name)
   $defs.push("-D#{name}")
 end
 
+# Eager check devs tools
+have_devel? if respond_to?(:have_devel?)
+
 add_define 'BUILD_FOR_RUBY'
 
 # Minor platform details between *nix and Windows:
 
 if RUBY_PLATFORM =~ /(mswin|mingw|bccwin)/
-  GNU_CHAIN = $1 == 'mingw'
+  GNU_CHAIN = ENV['CROSS_COMPILING'] || $1 == 'mingw'
   OS_WIN32 = true
   add_define "OS_WIN32"
 else
   GNU_CHAIN = true
   OS_UNIX = true
   add_define 'OS_UNIX'
+end
+
+# Adjust number of file descriptors (FD) on Windows
+
+if RbConfig::CONFIG["host_os"] =~ /mingw/
+  found = RbConfig::CONFIG.values_at("CFLAGS", "CPPFLAGS").
+    any? { |v| v.include?("FD_SETSIZE") }
+
+  add_define "FD_SETSIZE=32767" unless found
 end
 
 # Main platform invariances:
@@ -34,7 +46,7 @@ when /mswin32/, /mingw32/, /bccwin32/
   check_libs(%w[kernel32 rpcrt4 gdi32], true)
 
   if GNU_CHAIN
-    CONFIG['LDSHARED'] = "$(CXX) -shared -lstdc++"
+    CONFIG['LDSHAREDXX'] = "$(CXX) -shared -static-libgcc -static-libstdc++"
   else
     $defs.push "-EHs"
     $defs.push "-GR"
@@ -76,6 +88,15 @@ when /linux/
 when /aix/
   # on Unix we need a g++ link, not gcc.
   CONFIG['LDSHARED'] = "$(CXX) -shared -Wl,-G"
+
+when /cygwin/
+  # For rubies built with Cygwin, CXX may be set to CC, which is just
+  # a wrapper for gcc.
+  # This will compile, but it will not link to the C++ std library.
+  # Explicitly set CXX to use g++.
+  CONFIG['CXX'] = "g++"
+  # on Unix we need a g++ link, not gcc.
+  CONFIG['LDSHARED'] = "$(CXX) -shared"
 
 else
   # on Unix we need a g++ link, not gcc.

@@ -37,7 +37,6 @@ module EventMachine
       # When we get around to that, call #receive_error if the user defined it, otherwise
       # throw exceptions.
 
-      MaxLineLength = 16*1024
       MaxBinaryLength = 32*1024*1024
 
       #--

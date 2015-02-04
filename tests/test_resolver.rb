@@ -33,7 +33,7 @@ class TestResolver < Test::Unit::TestCase
       d = EM::DNS::Resolver.resolve "google.com"
       d.errback { assert false }
       d.callback { |r|
-        assert_equal(Array, r.class)
+        assert_kind_of(Array, r)
         assert r.size > 1
         EM.stop
       }
@@ -45,8 +45,34 @@ class TestResolver < Test::Unit::TestCase
       d = EM::DNS::Resolver.resolve "localhost"
       d.errback { assert false }
       d.callback { |r|
-        assert_equal("127.0.0.1", r.first)
-        assert_equal(Array, r.class)
+        assert_include(["127.0.0.1", "::1"], r.first)
+        assert_kind_of(Array, r)
+
+        EM.stop
+      }
+    }
+  end
+
+  def test_timer_cleanup
+    EM.run {
+      d = EM::DNS::Resolver.resolve "google.com"
+      d.errback { assert false }
+      d.callback { |r|
+        # This isn't a great test, but it's hard to get more canonical
+        # confirmation that the timer is cancelled
+        assert_nil(EM::DNS::Resolver.socket.instance_variable_get(:@timer))
+
+        EM.stop
+      }
+    }
+  end
+
+  def test_failure_timer_cleanup
+    EM.run {
+      d = EM::DNS::Resolver.resolve "asdfasdf"
+      d.callback { assert false }
+      d.errback {
+        assert_nil(EM::DNS::Resolver.socket.instance_variable_get(:@timer))
 
         EM.stop
       }

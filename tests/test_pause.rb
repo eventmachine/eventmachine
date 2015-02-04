@@ -67,6 +67,35 @@ class TestPause < Test::Unit::TestCase
         end
       end
     end
+
+    def test_pause_in_receive_data
+      incoming = []
+
+      test_server = Module.new do
+        define_method(:receive_data) do |data|
+          incoming << data
+          pause
+          EM.add_timer(0.5){ close_connection }
+        end
+        define_method(:unbind) do
+          EM.stop
+        end
+      end
+
+      buf = 'a' * 1024
+
+      EM.run do
+        EM.start_server "127.0.0.1", @port, test_server
+        cli = EM.connect "127.0.0.1", @port
+        128.times do
+          cli.send_data buf
+        end
+      end
+
+      assert_equal 1, incoming.size
+      assert incoming[0].bytesize > buf.bytesize
+      assert incoming[0].bytesize < buf.bytesize * 128
+    end
   else
     warn "EM.pause_connection not implemented, skipping tests in #{__FILE__}"
 

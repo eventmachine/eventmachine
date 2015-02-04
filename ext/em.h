@@ -22,11 +22,19 @@ See the file COPYING for complete licensing information.
 
 #ifdef BUILD_FOR_RUBY
   #include <ruby.h>
-  #define EmSelect rb_thread_select
+  #define EmSelect rb_thread_fd_select
+
+  #ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
+   #include <ruby/thread.h>
+  #endif
+
+  #ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
+    #include <ruby/io.h>
+  #endif
 
   #if defined(HAVE_RBTRAP)
     #include <rubysig.h>
-  #elif defined(HAVE_RB_THREAD_CHECK_INTS)
+  #elif defined(HAVE_RB_ENABLE_INTERRUPT)
     extern "C" {
       void rb_enable_interrupt(void);
       void rb_disable_interrupt(void);
@@ -43,8 +51,41 @@ See the file COPYING for complete licensing information.
   #ifndef RUBY_UBF_IO
     #define RUBY_UBF_IO RB_UBF_DFL
   #endif
+  #ifndef RSTRING_PTR
+    #define RSTRING_PTR(str) RSTRING(str)->ptr
+  #endif
+  #ifndef RSTRING_LEN
+    #define RSTRING_LEN(str) RSTRING(str)->len
+  #endif
+  #ifndef RSTRING_LENINT
+    #define RSTRING_LENINT(str) RSTRING_LEN(str)
+  #endif
 #else
-  #define EmSelect select
+  #define EmSelect rb_fd_select
+#endif
+
+#ifndef rb_fd_max
+#define fd_check(n) (((n) < FD_SETSIZE) ? 1 : 0*fprintf(stderr, "fd %d too large for select\n", (n)))
+// These definitions are cribbed from include/ruby/intern.h in Ruby 1.9.3,
+// with this change: any macros that read or write the nth element of an
+// fdset first call fd_check to make sure n is in bounds.
+typedef fd_set rb_fdset_t;
+#define rb_fd_zero(f) FD_ZERO(f)
+#define rb_fd_set(n, f) do { if (fd_check(n)) FD_SET((n), (f)); } while(0)
+#define rb_fd_clr(n, f) do { if (fd_check(n)) FD_CLR((n), (f)); } while(0)
+#define rb_fd_isset(n, f) (fd_check(n) ? FD_ISSET((n), (f)) : 0)
+#define rb_fd_copy(d, s, n) (*(d) = *(s))
+#define rb_fd_dup(d, s) (*(d) = *(s))
+#define rb_fd_resize(n, f)  ((void)(f))
+#define rb_fd_ptr(f)  (f)
+#define rb_fd_init(f) FD_ZERO(f)
+#define rb_fd_init_copy(d, s) (*(d) = *(s))
+#define rb_fd_term(f) ((void)(f))
+#define rb_fd_max(f)  FD_SETSIZE
+#define rb_fd_select(n, rfds, wfds, efds, timeout)  \
+  select(fd_check((n)-1) ? (n) : FD_SETSIZE, (rfds), (wfds), (efds), (timeout))
+#define rb_thread_fd_select(n, rfds, wfds, efds, timeout)  \
+  rb_thread_select(fd_check((n)-1) ? (n) : FD_SETSIZE, (rfds), (wfds), (efds), (timeout))
 #endif
 
 class EventableDescriptor;
@@ -75,12 +116,14 @@ class EventMachine_t
 		const unsigned long CreateTcpServer (const char *, int);
 		const unsigned long OpenDatagramSocket (const char *, int);
 		const unsigned long CreateUnixDomainServer (const char*);
+		const unsigned long AttachSD (int);
 		const unsigned long OpenKeyboard();
 		//const char *Popen (const char*, const char*);
 		const unsigned long Socketpair (char* const*);
 
 		void Add (EventableDescriptor*);
 		void Modify (EventableDescriptor*);
+		void Deregister (EventableDescriptor*);
 
 		const unsigned long AttachFD (int, bool);
 		int DetachFD (EventableDescriptor*);
@@ -135,17 +178,17 @@ class EventMachine_t
 		}
 
 	private:
-		bool _RunOnce();
-		bool _RunTimers();
+		void _RunOnce();
+		void _RunTimers();
 		void _UpdateTime();
 		void _AddNewDescriptors();
 		void _ModifyDescriptors();
 		void _InitializeLoopBreaker();
 		void _CleanupSockets();
 
-		bool _RunSelectOnce();
-		bool _RunEpollOnce();
-		bool _RunKqueueOnce();
+		void _RunSelectOnce();
+		void _RunEpollOnce();
+		void _RunKqueueOnce();
 
 		void _ModifyEpollEvent (EventableDescriptor*);
 		void _DispatchHeartbeats();
@@ -155,6 +198,7 @@ class EventMachine_t
 	public:
 		void _ReadLoopBreaker();
 		void _ReadInotifyEvents();
+        int NumCloseScheduled;
 
 	private:
 		enum {
@@ -194,6 +238,10 @@ class EventMachine_t
 
 		bool OneShotOnly;
 
+		#ifdef OS_DARWIN
+		mach_timebase_info_data_t mach_timebase;
+		#endif
+
 	private:
 		bool bTerminateSignalReceived;
 
@@ -224,9 +272,9 @@ struct SelectData_t
 	int _Select();
 
 	int maxsocket;
-	fd_set fdreads;
-	fd_set fdwrites;
-	fd_set fderrors;
+	rb_fdset_t fdreads;
+	rb_fdset_t fdwrites;
+	rb_fdset_t fderrors;
 	timeval tv;
 	int nSockets;
 };
