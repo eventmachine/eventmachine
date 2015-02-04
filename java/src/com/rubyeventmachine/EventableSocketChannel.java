@@ -54,6 +54,7 @@ public class EventableSocketChannel implements EventableChannel {
 
 	long binding;
 	LinkedList<ByteBuffer> outboundQ;
+	long outboundS;
 
 	boolean bCloseScheduled;
 	boolean bConnectPending;
@@ -61,6 +62,7 @@ public class EventableSocketChannel implements EventableChannel {
 	boolean bAttached;
 	boolean bNotifyReadable;
 	boolean bNotifyWritable;
+	boolean bPaused;
 	
 	SSLEngine sslEngine;
 	SSLContext sslContext;
@@ -76,6 +78,7 @@ public class EventableSocketChannel implements EventableChannel {
 		bNotifyReadable = false;
 		bNotifyWritable = false;
 		outboundQ = new LinkedList<ByteBuffer>();
+		outboundS = 0;
 	}
 	
 	public long getBinding() {
@@ -164,12 +167,14 @@ public class EventableSocketChannel implements EventableChannel {
 					sslEngine.wrap(bb, b);
 					b.flip();
 					outboundQ.addLast(b);
+					outboundS += b.remaining();
 				} catch (SSLException e) {
 					throw new RuntimeException ("ssl error");
 				}
 			}
 			else {
 				outboundQ.addLast(bb);
+				outboundS += bb.remaining();
 			}
 
 			updateEvents();
@@ -188,6 +193,8 @@ public class EventableSocketChannel implements EventableChannel {
 			throw new IOException ("eof");
 	}
 
+	public long getOutboundDataSize() { return outboundS; }
+
 	/**
 	 * Called by the reactor when we have selected writable.
 	 * Return false to indicate an error that should cause the connection to close.
@@ -196,23 +203,35 @@ public class EventableSocketChannel implements EventableChannel {
 	 * this code is written, we're depending on a nonblocking write NOT TO CONSUME
 	 * the whole outbound buffer in this case, rather than firing an exception.
 	 * We should somehow verify that this is indeed Java's defined behavior.
-	 * Also TODO, see if we can use gather I/O rather than one write at a time.
-	 * Ought to be a big performance enhancer.
 	 * @return
 	 */
 	public boolean writeOutboundData() throws IOException {
+		ByteBuffer[] bufs = new ByteBuffer[64];
+		int i;
+		long written, toWrite;
 		while (!outboundQ.isEmpty()) {
-			ByteBuffer b = outboundQ.getFirst();
-			if (b.remaining() > 0)
-				channel.write(b);
+			i = 0;
+			toWrite = 0;
+			written = 0;
+			while (i < 64 && !outboundQ.isEmpty()) {
+				bufs[i] = outboundQ.removeFirst();
+				toWrite += bufs[i].remaining();
+				i++;
+			}
+			if (toWrite > 0)
+				written = channel.write(bufs, 0, i);
 
+			outboundS -= written;
 			// Did we consume the whole outbound buffer? If yes,
 			// pop it off and keep looping. If no, the outbound network
 			// buffers are full, so break out of here.
-			if (b.remaining() == 0)
-				outboundQ.removeFirst();
-			else
+			if (written < toWrite) {
+				while (i > 0 && bufs[i-1].remaining() > 0) {
+					outboundQ.addFirst(bufs[i-1]);
+					i--;
+				}
 				break;
+			}
 		}
 
 		if (outboundQ.isEmpty() && !bCloseScheduled) {
@@ -244,8 +263,10 @@ public class EventableSocketChannel implements EventableChannel {
 	
 	public boolean scheduleClose (boolean afterWriting) {
 		// TODO: What the hell happens here if bConnectPending is set?
-		if (!afterWriting)
+		if (!afterWriting) {
 			outboundQ.clear();
+			outboundS = 0;
+		}
 
 		if (outboundQ.isEmpty())
 			return true;
@@ -331,6 +352,30 @@ public class EventableSocketChannel implements EventableChannel {
 	}
 	public boolean isNotifyWritable() { return bNotifyWritable; }
 
+	public boolean pause() {
+		if (bWatchOnly) {
+			throw new RuntimeException ("cannot pause/resume 'watch only' connections, set notify readable/writable instead");
+		}
+		boolean old = bPaused;
+		bPaused = true;
+		updateEvents();
+		return !old;
+	}
+
+	public boolean resume() {
+		if (bWatchOnly) {
+			throw new RuntimeException ("cannot pause/resume 'watch only' connections, set notify readable/writable instead");
+		}
+		boolean old = bPaused;
+		bPaused = false;
+		updateEvents();
+		return old;
+	}
+
+	public boolean isPaused() {
+		return bPaused;
+	}
+
 	private void updateEvents() {
 		if (channelKey == null)
 			return;
@@ -353,7 +398,7 @@ public class EventableSocketChannel implements EventableChannel {
 			if (bNotifyWritable)
 				events |= SelectionKey.OP_WRITE;
 		}
-		else
+		else if (!bPaused)
 		{
 			if (bConnectPending)
 				events |= SelectionKey.OP_CONNECT;
