@@ -1,7 +1,16 @@
 # Changelog
 
-## 1.0.6
+## 1.0.6 (February 3, 2015)
 * add support for Rubinius Process::Status [#568]
+* small bugfixes for SmtpServer [#449]
+* update buftok.rb [#547]
+* fix assertion on Write() [#525]
+* work around mkmf.rb bug preventing gem installation [#574]
+* add pause/resume support to jruby reactor [#556]
+* fix pure ruby reactor to use 127.0.0.1 instead of localhost [#439]
+* fix compilation under macruby [#243]
+* add chunked encoding to http client [#111]
+* fix errors on win32 when dealing with pipes [1ea45498] [#105]
 
 ## 1.0.5 (February 2, 2015)
 * use monotonic clocks on Linux, OS X, Solaris, and Windows [#563]
