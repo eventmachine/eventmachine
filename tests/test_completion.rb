@@ -1,3 +1,4 @@
+require 'em_test_helper'
 require 'em/completion'
 
 class TestCompletion < Test::Unit::TestCase
