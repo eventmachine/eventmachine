@@ -181,6 +181,8 @@ module EventMachine
             @content_length = nil # not zero
             @content = ""
             @status = nil
+            @chunked = false
+            @chunk_length = nil
             @read_state = :header
             @connection_close = nil
           when :header
