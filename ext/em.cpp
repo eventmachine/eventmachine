@@ -938,7 +938,7 @@ void EventMachine_t::_RunSelectOnce()
 		/* 21Sep09: on windows, a non-blocking connect() that fails does not come up as writable.
 		   Instead, it is added to the error set. See http://www.mail-archive.com/openssl-users@openssl.org/msg58500.html
 		*/
-		if (ed->IsConnectionPending())
+		if (ed->IsConnectPending())
 			rb_fd_set (sd, &(SelectData.fderrors));
 		#endif
 
