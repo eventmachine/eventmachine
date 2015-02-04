@@ -410,7 +410,7 @@ module EventMachine
 
     def signal_loopbreak
       #@loopbreak_writer.write '+' if @loopbreak_writer
-      @loopbreak_writer.send('+',0,"localhost",@loopbreak_port) if @loopbreak_writer
+      @loopbreak_writer.send('+',0,"127.0.0.1",@loopbreak_port) if @loopbreak_writer
     end
 
     def set_timer_quantum interval_in_seconds
