@@ -1,3 +1,5 @@
+require 'em_test_helper'
+
 class TestPool < Test::Unit::TestCase
   def pool
     @pool ||= EM::Pool.new
