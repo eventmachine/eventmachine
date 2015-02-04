@@ -187,4 +187,47 @@ class TestHttpClient < Test::Unit::TestCase
     assert ok
   end
 
+  #-----------------------------------------
+
+  # Test a server that returns chunked encoding
+  #
+  class ChunkedEncodingContent < EventMachine::Connection
+    def initialize *args
+      super
+    end
+    def receive_data data
+      send_data ["HTTP/1.1 200 OK",
+                "Server: nginx/0.7.67", 
+                "Date: Sat, 23 Oct 2010 16:41:32 GMT",
+                "Content-Type: application/json",
+                "Transfer-Encoding: chunked",
+                "Connection: keep-alive",
+                "", 
+                "1800",
+                "chunk1" * 1024,
+                "5a",
+                "chunk2" * 15,
+                "0",
+                ""].join("\r\n")
+      close_connection_after_writing
+    end
+  end
+
+  def test_http_chunked_encoding_content
+    ok = false
+    EventMachine.run {
+      EventMachine.start_server "127.0.0.1", 9701, ChunkedEncodingContent
+      c = EventMachine::Protocols::HttpClient.send :request, :host => "127.0.0.1", :port => 9701
+      c.callback {|result|
+        if result[:content] == "chunk1" * 1024 + "chunk2" * 15
+          ok = true
+        end
+        EventMachine.stop
+      }
+    }
+    assert ok
+  end
+
 end
+
+
