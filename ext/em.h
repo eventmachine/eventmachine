@@ -197,7 +197,7 @@ class EventMachine_t
 	public:
 		void _ReadLoopBreaker();
 		void _ReadInotifyEvents();
-        int NumCloseScheduled;
+		int NumCloseScheduled;
 
 	private:
 		enum {
