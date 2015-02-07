@@ -62,6 +62,9 @@ class EventableDescriptor: public Bindable_t
 		bool IsCloseScheduled();
 		virtual void HandleError(){ ScheduleClose (false); }
 
+		int EnableKeepalive(int idle, int intvl, int cnt);
+		int DisableKeepalive();
+
 		void SetEventCallback (EMCallback);
 
 		virtual bool GetPeername (struct sockaddr*, socklen_t*) {return false;}

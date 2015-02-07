@@ -117,6 +117,18 @@ using namespace std;
 #include <openssl/err.h>
 #endif
 
+#ifdef HAVE_SOCK_CLOEXEC
+#define EM_CLOEXEC SOCK_CLOEXEC
+#else
+#define EM_CLOEXEC 0
+#endif
+
+#ifdef HAVE_ACCEPT4
+#define EM_ACCEPT accept4
+#else
+#define EM_ACCEPT accept
+#endif
+
 #ifdef HAVE_EPOLL
 #include <sys/epoll.h>
 #endif

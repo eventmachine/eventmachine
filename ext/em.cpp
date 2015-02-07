@@ -314,13 +314,19 @@ void EventMachine_t::_InitializeLoopBreaker()
 	LoopBreakerWriter = fd[1];
 	LoopBreakerReader = fd[0];
 
+	int writeFlags = fcntl (LoopBreakerWriter, F_GETFD, 0);
+	fcntl(LoopBreakerWriter, F_SETFD, writeFlags | FD_CLOEXEC);
+	int readFlags = fcntl (LoopBreakerReader, F_GETFD, 0);
+	fcntl(LoopBreakerReader, F_SETFD, readFlags | FD_CLOEXEC);
+
 	/* 16Jan11: Make sure the pipe is non-blocking, so more than 65k loopbreaks
 	 * in one tick do not fill up the pipe and block the process on write() */
 	SetSocketNonblocking (LoopBreakerWriter);
 	#endif
 
 	#ifdef OS_WIN32
-	int sd = socket (AF_INET, SOCK_DGRAM, 0);
+	/* CLOEXEC probably doesn't work on Windows, but set it for consistency */
+	int sd = socket (AF_INET, SOCK_DGRAM|EM_CLOEXEC, 0);
 	if (sd == INVALID_SOCKET)
 		throw std::runtime_error ("no loop breaker socket");
 	SetSocketNonblocking (sd);
@@ -1140,7 +1146,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		throw std::runtime_error ("unable to resolve server address");
 	bind_as = *bind_as_ptr; // copy because name2address points to a static
 
-	int sd = socket (family, SOCK_STREAM, 0);
+	int sd = socket (family, SOCK_STREAM|EM_CLOEXEC, 0);
 	if (sd == INVALID_SOCKET) {
 		char buf [200];
 		snprintf (buf, sizeof(buf)-1, "unable to create new socket: %s", strerror(errno));
@@ -1326,7 +1332,7 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 
 	strcpy (pun.sun_path, server);
 
-	int fd = socket (AF_LOCAL, SOCK_STREAM, 0);
+	int fd = socket (AF_LOCAL, SOCK_STREAM|EM_CLOEXEC, 0);
 	if (fd == INVALID_SOCKET)
 		return 0;
 
@@ -1561,7 +1567,7 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 
 	//struct sockaddr_in sin;
 
-	int sd_accept = socket (family, SOCK_STREAM, 0);
+	int sd_accept = socket (family, SOCK_STREAM|EM_CLOEXEC, 0);
 	if (sd_accept == INVALID_SOCKET) {
 		goto fail;
 	}
@@ -1612,7 +1618,7 @@ const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int
 {
 	unsigned long output_binding = 0;
 
-	int sd = socket (AF_INET, SOCK_DGRAM, 0);
+	int sd = socket (AF_INET, SOCK_DGRAM|EM_CLOEXEC, 0);
 	if (sd == INVALID_SOCKET)
 		goto fail;
 	// from here on, early returns must close the socket!
@@ -1889,7 +1895,7 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 
 	struct sockaddr_un s_sun;
 
-	int sd_accept = socket (AF_LOCAL, SOCK_STREAM, 0);
+	int sd_accept = socket (AF_LOCAL, SOCK_STREAM|EM_CLOEXEC, 0);
 	if (sd_accept == INVALID_SOCKET) {
 		goto fail;
 	}

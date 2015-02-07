@@ -239,6 +239,41 @@ bool EventableDescriptor::IsCloseScheduled()
 }
 
 
+/***********************************
+EventableDescriptor::EnableKeepalive
+***********************************/
+
+int EventableDescriptor::EnableKeepalive(int idle, int intvl, int cnt)
+{
+	int ret = 0;
+#ifdef SOL_TCP
+	int val = 1;
+	// interval between last data pkt and first keepalive pkt
+	if ((ret = setsockopt(MySocket, SOL_TCP, TCP_KEEPIDLE, &idle, sizeof(idle))) < 0)
+		goto done;
+	// interval between keepalives
+	if ((ret = setsockopt(MySocket, SOL_TCP, TCP_KEEPINTVL, &intvl, sizeof(intvl))) < 0)
+		goto done;
+	// number of dropped probes before disconnect
+	if ((ret = setsockopt(MySocket, SOL_TCP, TCP_KEEPCNT, &cnt, sizeof(cnt))) < 0)
+		goto done;
+	if ((ret = setsockopt(MySocket, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val))) < 0)
+		goto done;
+#endif
+done:
+	return ret;
+}
+
+/***********************************
+EventableDescriptor::DisableKeepalive
+***********************************/
+int EventableDescriptor::DisableKeepalive()
+{
+	int val = 0;
+	return setsockopt(MySocket, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val));
+}
+
+
 /*******************************
 EventableDescriptor::StartProxy
 *******************************/
@@ -1433,7 +1468,11 @@ void AcceptorDescriptor::Read()
 	socklen_t addrlen = sizeof (pin);
 
 	for (int i=0; i < 10; i++) {
-		int sd = accept (GetSocket(), (struct sockaddr*)&pin, &addrlen);
+#ifdef HAVE_SOCK_CLOEXEC
+		int sd = EM_ACCEPT(GetSocket(), (struct sockaddr*)&pin, &addrlen, EM_CLOEXEC);
+#else
+		int sd = EM_ACCEPT(GetSocket(), (struct sockaddr*)&pin, &addrlen);
+#endif
 		if (sd == INVALID_SOCKET) {
 			// This breaks the loop when we've accepted everything on the kernel queue,
 			// up to 10 new connections. But what if the *first* accept fails?
