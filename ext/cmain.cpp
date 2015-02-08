@@ -653,7 +653,6 @@ extern "C" int evma_get_max_timer_count()
 	return EventMachine_t::GetMaxTimerCount();
 }
 
-
 /************************
 evma_set_max_timer_count
 ************************/
@@ -670,6 +669,21 @@ extern "C" void evma_set_max_timer_count (int ct)
 		#endif
 	EventMachine_t::SetMaxTimerCount (ct);
 }
+
+/******************
+evma_get/set_simultaneous_accept_count
+******************/
+
+extern "C" void evma_set_simultaneous_accept_count (int count)
+{
+	EventMachine_t::SetSimultaneousAcceptCount(count);
+}
+
+extern "C" int evma_get_simultaneous_accept_count()
+{
+	return EventMachine_t::GetSimultaneousAcceptCount();
+}
+
 
 /******************
 evma_setuid_string
