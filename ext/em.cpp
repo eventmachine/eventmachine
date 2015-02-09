@@ -91,6 +91,7 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	LoopBreakerWriter (-1),
 	NumCloseScheduled (0),
 	bTerminateSignalReceived (false),
+	bGracefulTerminateSignalReceived (false),
 	bEpoll (false),
 	epfd (-1),
 	bKqueue (false),
@@ -210,7 +211,20 @@ void EventMachine_t::ScheduleHalt()
 	bTerminateSignalReceived = true;
 }
 
+/************************************
+EventMachine_t::ScheduleGracefulHalt
+*************************************/
 
+void EventMachine_t::ScheduleGracefulHalt()
+{
+  /* This is how we stop the machine.
+   *
+   * It is like ScheduleHalt(), but instead of immediately breaking out of the
+   * event loop, it will schedule all sockets to close after writing. Once all
+   * sockets have closed or some maximum time delay is reached, it will exit.
+   */
+	bGracefulTerminateSignalReceived = true;
+}
 
 /*******************************
 EventMachine_t::SetTimerQuantum
@@ -539,6 +553,9 @@ void EventMachine_t::Run()
 	}
 	#endif
 
+	uint64_t shutdown_time = 0;
+	uint64_t max_shutdown_wait = 15 * 1000000; // 15 seconds
+
 	while (true) {
 		_UpdateTime();
 		_RunTimers();
@@ -553,6 +570,37 @@ void EventMachine_t::Run()
 		_RunOnce();
 		if (bTerminateSignalReceived)
 			break;
+		if (bGracefulTerminateSignalReceived) {
+			if (!shutdown_time)
+				shutdown_time = MyCurrentLoopTime;
+
+			/* Close all sockets after they write their data.
+			 *
+			 * We call this multiple times in case there are new
+			 * accepted connections before the listen socket
+			 * finishes closing down.
+			 */
+			_ScheduleCloseAllDescriptors(true);
+
+			/* Actually shut down if no sockets remain or we've
+			 * waited longer than max_shutdown_wait.
+			 */
+			if (!GetConnectionCount()) {
+				break;
+			}
+			if ((MyCurrentLoopTime - shutdown_time) > max_shutdown_wait) {
+				fprintf(stderr,
+					"warning: EventMachine hit max_shutdown_wait, killing %d sockets\n",
+					GetConnectionCount());
+				int i;
+				int nSockets = Descriptors.size();
+				for (i = 0; i < nSockets; i++) {
+					fprintf(stderr, "warning: fd %d not closed\n",
+							Descriptors[i]->GetSocket());
+				}
+				break;
+			}
+		}
 	}
 }
 
@@ -783,6 +831,20 @@ timeval EventMachine_t::_TimeTilNextEvent()
 	}
 
 	return tv;
+}
+
+/********************************************
+EventMachine_t::_ScheduleCloseAllDescriptors
+********************************************/
+
+void EventMachine_t::_ScheduleCloseAllDescriptors(bool after_writing)
+{
+	int i;
+	int nSockets = Descriptors.size();
+	for (i=0; i < nSockets; i++) {
+		EventableDescriptor *ed = Descriptors[i];
+		ed->ScheduleClose(after_writing);
+	}
 }
 
 /*******************************
@@ -2254,7 +2316,7 @@ void EventMachine_t::_ReadInotifyEvents()
 		int returned = read(inotify->GetSocket(), buffer, sizeof(buffer));
 		assert(!(returned == 0 || returned == -1 && errno == EINVAL));
 		if (returned <= 0) {
-		    break;
+			break;
 		}
 		int current = 0;
 		while (current < returned) {

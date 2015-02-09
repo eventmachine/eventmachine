@@ -763,6 +763,16 @@ static VALUE t_stop (VALUE self)
 	return Qnil;
 }
 
+/***************
+t_graceful_stop
+***************/
+
+static VALUE t_graceful_stop (VALUE self)
+{
+	evma_graceful_stop_machine();
+	return Qnil;
+}
+
 /******************
 t_signal_loopbreak
 ******************/
@@ -1300,6 +1310,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "read_keyboard", (VALUE(*)(...))t_read_keyboard, 0);
 	rb_define_module_function (EmModule, "release_machine", (VALUE(*)(...))t_release_machine, 0);
 	rb_define_module_function (EmModule, "stop", (VALUE(*)(...))t_stop, 0);
+	rb_define_module_function (EmModule, "graceful_stop", (VALUE(*)(...))t_graceful_stop, 0);
 	rb_define_module_function (EmModule, "signal_loopbreak", (VALUE(*)(...))t_signal_loopbreak, 0);
 	rb_define_module_function (EmModule, "library_type", (VALUE(*)(...))t_library_type, 0);
 	rb_define_module_function (EmModule, "set_timer_quantum", (VALUE(*)(...))t_set_timer_quantum, 1);
