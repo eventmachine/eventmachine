@@ -179,12 +179,26 @@ module EventMachine
         @reactor_pid = Process.pid
         @reactor_running = true
         initialize_event_machine
+
+        # Only have +run_machine+ crank once and then return.
+        # This allows rubinius to deal with the objects accessed
+        # by +run_machine+ properly as garbage.
+        if defined?(RUBY_ENGINE) and RUBY_ENGINE == "rbx"
+          self.one_shot_only = true
+        end
+
         (b = blk || block) and add_timer(0, b)
         if @next_tick_queue && !@next_tick_queue.empty?
           add_timer(0) { signal_loopbreak }
         end
         @reactor_thread = Thread.current
-        run_machine
+
+        # Crank the machine in a loop. +run_machine+ returns
+        # true if there is a legit reason to exit the loop, otherwise
+        # we just keep running it.
+        while true
+          break if run_machine
+        end
       ensure
         until @tails.empty?
           @tails.pop.call
