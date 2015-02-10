@@ -208,6 +208,12 @@ void EventMachine_t::ScheduleHalt()
    * The answer is to call evma_stop_machine, which calls here, from a SIGINT handler.
    */
 	bTerminateSignalReceived = true;
+
+	/* Signal the loopbreaker so we break out of long-running select/epoll/kqueue and
+	 * notice the halt boolean is set. Signalling the loopbreaker also uses a single
+	 * signal-safe syscall.
+	 */
+	SignalLoopBreaker();
 }
 
 
