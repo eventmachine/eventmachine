@@ -95,7 +95,7 @@ typedef fd_set rb_fdset_t;
 
 class EventableDescriptor;
 class InotifyDescriptor;
-
+struct SelectData_t;
 
 /********************
 class EventMachine_t
@@ -246,6 +246,7 @@ class EventMachine_t
 
 	private:
 		bool bTerminateSignalReceived;
+		SelectData_t *SelectData;
 
 		bool bEpoll;
 		int epfd; // Epoll file-descriptor

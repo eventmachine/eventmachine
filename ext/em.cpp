@@ -122,6 +122,7 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	#endif
 
 	_InitializeLoopBreaker();
+	SelectData = new SelectData_t();
 }
 
 
@@ -151,6 +152,8 @@ EventMachine_t::~EventMachine_t()
 		close (epfd);
 	if (kqfd != -1)
 		close (kqfd);
+
+	delete SelectData;
 }
 
 
@@ -927,24 +930,18 @@ void EventMachine_t::_RunSelectOnce()
 	// epoll will be effective if we provide it as an alternative,
 	// however it has the same problem interoperating with Ruby
 	// threads that select does.
-
-	SelectData_t SelectData;
-	/*
-	fd_set fdreads, fdwrites;
-	FD_ZERO (&fdreads);
-	FD_ZERO (&fdwrites);
-
-	int maxsocket = 0;
-	*/
+	rb_fd_zero (&SelectData->fdreads);
+	rb_fd_zero (&SelectData->fdwrites);
+	rb_fd_zero (&SelectData->fderrors);
 
 	// Always read the loop-breaker reader.
 	// Changed 23Aug06, provisionally implemented for Windows with a UDP socket
 	// running on localhost with a randomly-chosen port. (*Puke*)
 	// Windows has a version of the Unix pipe() library function, but it doesn't
 	// give you back descriptors that are selectable.
-	rb_fd_set (LoopBreakerReader, &(SelectData.fdreads));
-	if (SelectData.maxsocket < LoopBreakerReader)
-		SelectData.maxsocket = LoopBreakerReader;
+	rb_fd_set (LoopBreakerReader, &(SelectData->fdreads));
+	if (SelectData->maxsocket < LoopBreakerReader)
+		SelectData->maxsocket = LoopBreakerReader;
 
 	// prepare the sockets for reading and writing
 	size_t i;
@@ -957,28 +954,28 @@ void EventMachine_t::_RunSelectOnce()
 		assert (sd != INVALID_SOCKET);
 
 		if (ed->SelectForRead())
-			rb_fd_set (sd, &(SelectData.fdreads));
+			rb_fd_set (sd, &(SelectData->fdreads));
 		if (ed->SelectForWrite())
-			rb_fd_set (sd, &(SelectData.fdwrites));
+			rb_fd_set (sd, &(SelectData->fdwrites));
 
 		#ifdef OS_WIN32
 		/* 21Sep09: on windows, a non-blocking connect() that fails does not come up as writable.
 		   Instead, it is added to the error set. See http://www.mail-archive.com/openssl-users@openssl.org/msg58500.html
 		*/
 		if (ed->IsConnectPending())
-			rb_fd_set (sd, &(SelectData.fderrors));
+			rb_fd_set (sd, &(SelectData->fderrors));
 		#endif
 
-		if (SelectData.maxsocket < sd)
-			SelectData.maxsocket = sd;
+		if (SelectData->maxsocket < sd)
+			SelectData->maxsocket = sd;
 	}
 
 
 	{ // read and write the sockets
 		//timeval tv = {1, 0}; // Solaris fails if the microseconds member is >= 1000000.
 		//timeval tv = Quantum;
-		SelectData.tv = _TimeTilNextEvent();
-		int s = SelectData._Select();
+		SelectData->tv = _TimeTilNextEvent();
+		int s = SelectData->_Select();
 		//rb_thread_blocking_region(xxx,(void*)&SelectData,RUBY_UBF_IO,0);
 		//int s = EmSelect (SelectData.maxsocket+1, &(SelectData.fdreads), &(SelectData.fdwrites), NULL, &(SelectData.tv));
 		//int s = SelectData.nSockets;
@@ -1001,19 +998,19 @@ void EventMachine_t::_RunSelectOnce()
 					continue;
 				assert (sd != INVALID_SOCKET);
 
-				if (rb_fd_isset (sd, &(SelectData.fdwrites))) {
+				if (rb_fd_isset (sd, &(SelectData->fdwrites))) {
 					// Double-check SelectForWrite() still returns true. If not, one of the callbacks must have
 					// modified some value since we checked SelectForWrite() earlier in this method.
 					if (ed->SelectForWrite())
 						ed->Write();
 				}
-				if (rb_fd_isset (sd, &(SelectData.fdreads)))
+				if (rb_fd_isset (sd, &(SelectData->fdreads)))
 					ed->Read();
-				if (rb_fd_isset (sd, &(SelectData.fderrors)))
+				if (rb_fd_isset (sd, &(SelectData->fderrors)))
 					ed->HandleError();
 			}
 
-			if (rb_fd_isset (LoopBreakerReader, &(SelectData.fdreads)))
+			if (rb_fd_isset (LoopBreakerReader, &(SelectData->fdreads)))
 				_ReadLoopBreaker();
 		}
 		else if (s < 0) {
