@@ -913,6 +913,7 @@ int SelectData_t::_Select()
 
 void SelectData_t::_Clear()
 {
+	maxsocket = 0;
 	rb_fd_zero (&fdreads);
 	rb_fd_zero (&fdwrites);
 	rb_fd_zero (&fderrors);
