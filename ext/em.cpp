@@ -592,12 +592,12 @@ void EventMachine_t::_RunEpollOnce()
 	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
 	if ((ret = rb_wait_for_single_fd(epfd, RB_WAITFD_IN|RB_WAITFD_PRI, &tv)) < 1) {
 	#else
-	rb_fdset_t fdreads;
+	fd_set fdreads;
 
-	rb_fd_init(&fdreads);
-	rb_fd_set(epfd, &fdreads);
+	FD_ZERO(&fdreads);
+	FD_SET(epfd, &fdreads);
 
-	if ((ret = rb_thread_fd_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	if ((ret = rb_thread_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
 	#endif
 		if (ret == -1) {
 			assert(errno != EINVAL);
@@ -669,12 +669,12 @@ void EventMachine_t::_RunKqueueOnce()
 	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
 	if ((ret = rb_wait_for_single_fd(kqfd, RB_WAITFD_IN|RB_WAITFD_PRI, &tv)) < 1) {
 	#else
-	rb_fdset_t fdreads;
+	fd_set fdreads;
 
-	rb_fd_init(&fdreads);
-	rb_fd_set(kqfd, &fdreads);
+	FD_ZERO(&fdreads);
+	FD_SET(kqfd, &fdreads);
 
-	if ((ret = rb_thread_fd_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	if ((ret = rb_thread_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
 	#endif
 		if (ret == -1) {
 			assert(errno != EINVAL);
@@ -919,9 +919,9 @@ void EventMachine_t::_RunSelectOnce()
 
 	SelectData_t SelectData;
 	/*
-	rb_fdset_t fdreads, fdwrites;
-	rb_fd_init (&fdreads);
-	rb_fd_init (&fdwrites);
+	fd_set fdreads, fdwrites;
+	FD_ZERO (&fdreads);
+	FD_ZERO (&fdwrites);
 
 	int maxsocket = 0;
 	*/
