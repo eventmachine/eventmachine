@@ -30,11 +30,11 @@ class TestResolver < Test::Unit::TestCase
 
   def test_a_pair
     EM.run {
-      d = EM::DNS::Resolver.resolve "google.com"
-      d.errback { assert false }
+      d = EM::DNS::Resolver.resolve "yahoo.com"
+      d.errback { |err| assert false, "failed to resolve yahoo.com: #{err}" }
       d.callback { |r|
         assert_kind_of(Array, r)
-        assert r.size > 1
+        assert r.size > 1, "returned #{r.size} results: #{r.inspect}"
         EM.stop
       }
     }
@@ -56,7 +56,7 @@ class TestResolver < Test::Unit::TestCase
   def test_timer_cleanup
     EM.run {
       d = EM::DNS::Resolver.resolve "google.com"
-      d.errback { assert false }
+      d.errback { |err| assert false, "failed to resolve google.com: #{err}" }
       d.callback { |r|
         # This isn't a great test, but it's hard to get more canonical
         # confirmation that the timer is cancelled
