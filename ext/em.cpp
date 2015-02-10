@@ -882,7 +882,7 @@ SelectData_t::~SelectData_t()
 _SelectDataSelect
 *****************/
 
-#if !defined(HAVE_RB_THREAD_FD_SELECT) && (defined(HAVE_TBR) || defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL))
+#if defined(HAVE_TBR) || defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL)
 static VALUE _SelectDataSelect (void *v)
 {
 	SelectData_t *sd = (SelectData_t*)v;
@@ -897,10 +897,7 @@ SelectData_t::_Select
 
 int SelectData_t::_Select()
 {
-	#if defined(HAVE_RB_THREAD_FD_SELECT)
-	// added in ruby 1.9.2
-	return rb_thread_fd_select (maxsocket+1, &fdreads, &fdwrites, &fderrors, &tv);
-	#elif defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL)
+	#if defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL)
 	// added in ruby 1.9.3
 	rb_thread_call_without_gvl ((void *(*)(void *))_SelectDataSelect, (void*)this, RUBY_UBF_IO, 0);
 	return nSockets;
