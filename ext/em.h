@@ -22,7 +22,12 @@ See the file COPYING for complete licensing information.
 
 #ifdef BUILD_FOR_RUBY
   #include <ruby.h>
-  #define EmSelect rb_thread_fd_select
+  #ifdef HAVE_RB_THREAD_FD_SELECT
+    #define EmSelect rb_thread_fd_select
+  #else
+    // ruby 1.9.1 and below
+    #define EmSelect rb_thread_select
+  #endif
 
   #ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
    #include <ruby/thread.h>
@@ -61,10 +66,10 @@ See the file COPYING for complete licensing information.
     #define RSTRING_LENINT(str) RSTRING_LEN(str)
   #endif
 #else
-  #define EmSelect rb_fd_select
+  #define EmSelect select
 #endif
 
-#ifndef rb_fd_max
+#if !defined(HAVE_RB_FDSET_T)
 #define fd_check(n) (((n) < FD_SETSIZE) ? 1 : 0*fprintf(stderr, "fd %d too large for select\n", (n)))
 // These definitions are cribbed from include/ruby/intern.h in Ruby 1.9.3,
 // with this change: any macros that read or write the nth element of an
@@ -90,7 +95,7 @@ typedef fd_set rb_fdset_t;
 
 class EventableDescriptor;
 class InotifyDescriptor;
-
+struct SelectData_t;
 
 /********************
 class EventMachine_t
@@ -241,6 +246,7 @@ class EventMachine_t
 
 	private:
 		bool bTerminateSignalReceived;
+		SelectData_t *SelectData;
 
 		bool bEpoll;
 		int epfd; // Epoll file-descriptor
@@ -265,8 +271,10 @@ struct SelectData_t
 struct SelectData_t
 {
 	SelectData_t();
+	~SelectData_t();
 
 	int _Select();
+	void _Clear();
 
 	int maxsocket;
 	rb_fdset_t fdreads;

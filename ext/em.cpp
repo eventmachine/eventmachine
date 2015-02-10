@@ -122,6 +122,7 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	#endif
 
 	_InitializeLoopBreaker();
+	SelectData = new SelectData_t();
 }
 
 
@@ -151,6 +152,8 @@ EventMachine_t::~EventMachine_t()
 		close (epfd);
 	if (kqfd != -1)
 		close (kqfd);
+
+	delete SelectData;
 }
 
 
@@ -598,12 +601,12 @@ void EventMachine_t::_RunEpollOnce()
 	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
 	if ((ret = rb_wait_for_single_fd(epfd, RB_WAITFD_IN|RB_WAITFD_PRI, &tv)) < 1) {
 	#else
-	rb_fdset_t fdreads;
+	fd_set fdreads;
 
-	rb_fd_init(&fdreads);
-	rb_fd_set(epfd, &fdreads);
+	FD_ZERO(&fdreads);
+	FD_SET(epfd, &fdreads);
 
-	if ((ret = rb_thread_fd_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	if ((ret = rb_thread_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
 	#endif
 		if (ret == -1) {
 			assert(errno != EINVAL);
@@ -675,12 +678,12 @@ void EventMachine_t::_RunKqueueOnce()
 	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
 	if ((ret = rb_wait_for_single_fd(kqfd, RB_WAITFD_IN|RB_WAITFD_PRI, &tv)) < 1) {
 	#else
-	rb_fdset_t fdreads;
+	fd_set fdreads;
 
-	rb_fd_init(&fdreads);
-	rb_fd_set(kqfd, &fdreads);
+	FD_ZERO(&fdreads);
+	FD_SET(kqfd, &fdreads);
 
-	if ((ret = rb_thread_fd_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
+	if ((ret = rb_thread_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
 	#endif
 		if (ret == -1) {
 			assert(errno != EINVAL);
@@ -873,6 +876,12 @@ SelectData_t::SelectData_t()
 	rb_fd_init (&fderrors);
 }
 
+SelectData_t::~SelectData_t()
+{
+	rb_fd_term (&fdreads);
+	rb_fd_term (&fdwrites);
+	rb_fd_term (&fderrors);
+}
 
 #ifdef BUILD_FOR_RUBY
 /*****************
@@ -883,7 +892,7 @@ _SelectDataSelect
 static VALUE _SelectDataSelect (void *v)
 {
 	SelectData_t *sd = (SelectData_t*)v;
-	sd->nSockets = rb_fd_select (sd->maxsocket+1, &(sd->fdreads), &(sd->fdwrites), &(sd->fderrors), &(sd->tv));
+	sd->nSockets = select (sd->maxsocket+1, rb_fd_ptr(&(sd->fdreads)), rb_fd_ptr(&(sd->fdwrites)), rb_fd_ptr(&(sd->fderrors)), &(sd->tv));
 	return Qnil;
 }
 #endif
@@ -895,9 +904,11 @@ SelectData_t::_Select
 int SelectData_t::_Select()
 {
 	#if defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL)
+	// added in ruby 1.9.3
 	rb_thread_call_without_gvl ((void *(*)(void *))_SelectDataSelect, (void*)this, RUBY_UBF_IO, 0);
 	return nSockets;
 	#elif defined(HAVE_TBR)
+	// added in ruby 1.9.1, deprecated in ruby 2.0.0
 	rb_thread_blocking_region (_SelectDataSelect, (void*)this, RUBY_UBF_IO, 0);
 	return nSockets;
 	#else
@@ -906,7 +917,13 @@ int SelectData_t::_Select()
 }
 #endif
 
-
+void SelectData_t::_Clear()
+{
+	maxsocket = 0;
+	rb_fd_zero (&fdreads);
+	rb_fd_zero (&fdwrites);
+	rb_fd_zero (&fderrors);
+}
 
 /******************************
 EventMachine_t::_RunSelectOnce
@@ -923,23 +940,17 @@ void EventMachine_t::_RunSelectOnce()
 	// however it has the same problem interoperating with Ruby
 	// threads that select does.
 
-	SelectData_t SelectData;
-	/*
-	rb_fdset_t fdreads, fdwrites;
-	rb_fd_init (&fdreads);
-	rb_fd_init (&fdwrites);
-
-	int maxsocket = 0;
-	*/
+	// Get ready for select()
+	SelectData->_Clear();
 
 	// Always read the loop-breaker reader.
 	// Changed 23Aug06, provisionally implemented for Windows with a UDP socket
 	// running on localhost with a randomly-chosen port. (*Puke*)
 	// Windows has a version of the Unix pipe() library function, but it doesn't
 	// give you back descriptors that are selectable.
-	rb_fd_set (LoopBreakerReader, &(SelectData.fdreads));
-	if (SelectData.maxsocket < LoopBreakerReader)
-		SelectData.maxsocket = LoopBreakerReader;
+	rb_fd_set (LoopBreakerReader, &(SelectData->fdreads));
+	if (SelectData->maxsocket < LoopBreakerReader)
+		SelectData->maxsocket = LoopBreakerReader;
 
 	// prepare the sockets for reading and writing
 	size_t i;
@@ -952,28 +963,28 @@ void EventMachine_t::_RunSelectOnce()
 		assert (sd != INVALID_SOCKET);
 
 		if (ed->SelectForRead())
-			rb_fd_set (sd, &(SelectData.fdreads));
+			rb_fd_set (sd, &(SelectData->fdreads));
 		if (ed->SelectForWrite())
-			rb_fd_set (sd, &(SelectData.fdwrites));
+			rb_fd_set (sd, &(SelectData->fdwrites));
 
 		#ifdef OS_WIN32
 		/* 21Sep09: on windows, a non-blocking connect() that fails does not come up as writable.
 		   Instead, it is added to the error set. See http://www.mail-archive.com/openssl-users@openssl.org/msg58500.html
 		*/
 		if (ed->IsConnectPending())
-			rb_fd_set (sd, &(SelectData.fderrors));
+			rb_fd_set (sd, &(SelectData->fderrors));
 		#endif
 
-		if (SelectData.maxsocket < sd)
-			SelectData.maxsocket = sd;
+		if (SelectData->maxsocket < sd)
+			SelectData->maxsocket = sd;
 	}
 
 
 	{ // read and write the sockets
 		//timeval tv = {1, 0}; // Solaris fails if the microseconds member is >= 1000000.
 		//timeval tv = Quantum;
-		SelectData.tv = _TimeTilNextEvent();
-		int s = SelectData._Select();
+		SelectData->tv = _TimeTilNextEvent();
+		int s = SelectData->_Select();
 		//rb_thread_blocking_region(xxx,(void*)&SelectData,RUBY_UBF_IO,0);
 		//int s = EmSelect (SelectData.maxsocket+1, &(SelectData.fdreads), &(SelectData.fdwrites), NULL, &(SelectData.tv));
 		//int s = SelectData.nSockets;
@@ -996,19 +1007,19 @@ void EventMachine_t::_RunSelectOnce()
 					continue;
 				assert (sd != INVALID_SOCKET);
 
-				if (rb_fd_isset (sd, &(SelectData.fdwrites))) {
+				if (rb_fd_isset (sd, &(SelectData->fdwrites))) {
 					// Double-check SelectForWrite() still returns true. If not, one of the callbacks must have
 					// modified some value since we checked SelectForWrite() earlier in this method.
 					if (ed->SelectForWrite())
 						ed->Write();
 				}
-				if (rb_fd_isset (sd, &(SelectData.fdreads)))
+				if (rb_fd_isset (sd, &(SelectData->fdreads)))
 					ed->Read();
-				if (rb_fd_isset (sd, &(SelectData.fderrors)))
+				if (rb_fd_isset (sd, &(SelectData->fderrors)))
 					ed->HandleError();
 			}
 
-			if (rb_fd_isset (LoopBreakerReader, &(SelectData.fdreads)))
+			if (rb_fd_isset (LoopBreakerReader, &(SelectData->fdreads)))
 				_ReadLoopBreaker();
 		}
 		else if (s < 0) {
@@ -1051,6 +1062,7 @@ void EventMachine_t::_CleanBadDescriptors()
 		rb_fd_set(sd, &fds);
 
 		int ret = rb_fd_select(sd + 1, &fds, NULL, NULL, &tv);
+		rb_fd_term(&fds);
 
 		if (ret == -1) {
 			if (errno == EBADF)
