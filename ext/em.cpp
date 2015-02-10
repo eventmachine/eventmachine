@@ -867,6 +867,12 @@ SelectData_t::SelectData_t()
 	rb_fd_init (&fderrors);
 }
 
+SelectData_t::~SelectData_t()
+{
+	rb_fd_term (&fdreads);
+	rb_fd_term (&fdwrites);
+	rb_fd_term (&fderrors);
+}
 
 #ifdef BUILD_FOR_RUBY
 /*****************

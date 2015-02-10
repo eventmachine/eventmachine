@@ -265,6 +265,7 @@ struct SelectData_t
 struct SelectData_t
 {
 	SelectData_t();
+	~SelectData_t();
 
 	int _Select();
 
