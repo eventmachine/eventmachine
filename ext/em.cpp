@@ -84,12 +84,12 @@ EventMachine_t::EventMachine_t
 ******************************/
 
 EventMachine_t::EventMachine_t (EMCallback event_callback):
+	NumCloseScheduled (0),
 	HeartbeatInterval(2000000),
 	EventCallback (event_callback),
 	NextHeartbeatTime (0),
 	LoopBreakerReader (-1),
 	LoopBreakerWriter (-1),
-	NumCloseScheduled (0),
 	bTerminateSignalReceived (false),
 	bEpoll (false),
 	epfd (-1),
