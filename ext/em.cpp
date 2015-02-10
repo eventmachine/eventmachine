@@ -911,7 +911,12 @@ int SelectData_t::_Select()
 }
 #endif
 
-
+void SelectData_t::_Clear()
+{
+	rb_fd_zero (&fdreads);
+	rb_fd_zero (&fdwrites);
+	rb_fd_zero (&fderrors);
+}
 
 /******************************
 EventMachine_t::_RunSelectOnce
@@ -927,9 +932,9 @@ void EventMachine_t::_RunSelectOnce()
 	// epoll will be effective if we provide it as an alternative,
 	// however it has the same problem interoperating with Ruby
 	// threads that select does.
-	rb_fd_zero (&SelectData->fdreads);
-	rb_fd_zero (&SelectData->fdwrites);
-	rb_fd_zero (&SelectData->fderrors);
+
+	// Get ready for select()
+	SelectData->_Clear();
 
 	// Always read the loop-breaker reader.
 	// Changed 23Aug06, provisionally implemented for Windows with a UDP socket

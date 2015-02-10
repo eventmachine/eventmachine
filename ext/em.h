@@ -69,7 +69,7 @@ See the file COPYING for complete licensing information.
   #define EmSelect select
 #endif
 
-#if defined(BUILD_FOR_RUBY) && !defined(HAVE_RB_FDSET_T)
+#if !defined(HAVE_RB_FDSET_T)
 #define fd_check(n) (((n) < FD_SETSIZE) ? 1 : 0*fprintf(stderr, "fd %d too large for select\n", (n)))
 // These definitions are cribbed from include/ruby/intern.h in Ruby 1.9.3,
 // with this change: any macros that read or write the nth element of an
@@ -274,6 +274,7 @@ struct SelectData_t
 	~SelectData_t();
 
 	int _Select();
+	void _Clear();
 
 	int maxsocket;
 	rb_fdset_t fdreads;
