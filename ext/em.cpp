@@ -1051,6 +1051,7 @@ void EventMachine_t::_CleanBadDescriptors()
 		rb_fd_set(sd, &fds);
 
 		int ret = rb_fd_select(sd + 1, &fds, NULL, NULL, &tv);
+		rb_fd_term(&fds);
 
 		if (ret == -1) {
 			if (errno == EBADF)
