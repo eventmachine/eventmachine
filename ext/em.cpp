@@ -2369,4 +2369,3 @@ int EventMachine_t::SetHeartbeatInterval(float interval)
 	return 0;
 }
 //#endif // OS_UNIX
-
