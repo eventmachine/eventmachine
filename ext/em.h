@@ -61,10 +61,10 @@ See the file COPYING for complete licensing information.
     #define RSTRING_LENINT(str) RSTRING_LEN(str)
   #endif
 #else
-  #define EmSelect rb_fd_select
+  #define EmSelect select
 #endif
 
-#ifndef rb_fd_max
+#if defined(BUILD_FOR_RUBY) && !defined(rb_fd_max)
 #define fd_check(n) (((n) < FD_SETSIZE) ? 1 : 0*fprintf(stderr, "fd %d too large for select\n", (n)))
 // These definitions are cribbed from include/ruby/intern.h in Ruby 1.9.3,
 // with this change: any macros that read or write the nth element of an
