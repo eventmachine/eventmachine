@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.7 (February 10, 2015)
+* fix delay in kqueue/epoll reactor shutdown when timers exist [#587]
+* fix memory leak introduced in v1.0.5 [#586]
+* expose EM.set_simultaneous_accept_count [#420]
+* fix busy loop when EM.run and EM.next_tick are invoked from exception handler [#452]
+
 ## 1.0.6 (February 3, 2015)
 * add support for Rubinius Process::Status [#568]
 * small bugfixes for SmtpServer [#449]
