@@ -22,7 +22,12 @@ See the file COPYING for complete licensing information.
 
 #ifdef BUILD_FOR_RUBY
   #include <ruby.h>
-  #define EmSelect rb_thread_fd_select
+  #ifdef HAVE_RB_THREAD_FD_SELECT
+    #define EmSelect rb_thread_fd_select
+  #else
+    // ruby 1.9.1 and below
+    #define EmSelect rb_thread_select
+  #endif
 
   #ifdef HAVE_RB_THREAD_CALL_WITHOUT_GVL
    #include <ruby/thread.h>
@@ -64,7 +69,7 @@ See the file COPYING for complete licensing information.
   #define EmSelect select
 #endif
 
-#if defined(BUILD_FOR_RUBY) && !defined(rb_fd_max)
+#if defined(BUILD_FOR_RUBY) && !defined(HAVE_RB_FDSET_T)
 #define fd_check(n) (((n) < FD_SETSIZE) ? 1 : 0*fprintf(stderr, "fd %d too large for select\n", (n)))
 // These definitions are cribbed from include/ruby/intern.h in Ruby 1.9.3,
 // with this change: any macros that read or write the nth element of an

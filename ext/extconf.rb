@@ -75,6 +75,7 @@ add_define "HAVE_INOTIFY" if inotify = have_func('inotify_init', 'sys/inotify.h'
 add_define "HAVE_OLD_INOTIFY" if !inotify && have_macro('__NR_inotify_init', 'sys/syscall.h')
 add_define 'HAVE_WRITEV' if have_func('writev', 'sys/uio.h')
 add_define 'HAVE_RB_THREAD_FD_SELECT' if have_func('rb_thread_fd_select')
+add_define 'HAVE_RB_FDSET_T' if have_type('rb_fdset_t', 'ruby/intern.h')
 
 have_func('rb_wait_for_single_fd')
 have_func('rb_enable_interrupt')
