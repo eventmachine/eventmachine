@@ -1609,12 +1609,15 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 			case AF_INET:
 				memcpy(&in4, ai->ai_addr, ai->ai_addrlen);
 				in4.sin_port = htons(port);
-				return (struct sockaddr*)&in4;
+#ifndef CYGWIN
 			case AF_INET6:
 				memcpy(&in6, ai->ai_addr, ai->ai_addrlen);
 				in6.sin6_port = htons(port);
-				return (struct sockaddr*)&in6;
+#endif
 		}
+
+		freeaddrinfo(ai);
+		return (struct sockaddr*)&in4;
 	}
 
 	return NULL;
