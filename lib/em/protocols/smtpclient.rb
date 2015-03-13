@@ -233,12 +233,15 @@ module EventMachine
         close_connection_after_writing
       end
 
-      def receive_signon
-        return invoke_error unless @range == 2
+      def send_ehlo
         send_data "EHLO #{@args[:domain]}\r\n"
-        @responder = :receive_ehlo_response
       end
 
+      def receive_signon
+        return invoke_error unless @range == 2
+        send_ehlo
+        @responder = :receive_ehlo_response
+      end
       def receive_ehlo_response
         return invoke_error unless @range == 2
         @server_caps = @msg
@@ -258,6 +261,15 @@ module EventMachine
       def receive_starttls_response
         return invoke_error unless @range == 2
         start_tls
+        invoke_ehlo_over_tls
+      end
+
+      def invoke_ehlo_over_tls
+        send_ehlo
+        @responder = :receive_ehlo_over_tls_response
+      end
+      def receive_ehlo_over_tls_response
+        return invoke_error unless @range == 2
         invoke_auth
       end
 
