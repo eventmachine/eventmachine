@@ -216,7 +216,7 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const unsigned long binding):
+SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const string &snihostname, const unsigned long binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),
@@ -239,6 +239,11 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 
 	pSSL = SSL_new (Context->pCtx);
 	assert (pSSL);
+
+	if (snihostname.length() > 0) {
+		SSL_set_tlsext_host_name (pSSL, snihostname.c_str());
+	}
+
 	SSL_set_bio (pSSL, pbioRead, pbioWrite);
 
 	// Store a pointer to the binding signature in the SSL object so we can retrieve it later
