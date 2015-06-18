@@ -63,7 +63,8 @@ class TestSmtpClient < Test::Unit::TestCase
       "\r\n.whatever\r\n" => "\r\n..whatever\r\n",
       "\r\n.\r\n" => "\r\n..\r\n",
       "\r\n.\r\n." => "\r\n..\r\n..",
-      ".\r\n.\r\n" => "..\r\n..\r\n"
+      ".\r\n.\r\n" => "..\r\n..\r\n",
+      "..\r\n" => "...\r\n"
     }
 
     expectations.each do |input, output|
