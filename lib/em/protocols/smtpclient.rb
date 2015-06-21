@@ -321,7 +321,7 @@ module EventMachine
       end
 
       def escape_leading_dots(s)
-        s.gsub(/^\.([^.]|$)/) { "..#{$1}" }
+        s.gsub(/^\./, '..')
       end
 
       def invoke_data
