@@ -451,6 +451,32 @@ extern "C" void evma_set_tls_parms (const unsigned long binding, const char *pri
 		ed->SetTlsParms (privatekey_filename, certchain_filename, (verify_peer == 1 ? true : false));
 }
 
+/****************************
+evma_set_negotiable_protocols
+*****************************/
+
+#ifdef OPENSSL_NPN_NEGOTIATED
+extern "C" void evma_set_negotiable_protocols (const unsigned long binding, const char *protocols)
+{
+	ensure_eventmachine("evma_set_negotiable_protocols");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		ed->SetNegotiableProtocols(protocols);
+}
+
+/***************************
+evma_get_negotiated_protocol
+****************************/
+
+extern "C" void evma_get_negotiated_protocol (const unsigned long binding, const unsigned char **data, unsigned *len)
+{
+	ensure_eventmachine("evma_get_negotiated_protocol");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		ed->GetNegotiatedProtocol(data, len);
+}
+#endif
+
 /******************
 evma_get_peer_cert
 ******************/

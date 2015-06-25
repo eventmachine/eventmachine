@@ -61,7 +61,11 @@ class SslBox_t
 class SslBox_t
 {
 	public:
+		#ifdef OPENSSL_NPN_NEGOTIATED
+		SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &nextprotos, bool verify_peer, const unsigned long binding);
+		#else
 		SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const unsigned long binding);
+		#endif
 		virtual ~SslBox_t();
 
 		int PutPlaintext (const char*, int);
@@ -71,6 +75,10 @@ class SslBox_t
 		bool CanGetCiphertext();
 		int GetCiphertext (char*, int);
 		bool IsHandshakeCompleted() {return bHandshakeCompleted;}
+
+		#ifdef OPENSSL_NPN_NEGOTIATED
+		void GetNegotiatedProtocol (const unsigned char **data, unsigned *len);
+		#endif
 
 		X509 *GetPeerCert();
 
