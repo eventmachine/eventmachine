@@ -1679,6 +1679,16 @@ const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int
 			goto fail;
 	}
 
+	// Set CLOEXEC. Only makes sense on Unix.
+	{
+		#ifdef OS_UNIX
+		int cloexec = fcntl (sd, F_GETFD, 0);
+		assert (cloexec >= 0);
+		cloexec |= FD_CLOEXEC;
+		fcntl (sd, F_SETFD, cloexec);
+		#endif
+	}
+
 	if (bind (sd, (struct sockaddr*)&sin, sizeof(sin)) != 0)
 		goto fail;
 
