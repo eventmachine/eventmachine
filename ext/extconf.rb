@@ -25,15 +25,15 @@ end
 def manual_ssl_config
   ssl_libs_heads_args = {
     :unix => [%w[ssl crypto], %w[openssl/ssl.h openssl/err.h]],
-    :mswin => [%w[ssleay32 eay32], %w[openssl/ssl.h openssl/err.h]],
+    :mswin => [%w[ssleay32 libeay32], %w[openssl/ssl.h openssl/err.h]],
   }
 
   dc_flags = ['ssl']
   dc_flags += ["#{ENV['OPENSSL']}/include", ENV['OPENSSL']] if /linux/ =~ RUBY_PLATFORM and ENV['OPENSSL']
 
   libs, heads = case RUBY_PLATFORM
-  when /mswin/    ; ssl_libs_heads_args[:mswin]
-  else              ssl_libs_heads_args[:unix]
+  when /mswin|mingw|bccwin/ ; ssl_libs_heads_args[:mswin]
+  else                        ssl_libs_heads_args[:unix]
   end
   dir_config(*dc_flags)
   check_libs(libs) and check_heads(heads)
