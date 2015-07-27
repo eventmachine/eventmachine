@@ -216,7 +216,7 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const unsigned long binding):
+SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const uintptr_t binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),
@@ -444,7 +444,7 @@ ssl_verify_wrapper
 
 extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 {
-	unsigned long binding;
+	uintptr_t binding;
 	X509 *cert;
 	SSL *ssl;
 	BUF_MEM *buf;
@@ -453,7 +453,7 @@ extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 
 	cert = X509_STORE_CTX_get_current_cert(ctx);
 	ssl = (SSL*) X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
-	binding = (unsigned long) SSL_get_ex_data(ssl, 0);
+	binding = (uintptr_t) SSL_get_ex_data(ssl, 0);
 
 	out = BIO_new(BIO_s_mem());
 	PEM_write_bio_X509(out, cert);

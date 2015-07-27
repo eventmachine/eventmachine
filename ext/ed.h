@@ -85,7 +85,7 @@ class EventableDescriptor: public Bindable_t
 		struct epoll_event *GetEpollEvent() { return &EpollEvent; }
 		#endif
 
-		virtual void StartProxy(const unsigned long, const unsigned long, const unsigned long);
+		virtual void StartProxy(const uintptr_t, const unsigned long, const unsigned long);
 		virtual void StopProxy();
 		virtual unsigned long GetProxiedBytes(){ return ProxiedBytes; };
 		virtual void SetProxiedFrom(EventableDescriptor*, const unsigned long);
@@ -325,7 +325,7 @@ class AcceptorDescriptor: public EventableDescriptor
 
 		virtual bool GetSockname (struct sockaddr*, socklen_t*);
 
-		static void StopAcceptor (const unsigned long binding);
+		static void StopAcceptor (const uintptr_t binding);
 };
 
 /********************

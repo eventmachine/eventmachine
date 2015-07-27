@@ -243,7 +243,7 @@ bool EventableDescriptor::IsCloseScheduled()
 EventableDescriptor::StartProxy
 *******************************/
 
-void EventableDescriptor::StartProxy(const unsigned long to, const unsigned long bufsize, const unsigned long length)
+void EventableDescriptor::StartProxy(const uintptr_t to, const unsigned long bufsize, const unsigned long length)
 {
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (to));
 	if (ed) {
@@ -1398,7 +1398,7 @@ AcceptorDescriptor::~AcceptorDescriptor()
 STATIC: AcceptorDescriptor::StopAcceptor
 ****************************************/
 
-void AcceptorDescriptor::StopAcceptor (const unsigned long binding)
+void AcceptorDescriptor::StopAcceptor (const uintptr_t binding)
 {
 	// TODO: This is something of a hack, or at least it's a static method of the wrong class.
 	AcceptorDescriptor *ad = dynamic_cast <AcceptorDescriptor*> (Bindable_t::GetObject (binding));

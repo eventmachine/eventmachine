@@ -24,18 +24,18 @@ See the file COPYING for complete licensing information.
 class Bindable_t
 {
 	public:
-		static unsigned long CreateBinding();
-		static Bindable_t *GetObject (const unsigned long);
-		static map<unsigned long, Bindable_t*> BindingBag;
+		static uintptr_t CreateBinding();
+		static Bindable_t *GetObject (const uintptr_t);
+		static map<uintptr_t, Bindable_t*> BindingBag;
 
 	public:
 		Bindable_t();
 		virtual ~Bindable_t();
 
-		const unsigned long GetBinding() {return Binding;}
+		const uintptr_t GetBinding() {return Binding;}
 
 	private:
-		unsigned long Binding;
+		uintptr_t Binding;
 };
 
 
