@@ -48,7 +48,7 @@ mapper_new
 
 static VALUE mapper_new (VALUE self, VALUE filename)
 {
-	Mapper_t *m = new Mapper_t (StringValuePtr (filename));
+	Mapper_t *m = new Mapper_t (StringValueCStr (filename));
 	if (!m)
 		rb_raise (rb_eException, "No Mapper Object");
 	VALUE v = Data_Wrap_Struct (Mapper, 0, mapper_dt, (void*)m);

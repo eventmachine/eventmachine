@@ -254,7 +254,7 @@ t_start_server
 
 static VALUE t_start_server (VALUE self, VALUE server, VALUE port)
 {
-	const uintptr_t f = evma_create_tcp_server (StringValuePtr(server), FIX2INT(port));
+	const uintptr_t f = evma_create_tcp_server (StringValueCStr(server), FIX2INT(port));
 	if (!f)
 		rb_raise (rb_eRuntimeError, "%s", "no acceptor (port is in use or requires root privileges)");
 	return BSIG2NUM (f);
@@ -277,7 +277,7 @@ t_start_unix_server
 
 static VALUE t_start_unix_server (VALUE self, VALUE filename)
 {
-	const uintptr_t f = evma_create_unix_domain_server (StringValuePtr(filename));
+	const uintptr_t f = evma_create_unix_domain_server (StringValueCStr(filename));
 	if (!f)
 		rb_raise (rb_eRuntimeError, "%s", "no unix-domain acceptor");
 	return BSIG2NUM (f);
@@ -328,7 +328,7 @@ static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE privkeyfile, VA
 	 * It's expected that the parameter list will grow as we add more supported features.
 	 * ALL of these parameters are optional, and can be specified as empty or NULL strings.
 	 */
-	evma_set_tls_parms (NUM2BSIG (signature), StringValuePtr (privkeyfile), StringValuePtr (certchainfile), (verify_peer == Qtrue ? 1 : 0));
+	evma_set_tls_parms (NUM2BSIG (signature), StringValueCStr (privkeyfile), StringValueCStr (certchainfile), (verify_peer == Qtrue ? 1 : 0));
 	return Qnil;
 }
 
@@ -499,7 +499,7 @@ t_send_datagram
 
 static VALUE t_send_datagram (VALUE self, VALUE signature, VALUE data, VALUE data_length, VALUE address, VALUE port)
 {
-	int b = evma_send_datagram (NUM2BSIG (signature), StringValuePtr (data), FIX2INT (data_length), StringValuePtr(address), FIX2INT(port));
+	int b = evma_send_datagram (NUM2BSIG (signature), StringValuePtr (data), FIX2INT (data_length), StringValueCStr(address), FIX2INT(port));
 	return INT2NUM (b);
 }
 
@@ -537,7 +537,7 @@ static VALUE t_connect_server (VALUE self, VALUE server, VALUE port)
 	// NUM2INT will throw a type error, but FIX2INT will generate garbage.
 
 	try {
-		const uintptr_t f = evma_connect_to_server (NULL, 0, StringValuePtr(server), NUM2INT(port));
+		const uintptr_t f = evma_connect_to_server (NULL, 0, StringValueCStr(server), NUM2INT(port));
 		if (!f)
 			rb_raise (EM_eConnectionError, "%s", "no connection");
 		return BSIG2NUM (f);
@@ -558,7 +558,7 @@ static VALUE t_bind_connect_server (VALUE self, VALUE bind_addr, VALUE bind_port
 	// NUM2INT will throw a type error, but FIX2INT will generate garbage.
 
 	try {
-		const uintptr_t f = evma_connect_to_server (StringValuePtr(bind_addr), NUM2INT(bind_port), StringValuePtr(server), NUM2INT(port));
+		const uintptr_t f = evma_connect_to_server (StringValueCStr(bind_addr), NUM2INT(bind_port), StringValueCStr(server), NUM2INT(port));
 		if (!f)
 			rb_raise (EM_eConnectionError, "%s", "no connection");
 		return BSIG2NUM (f);
@@ -574,7 +574,7 @@ t_connect_unix_server
 
 static VALUE t_connect_unix_server (VALUE self, VALUE serversocket)
 {
-	const uintptr_t f = evma_connect_to_unix_server (StringValuePtr(serversocket));
+	const uintptr_t f = evma_connect_to_unix_server (StringValueCStr(serversocket));
 	if (!f)
 		rb_raise (rb_eRuntimeError, "%s", "no connection");
 	return BSIG2NUM (f);
@@ -744,7 +744,7 @@ t_open_udp_socket
 
 static VALUE t_open_udp_socket (VALUE self, VALUE server, VALUE port)
 {
-	const uintptr_t f = evma_open_datagram_socket (StringValuePtr(server), FIX2INT(port));
+	const uintptr_t f = evma_open_datagram_socket (StringValueCStr(server), FIX2INT(port));
 	if (!f)
 		rb_raise (rb_eRuntimeError, "%s", "no datagram socket");
 	return BSIG2NUM(f);
@@ -844,7 +844,7 @@ t_setuid_string
 
 static VALUE t_setuid_string (VALUE self, VALUE username)
 {
-  evma_setuid_string (StringValuePtr (username));
+  evma_setuid_string (StringValueCStr (username));
   return Qnil;
 }
 
@@ -868,7 +868,7 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 	for (int i=0; i < len; i++) {
 		VALUE ix = INT2FIX (i);
 		VALUE s = rb_ary_aref (1, &ix, cmd);
-		strings[i] = StringValuePtr (s);
+		strings[i] = StringValueCStr (s);
 	}
 	strings[len] = NULL;
 
@@ -909,7 +909,7 @@ t_watch_filename
 static VALUE t_watch_filename (VALUE self, VALUE fname)
 {
 	try {
-		return BSIG2NUM(evma_watch_filename(StringValuePtr(fname)));
+		return BSIG2NUM(evma_watch_filename(StringValueCStr(fname)));
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eUnsupported, "%s", e.what());
 	}
@@ -1057,14 +1057,14 @@ static VALUE t_send_file_data (VALUE self, VALUE signature, VALUE filename)
 	 * do this. For one thing it's ugly. For another, we can't be sure zero is never a real errno.
 	 */
 
-	int b = evma_send_file_data_to_connection (NUM2BSIG (signature), StringValuePtr(filename));
+	int b = evma_send_file_data_to_connection (NUM2BSIG (signature), StringValueCStr(filename));
 	if (b == -1)
 		rb_raise(rb_eRuntimeError, "%s", "File too large.  send_file_data() supports files under 32k.");
 	if (b > 0) {
 		char *err = strerror (b);
 		char buf[1024];
 		memset (buf, 0, sizeof(buf));
-		snprintf (buf, sizeof(buf)-1, ": %s %s", StringValuePtr(filename),(err?err:"???"));
+		snprintf (buf, sizeof(buf)-1, ": %s %s", StringValueCStr(filename),(err?err:"???"));
 
 		rb_raise (rb_eIOError, "%s", buf);
 	}
