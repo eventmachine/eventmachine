@@ -40,7 +40,7 @@ module EventMachine
       MaxBinaryLength = 32*1024*1024
 
       #--
-      # Will be called recursively until there's no data to read.
+      # Will loop internally until there's no data left to read.
       # That way the user-defined handlers we call can modify the
       # handling characteristics on a per-token basis.
       #
@@ -52,45 +52,51 @@ module EventMachine
         @lt2_delimiter ||= "\n"
         @lt2_linebuffer ||= []
 
-        if @lt2_mode == :lines
-          if ix = data.index( @lt2_delimiter )
-            @lt2_linebuffer << data[0...ix]
-            ln = @lt2_linebuffer.join
-            @lt2_linebuffer.clear
-            if @lt2_delimiter == "\n"
-              ln.chomp!
+        remaining_data = data
+
+        while remaining_data.length > 0
+          if @lt2_mode == :lines
+            if ix = remaining_data.index( @lt2_delimiter )
+              @lt2_linebuffer << remaining_data[0...ix]
+              ln = @lt2_linebuffer.join
+              @lt2_linebuffer.clear
+              if @lt2_delimiter == "\n"
+                ln.chomp!
+              end
+              receive_line ln
+              remaining_data = remaining_data[(ix+@lt2_delimiter.length)..-1]
+            else
+              @lt2_linebuffer << remaining_data
+              remaining_data = ""
             end
-            receive_line ln
-            receive_data data[(ix+@lt2_delimiter.length)..-1]
-          else
-            @lt2_linebuffer << data
-          end
-        elsif @lt2_mode == :text
-          if @lt2_textsize
-            needed = @lt2_textsize - @lt2_textpos
-            will_take = if data.length > needed
-                          needed
-                        else
-                          data.length
-                        end
+          elsif @lt2_mode == :text
+            if @lt2_textsize
+              needed = @lt2_textsize - @lt2_textpos
+              will_take = if remaining_data.length > needed
+                            needed
+                          else
+                            remaining_data.length
+                          end
 
-            @lt2_textbuffer << data[0...will_take]
-            tail = data[will_take..-1]
+              @lt2_textbuffer << remaining_data[0...will_take]
+              tail = remaining_data[will_take..-1]
 
-            @lt2_textpos += will_take
-            if @lt2_textpos >= @lt2_textsize
-              # Reset line mode (the default behavior) BEFORE calling the
-              # receive_binary_data. This makes it possible for user code
-              # to call set_text_mode, enabling chains of text blocks
-              # (which can possibly be of different sizes).
-              set_line_mode
-              receive_binary_data @lt2_textbuffer.join
-              receive_end_of_binary_data
+              @lt2_textpos += will_take
+              if @lt2_textpos >= @lt2_textsize
+                # Reset line mode (the default behavior) BEFORE calling the
+                # receive_binary_data. This makes it possible for user code
+                # to call set_text_mode, enabling chains of text blocks
+                # (which can possibly be of different sizes).
+                set_line_mode
+                receive_binary_data @lt2_textbuffer.join
+                receive_end_of_binary_data
+              end
+
+              remaining_data = tail
+            else
+              receive_binary_data remaining_data
+              remaining_data = ""
             end
-
-            receive_data tail
-          else
-            receive_binary_data data
           end
         end
       end
