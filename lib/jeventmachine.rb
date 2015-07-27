@@ -286,7 +286,7 @@ module EventMachine
   end
   def self.start_tls(sig)
   end
-  def self.send_file_data(sig, filename)
+  def self.send_file_data(sig, filename, offset = 0)
   end
 
   class Connection

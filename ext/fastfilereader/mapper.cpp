@@ -105,7 +105,7 @@ void Mapper_t::Close()
 Mapper_t::GetChunk
 ******************/
 
-const char *Mapper_t::GetChunk (unsigned start)
+const char *Mapper_t::GetChunk (unsigned long start)
 {
 	return MapPoint + start;
 }

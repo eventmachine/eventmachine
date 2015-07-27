@@ -32,7 +32,7 @@ class Mapper_t
 		Mapper_t (const string&);
 		virtual ~Mapper_t();
 
-		const char *GetChunk (unsigned);
+		const char *GetChunk (unsigned long);
 		void Close();
 		size_t GetFileSize() {return FileSize;}
 
