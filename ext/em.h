@@ -223,8 +223,6 @@ class EventMachine_t
 		vector<EventableDescriptor*> NewDescriptors;
 		set<EventableDescriptor*> ModifiedDescriptors;
 
-		uint64_t NextHeartbeatTime;
-
 		int LoopBreakerReader;
 		int LoopBreakerWriter;
 		#ifdef OS_WIN32
@@ -260,7 +258,9 @@ class EventMachine_t
 		struct kevent Karray [MaxEvents];
 		#endif
 
+		#ifdef HAVE_INOTIFY
 		InotifyDescriptor *inotify; // pollable descriptor for our inotify instance
+		#endif
 };
 
 

@@ -114,15 +114,16 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	NumCloseScheduled (0),
 	HeartbeatInterval(2000000),
 	EventCallback (event_callback),
-	NextHeartbeatTime (0),
 	LoopBreakerReader (-1),
 	LoopBreakerWriter (-1),
 	bTerminateSignalReceived (false),
 	bEpoll (false),
 	epfd (-1),
 	bKqueue (false),
-	kqfd (-1),
-	inotify (NULL)
+	kqfd (-1)
+	#ifdef HAVE_INOTIFY
+	, inotify (NULL)
+	#endif
 {
 	// Default time-slice is just smaller than one hundred mills.
 	Quantum.tv_sec = 0;
