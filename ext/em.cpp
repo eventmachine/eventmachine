@@ -698,9 +698,9 @@ void EventMachine_t::_RunEpollOnce()
 EventMachine_t::_RunKqueueOnce
 ******************************/
 
+#ifdef HAVE_KQUEUE
 void EventMachine_t::_RunKqueueOnce()
 {
-	#ifdef HAVE_KQUEUE
 	assert (kqfd != -1);
 	int k;
 
@@ -778,10 +778,13 @@ void EventMachine_t::_RunKqueueOnce()
 		rb_thread_schedule();
 	}
 	#endif
-	#else
-	throw std::runtime_error ("kqueue is not implemented on this platform");
-	#endif
 }
+#else
+void EventMachine_t::_RunKqueueOnce()
+{
+	throw std::runtime_error ("kqueue is not implemented on this platform");
+}
+#endif
 
 
 /*********************************
@@ -1756,9 +1759,9 @@ void EventMachine_t::Add (EventableDescriptor *ed)
 EventMachine_t::ArmKqueueWriter
 *******************************/
 
+#ifdef HAVE_KQUEUE
 void EventMachine_t::ArmKqueueWriter (EventableDescriptor *ed)
 {
-	#ifdef HAVE_KQUEUE
 	if (bKqueue) {
 		if (!ed)
 			throw std::runtime_error ("added bad descriptor");
@@ -1775,16 +1778,18 @@ void EventMachine_t::ArmKqueueWriter (EventableDescriptor *ed)
 			throw std::runtime_error (buf);
 		}
 	}
-	#endif
 }
+#else
+void EventMachine_t::ArmKqueueWriter (EventableDescriptor *ed UNUSED) { }
+#endif
 
 /*******************************
 EventMachine_t::ArmKqueueReader
 *******************************/
 
+#ifdef HAVE_KQUEUE
 void EventMachine_t::ArmKqueueReader (EventableDescriptor *ed)
 {
-	#ifdef HAVE_KQUEUE
 	if (bKqueue) {
 		if (!ed)
 			throw std::runtime_error ("added bad descriptor");
@@ -1801,8 +1806,10 @@ void EventMachine_t::ArmKqueueReader (EventableDescriptor *ed)
 			throw std::runtime_error (buf);
 		}
 	}
-	#endif
 }
+#else
+void EventMachine_t::ArmKqueueReader (EventableDescriptor *ed UNUSED) { }
+#endif
 
 /**********************************
 EventMachine_t::_AddNewDescriptors
@@ -2133,9 +2140,9 @@ int EventMachine_t::GetConnectionCount ()
 EventMachine_t::WatchPid
 ************************/
 
+#ifdef HAVE_KQUEUE
 const uintptr_t EventMachine_t::WatchPid (int pid)
 {
-	#ifdef HAVE_KQUEUE
 	if (!bKqueue)
 		throw std::runtime_error("must enable kqueue (EM.kqueue=true) for pid watching support");
 
@@ -2151,17 +2158,17 @@ const uintptr_t EventMachine_t::WatchPid (int pid)
 		sprintf(errbuf, "failed to register file watch descriptor with kqueue: %s", strerror(errno));
 		throw std::runtime_error(errbuf);
 	}
-	#endif
-
-	#ifdef HAVE_KQUEUE
 	Bindable_t* b = new Bindable_t();
 	Pids.insert(make_pair (pid, b));
 
 	return b->GetBinding();
-	#endif
-
+}
+#else
+const uintptr_t EventMachine_t::WatchPid (int pid UNUSED)
+{
 	throw std::runtime_error("no pid watching support on this system");
 }
+#endif
 
 /**************************
 EventMachine_t::UnwatchPid
