@@ -1118,7 +1118,7 @@ void EventMachine_t::_RunTimers()
 EventMachine_t::InstallOneshotTimer
 ***********************************/
 
-const unsigned long EventMachine_t::InstallOneshotTimer (int milliseconds)
+const uintptr_t EventMachine_t::InstallOneshotTimer (int milliseconds)
 {
 	if (Timers.size() > MaxOutstandingTimers)
 		return false;
@@ -1140,7 +1140,7 @@ const unsigned long EventMachine_t::InstallOneshotTimer (int milliseconds)
 EventMachine_t::ConnectToServer
 *******************************/
 
-const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int bind_port, const char *server, int port)
+const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind_port, const char *server, int port)
 {
 	/* We want to spend no more than a few seconds waiting for a connection
 	 * to a remote host. So we use a nonblocking connect.
@@ -1206,7 +1206,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 		}
 	}
 
-	unsigned long out = 0;
+	uintptr_t out = 0;
 	int e = 0;
 
 	#ifdef OS_UNIX
@@ -1326,7 +1326,7 @@ const unsigned long EventMachine_t::ConnectToServer (const char *bind_addr, int 
 EventMachine_t::ConnectToUnixServer
 ***********************************/
 
-const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
+const uintptr_t EventMachine_t::ConnectToUnixServer (const char *server)
 {
 	/* Connect to a Unix-domain server, which by definition is running
 	 * on the same host.
@@ -1343,7 +1343,7 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 	// The whole rest of this function is only compiled on Unix systems.
 	#ifdef OS_UNIX
 
-	unsigned long out = 0;
+	uintptr_t out = 0;
 
 	if (!server || !*server)
 		return 0;
@@ -1399,7 +1399,7 @@ const unsigned long EventMachine_t::ConnectToUnixServer (const char *server)
 EventMachine_t::AttachFD
 ************************/
 
-const unsigned long EventMachine_t::AttachFD (int fd, bool watch_mode)
+const uintptr_t EventMachine_t::AttachFD (int fd, bool watch_mode)
 {
 	#ifdef OS_UNIX
 	if (fcntl(fd, F_GETFL, 0) < 0)
@@ -1442,7 +1442,7 @@ const unsigned long EventMachine_t::AttachFD (int fd, bool watch_mode)
 
 	Add (cd);
 
-	const unsigned long out = cd->GetBinding();
+	const uintptr_t out = cd->GetBinding();
 	return out;
 }
 
@@ -1579,7 +1579,7 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 EventMachine_t::CreateTcpServer
 *******************************/
 
-const unsigned long EventMachine_t::CreateTcpServer (const char *server, int port)
+const uintptr_t EventMachine_t::CreateTcpServer (const char *server, int port)
 {
 	/* Create a TCP-acceptor (server) socket and add it to the event machine.
 	 * Return the binding of the new acceptor to the caller.
@@ -1642,9 +1642,9 @@ const unsigned long EventMachine_t::CreateTcpServer (const char *server, int por
 EventMachine_t::OpenDatagramSocket
 **********************************/
 
-const unsigned long EventMachine_t::OpenDatagramSocket (const char *address, int port)
+const uintptr_t EventMachine_t::OpenDatagramSocket (const char *address, int port)
 {
-	unsigned long output_binding = 0;
+	uintptr_t output_binding = 0;
 
 	int sd = socket (AF_INET, SOCK_DGRAM, 0);
 	if (sd == INVALID_SOCKET)
@@ -1915,7 +1915,7 @@ void EventMachine_t::Deregister (EventableDescriptor *ed)
 EventMachine_t::CreateUnixDomainServer
 **************************************/
 
-const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename)
+const uintptr_t EventMachine_t::CreateUnixDomainServer (const char *filename)
 {
 	/* Create a UNIX-domain acceptor (server) socket and add it to the event machine.
 	 * Return the binding of the new acceptor to the caller.
@@ -1981,9 +1981,9 @@ const unsigned long EventMachine_t::CreateUnixDomainServer (const char *filename
 EventMachine_t::AttachSD
 **************************************/
 
-const unsigned long EventMachine_t::AttachSD (int sd_accept)
+const uintptr_t EventMachine_t::AttachSD (int sd_accept)
 {
-	unsigned long output_binding = 0;
+	uintptr_t output_binding = 0;
 
 	{
 		// Set the acceptor non-blocking.
@@ -2016,7 +2016,7 @@ const unsigned long EventMachine_t::AttachSD (int sd_accept)
 EventMachine_t::Socketpair
 **************************/
 
-const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
+const uintptr_t EventMachine_t::Socketpair (char * const*cmd_strings)
 {
 	#ifdef OS_WIN32
 	throw std::runtime_error ("socketpair is currently unavailable on this platform");
@@ -2034,7 +2034,7 @@ const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
 	if ((j==0) || (j==2048))
 		return 0;
 
-	unsigned long output_binding = 0;
+	uintptr_t output_binding = 0;
 
 	int sv[2];
 	if (socketpair (AF_LOCAL, SOCK_STREAM, 0, sv) < 0)
@@ -2080,7 +2080,7 @@ const unsigned long EventMachine_t::Socketpair (char * const*cmd_strings)
 EventMachine_t::OpenKeyboard
 ****************************/
 
-const unsigned long EventMachine_t::OpenKeyboard()
+const uintptr_t EventMachine_t::OpenKeyboard()
 {
 	KeyboardDescriptor *kd = new KeyboardDescriptor (this);
 	if (!kd)
@@ -2104,7 +2104,7 @@ int EventMachine_t::GetConnectionCount ()
 EventMachine_t::WatchPid
 ************************/
 
-const unsigned long EventMachine_t::WatchPid (int pid)
+const uintptr_t EventMachine_t::WatchPid (int pid)
 {
 	#ifdef HAVE_KQUEUE
 	if (!bKqueue)
@@ -2158,7 +2158,7 @@ void EventMachine_t::UnwatchPid (int pid)
 	delete b;
 }
 
-void EventMachine_t::UnwatchPid (const unsigned long sig)
+void EventMachine_t::UnwatchPid (const uintptr_t sig)
 {
 	for(map<int, Bindable_t*>::iterator i=Pids.begin(); i != Pids.end(); i++)
 	{
@@ -2176,7 +2176,7 @@ void EventMachine_t::UnwatchPid (const unsigned long sig)
 EventMachine_t::WatchFile
 *************************/
 
-const unsigned long EventMachine_t::WatchFile (const char *fpath)
+const uintptr_t EventMachine_t::WatchFile (const char *fpath)
 {
 	struct stat sb;
 	int sres;
@@ -2254,7 +2254,7 @@ void EventMachine_t::UnwatchFile (int wd)
 	delete b;
 }
 
-void EventMachine_t::UnwatchFile (const unsigned long sig)
+void EventMachine_t::UnwatchFile (const uintptr_t sig)
 {
 	for(map<int, Bindable_t*>::iterator i=Files.begin(); i != Files.end(); i++)
 	{

@@ -93,7 +93,7 @@ extern "C" void evma_run_machine()
 evma_install_oneshot_timer
 **************************/
 
-extern "C" const unsigned long evma_install_oneshot_timer (int seconds)
+extern "C" const uintptr_t evma_install_oneshot_timer (int seconds)
 {
 	ensure_eventmachine("evma_install_oneshot_timer");
 	return EventMachine->InstallOneshotTimer (seconds);
@@ -104,7 +104,7 @@ extern "C" const unsigned long evma_install_oneshot_timer (int seconds)
 evma_connect_to_server
 **********************/
 
-extern "C" const unsigned long evma_connect_to_server (const char *bind_addr, int bind_port, const char *server, int port)
+extern "C" const uintptr_t evma_connect_to_server (const char *bind_addr, int bind_port, const char *server, int port)
 {
 	ensure_eventmachine("evma_connect_to_server");
 	return EventMachine->ConnectToServer (bind_addr, bind_port, server, port);
@@ -114,7 +114,7 @@ extern "C" const unsigned long evma_connect_to_server (const char *bind_addr, in
 evma_connect_to_unix_server
 ***************************/
 
-extern "C" const unsigned long evma_connect_to_unix_server (const char *server)
+extern "C" const uintptr_t evma_connect_to_unix_server (const char *server)
 {
 	ensure_eventmachine("evma_connect_to_unix_server");
 	return EventMachine->ConnectToUnixServer (server);
@@ -124,7 +124,7 @@ extern "C" const unsigned long evma_connect_to_unix_server (const char *server)
 evma_attach_fd
 **************/
 
-extern "C" const unsigned long evma_attach_fd (int file_descriptor, int watch_mode)
+extern "C" const uintptr_t evma_attach_fd (int file_descriptor, int watch_mode)
 {
 	ensure_eventmachine("evma_attach_fd");
 	return EventMachine->AttachFD (file_descriptor, watch_mode ? true : false);
@@ -267,7 +267,7 @@ extern "C" int evma_num_close_scheduled ()
 evma_create_tcp_server
 **********************/
 
-extern "C" const unsigned long evma_create_tcp_server (const char *address, int port)
+extern "C" const uintptr_t evma_create_tcp_server (const char *address, int port)
 {
 	ensure_eventmachine("evma_create_tcp_server");
 	return EventMachine->CreateTcpServer (address, port);
@@ -277,7 +277,7 @@ extern "C" const unsigned long evma_create_tcp_server (const char *address, int 
 evma_create_unix_domain_server
 ******************************/
 
-extern "C" const unsigned long evma_create_unix_domain_server (const char *filename)
+extern "C" const uintptr_t evma_create_unix_domain_server (const char *filename)
 {
 	ensure_eventmachine("evma_create_unix_domain_server");
 	return EventMachine->CreateUnixDomainServer (filename);
@@ -287,7 +287,7 @@ extern "C" const unsigned long evma_create_unix_domain_server (const char *filen
 evma_attach_sd
 ************************/
 
-extern "C" const unsigned long evma_attach_sd (int sd)
+extern "C" const uintptr_t evma_attach_sd (int sd)
 {
 	ensure_eventmachine("evma_attach_sd");
 	return EventMachine->AttachSD (sd);
@@ -297,7 +297,7 @@ extern "C" const unsigned long evma_attach_sd (int sd)
 evma_open_datagram_socket
 *************************/
 
-extern "C" const unsigned long evma_open_datagram_socket (const char *address, int port)
+extern "C" const uintptr_t evma_open_datagram_socket (const char *address, int port)
 {
 	ensure_eventmachine("evma_open_datagram_socket");
 	return EventMachine->OpenDatagramSocket (address, port);
@@ -307,7 +307,7 @@ extern "C" const unsigned long evma_open_datagram_socket (const char *address, i
 evma_open_keyboard
 ******************/
 
-extern "C" const unsigned long evma_open_keyboard()
+extern "C" const uintptr_t evma_open_keyboard()
 {
 	ensure_eventmachine("evma_open_keyboard");
 	return EventMachine->OpenKeyboard();
@@ -317,7 +317,7 @@ extern "C" const unsigned long evma_open_keyboard()
 evma_watch_filename
 *******************/
 
-extern "C" const unsigned long evma_watch_filename (const char *fname)
+extern "C" const uintptr_t evma_watch_filename (const char *fname)
 {
 	ensure_eventmachine("evma_watch_filename");
 	return EventMachine->WatchFile(fname);
@@ -327,7 +327,7 @@ extern "C" const unsigned long evma_watch_filename (const char *fname)
 evma_unwatch_filename
 *********************/
 
-extern "C" void evma_unwatch_filename (const unsigned long sig)
+extern "C" void evma_unwatch_filename (const uintptr_t sig)
 {
 	ensure_eventmachine("evma_unwatch_file");
 	EventMachine->UnwatchFile(sig);
@@ -337,7 +337,7 @@ extern "C" void evma_unwatch_filename (const unsigned long sig)
 evma_watch_pid
 **************/
 
-extern "C" const unsigned long evma_watch_pid (int pid)
+extern "C" const uintptr_t evma_watch_pid (int pid)
 {
 	ensure_eventmachine("evma_watch_pid");
 	return EventMachine->WatchPid(pid);
@@ -347,7 +347,7 @@ extern "C" const unsigned long evma_watch_pid (int pid)
 evma_unwatch_pid
 ****************/
 
-extern "C" void evma_unwatch_pid (const unsigned long sig)
+extern "C" void evma_unwatch_pid (const uintptr_t sig)
 {
 	ensure_eventmachine("evma_unwatch_pid");
 	EventMachine->UnwatchPid(sig);
@@ -700,7 +700,7 @@ extern "C" void evma_setuid_string (const char *username)
 evma_popen
 **********/
 
-extern "C" const unsigned long evma_popen (char * const*cmd_strings)
+extern "C" const uintptr_t evma_popen (char * const*cmd_strings)
 {
 	ensure_eventmachine("evma_popen");
 	return EventMachine->Socketpair (cmd_strings);
@@ -819,7 +819,7 @@ extern "C" int evma_send_file_data_to_connection (const uintptr_t binding, const
 evma_start_proxy
 *****************/
 
-extern "C" void evma_start_proxy (const unsigned long from, const unsigned long to, const unsigned long bufsize, const unsigned long length)
+extern "C" void evma_start_proxy (const uintptr_t from, const uintptr_t to, const unsigned long bufsize, const unsigned long length)
 {
 	ensure_eventmachine("evma_start_proxy");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (from));
@@ -832,7 +832,7 @@ extern "C" void evma_start_proxy (const unsigned long from, const unsigned long 
 evma_stop_proxy
 ****************/
 
-extern "C" void evma_stop_proxy (const unsigned long from)
+extern "C" void evma_stop_proxy (const uintptr_t from)
 {
 	ensure_eventmachine("evma_stop_proxy");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (from));
@@ -844,7 +844,7 @@ extern "C" void evma_stop_proxy (const unsigned long from)
 evma_proxied_bytes
 *******************/
 
-extern "C" unsigned long evma_proxied_bytes (const unsigned long from)
+extern "C" unsigned long evma_proxied_bytes (const uintptr_t from)
 {
 	ensure_eventmachine("evma_proxied_bytes");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (from));
@@ -859,7 +859,7 @@ extern "C" unsigned long evma_proxied_bytes (const unsigned long from)
 evma_get_last_activity_time
 ****************************/
 
-extern "C" uint64_t evma_get_last_activity_time(const unsigned long from)
+extern "C" uint64_t evma_get_last_activity_time(const uintptr_t from)
 {
 	ensure_eventmachine("evma_get_last_activity_time");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (from));

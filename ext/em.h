@@ -117,23 +117,23 @@ class EventMachine_t
 		void Run();
 		void ScheduleHalt();
 		void SignalLoopBreaker();
-		const unsigned long InstallOneshotTimer (int);
-		const unsigned long ConnectToServer (const char *, int, const char *, int);
-		const unsigned long ConnectToUnixServer (const char *);
+		const uintptr_t InstallOneshotTimer (int);
+		const uintptr_t ConnectToServer (const char *, int, const char *, int);
+		const uintptr_t ConnectToUnixServer (const char *);
 
-		const unsigned long CreateTcpServer (const char *, int);
-		const unsigned long OpenDatagramSocket (const char *, int);
-		const unsigned long CreateUnixDomainServer (const char*);
-		const unsigned long AttachSD (int);
-		const unsigned long OpenKeyboard();
+		const uintptr_t CreateTcpServer (const char *, int);
+		const uintptr_t OpenDatagramSocket (const char *, int);
+		const uintptr_t CreateUnixDomainServer (const char*);
+		const uintptr_t AttachSD (int);
+		const uintptr_t OpenKeyboard();
 		//const char *Popen (const char*, const char*);
-		const unsigned long Socketpair (char* const*);
+		const uintptr_t Socketpair (char* const*);
 
 		void Add (EventableDescriptor*);
 		void Modify (EventableDescriptor*);
 		void Deregister (EventableDescriptor*);
 
-		const unsigned long AttachFD (int, bool);
+		const uintptr_t AttachFD (int, bool);
 		int DetachFD (EventableDescriptor*);
 
 		void ArmKqueueWriter (EventableDescriptor*);
@@ -150,18 +150,18 @@ class EventMachine_t
 		float GetHeartbeatInterval();
 		int SetHeartbeatInterval(float);
 
-		const unsigned long WatchFile (const char*);
+		const uintptr_t WatchFile (const char*);
 		void UnwatchFile (int);
-		void UnwatchFile (const unsigned long);
+		void UnwatchFile (const uintptr_t);
 
 		#ifdef HAVE_KQUEUE
 		void _HandleKqueueFileEvent (struct kevent*);
 		void _RegisterKqueueFileEvent(int);
 		#endif
 
-		const unsigned long WatchPid (int);
+		const uintptr_t WatchPid (int);
 		void UnwatchPid (int);
-		void UnwatchPid (const unsigned long);
+		void UnwatchPid (const uintptr_t);
 
 		#ifdef HAVE_KQUEUE
 		void _HandleKqueuePidEvent (struct kevent*);

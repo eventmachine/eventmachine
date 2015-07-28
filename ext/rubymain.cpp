@@ -25,6 +25,16 @@ See the file COPYING for complete licensing information.
 #define RFLOAT_VALUE(arg) RFLOAT(arg)->value
 #endif
 
+/* Adapted from NUM2BSIG / BSIG2NUM in ext/fiddle/conversions.h,
+ * we'll call it a BSIG for Binding Signature here. */
+#if SIZEOF_VOIDP == SIZEOF_LONG
+# define BSIG2NUM(x)   (ULONG2NUM((unsigned long)(x)))
+# define NUM2BSIG(x)   (NUM2ULONG(x))
+#else
+# define BSIG2NUM(x)   (ULL2NUM((unsigned long long)(x)))
+# define NUM2BSIG(x)   (NUM2ULL(x))
+#endif
+
 /*******
 Statics
 *******/
@@ -59,15 +69,15 @@ static VALUE Intern_connection_completed;
 static VALUE rb_cProcStatus;
 
 struct em_event {
-	unsigned long signature;
+	uintptr_t signature;
 	int event;
 	const char *data_str;
 	unsigned long data_num;
 };
 
-static inline VALUE ensure_conn(const unsigned long signature)
+static inline VALUE ensure_conn(const uintptr_t signature)
 {
-	VALUE conn = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
+	VALUE conn = rb_hash_aref (EmConnsHash, BSIG2NUM (signature));
 	if (conn == Qnil)
 		rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
 	return conn;
@@ -80,7 +90,7 @@ t_event_callback
 
 static inline void event_callback (struct em_event* e)
 {
-	const unsigned long signature = e->signature;
+	const uintptr_t signature = e->signature;
 	int event = e->event;
 	const char *data_str = e->data_str;
 	const unsigned long data_num = e->data_num;
@@ -88,7 +98,7 @@ static inline void event_callback (struct em_event* e)
 	switch (event) {
 		case EM_CONNECTION_READ:
 		{
-			VALUE conn = rb_hash_aref (EmConnsHash, ULONG2NUM (signature));
+			VALUE conn = rb_hash_aref (EmConnsHash, BSIG2NUM (signature));
 			if (conn == Qnil)
 				rb_raise (EM_eConnectionNotBound, "received %lu bytes of data for unknown signature: %lu", data_num, signature);
 			rb_funcall (conn, Intern_receive_data, 1, rb_str_new (data_str, data_num));
@@ -96,12 +106,12 @@ static inline void event_callback (struct em_event* e)
 		}
 		case EM_CONNECTION_ACCEPTED:
 		{
-			rb_funcall (EmModule, Intern_event_callback, 3, ULONG2NUM(signature), INT2FIX(event), ULONG2NUM(data_num));
+			rb_funcall (EmModule, Intern_event_callback, 3, BSIG2NUM(signature), INT2FIX(event), ULONG2NUM(data_num));
 			return;
 		}
 		case EM_CONNECTION_UNBOUND:
 		{
-			rb_funcall (EmModule, Intern_event_callback, 3, ULONG2NUM(signature), INT2FIX(event), ULONG2NUM(data_num));
+			rb_funcall (EmModule, Intern_event_callback, 3, BSIG2NUM(signature), INT2FIX(event), ULONG2NUM(data_num));
 			return;
 		}
 		case EM_CONNECTION_COMPLETED:
@@ -184,7 +194,7 @@ static void event_error_handler(VALUE unused, VALUE err)
 event_callback_wrapper
 **********************/
 
-static void event_callback_wrapper (const unsigned long signature, int event, const char *data_str, const unsigned long data_num)
+static void event_callback_wrapper (const uintptr_t signature, int event, const char *data_str, const unsigned long data_num)
 {
 	struct em_event e;
 	e.signature = signature;
@@ -231,10 +241,10 @@ t_add_oneshot_timer
 
 static VALUE t_add_oneshot_timer (VALUE self, VALUE interval)
 {
-	const unsigned long f = evma_install_oneshot_timer (FIX2INT (interval));
+	const uintptr_t f = evma_install_oneshot_timer (FIX2INT (interval));
 	if (!f)
 		rb_raise (rb_eRuntimeError, "%s", "ran out of timers; use #set_max_timers to increase limit");
-	return ULONG2NUM (f);
+	return BSIG2NUM (f);
 }
 
 
@@ -244,10 +254,10 @@ t_start_server
 
 static VALUE t_start_server (VALUE self, VALUE server, VALUE port)
 {
-	const unsigned long f = evma_create_tcp_server (StringValuePtr(server), FIX2INT(port));
+	const uintptr_t f = evma_create_tcp_server (StringValuePtr(server), FIX2INT(port));
 	if (!f)
 		rb_raise (rb_eRuntimeError, "%s", "no acceptor (port is in use or requires root privileges)");
-	return ULONG2NUM (f);
+	return BSIG2NUM (f);
 }
 
 /*************
@@ -256,7 +266,7 @@ t_stop_server
 
 static VALUE t_stop_server (VALUE self, VALUE signature)
 {
-	evma_stop_tcp_server (NUM2ULONG (signature));
+	evma_stop_tcp_server (NUM2BSIG (signature));
 	return Qnil;
 }
 
@@ -267,10 +277,10 @@ t_start_unix_server
 
 static VALUE t_start_unix_server (VALUE self, VALUE filename)
 {
-	const unsigned long f = evma_create_unix_domain_server (StringValuePtr(filename));
+	const uintptr_t f = evma_create_unix_domain_server (StringValuePtr(filename));
 	if (!f)
 		rb_raise (rb_eRuntimeError, "%s", "no unix-domain acceptor");
-	return ULONG2NUM (f);
+	return BSIG2NUM (f);
 }
 
 /********************
@@ -279,10 +289,10 @@ t_attach_sd
 
 static VALUE t_attach_sd(VALUE self, VALUE sd)
 {
-	const unsigned long f = evma_attach_sd(FIX2INT(sd));
+	const uintptr_t f = evma_attach_sd(FIX2INT(sd));
 	if (!f)
 		rb_raise (rb_eRuntimeError, "%s", "no socket descriptor acceptor");
-	return ULONG2NUM (f);
+	return BSIG2NUM (f);
 }
 
 
@@ -292,7 +302,7 @@ t_send_data
 
 static VALUE t_send_data (VALUE self, VALUE signature, VALUE data, VALUE data_length)
 {
-	int b = evma_send_data_to_connection (NUM2ULONG (signature), StringValuePtr (data), FIX2INT (data_length));
+	int b = evma_send_data_to_connection (NUM2BSIG (signature), StringValuePtr (data), FIX2INT (data_length));
 	return INT2NUM (b);
 }
 
@@ -303,7 +313,7 @@ t_start_tls
 
 static VALUE t_start_tls (VALUE self, VALUE signature)
 {
-	evma_start_tls (NUM2ULONG (signature));
+	evma_start_tls (NUM2BSIG (signature));
 	return Qnil;
 }
 
@@ -318,7 +328,7 @@ static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE privkeyfile, VA
 	 * It's expected that the parameter list will grow as we add more supported features.
 	 * ALL of these parameters are optional, and can be specified as empty or NULL strings.
 	 */
-	evma_set_tls_parms (NUM2ULONG (signature), StringValuePtr (privkeyfile), StringValuePtr (certchainfile), (verify_peer == Qtrue ? 1 : 0));
+	evma_set_tls_parms (NUM2BSIG (signature), StringValuePtr (privkeyfile), StringValuePtr (certchainfile), (verify_peer == Qtrue ? 1 : 0));
 	return Qnil;
 }
 
@@ -335,7 +345,7 @@ static VALUE t_get_peer_cert (VALUE self, VALUE signature)
 	BUF_MEM *buf;
 	BIO *out;
 
-	cert = evma_get_peer_cert (NUM2ULONG (signature));
+	cert = evma_get_peer_cert (NUM2BSIG (signature));
 
 	if (cert != NULL) {
 		out = BIO_new(BIO_s_mem());
@@ -358,7 +368,7 @@ static VALUE t_get_peername (VALUE self, VALUE signature)
 {
 	char buf[1024];
 	socklen_t len = sizeof buf;
-	if (evma_get_peername (NUM2ULONG (signature), (struct sockaddr*)buf, &len)) {
+	if (evma_get_peername (NUM2BSIG (signature), (struct sockaddr*)buf, &len)) {
 		return rb_str_new (buf, len);
 	}
 
@@ -373,7 +383,7 @@ static VALUE t_get_sockname (VALUE self, VALUE signature)
 {
 	char buf[1024];
 	socklen_t len = sizeof buf;
-	if (evma_get_sockname (NUM2ULONG (signature), (struct sockaddr*)buf, &len)) {
+	if (evma_get_sockname (NUM2BSIG (signature), (struct sockaddr*)buf, &len)) {
 		return rb_str_new (buf, len);
 	}
 
@@ -387,7 +397,7 @@ t_get_subprocess_pid
 static VALUE t_get_subprocess_pid (VALUE self, VALUE signature)
 {
 	pid_t pid;
-	if (evma_get_subprocess_pid (NUM2ULONG (signature), &pid)) {
+	if (evma_get_subprocess_pid (NUM2BSIG (signature), &pid)) {
 		return INT2NUM (pid);
 	}
 
@@ -405,8 +415,8 @@ static VALUE t_get_subprocess_status (VALUE self, VALUE signature)
 	int status;
 	pid_t pid;
 
-	if (evma_get_subprocess_status (NUM2ULONG (signature), &status)) {
-		if (evma_get_subprocess_pid (NUM2ULONG (signature), &pid)) {
+	if (evma_get_subprocess_status (NUM2BSIG (signature), &status)) {
+		if (evma_get_subprocess_pid (NUM2BSIG (signature), &pid)) {
 			proc_status = rb_obj_alloc(rb_cProcStatus);
 
 			/* MRI Ruby uses hidden instance vars */
@@ -445,7 +455,7 @@ t_get_comm_inactivity_timeout
 
 static VALUE t_get_comm_inactivity_timeout (VALUE self, VALUE signature)
 {
-	return rb_float_new(evma_get_comm_inactivity_timeout(NUM2ULONG (signature)));
+	return rb_float_new(evma_get_comm_inactivity_timeout(NUM2BSIG (signature)));
 }
 
 /*****************************
@@ -455,7 +465,7 @@ t_set_comm_inactivity_timeout
 static VALUE t_set_comm_inactivity_timeout (VALUE self, VALUE signature, VALUE timeout)
 {
 	float ti = RFLOAT_VALUE(timeout);
-	if (evma_set_comm_inactivity_timeout(NUM2ULONG(signature), ti)) {
+	if (evma_set_comm_inactivity_timeout(NUM2BSIG(signature), ti)) {
 		return Qtrue;
 	}
 	return Qfalse;
@@ -467,7 +477,7 @@ t_get_pending_connect_timeout
 
 static VALUE t_get_pending_connect_timeout (VALUE self, VALUE signature)
 {
-	return rb_float_new(evma_get_pending_connect_timeout(NUM2ULONG (signature)));
+	return rb_float_new(evma_get_pending_connect_timeout(NUM2BSIG (signature)));
 }
 
 /*****************************
@@ -477,7 +487,7 @@ t_set_pending_connect_timeout
 static VALUE t_set_pending_connect_timeout (VALUE self, VALUE signature, VALUE timeout)
 {
 	float ti = RFLOAT_VALUE(timeout);
-	if (evma_set_pending_connect_timeout(NUM2ULONG(signature), ti)) {
+	if (evma_set_pending_connect_timeout(NUM2BSIG(signature), ti)) {
 		return Qtrue;
 	}
 	return Qfalse;
@@ -489,7 +499,7 @@ t_send_datagram
 
 static VALUE t_send_datagram (VALUE self, VALUE signature, VALUE data, VALUE data_length, VALUE address, VALUE port)
 {
-	int b = evma_send_datagram (NUM2ULONG (signature), StringValuePtr (data), FIX2INT (data_length), StringValuePtr(address), FIX2INT(port));
+	int b = evma_send_datagram (NUM2BSIG (signature), StringValuePtr (data), FIX2INT (data_length), StringValuePtr(address), FIX2INT(port));
 	return INT2NUM (b);
 }
 
@@ -500,7 +510,7 @@ t_close_connection
 
 static VALUE t_close_connection (VALUE self, VALUE signature, VALUE after_writing)
 {
-	evma_close_connection (NUM2ULONG (signature), ((after_writing == Qtrue) ? 1 : 0));
+	evma_close_connection (NUM2BSIG (signature), ((after_writing == Qtrue) ? 1 : 0));
 	return Qnil;
 }
 
@@ -510,7 +520,7 @@ t_report_connection_error_status
 
 static VALUE t_report_connection_error_status (VALUE self, VALUE signature)
 {
-	int b = evma_report_connection_error_status (NUM2ULONG (signature));
+	int b = evma_report_connection_error_status (NUM2BSIG (signature));
 	return INT2NUM (b);
 }
 
@@ -527,10 +537,10 @@ static VALUE t_connect_server (VALUE self, VALUE server, VALUE port)
 	// NUM2INT will throw a type error, but FIX2INT will generate garbage.
 
 	try {
-		const unsigned long f = evma_connect_to_server (NULL, 0, StringValuePtr(server), NUM2INT(port));
+		const uintptr_t f = evma_connect_to_server (NULL, 0, StringValuePtr(server), NUM2INT(port));
 		if (!f)
 			rb_raise (EM_eConnectionError, "%s", "no connection");
-		return ULONG2NUM (f);
+		return BSIG2NUM (f);
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eConnectionError, "%s", e.what());
 	}
@@ -548,10 +558,10 @@ static VALUE t_bind_connect_server (VALUE self, VALUE bind_addr, VALUE bind_port
 	// NUM2INT will throw a type error, but FIX2INT will generate garbage.
 
 	try {
-		const unsigned long f = evma_connect_to_server (StringValuePtr(bind_addr), NUM2INT(bind_port), StringValuePtr(server), NUM2INT(port));
+		const uintptr_t f = evma_connect_to_server (StringValuePtr(bind_addr), NUM2INT(bind_port), StringValuePtr(server), NUM2INT(port));
 		if (!f)
 			rb_raise (EM_eConnectionError, "%s", "no connection");
-		return ULONG2NUM (f);
+		return BSIG2NUM (f);
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eConnectionError, "%s", e.what());
 	}
@@ -564,10 +574,10 @@ t_connect_unix_server
 
 static VALUE t_connect_unix_server (VALUE self, VALUE serversocket)
 {
-	const unsigned long f = evma_connect_to_unix_server (StringValuePtr(serversocket));
+	const uintptr_t f = evma_connect_to_unix_server (StringValuePtr(serversocket));
 	if (!f)
 		rb_raise (rb_eRuntimeError, "%s", "no connection");
-	return ULONG2NUM (f);
+	return BSIG2NUM (f);
 }
 
 /***********
@@ -576,10 +586,10 @@ t_attach_fd
 
 static VALUE t_attach_fd (VALUE self, VALUE file_descriptor, VALUE watch_mode)
 {
-	const unsigned long f = evma_attach_fd (NUM2INT(file_descriptor), watch_mode == Qtrue);
+	const uintptr_t f = evma_attach_fd (NUM2INT(file_descriptor), watch_mode == Qtrue);
 	if (!f)
 		rb_raise (rb_eRuntimeError, "%s", "no connection");
-	return ULONG2NUM (f);
+	return BSIG2NUM (f);
 }
 
 /***********
@@ -588,7 +598,7 @@ t_detach_fd
 
 static VALUE t_detach_fd (VALUE self, VALUE signature)
 {
-	return INT2NUM(evma_detach_fd (NUM2ULONG (signature)));
+	return INT2NUM(evma_detach_fd (NUM2BSIG (signature)));
 }
 
 /*********************
@@ -596,7 +606,7 @@ t_get_file_descriptor
 *********************/
 static VALUE t_get_file_descriptor (VALUE self, VALUE signature)
 {
-	return INT2NUM(evma_get_file_descriptor (NUM2ULONG (signature)));
+	return INT2NUM(evma_get_file_descriptor (NUM2BSIG (signature)));
 }
 
 /**************
@@ -605,7 +615,7 @@ t_get_sock_opt
 
 static VALUE t_get_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optname)
 {
-	int fd = evma_get_file_descriptor (NUM2ULONG (signature));
+	int fd = evma_get_file_descriptor (NUM2BSIG (signature));
 	int level = NUM2INT(lev), option = NUM2INT(optname);
 	socklen_t len = 128;
 	char buf[128];
@@ -622,7 +632,7 @@ t_set_sock_opt
 
 static VALUE t_set_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optname, VALUE optval)
 {
-	int fd = evma_get_file_descriptor (NUM2ULONG (signature));
+	int fd = evma_get_file_descriptor (NUM2BSIG (signature));
 	int level = NUM2INT(lev), option = NUM2INT(optname);
 	int i;
 	const void *v;
@@ -660,7 +670,7 @@ t_is_notify_readable
 
 static VALUE t_is_notify_readable (VALUE self, VALUE signature)
 {
-	return evma_is_notify_readable(NUM2ULONG (signature)) ? Qtrue : Qfalse;
+	return evma_is_notify_readable(NUM2BSIG (signature)) ? Qtrue : Qfalse;
 }
 
 /*********************
@@ -669,7 +679,7 @@ t_set_notify_readable
 
 static VALUE t_set_notify_readable (VALUE self, VALUE signature, VALUE mode)
 {
-	evma_set_notify_readable(NUM2ULONG (signature), mode == Qtrue);
+	evma_set_notify_readable(NUM2BSIG(signature), mode == Qtrue);
 	return Qnil;
 }
 
@@ -679,7 +689,7 @@ t_is_notify_readable
 
 static VALUE t_is_notify_writable (VALUE self, VALUE signature)
 {
-	return evma_is_notify_writable(NUM2ULONG (signature)) ? Qtrue : Qfalse;
+	return evma_is_notify_writable(NUM2BSIG (signature)) ? Qtrue : Qfalse;
 }
 
 /*********************
@@ -688,7 +698,7 @@ t_set_notify_writable
 
 static VALUE t_set_notify_writable (VALUE self, VALUE signature, VALUE mode)
 {
-	evma_set_notify_writable(NUM2ULONG (signature), mode == Qtrue);
+	evma_set_notify_writable(NUM2BSIG (signature), mode == Qtrue);
 	return Qnil;
 }
 
@@ -698,7 +708,7 @@ t_pause
 
 static VALUE t_pause (VALUE self, VALUE signature)
 {
-	return evma_pause(NUM2ULONG (signature)) ? Qtrue : Qfalse;
+	return evma_pause(NUM2BSIG (signature)) ? Qtrue : Qfalse;
 }
 
 /********
@@ -707,7 +717,7 @@ t_resume
 
 static VALUE t_resume (VALUE self, VALUE signature)
 {
-	return evma_resume(NUM2ULONG (signature)) ? Qtrue : Qfalse;
+	return evma_resume(NUM2BSIG (signature)) ? Qtrue : Qfalse;
 }
 
 /**********
@@ -716,7 +726,7 @@ t_paused_p
 
 static VALUE t_paused_p (VALUE self, VALUE signature)
 {
-	return evma_is_paused(NUM2ULONG (signature)) ? Qtrue : Qfalse;
+	return evma_is_paused(NUM2BSIG (signature)) ? Qtrue : Qfalse;
 }
 
 /*********************
@@ -734,10 +744,10 @@ t_open_udp_socket
 
 static VALUE t_open_udp_socket (VALUE self, VALUE server, VALUE port)
 {
-	const unsigned long f = evma_open_datagram_socket (StringValuePtr(server), FIX2INT(port));
+	const uintptr_t f = evma_open_datagram_socket (StringValuePtr(server), FIX2INT(port));
 	if (!f)
 		rb_raise (rb_eRuntimeError, "%s", "no datagram socket");
-	return ULONG2NUM (f);
+	return BSIG2NUM(f);
 }
 
 
@@ -862,7 +872,7 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 	}
 	strings[len] = NULL;
 
-	unsigned long f = 0;
+	uintptr_t f = 0;
 	try {
 		f = evma_popen (strings);
 	} catch (std::runtime_error e) {
@@ -875,7 +885,7 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 		snprintf (buf, sizeof(buf)-1, "no popen: %s", (err?err:"???"));
 		rb_raise (rb_eRuntimeError, "%s", buf);
 	}
-	return ULONG2NUM (f);
+	return BSIG2NUM (f);
 }
 
 
@@ -885,10 +895,10 @@ t_read_keyboard
 
 static VALUE t_read_keyboard (VALUE self)
 {
-	const unsigned long f = evma_open_keyboard();
+	const uintptr_t f = evma_open_keyboard();
 	if (!f)
 		rb_raise (rb_eRuntimeError, "%s", "no keyboard reader");
-	return ULONG2NUM (f);
+	return BSIG2NUM (f);
 }
 
 
@@ -899,7 +909,7 @@ t_watch_filename
 static VALUE t_watch_filename (VALUE self, VALUE fname)
 {
 	try {
-		return ULONG2NUM(evma_watch_filename(StringValuePtr(fname)));
+		return BSIG2NUM(evma_watch_filename(StringValuePtr(fname)));
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eUnsupported, "%s", e.what());
 	}
@@ -913,7 +923,7 @@ t_unwatch_filename
 
 static VALUE t_unwatch_filename (VALUE self, VALUE sig)
 {
-	evma_unwatch_filename(NUM2ULONG (sig));
+	evma_unwatch_filename(NUM2BSIG (sig));
 	return Qnil;
 }
 
@@ -925,7 +935,7 @@ t_watch_pid
 static VALUE t_watch_pid (VALUE self, VALUE pid)
 {
 	try {
-		return ULONG2NUM(evma_watch_pid(NUM2INT(pid)));
+		return BSIG2NUM(evma_watch_pid(NUM2INT(pid)));
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eUnsupported, "%s", e.what());
 	}
@@ -939,7 +949,7 @@ t_unwatch_pid
 
 static VALUE t_unwatch_pid (VALUE self, VALUE sig)
 {
-	evma_unwatch_pid(NUM2ULONG (sig));
+	evma_unwatch_pid(NUM2BSIG (sig));
 	return Qnil;
 }
 
@@ -1047,7 +1057,7 @@ static VALUE t_send_file_data (VALUE self, VALUE signature, VALUE filename)
 	 * do this. For one thing it's ugly. For another, we can't be sure zero is never a real errno.
 	 */
 
-	int b = evma_send_file_data_to_connection (NUM2ULONG (signature), StringValuePtr(filename));
+	int b = evma_send_file_data_to_connection (NUM2BSIG (signature), StringValuePtr(filename));
 	if (b == -1)
 		rb_raise(rb_eRuntimeError, "%s", "File too large.  send_file_data() supports files under 32k.");
 	if (b > 0) {
@@ -1080,7 +1090,7 @@ conn_get_outbound_data_size
 static VALUE conn_get_outbound_data_size (VALUE self)
 {
 	VALUE sig = rb_ivar_get (self, Intern_at_signature);
-	return INT2NUM (evma_get_outbound_data_size (NUM2ULONG (sig)));
+	return INT2NUM (evma_get_outbound_data_size (NUM2BSIG (sig)));
 }
 
 
@@ -1125,7 +1135,7 @@ t_start_proxy
 static VALUE t_start_proxy (VALUE self, VALUE from, VALUE to, VALUE bufsize, VALUE length)
 {
 	try {
-		evma_start_proxy(NUM2ULONG (from), NUM2ULONG (to), NUM2ULONG(bufsize), NUM2ULONG(length));
+		evma_start_proxy(NUM2BSIG (from), NUM2BSIG (to), NUM2ULONG(bufsize), NUM2ULONG(length));
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eConnectionError, "%s", e.what());
 	}
@@ -1140,7 +1150,7 @@ t_stop_proxy
 static VALUE t_stop_proxy (VALUE self, VALUE from)
 {
 	try{
-		evma_stop_proxy(NUM2ULONG (from));
+		evma_stop_proxy(NUM2BSIG (from));
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eConnectionError, "%s", e.what());
 	}
@@ -1154,7 +1164,7 @@ t_proxied_bytes
 static VALUE t_proxied_bytes (VALUE self, VALUE from)
 {
 	try{
-		return ULONG2NUM(evma_proxied_bytes(NUM2ULONG (from)));
+		return BSIG2NUM(evma_proxied_bytes(NUM2BSIG (from)));
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eConnectionError, "%s", e.what());
 	}
@@ -1169,10 +1179,10 @@ static VALUE t_get_idle_time (VALUE self, VALUE from)
 {
 	try{
 		uint64_t current_time = evma_get_current_loop_time();
-		uint64_t time = evma_get_last_activity_time(NUM2ULONG (from));
+		uint64_t time = evma_get_last_activity_time(NUM2BSIG (from));
 		if (current_time != 0 && time != 0) {
 			if (time >= current_time)
-				return ULONG2NUM(0);
+				return BSIG2NUM(0);
 			else {
 				uint64_t diff = current_time - time;
 				float seconds = diff / (1000.0*1000.0);
