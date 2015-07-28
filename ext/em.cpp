@@ -2316,7 +2316,7 @@ void EventMachine_t::_ReadInotifyEvents()
 
 	for (;;) {
 		int returned = read(inotify->GetSocket(), buffer, sizeof(buffer));
-		assert(!(returned == 0 || returned == -1 && errno == EINVAL));
+		assert(!(returned == 0 || (returned == -1 && errno == EINVAL)));
 		if (returned <= 0) {
 			break;
 		}
