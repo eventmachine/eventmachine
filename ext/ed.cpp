@@ -1492,8 +1492,11 @@ void AcceptorDescriptor::Read()
 			(*EventCallback) (GetBinding(), EM_CONNECTION_ACCEPTED, NULL, cd->GetBinding());
 		}
 		#ifdef HAVE_EPOLL
-		cd->GetEpollEvent()->events =
-			(cd->SelectForRead() ? EPOLLIN : 0) | (cd->SelectForWrite() ? EPOLLOUT : 0);
+		cd->GetEpollEvent()->events = 0;
+		if (cd->SelectForRead())
+			cd->GetEpollEvent()->events |= EPOLLIN;
+		if (cd->SelectForWrite())
+			cd->GetEpollEvent()->events |= EPOLLOUT;
 		#endif
 		assert (MyEventMachine);
 		MyEventMachine->Add (cd);
@@ -1734,7 +1737,9 @@ void DatagramDescriptor::Write()
 	}
 
 	#ifdef HAVE_EPOLL
-	EpollEvent.events = (EPOLLIN | (SelectForWrite() ? EPOLLOUT : 0));
+	EpollEvent.events = EPOLLIN;
+	if (SelectForWrite())
+		EpollEvent.events |= EPOLLOUT;
 	assert (MyEventMachine);
 	MyEventMachine->Modify (this);
 	#endif
