@@ -305,7 +305,7 @@ bool PipeDescriptor::SelectForWrite()
 PipeDescriptor::SendOutboundData
 ********************************/
 
-int PipeDescriptor::SendOutboundData (const char *data, int length)
+int PipeDescriptor::SendOutboundData (const char *data, unsigned long length)
 {
 	//if (bCloseNow || bCloseAfterWriting)
 	if (IsCloseScheduled())

@@ -305,13 +305,13 @@ void EventableDescriptor::SetProxiedFrom(EventableDescriptor *from, const unsign
 EventableDescriptor::_GenericInboundDispatch
 ********************************************/
 
-void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
+void EventableDescriptor::_GenericInboundDispatch(const char *buf, unsigned long size)
 {
 	assert(EventCallback);
 
 	if (ProxyTarget) {
 		if (BytesToProxy > 0) {
-			unsigned long proxied = min(BytesToProxy, (unsigned long) size);
+			unsigned long proxied = min(BytesToProxy, size);
 			ProxyTarget->SendOutboundData(buf, proxied);
 			ProxiedBytes += (unsigned long) proxied;
 			BytesToProxy -= proxied;
@@ -324,7 +324,7 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, int size)
 			}
 		} else {
 			ProxyTarget->SendOutboundData(buf, size);
-			ProxiedBytes += (unsigned long) size;
+			ProxiedBytes += size;
 		}
 	} else {
 		(*EventCallback)(GetBinding(), EM_CONNECTION_READ, buf, size);
@@ -571,7 +571,7 @@ void ConnectionDescriptor::SetNotifyWritable(bool writable)
 ConnectionDescriptor::SendOutboundData
 **************************************/
 
-int ConnectionDescriptor::SendOutboundData (const char *data, int length)
+int ConnectionDescriptor::SendOutboundData (const char *data, unsigned long length)
 {
 	if (bWatchOnly)
 		throw std::runtime_error ("cannot send data on a 'watch only' connection");
@@ -582,7 +582,7 @@ int ConnectionDescriptor::SendOutboundData (const char *data, int length)
 	#ifdef WITH_SSL
 	if (SslBox) {
 		if (length > 0) {
-			int writed = 0;
+			unsigned long writed = 0;
 			char *p = (char*)data;
 
 			while (writed < length) {
@@ -616,7 +616,7 @@ int ConnectionDescriptor::SendOutboundData (const char *data, int length)
 ConnectionDescriptor::_SendRawOutboundData
 ******************************************/
 
-int ConnectionDescriptor::_SendRawOutboundData (const char *data, int length)
+int ConnectionDescriptor::_SendRawOutboundData (const char *data, unsigned long length)
 {
 	/* This internal method is called to schedule bytes that
 	 * will be sent out to the remote peer.
@@ -856,7 +856,7 @@ void ConnectionDescriptor::Read()
 ConnectionDescriptor::_DispatchInboundData
 ******************************************/
 
-void ConnectionDescriptor::_DispatchInboundData (const char *buffer, int size)
+void ConnectionDescriptor::_DispatchInboundData (const char *buffer, unsigned long size)
 {
 	#ifdef WITH_SSL
 	if (SslBox) {
@@ -1766,7 +1766,7 @@ bool DatagramDescriptor::SelectForWrite()
 DatagramDescriptor::SendOutboundData
 ************************************/
 
-int DatagramDescriptor::SendOutboundData (const char *data, int length)
+int DatagramDescriptor::SendOutboundData (const char *data, unsigned long length)
 {
 	// This is almost an exact clone of ConnectionDescriptor::_SendRawOutboundData.
 	// That means most of it could be factored to a common ancestor. Note that
@@ -1802,7 +1802,7 @@ int DatagramDescriptor::SendOutboundData (const char *data, int length)
 DatagramDescriptor::SendOutboundDatagram
 ****************************************/
 
-int DatagramDescriptor::SendOutboundDatagram (const char *data, int length, const char *address, int port)
+int DatagramDescriptor::SendOutboundDatagram (const char *data, unsigned long length, const char *address, int port)
 {
 	// This is an exact clone of ConnectionDescriptor::SendOutboundData.
 	// That means it needs to move to a common ancestor.
