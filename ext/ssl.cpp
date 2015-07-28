@@ -82,7 +82,7 @@ static char PrivateMaterials[] = {
 builtin_passwd_cb
 *****************/
 
-extern "C" int builtin_passwd_cb (char *buf, int bufsize, int rwflag, void *userdata)
+extern "C" int builtin_passwd_cb (char *buf UNUSED, int bufsize UNUSED, int rwflag UNUSED, void *userdata UNUSED)
 {
 	strcpy (buf, "kittycat");
 	return 8;
@@ -442,7 +442,7 @@ X509 *SslBox_t::GetPeerCert()
 ssl_verify_wrapper
 *******************/
 
-extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
+extern "C" int ssl_verify_wrapper(int preverify_ok UNUSED, X509_STORE_CTX *ctx)
 {
 	uintptr_t binding;
 	X509 *cert;

@@ -537,7 +537,7 @@ extern "C" int evma_get_subprocess_pid (const uintptr_t binding, pid_t *pid)
 evma_get_subprocess_status
 **************************/
 
-extern "C" int evma_get_subprocess_status (const uintptr_t binding, int *status)
+extern "C" int evma_get_subprocess_status (const uintptr_t binding UNUSED, int *status)
 {
 	ensure_eventmachine("evma_get_subprocess_status");
 	if (status) {

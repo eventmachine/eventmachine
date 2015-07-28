@@ -882,9 +882,9 @@ void EventMachine_t::_CleanupSockets()
 EventMachine_t::_ModifyEpollEvent
 *********************************/
 
+#ifdef HAVE_EPOLL
 void EventMachine_t::_ModifyEpollEvent (EventableDescriptor *ed)
 {
-	#ifdef HAVE_EPOLL
 	if (bEpoll) {
 		assert (epfd != -1);
 		assert (ed);
@@ -896,9 +896,10 @@ void EventMachine_t::_ModifyEpollEvent (EventableDescriptor *ed)
 			throw std::runtime_error (buf);
 		}
 	}
-	#endif
 }
-
+#else
+void EventMachine_t::_ModifyEpollEvent (EventableDescriptor *ed UNUSED) { }
+#endif
 
 
 /**************************

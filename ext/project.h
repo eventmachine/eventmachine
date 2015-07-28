@@ -155,6 +155,12 @@ extern "C" {
 }
 #endif
 
+#if defined(__GNUC__) && (__GNUC__ >= 3)
+#define UNUSED __attribute__ ((unused))
+#else
+#define UNUSED
+#endif
+
 #include "binder.h"
 #include "em.h"
 #include "ed.h"
