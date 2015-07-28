@@ -337,7 +337,7 @@ EventMachine_t::SignalLoopBreaker
 void EventMachine_t::SignalLoopBreaker()
 {
 	#ifdef OS_UNIX
-	write (LoopBreakerWriter, "", 1);
+	(void)write (LoopBreakerWriter, "", 1);
 	#endif
 	#ifdef OS_WIN32
 	sendto (LoopBreakerReader, "", 0, 0, (struct sockaddr*)&(LoopBreakerTarget), sizeof(LoopBreakerTarget));
@@ -1124,7 +1124,7 @@ void EventMachine_t::_ReadLoopBreaker()
 	 * and send a loop-break event back to user code.
 	 */
 	char buffer [1024];
-	read (LoopBreakerReader, buffer, sizeof(buffer));
+	(void)read (LoopBreakerReader, buffer, sizeof(buffer));
 	if (EventCallback)
 		(*EventCallback)(0, EM_LOOPBREAK_SIGNAL, "", 0);
 }
