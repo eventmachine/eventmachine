@@ -1443,6 +1443,215 @@ void AcceptorDescriptor::Read()
 			break;
 		}
 
+
+		/* ****************************************
+		   nijopa 2/15/2012
+		   fix for close_on_exec issue
+
+		   Operating system version
+
+		      Operating system : centos 6 on AMD x86_64 arch
+		      Kernel version:
+		      >> uname -a
+		      >> Linux localhost.localdomain 2.6.32-71.el6.x86_64 #1 SMP Fri May 20 03:51:51 BST 2011 x86_64 x86_64 x86_64 GNU/Linux
+
+		   Ruby version
+
+		      >> ruby --version
+		      >> ruby 1.9.2p290 (2011-07-09 revision 32553) [x86_64-linux]
+
+		   Problem Description
+		   -------------------
+
+		   We detected this problem while developing a client/server job
+		   distribution system for a scientific computing application.
+
+		   We have a very large LSF compute cluster which we use to
+		   process compute-intensive tasks.  The job distribution system
+		   gets a compute slot on LSF where a client is launched.  The
+		   client then rings back to the server and asks for work, which
+		   is subsequently launched as a sub-process of the client.
+
+		   We found that we were getting clients 'stuck' on compute
+		   slots, without any associated workload being processed. These
+		   clients would live forever, taking up capacity on our LSF
+		   cluster, which in turn reduced throughput for other users of
+		   the cluster.
+
+		   An initial investigation showed that these client processes
+		   did not appear to have any corresponding server process.
+
+		   There was a TCP socket open on the client host to the machine
+		   which had hosted the server process, but apparently no
+		   corresponding socket on the server host.
+
+		   Scenario
+		   --------
+		   
+		   We knew that users had started killing the server process for
+		   their jobs in order to launch newer, fresher workloads.
+
+		   LSF uses a sequence of signals to both warn a job that it is
+		   about to be shut down, and to ensure that the job really does
+		   terminate. The sequence is as follows:
+
+		   SIGINT -> SIGTERM -> SIGKILL (separated by a time of 10s)
+
+		   We know that the server application traps SIGINT and SIGTERM
+		   signals, so it seemed likely that the problem was an incomplete
+		   shutdown under SIGKILL conditions.
+
+		   We need to use EM.system() to launch sub processes from the
+		   server in order to launch the clients into the compute
+		   cluster.  Access to the LSF cluster is via vanilla
+		   user-facing tools (eg bsub, bjobs, bkill etc etc).
+
+		   The full scenario is as follows:
+
+		   1) server launches client into lsf with EM.system("bsub ...")
+		   2) EM goes off to handle other tasks while the bsub is running
+		   3) Time passes...
+		   4) server uses EM.system() to do some other time consuming job
+		   5) While this is running, one or more client processes ring home
+		      to get their next workloads
+		   6) User decides to terminate their current set of jobs and issues
+		      a 'bkill' operation, assuming that this will also kill the clients.
+		      (NB - the clients do have a heartbeat mechanism to detect the
+		      death of the server)
+		   7) LSF starts killing the server (the EM.system is still running)
+		   8) LSF eventually uses SIGKILL to ensure a full kill
+
+		   >> wedged client processes!
+
+		   Reproduction
+		   ------------
+
+		   We were able to reproduce the scenario by writing a simple
+		   EventMachine::HttpServer server and using standard tools
+		   such as 'wget' to connect to the server.
+
+		   When the server got an incoming request, it launched a
+		   time consuming sub-process such as '/bin/sleep 3600'
+		   via EM.system().
+
+		   We were able to confirm that EM launched the 'sleep' in such a
+		   way that it wasn't blocking the wider EM event processing
+		   loop. We could also see the 'sleep' as a subprocess of ruby,
+		   along with processes for the 20 threads spawned by EM.
+
+		   We also confirmed that the TCP connection was attached to the
+		   server as you would expect:
+
+		   lsof -p 28915
+		   COMMAND   PID USER   FD   TYPE             DEVICE SIZE/OFF    NODE NAME
+		   ruby    28915 nick  cwd    DIR              253,0     4096  532885 /home/nick/Work/ruby_event_machine_tests
+		   ... snip ...
+		   ruby    28915 nick    5u  IPv4             156947      0t0     TCP *:tproxy (LISTEN)
+		   ruby    28915 nick    6u  IPv4             157383      0t0     TCP localhost.localdomain:tproxy->loca
+
+		   We then issued a SIGKILL (kill -9) to the server process.
+
+		   We saw that the server process died, as you would expect,
+		   since SIGKILL is not trappable.
+
+		   We also saw that the 'sleep' process was still in existance,
+		   but orphaned, so therefore attached to PID 1.
+
+		   However, we also saw that the 'wget' client did not detach
+		   from its socket when the server died. We also saw that the
+		   'sleep' process had a copy of the TCP connection between
+		   the 'wget' client and the (now dead) server.
+
+		   For example:
+
+		   lsof -p 28955
+		   COMMAND   PID USER   FD   TYPE             DEVICE SIZE/OFF   NODE NAME
+		   sleep   28955 nick  cwd    DIR              253,0     4096 532885 /home/nick/Work/ruby_event_machine_tests
+		   sleep   28955 nick  txt    REG              253,0    27880 132819 /bin/sleep
+		   ... snip ...
+		   sleep   28955 nick    6u  IPv4             157383      0t0    TCP localhost.localdomain:tproxy->localhost.localdomain:50903 (ESTABLISHED)
+
+		   We validated that the 'wget' client did indeed terminate when
+		   the 'sleep' process was terminated.
+
+		   So, how did a 'sleep' process end up getting a TCP connection??
+
+
+		   ==========
+		   Root cause
+		   ==========
+
+		   The root cause is the handling of the FD_CLOEXEC property on the
+		   file descriptors which represent the TCP connections onto the server.
+
+		   If you look at the 'lsof' for process 28915 output above,
+		   you'll see that the server actually has 2 file descriptors
+		   open:
+
+		     5) LISTEN
+		     6) TCP connection ESTABLISHED
+
+		   When you look at the 'sleep' process (PID 28955), you see the
+		   ESTABLISHED connection but you'll notice that it's file
+		   descriptor '6'. File descriptor '5' has been closed.
+
+		   This is what we'd expect to see, given that FD_CLOEXEC is set
+		   on the file descriptor which was originally created when the
+		   TCP server was initialized.
+
+		   You can find this code in file 'em.cpp'
+		   at line 1533 (in method EventMachine_t::CreateTcpServer) in
+		   the eventmachine-1.0.0.beta.4 release.
+
+		   However, the file descriptor '6' appears to have been inheritted,
+		   which suggests that it didn't have FD_CLOEXEC set on it.
+
+		   Fix
+		   ---
+
+		   I tracked the generation of the new file descriptor down to
+		   the 'accept' statement on line 1410 in this file (above).
+
+		   The fix is to simply set the FD_CLOEXEC property on the new file
+		   descriptor, in exactly the same way as done in file em.cpp:1533.
+
+		   In testing, this does solve the inheritance of file
+		   descriptors by child processes and allows the client 'wget'
+		   process to die as soon as the server process is killed.
+	      
+		   What this fix does not address
+		   ------------------------------
+
+		   This fix will still allow the child process to be orhpaned.
+
+		   It also does not address what the long-running process launched
+		   by the server was, that stayed alive so long that the clients
+		   never appeared to terminate. That's a workload issue which we'll
+		   need to resolve ourselves.
+
+		   Questions / Possible issues
+		   ---------------------------
+
+		   While this fix solves my specific problem, I don't know whether
+		   this will cause problems for other EM workloads.
+
+		   Does this fix go against any design philosophy of EventMachine?
+		   Was it deliberate that FD_CLOEXEC wasn't set against the new
+		   file descriptor?
+
+		   Do any sub-processes launched with EM.system() depend on accessing
+		   the TCP socket opened by its parent?
+		*/
+
+
+		int cloexec = fcntl (sd, F_GETFD, 0);
+		assert (cloexec >= 0);
+		cloexec |= FD_CLOEXEC;
+		fcntl (sd, F_SETFD, cloexec);
+
+		// End of nijopa fix
+		// ****************************************
+
 		// Set the newly-accepted socket non-blocking.
 		// On Windows, this may fail because, weirdly, Windows inherits the non-blocking
 		// attribute that we applied to the acceptor socket into the accepted one.
