@@ -969,7 +969,7 @@ void ConnectionDescriptor::Write()
 		   ::Write to be called in a busy-loop.
 		*/
 		#ifdef HAVE_KQUEUE
-		if (MyEventMachine->UsingKqueue()) {
+		if (MyEventMachine->GetPoller() == Poller_Kqueue) {
 			if (OutboundDataSize == 0 && !bGotExtraKqueueEvent) {
 				bGotExtraKqueueEvent = true;
 				return;

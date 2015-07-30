@@ -29,8 +29,7 @@ See the file COPYING for complete licensing information.
 #endif
 
 static EventMachine_t *EventMachine;
-static int bUseEpoll = 0;
-static int bUseKqueue = 0;
+static Poller_t Poller = Poller_Default;
 
 extern "C" void ensure_eventmachine (const char *caller = "unknown caller")
 {
@@ -58,11 +57,8 @@ extern "C" void evma_initialize_library (EMCallback cb)
 		#else
 			throw std::runtime_error ("eventmachine already initialized: evma_initialize_library");
 		#endif
-	EventMachine = new EventMachine_t (cb);
-	if (bUseEpoll)
-		EventMachine->_UseEpoll();
-	if (bUseKqueue)
-		EventMachine->_UseKqueue();
+
+	EventMachine = new EventMachine_t (cb, Poller);
 }
 
 
@@ -736,7 +732,10 @@ evma_set_epoll
 
 extern "C" void evma_set_epoll (int use)
 {
-	bUseEpoll = !!use;
+	if (use)
+		Poller = Poller_Epoll;
+	else
+		Poller = Poller_Default;
 }
 
 /***************
@@ -745,7 +744,10 @@ evma_set_kqueue
 
 extern "C" void evma_set_kqueue (int use)
 {
-	bUseKqueue = !!use;
+	if (use)
+		Poller = Poller_Kqueue;
+	else
+		Poller = Poller_Default;
 }
 
 
