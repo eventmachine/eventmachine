@@ -92,11 +92,11 @@ STATIC: Bindable_t::GetObject
 
 Bindable_t *Bindable_t::GetObject (const uintptr_t binding)
 {
-  map<uintptr_t, Bindable_t*>::const_iterator i = BindingBag.find (binding);
-  if (i != BindingBag.end())
-    return i->second;
-  else
-    return NULL;
+	map<uintptr_t, Bindable_t*>::const_iterator i = BindingBag.find (binding);
+	if (i != BindingBag.end())
+		return i->second;
+	else
+		return NULL;
 }
 
 

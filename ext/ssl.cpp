@@ -392,7 +392,7 @@ int SslBox_t::PutPlaintext (const char *buf, int bufsize)
 
 	bool fatal = false;
 	bool did_work = false;
-	int pending =  BIO_pending(pbioWrite);
+	int pending = BIO_pending(pbioWrite);
 
 	while (OutboundQ.HasPages() && pending < SSLBOX_WRITE_BUFFER_SIZE) {
 		const char *page;
@@ -400,7 +400,7 @@ int SslBox_t::PutPlaintext (const char *buf, int bufsize)
 		OutboundQ.Front (&page, &length);
 		assert (page && (length > 0));
 		int n = SSL_write (pSSL, page, length);
-		pending =  BIO_pending(pbioWrite);
+		pending = BIO_pending(pbioWrite);
 
 		if (n > 0) {
 			did_work = true;

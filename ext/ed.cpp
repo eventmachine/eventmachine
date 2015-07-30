@@ -473,7 +473,7 @@ ConnectionDescriptor::SetAttached
 
 void ConnectionDescriptor::SetAttached(bool state)
 {
-   bAttached = state;
+	bAttached = state;
 }
 
 
@@ -645,28 +645,28 @@ ConnectionDescriptor::SelectForRead
 
 bool ConnectionDescriptor::SelectForRead()
 {
-  /* A connection descriptor is always scheduled for read,
-   * UNLESS it's in a pending-connect state.
-   * On Linux, unlike Unix, a nonblocking socket on which
-   * connect has been called, does NOT necessarily select
-   * both readable and writable in case of error.
-   * The socket will select writable when the disposition
-   * of the connect is known. On the other hand, a socket
-   * which successfully connects and selects writable may
-   * indeed have some data available on it, so it will
-   * select readable in that case, violating expectations!
-   * So we will not poll for readability until the socket
-   * is known to be in a connected state.
-   */
+	/* A connection descriptor is always scheduled for read,
+	 * UNLESS it's in a pending-connect state.
+	 * On Linux, unlike Unix, a nonblocking socket on which
+	 * connect has been called, does NOT necessarily select
+	 * both readable and writable in case of error.
+	 * The socket will select writable when the disposition
+	 * of the connect is known. On the other hand, a socket
+	 * which successfully connects and selects writable may
+	 * indeed have some data available on it, so it will
+	 * select readable in that case, violating expectations!
+	 * So we will not poll for readability until the socket
+	 * is known to be in a connected state.
+	 */
 
-  if (bPaused)
-    return false;
-  else if (bConnectPending)
-    return false;
-  else if (bWatchOnly)
-    return bNotifyReadable ? true : false;
-  else
-    return true;
+	if (bPaused)
+		return false;
+	else if (bConnectPending)
+		return false;
+	else if (bWatchOnly)
+		return bNotifyReadable ? true : false;
+	else
+		return true;
 }
 
 
@@ -676,20 +676,20 @@ ConnectionDescriptor::SelectForWrite
 
 bool ConnectionDescriptor::SelectForWrite()
 {
-  /* Cf the notes under SelectForRead.
-   * In a pending-connect state, we ALWAYS select for writable.
-   * In a normal state, we only select for writable when we
-   * have outgoing data to send.
-   */
+	/* Cf the notes under SelectForRead.
+	 * In a pending-connect state, we ALWAYS select for writable.
+	 * In a normal state, we only select for writable when we
+	 * have outgoing data to send.
+	 */
 
-  if (bPaused)
-    return false;
-  else if (bConnectPending)
-    return true;
-  else if (bWatchOnly)
-    return bNotifyWritable ? true : false;
-  else
-    return (GetOutboundDataSize() > 0);
+	if (bPaused)
+		return false;
+	else if (bConnectPending)
+		return true;
+	else if (bWatchOnly)
+		return bNotifyWritable ? true : false;
+	else
+		return (GetOutboundDataSize() > 0);
 }
 
 /***************************
@@ -1311,14 +1311,14 @@ void ConnectionDescriptor::Heartbeat()
 			UnbindReasonCode = ETIMEDOUT;
 			ScheduleClose (false);
 			//bCloseNow = true;
-    }
+		}
 	}
 	else {
 		if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout)) {
 			UnbindReasonCode = ETIMEDOUT;
 			ScheduleClose (false);
 			//bCloseNow = true;
-    }
+		}
 	}
 }
 
@@ -1366,8 +1366,8 @@ LoopbreakDescriptor::Write
 
 void LoopbreakDescriptor::Write()
 {
-  // Why are we here?
-  throw std::runtime_error ("bad code path in loopbreak");
+	// Why are we here?
+	throw std::runtime_error ("bad code path in loopbreak");
 }
 
 /**************************************
@@ -1490,8 +1490,8 @@ AcceptorDescriptor::Write
 
 void AcceptorDescriptor::Write()
 {
-  // Why are we here?
-  throw std::runtime_error ("bad code path in acceptor");
+	// Why are we here?
+	throw std::runtime_error ("bad code path in acceptor");
 }
 
 
@@ -1501,7 +1501,7 @@ AcceptorDescriptor::Heartbeat
 
 void AcceptorDescriptor::Heartbeat()
 {
-  // No-op
+	// No-op
 }
 
 

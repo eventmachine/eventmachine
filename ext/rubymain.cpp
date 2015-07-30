@@ -800,8 +800,8 @@ t_set_timer_quantum
 
 static VALUE t_set_timer_quantum (VALUE self, VALUE interval)
 {
-  evma_set_timer_quantum (FIX2INT (interval));
-  return Qnil;
+	evma_set_timer_quantum (FIX2INT (interval));
+	return Qnil;
 }
 
 /********************
@@ -810,7 +810,7 @@ t_get_max_timer_count
 
 static VALUE t_get_max_timer_count (VALUE self)
 {
-  return INT2FIX (evma_get_max_timer_count());
+	return INT2FIX (evma_get_max_timer_count());
 }
 
 /********************
@@ -819,8 +819,8 @@ t_set_max_timer_count
 
 static VALUE t_set_max_timer_count (VALUE self, VALUE ct)
 {
-  evma_set_max_timer_count (FIX2INT (ct));
-  return Qnil;
+	evma_set_max_timer_count (FIX2INT (ct));
+	return Qnil;
 }
 
 /********************
@@ -829,13 +829,13 @@ t_get/set_simultaneous_accept_count
 
 static VALUE t_get_simultaneous_accept_count (VALUE self)
 {
-  return INT2FIX (evma_get_simultaneous_accept_count());
+	return INT2FIX (evma_get_simultaneous_accept_count());
 }
 
 static VALUE t_set_simultaneous_accept_count (VALUE self, VALUE ct)
 {
-  evma_set_simultaneous_accept_count (FIX2INT (ct));
-  return Qnil;
+	evma_set_simultaneous_accept_count (FIX2INT (ct));
+	return Qnil;
 }
 
 /***************
@@ -844,8 +844,8 @@ t_setuid_string
 
 static VALUE t_setuid_string (VALUE self, VALUE username)
 {
-  evma_setuid_string (StringValueCStr (username));
-  return Qnil;
+	evma_setuid_string (StringValueCStr (username));
+	return Qnil;
 }
 
 
@@ -960,11 +960,11 @@ t__epoll_p
 
 static VALUE t__epoll_p (VALUE self)
 {
-  #ifdef HAVE_EPOLL
-  return Qtrue;
-  #else
-  return Qfalse;
-  #endif
+	#ifdef HAVE_EPOLL
+	return Qtrue;
+	#else
+	return Qfalse;
+	#endif
 }
 
 /********
@@ -997,11 +997,11 @@ t__kqueue_p
 
 static VALUE t__kqueue_p (VALUE self)
 {
-  #ifdef HAVE_KQUEUE
-  return Qtrue;
-  #else
-  return Qfalse;
-  #endif
+	#ifdef HAVE_KQUEUE
+	return Qtrue;
+	#else
+	return Qfalse;
+	#endif
 }
 
 /*********
@@ -1034,11 +1034,11 @@ t__ssl_p
 
 static VALUE t__ssl_p (VALUE self)
 {
-  #ifdef WITH_SSL
-  return Qtrue;
-  #else
-  return Qfalse;
-  #endif
+	#ifdef WITH_SSL
+	return Qtrue;
+	#else
+	return Qfalse;
+	#endif
 }
 
 
@@ -1111,20 +1111,20 @@ t_get_loop_time
 
 static VALUE t_get_loop_time (VALUE self)
 {
-#ifndef HAVE_RB_TIME_NEW
-  static VALUE cTime = rb_path2class("Time");
-  static ID at = rb_intern("at");
-#endif
+	#ifndef HAVE_RB_TIME_NEW
+	static VALUE cTime = rb_path2class("Time");
+	static ID at = rb_intern("at");
+	#endif
 
-  uint64_t current_time = evma_get_current_loop_time();
-  if (current_time != 0) {
-#ifndef HAVE_RB_TIME_NEW
-    return rb_funcall(cTime, at, 2, INT2NUM(current_time / 1000000), INT2NUM(current_time % 1000000));
-#else
-    return rb_time_new(current_time / 1000000, current_time % 1000000);
-#endif
-  }
-  return Qnil;
+	uint64_t current_time = evma_get_current_loop_time();
+	if (current_time != 0) {
+	#ifndef HAVE_RB_TIME_NEW
+		return rb_funcall(cTime, at, 2, INT2NUM(current_time / 1000000), INT2NUM(current_time % 1000000));
+	#else
+		return rb_time_new(current_time / 1000000, current_time % 1000000);
+	#endif
+	}
+	return Qnil;
 }
 
 

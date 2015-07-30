@@ -197,19 +197,19 @@ EventMachine_t::ScheduleHalt
 
 void EventMachine_t::ScheduleHalt()
 {
-  /* This is how we stop the machine.
-   * This can be called by clients. Signal handlers will probably
-   * set the global flag.
-   * For now this means there can only be one EventMachine ever running at a time.
-   *
-   * IMPORTANT: keep this light, fast, and async-safe. Don't do anything frisky in here,
-   * because it may be called from signal handlers invoked from code that we don't
-   * control. At this writing (20Sep06), EM does NOT install any signal handlers of
-   * its own.
-   *
-   * We need a FAQ. And one of the questions is: how do I stop EM when Ctrl-C happens?
-   * The answer is to call evma_stop_machine, which calls here, from a SIGINT handler.
-   */
+	/* This is how we stop the machine.
+	 * This can be called by clients. Signal handlers will probably
+	 * set the global flag.
+	 * For now this means there can only be one EventMachine ever running at a time.
+	 *
+	 * IMPORTANT: keep this light, fast, and async-safe. Don't do anything frisky in here,
+	 * because it may be called from signal handlers invoked from code that we don't
+	 * control. At this writing (20Sep06), EM does NOT install any signal handlers of
+	 * its own.
+	 *
+	 * We need a FAQ. And one of the questions is: how do I stop EM when Ctrl-C happens?
+	 * The answer is to call evma_stop_machine, which calls here, from a SIGINT handler.
+	 */
 	bTerminateSignalReceived = true;
 
 	/* Signal the loopbreaker so we break out of long-running select/epoll/kqueue and
@@ -244,33 +244,33 @@ void EventMachine_t::SetTimerQuantum (int interval)
 
 void EventMachine_t::SetuidString (const char *username)
 {
-    /* This method takes a caller-supplied username and tries to setuid
-     * to that user. There is no meaningful implementation (and no error)
-     * on Windows. On Unix, a failure to setuid the caller-supplied string
-     * causes a fatal abort, because presumably the program is calling here
-     * in order to fulfill a security requirement. If we fail silently,
-     * the user may continue to run with too much privilege.
-     *
-     * TODO, we need to decide on and document a way of generating C++ level errors
-     * that can be wrapped in documented Ruby exceptions, so users can catch
-     * and handle them. And distinguish it from errors that we WON'T let the Ruby
-     * user catch (like security-violations and resource-overallocation).
-     * A setuid failure here would be in the latter category.
-     */
+	/* This method takes a caller-supplied username and tries to setuid
+	 * to that user. There is no meaningful implementation (and no error)
+	 * on Windows. On Unix, a failure to setuid the caller-supplied string
+	 * causes a fatal abort, because presumably the program is calling here
+	 * in order to fulfill a security requirement. If we fail silently,
+	 * the user may continue to run with too much privilege.
+	 *
+	 * TODO, we need to decide on and document a way of generating C++ level errors
+	 * that can be wrapped in documented Ruby exceptions, so users can catch
+	 * and handle them. And distinguish it from errors that we WON'T let the Ruby
+	 * user catch (like security-violations and resource-overallocation).
+	 * A setuid failure here would be in the latter category.
+	 */
 
-    #ifdef OS_UNIX
-    if (!username || !*username)
-	throw std::runtime_error ("setuid_string failed: no username specified");
+	#ifdef OS_UNIX
+	if (!username || !*username)
+		throw std::runtime_error ("setuid_string failed: no username specified");
 
-    struct passwd *p = getpwnam (username);
-    if (!p)
-	throw std::runtime_error ("setuid_string failed: unknown username");
+	struct passwd *p = getpwnam (username);
+	if (!p)
+		throw std::runtime_error ("setuid_string failed: unknown username");
 
-    if (setuid (p->pw_uid) != 0)
-	throw std::runtime_error ("setuid_string failed: no setuid");
+	if (setuid (p->pw_uid) != 0)
+		throw std::runtime_error ("setuid_string failed: no setuid");
 
-    // Success.
-    #endif
+	// Success.
+	#endif
 }
 
 
@@ -2282,7 +2282,7 @@ void EventMachine_t::_ReadInotifyEvents()
 		int returned = read(inotify->GetSocket(), buffer, sizeof(buffer));
 		assert(!(returned == 0 || returned == -1 && errno == EINVAL));
 		if (returned <= 0) {
-		    break;
+			break;
 		}
 		int current = 0;
 		while (current < returned) {
