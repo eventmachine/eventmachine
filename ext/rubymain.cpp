@@ -223,12 +223,21 @@ static VALUE t_initialize_event_machine (VALUE self UNUSED)
 }
 
 
+/******************
+t_run_machine_once
+******************/
 
-/*****************************
-t_run_machine_without_threads
-*****************************/
+static VALUE t_run_machine_once (VALUE self UNUSED)
+{
+	return evma_run_machine_once () ? Qtrue : Qfalse;
+}
 
-static VALUE t_run_machine_without_threads (VALUE self UNUSED)
+
+/*************
+t_run_machine
+*************/
+
+static VALUE t_run_machine (VALUE self UNUSED)
 {
 	evma_run_machine();
 	return Qnil;
@@ -1261,8 +1270,9 @@ extern "C" void Init_rubyeventmachine()
 	EM_eUnsupported = rb_define_class_under (EmModule, "Unsupported", rb_eRuntimeError);
 
 	rb_define_module_function (EmModule, "initialize_event_machine", (VALUE(*)(...))t_initialize_event_machine, 0);
-	rb_define_module_function (EmModule, "run_machine", (VALUE(*)(...))t_run_machine_without_threads, 0);
-	rb_define_module_function (EmModule, "run_machine_without_threads", (VALUE(*)(...))t_run_machine_without_threads, 0);
+	rb_define_module_function (EmModule, "run_machine_once", (VALUE(*)(...))t_run_machine_once, 0);
+	rb_define_module_function (EmModule, "run_machine", (VALUE(*)(...))t_run_machine, 0);
+	rb_define_module_function (EmModule, "run_machine_without_threads", (VALUE(*)(...))t_run_machine, 0);
 	rb_define_module_function (EmModule, "add_oneshot_timer", (VALUE(*)(...))t_add_oneshot_timer, 1);
 	rb_define_module_function (EmModule, "start_tcp_server", (VALUE(*)(...))t_start_server, 2);
 	rb_define_module_function (EmModule, "stop_tcp_server", (VALUE(*)(...))t_stop_server, 1);

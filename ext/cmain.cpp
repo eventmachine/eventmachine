@@ -78,6 +78,17 @@ extern "C" void evma_release_library()
 }
 
 
+/*********************
+evma_run_machine_once
+*********************/
+
+extern "C" bool evma_run_machine_once()
+{
+	ensure_eventmachine("evma_run_machine_once");
+	return EventMachine->RunOnce();
+}
+
+
 /****************
 evma_run_machine
 ****************/

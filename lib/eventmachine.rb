@@ -184,7 +184,15 @@ module EventMachine
           add_timer(0) { signal_loopbreak }
         end
         @reactor_thread = Thread.current
-        run_machine
+
+        # Rubinius needs to come back into "Ruby space" for GC to work,
+        # so we'll crank the machine here.
+        if defined?(RUBY_ENGINE) && RUBY_ENGINE == "rbx"
+          while run_machine_once; end
+        else
+          run_machine
+        end
+
       ensure
         until @tails.empty?
           @tails.pop.call

@@ -114,6 +114,7 @@ class EventMachine_t
 		EventMachine_t (EMCallback);
 		virtual ~EventMachine_t();
 
+		bool RunOnce();
 		void Run();
 		void ScheduleHalt();
 		void SignalLoopBreaker();

@@ -405,6 +405,43 @@ void EventMachine_t::_InitializeLoopBreaker()
 		throw std::runtime_error ("no loop breaker");
 	LoopBreakerReader = sd;
 	#endif
+
+	#ifdef HAVE_EPOLL
+	if (bEpoll) {
+		epfd = epoll_create (MaxEpollDescriptors);
+		if (epfd == -1) {
+			char buf[200];
+			snprintf (buf, sizeof(buf)-1, "unable to create epoll descriptor: %s", strerror(errno));
+			throw std::runtime_error (buf);
+		}
+		int cloexec = fcntl (epfd, F_GETFD, 0);
+		assert (cloexec >= 0);
+		cloexec |= FD_CLOEXEC;
+		fcntl (epfd, F_SETFD, cloexec);
+
+		assert (LoopBreakerReader >= 0);
+		LoopbreakDescriptor *ld = new LoopbreakDescriptor (LoopBreakerReader, this);
+		assert (ld);
+		Add (ld);
+	}
+	#endif
+
+	#ifdef HAVE_KQUEUE
+	if (bKqueue) {
+		kqfd = kqueue();
+		if (kqfd == -1) {
+			char buf[200];
+			snprintf (buf, sizeof(buf)-1, "unable to create kqueue descriptor: %s", strerror(errno));
+			throw std::runtime_error (buf);
+		}
+		// cloexec not needed. By definition, kqueues are not carried across forks.
+
+		assert (LoopBreakerReader >= 0);
+		LoopbreakDescriptor *ld = new LoopbreakDescriptor (LoopBreakerReader, this);
+		assert (ld);
+		Add (ld);
+	}
+	#endif
 }
 
 /***************************
@@ -549,75 +586,39 @@ EventMachine_t::Run
 
 void EventMachine_t::Run()
 {
-	#ifdef HAVE_EPOLL
-	if (bEpoll) {
-		epfd = epoll_create (MaxEpollDescriptors);
-		if (epfd == -1) {
-			char buf[200];
-			snprintf (buf, sizeof(buf)-1, "unable to create epoll descriptor: %s", strerror(errno));
-			throw std::runtime_error (buf);
-		}
-		int cloexec = fcntl (epfd, F_GETFD, 0);
-		assert (cloexec >= 0);
-		cloexec |= FD_CLOEXEC;
-		fcntl (epfd, F_SETFD, cloexec);
-
-		assert (LoopBreakerReader >= 0);
-		LoopbreakDescriptor *ld = new LoopbreakDescriptor (LoopBreakerReader, this);
-		assert (ld);
-		Add (ld);
-	}
-	#endif
-
-	#ifdef HAVE_KQUEUE
-	if (bKqueue) {
-		kqfd = kqueue();
-		if (kqfd == -1) {
-			char buf[200];
-			snprintf (buf, sizeof(buf)-1, "unable to create kqueue descriptor: %s", strerror(errno));
-			throw std::runtime_error (buf);
-		}
-		// cloexec not needed. By definition, kqueues are not carried across forks.
-
-		assert (LoopBreakerReader >= 0);
-		LoopbreakDescriptor *ld = new LoopbreakDescriptor (LoopBreakerReader, this);
-		assert (ld);
-		Add (ld);
-	}
-	#endif
-
-	while (true) {
-		_UpdateTime();
-		_RunTimers();
-
-		/* _Add must precede _Modify because the same descriptor might
-		 * be on both lists during the same pass through the machine,
-		 * and to modify a descriptor before adding it would fail.
-		 */
-		_AddNewDescriptors();
-		_ModifyDescriptors();
-
-		_RunOnce();
-		if (bTerminateSignalReceived)
-			break;
-	}
+	while (RunOnce()) ;
 }
 
+/***********************
+EventMachine_t::RunOnce
+***********************/
 
-/************************
-EventMachine_t::_RunOnce
-************************/
-
-void EventMachine_t::_RunOnce()
+bool EventMachine_t::RunOnce()
 {
+	_UpdateTime();
+	_RunTimers();
+
+	/* _Add must precede _Modify because the same descriptor might
+	 * be on both lists during the same pass through the machine,
+	 * and to modify a descriptor before adding it would fail.
+	 */
+	_AddNewDescriptors();
+	_ModifyDescriptors();
+
 	if (bEpoll)
 		_RunEpollOnce();
 	else if (bKqueue)
 		_RunKqueueOnce();
 	else
 		_RunSelectOnce();
+
 	_DispatchHeartbeats();
 	_CleanupSockets();
+
+	if (bTerminateSignalReceived)
+		return false;
+
+	return true;
 }
 
 
