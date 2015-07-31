@@ -59,7 +59,7 @@ extern "C" {
 	int evma_is_paused(const uintptr_t binding);
 	int evma_resume(const uintptr_t binding);
 
-    int evma_num_close_scheduled();
+	int evma_num_close_scheduled();
 
 	void evma_stop_tcp_server (const uintptr_t binding);
 	const uintptr_t evma_create_tcp_server (const char *address, int port);
