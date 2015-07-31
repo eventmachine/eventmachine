@@ -89,7 +89,7 @@ class EventableDescriptor: public Bindable_t
 		virtual void StopProxy();
 		virtual unsigned long GetProxiedBytes(){ return ProxiedBytes; };
 		virtual void SetProxiedFrom(EventableDescriptor*, const unsigned long);
-		virtual int SendOutboundData(const char*,int){ return -1; }
+		virtual int SendOutboundData(const char*,unsigned long){ return -1; }
 		virtual bool IsPaused(){ return bPaused; }
 		virtual bool Pause(){ bPaused = true; return bPaused; }
 		virtual bool Resume(){ bPaused = false; return bPaused; }
@@ -109,7 +109,7 @@ class EventableDescriptor: public Bindable_t
 		bool bWatchOnly;
 
 		EMCallback EventCallback;
-		void _GenericInboundDispatch(const char*, int);
+		void _GenericInboundDispatch(const char *buffer, unsigned long size);
 
 		uint64_t CreatedAt;
 		bool bCallbackUnbind;
@@ -165,7 +165,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		ConnectionDescriptor (int, EventMachine_t*);
 		virtual ~ConnectionDescriptor();
 
-		int SendOutboundData (const char*, int);
+		int SendOutboundData (const char*, unsigned long);
 
 		void SetConnectPending (bool f);
 		virtual void ScheduleClose (bool after_writing);
@@ -252,9 +252,9 @@ class ConnectionDescriptor: public EventableDescriptor
 		void _UpdateEvents();
 		void _UpdateEvents(bool, bool);
 		void _WriteOutboundData();
-		void _DispatchInboundData (const char *buffer, int size);
+		void _DispatchInboundData (const char *buffer, unsigned long size);
 		void _DispatchCiphertext();
-		int _SendRawOutboundData (const char*, int);
+		int _SendRawOutboundData (const char *buffer, unsigned long size);
 		void _CheckHandshakeStatus();
 
 };
@@ -277,8 +277,8 @@ class DatagramDescriptor: public EventableDescriptor
 		virtual bool SelectForRead() {return true;}
 		virtual bool SelectForWrite();
 
-		int SendOutboundData (const char*, int);
-		int SendOutboundDatagram (const char*, int, const char*, int);
+		int SendOutboundData (const char*, unsigned long);
+		int SendOutboundDatagram (const char*, unsigned long, const char*, int);
 
 		// Do we have any data to write? This is used by ShouldDelete.
 		virtual int GetOutboundDataSize() {return OutboundDataSize;}
@@ -346,7 +346,7 @@ class PipeDescriptor: public EventableDescriptor
 		virtual bool SelectForRead();
 		virtual bool SelectForWrite();
 
-		int SendOutboundData (const char*, int);
+		int SendOutboundData (const char*, unsigned long);
 		virtual int GetOutboundDataSize() {return OutboundDataSize;}
 
 		virtual bool GetSubprocessPid (pid_t*);

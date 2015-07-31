@@ -184,7 +184,7 @@ static inline void event_callback (struct em_event* e)
 event_error_handler
 *******************/
 
-static void event_error_handler(VALUE unused, VALUE err)
+static void event_error_handler(VALUE self UNUSED, VALUE err)
 {
 	VALUE error_handler = rb_ivar_get(EmModule, Intern_at_error_handler);
 	rb_funcall (error_handler, Intern_call, 1, err);
@@ -212,7 +212,7 @@ static void event_callback_wrapper (const uintptr_t signature, int event, const 
 t_initialize_event_machine
 **************************/
 
-static VALUE t_initialize_event_machine (VALUE self)
+static VALUE t_initialize_event_machine (VALUE self UNUSED)
 {
 	EmConnsHash = rb_ivar_get (EmModule, Intern_at_conns);
 	EmTimersHash = rb_ivar_get (EmModule, Intern_at_timers);
@@ -228,7 +228,7 @@ static VALUE t_initialize_event_machine (VALUE self)
 t_run_machine_without_threads
 *****************************/
 
-static VALUE t_run_machine_without_threads (VALUE self)
+static VALUE t_run_machine_without_threads (VALUE self UNUSED)
 {
 	evma_run_machine();
 	return Qnil;
@@ -239,7 +239,7 @@ static VALUE t_run_machine_without_threads (VALUE self)
 t_add_oneshot_timer
 *******************/
 
-static VALUE t_add_oneshot_timer (VALUE self, VALUE interval)
+static VALUE t_add_oneshot_timer (VALUE self UNUSED, VALUE interval)
 {
 	const uintptr_t f = evma_install_oneshot_timer (FIX2INT (interval));
 	if (!f)
@@ -252,7 +252,7 @@ static VALUE t_add_oneshot_timer (VALUE self, VALUE interval)
 t_start_server
 **************/
 
-static VALUE t_start_server (VALUE self, VALUE server, VALUE port)
+static VALUE t_start_server (VALUE self UNUSED, VALUE server, VALUE port)
 {
 	const uintptr_t f = evma_create_tcp_server (StringValueCStr(server), FIX2INT(port));
 	if (!f)
@@ -264,7 +264,7 @@ static VALUE t_start_server (VALUE self, VALUE server, VALUE port)
 t_stop_server
 *************/
 
-static VALUE t_stop_server (VALUE self, VALUE signature)
+static VALUE t_stop_server (VALUE self UNUSED, VALUE signature)
 {
 	evma_stop_tcp_server (NUM2BSIG (signature));
 	return Qnil;
@@ -275,7 +275,7 @@ static VALUE t_stop_server (VALUE self, VALUE signature)
 t_start_unix_server
 *******************/
 
-static VALUE t_start_unix_server (VALUE self, VALUE filename)
+static VALUE t_start_unix_server (VALUE self UNUSED, VALUE filename)
 {
 	const uintptr_t f = evma_create_unix_domain_server (StringValueCStr(filename));
 	if (!f)
@@ -287,7 +287,7 @@ static VALUE t_start_unix_server (VALUE self, VALUE filename)
 t_attach_sd
 ********************/
 
-static VALUE t_attach_sd(VALUE self, VALUE sd)
+static VALUE t_attach_sd(VALUE self UNUSED, VALUE sd)
 {
 	const uintptr_t f = evma_attach_sd(FIX2INT(sd));
 	if (!f)
@@ -300,7 +300,7 @@ static VALUE t_attach_sd(VALUE self, VALUE sd)
 t_send_data
 ***********/
 
-static VALUE t_send_data (VALUE self, VALUE signature, VALUE data, VALUE data_length)
+static VALUE t_send_data (VALUE self UNUSED, VALUE signature, VALUE data, VALUE data_length)
 {
 	int b = evma_send_data_to_connection (NUM2BSIG (signature), StringValuePtr (data), FIX2INT (data_length));
 	return INT2NUM (b);
@@ -311,7 +311,7 @@ static VALUE t_send_data (VALUE self, VALUE signature, VALUE data, VALUE data_le
 t_start_tls
 ***********/
 
-static VALUE t_start_tls (VALUE self, VALUE signature)
+static VALUE t_start_tls (VALUE self UNUSED, VALUE signature)
 {
 	evma_start_tls (NUM2BSIG (signature));
 	return Qnil;
@@ -321,7 +321,7 @@ static VALUE t_start_tls (VALUE self, VALUE signature)
 t_set_tls_parms
 ***************/
 
-static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE privkeyfile, VALUE certchainfile, VALUE verify_peer)
+static VALUE t_set_tls_parms (VALUE self UNUSED, VALUE signature, VALUE privkeyfile, VALUE certchainfile, VALUE verify_peer)
 {
 	/* set_tls_parms takes a series of positional arguments for specifying such things
 	 * as private keys and certificate chains.
@@ -336,7 +336,7 @@ static VALUE t_set_tls_parms (VALUE self, VALUE signature, VALUE privkeyfile, VA
 t_get_peer_cert
 ***************/
 
-static VALUE t_get_peer_cert (VALUE self, VALUE signature)
+static VALUE t_get_peer_cert (VALUE self UNUSED, VALUE signature)
 {
 	VALUE ret = Qnil;
 
@@ -364,7 +364,7 @@ static VALUE t_get_peer_cert (VALUE self, VALUE signature)
 t_get_peername
 **************/
 
-static VALUE t_get_peername (VALUE self, VALUE signature)
+static VALUE t_get_peername (VALUE self UNUSED, VALUE signature)
 {
 	char buf[1024];
 	socklen_t len = sizeof buf;
@@ -379,7 +379,7 @@ static VALUE t_get_peername (VALUE self, VALUE signature)
 t_get_sockname
 **************/
 
-static VALUE t_get_sockname (VALUE self, VALUE signature)
+static VALUE t_get_sockname (VALUE self UNUSED, VALUE signature)
 {
 	char buf[1024];
 	socklen_t len = sizeof buf;
@@ -394,7 +394,7 @@ static VALUE t_get_sockname (VALUE self, VALUE signature)
 t_get_subprocess_pid
 ********************/
 
-static VALUE t_get_subprocess_pid (VALUE self, VALUE signature)
+static VALUE t_get_subprocess_pid (VALUE self UNUSED, VALUE signature)
 {
 	pid_t pid;
 	if (evma_get_subprocess_pid (NUM2BSIG (signature), &pid)) {
@@ -408,7 +408,7 @@ static VALUE t_get_subprocess_pid (VALUE self, VALUE signature)
 t_get_subprocess_status
 ***********************/
 
-static VALUE t_get_subprocess_status (VALUE self, VALUE signature)
+static VALUE t_get_subprocess_status (VALUE self UNUSED, VALUE signature)
 {
 	VALUE proc_status = Qnil;
 
@@ -444,7 +444,7 @@ static VALUE t_get_subprocess_status (VALUE self, VALUE signature)
 t_get_connection_count
 **********************/
 
-static VALUE t_get_connection_count (VALUE self)
+static VALUE t_get_connection_count (VALUE self UNUSED)
 {
 	return INT2NUM(evma_get_connection_count());
 }
@@ -453,7 +453,7 @@ static VALUE t_get_connection_count (VALUE self)
 t_get_comm_inactivity_timeout
 *****************************/
 
-static VALUE t_get_comm_inactivity_timeout (VALUE self, VALUE signature)
+static VALUE t_get_comm_inactivity_timeout (VALUE self UNUSED, VALUE signature)
 {
 	return rb_float_new(evma_get_comm_inactivity_timeout(NUM2BSIG (signature)));
 }
@@ -462,7 +462,7 @@ static VALUE t_get_comm_inactivity_timeout (VALUE self, VALUE signature)
 t_set_comm_inactivity_timeout
 *****************************/
 
-static VALUE t_set_comm_inactivity_timeout (VALUE self, VALUE signature, VALUE timeout)
+static VALUE t_set_comm_inactivity_timeout (VALUE self UNUSED, VALUE signature, VALUE timeout)
 {
 	float ti = RFLOAT_VALUE(timeout);
 	if (evma_set_comm_inactivity_timeout(NUM2BSIG(signature), ti)) {
@@ -475,7 +475,7 @@ static VALUE t_set_comm_inactivity_timeout (VALUE self, VALUE signature, VALUE t
 t_get_pending_connect_timeout
 *****************************/
 
-static VALUE t_get_pending_connect_timeout (VALUE self, VALUE signature)
+static VALUE t_get_pending_connect_timeout (VALUE self UNUSED, VALUE signature)
 {
 	return rb_float_new(evma_get_pending_connect_timeout(NUM2BSIG (signature)));
 }
@@ -484,7 +484,7 @@ static VALUE t_get_pending_connect_timeout (VALUE self, VALUE signature)
 t_set_pending_connect_timeout
 *****************************/
 
-static VALUE t_set_pending_connect_timeout (VALUE self, VALUE signature, VALUE timeout)
+static VALUE t_set_pending_connect_timeout (VALUE self UNUSED, VALUE signature, VALUE timeout)
 {
 	float ti = RFLOAT_VALUE(timeout);
 	if (evma_set_pending_connect_timeout(NUM2BSIG(signature), ti)) {
@@ -497,7 +497,7 @@ static VALUE t_set_pending_connect_timeout (VALUE self, VALUE signature, VALUE t
 t_send_datagram
 ***************/
 
-static VALUE t_send_datagram (VALUE self, VALUE signature, VALUE data, VALUE data_length, VALUE address, VALUE port)
+static VALUE t_send_datagram (VALUE self UNUSED, VALUE signature, VALUE data, VALUE data_length, VALUE address, VALUE port)
 {
 	int b = evma_send_datagram (NUM2BSIG (signature), StringValuePtr (data), FIX2INT (data_length), StringValueCStr(address), FIX2INT(port));
 	return INT2NUM (b);
@@ -508,7 +508,7 @@ static VALUE t_send_datagram (VALUE self, VALUE signature, VALUE data, VALUE dat
 t_close_connection
 ******************/
 
-static VALUE t_close_connection (VALUE self, VALUE signature, VALUE after_writing)
+static VALUE t_close_connection (VALUE self UNUSED, VALUE signature, VALUE after_writing)
 {
 	evma_close_connection (NUM2BSIG (signature), ((after_writing == Qtrue) ? 1 : 0));
 	return Qnil;
@@ -518,7 +518,7 @@ static VALUE t_close_connection (VALUE self, VALUE signature, VALUE after_writin
 t_report_connection_error_status
 ********************************/
 
-static VALUE t_report_connection_error_status (VALUE self, VALUE signature)
+static VALUE t_report_connection_error_status (VALUE self UNUSED, VALUE signature)
 {
 	int b = evma_report_connection_error_status (NUM2BSIG (signature));
 	return INT2NUM (b);
@@ -530,7 +530,7 @@ static VALUE t_report_connection_error_status (VALUE self, VALUE signature)
 t_connect_server
 ****************/
 
-static VALUE t_connect_server (VALUE self, VALUE server, VALUE port)
+static VALUE t_connect_server (VALUE self UNUSED, VALUE server, VALUE port)
 {
 	// Avoid FIX2INT in this case, because it doesn't deal with type errors properly.
 	// Specifically, if the value of port comes in as a string rather than an integer,
@@ -551,7 +551,7 @@ static VALUE t_connect_server (VALUE self, VALUE server, VALUE port)
 t_bind_connect_server
 *********************/
 
-static VALUE t_bind_connect_server (VALUE self, VALUE bind_addr, VALUE bind_port, VALUE server, VALUE port)
+static VALUE t_bind_connect_server (VALUE self UNUSED, VALUE bind_addr, VALUE bind_port, VALUE server, VALUE port)
 {
 	// Avoid FIX2INT in this case, because it doesn't deal with type errors properly.
 	// Specifically, if the value of port comes in as a string rather than an integer,
@@ -572,7 +572,7 @@ static VALUE t_bind_connect_server (VALUE self, VALUE bind_addr, VALUE bind_port
 t_connect_unix_server
 *********************/
 
-static VALUE t_connect_unix_server (VALUE self, VALUE serversocket)
+static VALUE t_connect_unix_server (VALUE self UNUSED, VALUE serversocket)
 {
 	const uintptr_t f = evma_connect_to_unix_server (StringValueCStr(serversocket));
 	if (!f)
@@ -584,7 +584,7 @@ static VALUE t_connect_unix_server (VALUE self, VALUE serversocket)
 t_attach_fd
 ***********/
 
-static VALUE t_attach_fd (VALUE self, VALUE file_descriptor, VALUE watch_mode)
+static VALUE t_attach_fd (VALUE self UNUSED, VALUE file_descriptor, VALUE watch_mode)
 {
 	const uintptr_t f = evma_attach_fd (NUM2INT(file_descriptor), watch_mode == Qtrue);
 	if (!f)
@@ -596,7 +596,7 @@ static VALUE t_attach_fd (VALUE self, VALUE file_descriptor, VALUE watch_mode)
 t_detach_fd
 ***********/
 
-static VALUE t_detach_fd (VALUE self, VALUE signature)
+static VALUE t_detach_fd (VALUE self UNUSED, VALUE signature)
 {
 	return INT2NUM(evma_detach_fd (NUM2BSIG (signature)));
 }
@@ -604,7 +604,7 @@ static VALUE t_detach_fd (VALUE self, VALUE signature)
 /*********************
 t_get_file_descriptor
 *********************/
-static VALUE t_get_file_descriptor (VALUE self, VALUE signature)
+static VALUE t_get_file_descriptor (VALUE self UNUSED, VALUE signature)
 {
 	return INT2NUM(evma_get_file_descriptor (NUM2BSIG (signature)));
 }
@@ -613,7 +613,7 @@ static VALUE t_get_file_descriptor (VALUE self, VALUE signature)
 t_get_sock_opt
 **************/
 
-static VALUE t_get_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optname)
+static VALUE t_get_sock_opt (VALUE self UNUSED, VALUE signature, VALUE lev, VALUE optname)
 {
 	int fd = evma_get_file_descriptor (NUM2BSIG (signature));
 	int level = NUM2INT(lev), option = NUM2INT(optname);
@@ -630,7 +630,7 @@ static VALUE t_get_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optna
 t_set_sock_opt
 **************/
 
-static VALUE t_set_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optname, VALUE optval)
+static VALUE t_set_sock_opt (VALUE self UNUSED, VALUE signature, VALUE lev, VALUE optname, VALUE optval)
 {
 	int fd = evma_get_file_descriptor (NUM2BSIG (signature));
 	int level = NUM2INT(lev), option = NUM2INT(optname);
@@ -668,7 +668,7 @@ static VALUE t_set_sock_opt (VALUE self, VALUE signature, VALUE lev, VALUE optna
 t_is_notify_readable
 ********************/
 
-static VALUE t_is_notify_readable (VALUE self, VALUE signature)
+static VALUE t_is_notify_readable (VALUE self UNUSED, VALUE signature)
 {
 	return evma_is_notify_readable(NUM2BSIG (signature)) ? Qtrue : Qfalse;
 }
@@ -677,7 +677,7 @@ static VALUE t_is_notify_readable (VALUE self, VALUE signature)
 t_set_notify_readable
 *********************/
 
-static VALUE t_set_notify_readable (VALUE self, VALUE signature, VALUE mode)
+static VALUE t_set_notify_readable (VALUE self UNUSED, VALUE signature, VALUE mode)
 {
 	evma_set_notify_readable(NUM2BSIG(signature), mode == Qtrue);
 	return Qnil;
@@ -687,7 +687,7 @@ static VALUE t_set_notify_readable (VALUE self, VALUE signature, VALUE mode)
 t_is_notify_readable
 ********************/
 
-static VALUE t_is_notify_writable (VALUE self, VALUE signature)
+static VALUE t_is_notify_writable (VALUE self UNUSED, VALUE signature)
 {
 	return evma_is_notify_writable(NUM2BSIG (signature)) ? Qtrue : Qfalse;
 }
@@ -696,7 +696,7 @@ static VALUE t_is_notify_writable (VALUE self, VALUE signature)
 t_set_notify_writable
 *********************/
 
-static VALUE t_set_notify_writable (VALUE self, VALUE signature, VALUE mode)
+static VALUE t_set_notify_writable (VALUE self UNUSED, VALUE signature, VALUE mode)
 {
 	evma_set_notify_writable(NUM2BSIG (signature), mode == Qtrue);
 	return Qnil;
@@ -706,7 +706,7 @@ static VALUE t_set_notify_writable (VALUE self, VALUE signature, VALUE mode)
 t_pause
 *******/
 
-static VALUE t_pause (VALUE self, VALUE signature)
+static VALUE t_pause (VALUE self UNUSED, VALUE signature)
 {
 	return evma_pause(NUM2BSIG (signature)) ? Qtrue : Qfalse;
 }
@@ -715,7 +715,7 @@ static VALUE t_pause (VALUE self, VALUE signature)
 t_resume
 ********/
 
-static VALUE t_resume (VALUE self, VALUE signature)
+static VALUE t_resume (VALUE self UNUSED, VALUE signature)
 {
 	return evma_resume(NUM2BSIG (signature)) ? Qtrue : Qfalse;
 }
@@ -724,7 +724,7 @@ static VALUE t_resume (VALUE self, VALUE signature)
 t_paused_p
 **********/
 
-static VALUE t_paused_p (VALUE self, VALUE signature)
+static VALUE t_paused_p (VALUE self UNUSED, VALUE signature)
 {
 	return evma_is_paused(NUM2BSIG (signature)) ? Qtrue : Qfalse;
 }
@@ -733,7 +733,7 @@ static VALUE t_paused_p (VALUE self, VALUE signature)
 t_num_close_scheduled
 *********************/
 
-static VALUE t_num_close_scheduled (VALUE self)
+static VALUE t_num_close_scheduled (VALUE self UNUSED)
 {
 	return INT2FIX(evma_num_close_scheduled());
 }
@@ -742,7 +742,7 @@ static VALUE t_num_close_scheduled (VALUE self)
 t_open_udp_socket
 *****************/
 
-static VALUE t_open_udp_socket (VALUE self, VALUE server, VALUE port)
+static VALUE t_open_udp_socket (VALUE self UNUSED, VALUE server, VALUE port)
 {
 	const uintptr_t f = evma_open_datagram_socket (StringValueCStr(server), FIX2INT(port));
 	if (!f)
@@ -756,7 +756,7 @@ static VALUE t_open_udp_socket (VALUE self, VALUE server, VALUE port)
 t_release_machine
 *****************/
 
-static VALUE t_release_machine (VALUE self)
+static VALUE t_release_machine (VALUE self UNUSED)
 {
 	evma_release_library();
 	return Qnil;
@@ -767,7 +767,7 @@ static VALUE t_release_machine (VALUE self)
 t_stop
 ******/
 
-static VALUE t_stop (VALUE self)
+static VALUE t_stop (VALUE self UNUSED)
 {
 	evma_stop_machine();
 	return Qnil;
@@ -777,7 +777,7 @@ static VALUE t_stop (VALUE self)
 t_signal_loopbreak
 ******************/
 
-static VALUE t_signal_loopbreak (VALUE self)
+static VALUE t_signal_loopbreak (VALUE self UNUSED)
 {
 	evma_signal_loopbreak();
 	return Qnil;
@@ -787,7 +787,7 @@ static VALUE t_signal_loopbreak (VALUE self)
 t_library_type
 **************/
 
-static VALUE t_library_type (VALUE self)
+static VALUE t_library_type (VALUE self UNUSED)
 {
 	return rb_eval_string (":extension");
 }
@@ -798,7 +798,7 @@ static VALUE t_library_type (VALUE self)
 t_set_timer_quantum
 *******************/
 
-static VALUE t_set_timer_quantum (VALUE self, VALUE interval)
+static VALUE t_set_timer_quantum (VALUE self UNUSED, VALUE interval)
 {
 	evma_set_timer_quantum (FIX2INT (interval));
 	return Qnil;
@@ -808,7 +808,7 @@ static VALUE t_set_timer_quantum (VALUE self, VALUE interval)
 t_get_max_timer_count
 ********************/
 
-static VALUE t_get_max_timer_count (VALUE self)
+static VALUE t_get_max_timer_count (VALUE self UNUSED)
 {
 	return INT2FIX (evma_get_max_timer_count());
 }
@@ -817,7 +817,7 @@ static VALUE t_get_max_timer_count (VALUE self)
 t_set_max_timer_count
 ********************/
 
-static VALUE t_set_max_timer_count (VALUE self, VALUE ct)
+static VALUE t_set_max_timer_count (VALUE self UNUSED, VALUE ct)
 {
 	evma_set_max_timer_count (FIX2INT (ct));
 	return Qnil;
@@ -827,12 +827,12 @@ static VALUE t_set_max_timer_count (VALUE self, VALUE ct)
 t_get/set_simultaneous_accept_count
 ********************/
 
-static VALUE t_get_simultaneous_accept_count (VALUE self)
+static VALUE t_get_simultaneous_accept_count (VALUE self UNUSED)
 {
 	return INT2FIX (evma_get_simultaneous_accept_count());
 }
 
-static VALUE t_set_simultaneous_accept_count (VALUE self, VALUE ct)
+static VALUE t_set_simultaneous_accept_count (VALUE self UNUSED, VALUE ct)
 {
 	evma_set_simultaneous_accept_count (FIX2INT (ct));
 	return Qnil;
@@ -842,7 +842,7 @@ static VALUE t_set_simultaneous_accept_count (VALUE self, VALUE ct)
 t_setuid_string
 ***************/
 
-static VALUE t_setuid_string (VALUE self, VALUE username)
+static VALUE t_setuid_string (VALUE self UNUSED, VALUE username)
 {
 	evma_setuid_string (StringValueCStr (username));
 	return Qnil;
@@ -854,7 +854,7 @@ static VALUE t_setuid_string (VALUE self, VALUE username)
 t_invoke_popen
 **************/
 
-static VALUE t_invoke_popen (VALUE self, VALUE cmd)
+static VALUE t_invoke_popen (VALUE self UNUSED, VALUE cmd)
 {
 	// 1.8.7+
 	#ifdef RARRAY_LEN
@@ -893,7 +893,7 @@ static VALUE t_invoke_popen (VALUE self, VALUE cmd)
 t_read_keyboard
 ***************/
 
-static VALUE t_read_keyboard (VALUE self)
+static VALUE t_read_keyboard (VALUE self UNUSED)
 {
 	const uintptr_t f = evma_open_keyboard();
 	if (!f)
@@ -906,7 +906,7 @@ static VALUE t_read_keyboard (VALUE self)
 t_watch_filename
 ****************/
 
-static VALUE t_watch_filename (VALUE self, VALUE fname)
+static VALUE t_watch_filename (VALUE self UNUSED, VALUE fname)
 {
 	try {
 		return BSIG2NUM(evma_watch_filename(StringValueCStr(fname)));
@@ -921,7 +921,7 @@ static VALUE t_watch_filename (VALUE self, VALUE fname)
 t_unwatch_filename
 ******************/
 
-static VALUE t_unwatch_filename (VALUE self, VALUE sig)
+static VALUE t_unwatch_filename (VALUE self UNUSED, VALUE sig)
 {
 	evma_unwatch_filename(NUM2BSIG (sig));
 	return Qnil;
@@ -932,7 +932,7 @@ static VALUE t_unwatch_filename (VALUE self, VALUE sig)
 t_watch_pid
 ***********/
 
-static VALUE t_watch_pid (VALUE self, VALUE pid)
+static VALUE t_watch_pid (VALUE self UNUSED, VALUE pid)
 {
 	try {
 		return BSIG2NUM(evma_watch_pid(NUM2INT(pid)));
@@ -947,7 +947,7 @@ static VALUE t_watch_pid (VALUE self, VALUE pid)
 t_unwatch_pid
 *************/
 
-static VALUE t_unwatch_pid (VALUE self, VALUE sig)
+static VALUE t_unwatch_pid (VALUE self UNUSED, VALUE sig)
 {
 	evma_unwatch_pid(NUM2BSIG (sig));
 	return Qnil;
@@ -958,7 +958,7 @@ static VALUE t_unwatch_pid (VALUE self, VALUE sig)
 t__epoll_p
 **********/
 
-static VALUE t__epoll_p (VALUE self)
+static VALUE t__epoll_p (VALUE self UNUSED)
 {
 	#ifdef HAVE_EPOLL
 	return Qtrue;
@@ -971,7 +971,7 @@ static VALUE t__epoll_p (VALUE self)
 t__epoll
 ********/
 
-static VALUE t__epoll (VALUE self)
+static VALUE t__epoll (VALUE self UNUSED)
 {
 	evma_set_epoll (1);
 	return Qtrue;
@@ -995,7 +995,7 @@ static VALUE t__epoll_set (VALUE self, VALUE val)
 t__kqueue_p
 ***********/
 
-static VALUE t__kqueue_p (VALUE self)
+static VALUE t__kqueue_p (VALUE self UNUSED)
 {
 	#ifdef HAVE_KQUEUE
 	return Qtrue;
@@ -1008,7 +1008,7 @@ static VALUE t__kqueue_p (VALUE self)
 t__kqueue
 *********/
 
-static VALUE t__kqueue (VALUE self)
+static VALUE t__kqueue (VALUE self UNUSED)
 {
 	evma_set_kqueue (1);
 	return Qtrue;
@@ -1032,7 +1032,7 @@ static VALUE t__kqueue_set (VALUE self, VALUE val)
 t__ssl_p
 ********/
 
-static VALUE t__ssl_p (VALUE self)
+static VALUE t__ssl_p (VALUE self UNUSED)
 {
 	#ifdef WITH_SSL
 	return Qtrue;
@@ -1046,7 +1046,7 @@ static VALUE t__ssl_p (VALUE self)
 t_send_file_data
 ****************/
 
-static VALUE t_send_file_data (VALUE self, VALUE signature, VALUE filename)
+static VALUE t_send_file_data (VALUE self UNUSED, VALUE signature, VALUE filename)
 {
 
 	/* The current implementation of evma_send_file_data_to_connection enforces a strict
@@ -1077,7 +1077,7 @@ static VALUE t_send_file_data (VALUE self, VALUE signature, VALUE filename)
 t_set_rlimit_nofile
 *******************/
 
-static VALUE t_set_rlimit_nofile (VALUE self, VALUE arg)
+static VALUE t_set_rlimit_nofile (VALUE self UNUSED, VALUE arg)
 {
 	arg = (NIL_P(arg)) ? -1 : NUM2INT (arg);
 	return INT2NUM (evma_set_rlimit_nofile (arg));
@@ -1098,7 +1098,7 @@ static VALUE conn_get_outbound_data_size (VALUE self)
 conn_associate_callback_target
 ******************************/
 
-static VALUE conn_associate_callback_target (VALUE self, VALUE sig)
+static VALUE conn_associate_callback_target (VALUE self UNUSED, VALUE sig UNUSED)
 {
 	// No-op for the time being.
 	return Qnil;
@@ -1109,7 +1109,7 @@ static VALUE conn_associate_callback_target (VALUE self, VALUE sig)
 t_get_loop_time
 ****************/
 
-static VALUE t_get_loop_time (VALUE self)
+static VALUE t_get_loop_time (VALUE self UNUSED)
 {
 	#ifndef HAVE_RB_TIME_NEW
 	static VALUE cTime = rb_path2class("Time");
@@ -1132,7 +1132,7 @@ static VALUE t_get_loop_time (VALUE self)
 t_start_proxy
 **************/
 
-static VALUE t_start_proxy (VALUE self, VALUE from, VALUE to, VALUE bufsize, VALUE length)
+static VALUE t_start_proxy (VALUE self UNUSED, VALUE from, VALUE to, VALUE bufsize, VALUE length)
 {
 	try {
 		evma_start_proxy(NUM2BSIG (from), NUM2BSIG (to), NUM2ULONG(bufsize), NUM2ULONG(length));
@@ -1147,7 +1147,7 @@ static VALUE t_start_proxy (VALUE self, VALUE from, VALUE to, VALUE bufsize, VAL
 t_stop_proxy
 *************/
 
-static VALUE t_stop_proxy (VALUE self, VALUE from)
+static VALUE t_stop_proxy (VALUE self UNUSED, VALUE from)
 {
 	try{
 		evma_stop_proxy(NUM2BSIG (from));
@@ -1161,7 +1161,7 @@ static VALUE t_stop_proxy (VALUE self, VALUE from)
 t_proxied_bytes
 ****************/
 
-static VALUE t_proxied_bytes (VALUE self, VALUE from)
+static VALUE t_proxied_bytes (VALUE self UNUSED, VALUE from)
 {
 	try{
 		return BSIG2NUM(evma_proxied_bytes(NUM2BSIG (from)));
@@ -1175,7 +1175,7 @@ static VALUE t_proxied_bytes (VALUE self, VALUE from)
 t_get_idle_time
 ****************/
 
-static VALUE t_get_idle_time (VALUE self, VALUE from)
+static VALUE t_get_idle_time (VALUE self UNUSED, VALUE from)
 {
 	try{
 		uint64_t current_time = evma_get_current_loop_time();
@@ -1200,7 +1200,7 @@ static VALUE t_get_idle_time (VALUE self, VALUE from)
 t_get_heartbeat_interval
 *************************/
 
-static VALUE t_get_heartbeat_interval (VALUE self)
+static VALUE t_get_heartbeat_interval (VALUE self UNUSED)
 {
 	return rb_float_new(evma_get_heartbeat_interval());
 }
@@ -1210,7 +1210,7 @@ static VALUE t_get_heartbeat_interval (VALUE self)
 t_set_heartbeat_interval
 *************************/
 
-static VALUE t_set_heartbeat_interval (VALUE self, VALUE interval)
+static VALUE t_set_heartbeat_interval (VALUE self UNUSED, VALUE interval)
 {
 	float iv = RFLOAT_VALUE(interval);
 	if (evma_set_heartbeat_interval(iv))

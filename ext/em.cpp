@@ -114,15 +114,16 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	NumCloseScheduled (0),
 	HeartbeatInterval(2000000),
 	EventCallback (event_callback),
-	NextHeartbeatTime (0),
 	LoopBreakerReader (-1),
 	LoopBreakerWriter (-1),
 	bTerminateSignalReceived (false),
 	bEpoll (false),
 	epfd (-1),
 	bKqueue (false),
-	kqfd (-1),
-	inotify (NULL)
+	kqfd (-1)
+	#ifdef HAVE_INOTIFY
+	, inotify (NULL)
+	#endif
 {
 	// Default time-slice is just smaller than one hundred mills.
 	Quantum.tv_sec = 0;
@@ -336,7 +337,7 @@ EventMachine_t::SignalLoopBreaker
 void EventMachine_t::SignalLoopBreaker()
 {
 	#ifdef OS_UNIX
-	write (LoopBreakerWriter, "", 1);
+	(void)write (LoopBreakerWriter, "", 1);
 	#endif
 	#ifdef OS_WIN32
 	sendto (LoopBreakerReader, "", 0, 0, (struct sockaddr*)&(LoopBreakerTarget), sizeof(LoopBreakerTarget));
@@ -697,9 +698,9 @@ void EventMachine_t::_RunEpollOnce()
 EventMachine_t::_RunKqueueOnce
 ******************************/
 
+#ifdef HAVE_KQUEUE
 void EventMachine_t::_RunKqueueOnce()
 {
-	#ifdef HAVE_KQUEUE
 	assert (kqfd != -1);
 	int k;
 
@@ -777,10 +778,13 @@ void EventMachine_t::_RunKqueueOnce()
 		rb_thread_schedule();
 	}
 	#endif
-	#else
-	throw std::runtime_error ("kqueue is not implemented on this platform");
-	#endif
 }
+#else
+void EventMachine_t::_RunKqueueOnce()
+{
+	throw std::runtime_error ("kqueue is not implemented on this platform");
+}
+#endif
 
 
 /*********************************
@@ -882,9 +886,9 @@ void EventMachine_t::_CleanupSockets()
 EventMachine_t::_ModifyEpollEvent
 *********************************/
 
+#ifdef HAVE_EPOLL
 void EventMachine_t::_ModifyEpollEvent (EventableDescriptor *ed)
 {
-	#ifdef HAVE_EPOLL
 	if (bEpoll) {
 		assert (epfd != -1);
 		assert (ed);
@@ -896,9 +900,10 @@ void EventMachine_t::_ModifyEpollEvent (EventableDescriptor *ed)
 			throw std::runtime_error (buf);
 		}
 	}
-	#endif
 }
-
+#else
+void EventMachine_t::_ModifyEpollEvent (EventableDescriptor *ed UNUSED) { }
+#endif
 
 
 /**************************
@@ -1119,7 +1124,7 @@ void EventMachine_t::_ReadLoopBreaker()
 	 * and send a loop-break event back to user code.
 	 */
 	char buffer [1024];
-	read (LoopBreakerReader, buffer, sizeof(buffer));
+	(void)read (LoopBreakerReader, buffer, sizeof(buffer));
 	if (EventCallback)
 		(*EventCallback)(0, EM_LOOPBREAK_SIGNAL, "", 0);
 }
@@ -1754,9 +1759,9 @@ void EventMachine_t::Add (EventableDescriptor *ed)
 EventMachine_t::ArmKqueueWriter
 *******************************/
 
+#ifdef HAVE_KQUEUE
 void EventMachine_t::ArmKqueueWriter (EventableDescriptor *ed)
 {
-	#ifdef HAVE_KQUEUE
 	if (bKqueue) {
 		if (!ed)
 			throw std::runtime_error ("added bad descriptor");
@@ -1773,16 +1778,18 @@ void EventMachine_t::ArmKqueueWriter (EventableDescriptor *ed)
 			throw std::runtime_error (buf);
 		}
 	}
-	#endif
 }
+#else
+void EventMachine_t::ArmKqueueWriter (EventableDescriptor *ed UNUSED) { }
+#endif
 
 /*******************************
 EventMachine_t::ArmKqueueReader
 *******************************/
 
+#ifdef HAVE_KQUEUE
 void EventMachine_t::ArmKqueueReader (EventableDescriptor *ed)
 {
-	#ifdef HAVE_KQUEUE
 	if (bKqueue) {
 		if (!ed)
 			throw std::runtime_error ("added bad descriptor");
@@ -1799,8 +1806,10 @@ void EventMachine_t::ArmKqueueReader (EventableDescriptor *ed)
 			throw std::runtime_error (buf);
 		}
 	}
-	#endif
 }
+#else
+void EventMachine_t::ArmKqueueReader (EventableDescriptor *ed UNUSED) { }
+#endif
 
 /**********************************
 EventMachine_t::_AddNewDescriptors
@@ -2131,9 +2140,9 @@ int EventMachine_t::GetConnectionCount ()
 EventMachine_t::WatchPid
 ************************/
 
+#ifdef HAVE_KQUEUE
 const uintptr_t EventMachine_t::WatchPid (int pid)
 {
-	#ifdef HAVE_KQUEUE
 	if (!bKqueue)
 		throw std::runtime_error("must enable kqueue (EM.kqueue=true) for pid watching support");
 
@@ -2149,17 +2158,17 @@ const uintptr_t EventMachine_t::WatchPid (int pid)
 		sprintf(errbuf, "failed to register file watch descriptor with kqueue: %s", strerror(errno));
 		throw std::runtime_error(errbuf);
 	}
-	#endif
-
-	#ifdef HAVE_KQUEUE
 	Bindable_t* b = new Bindable_t();
 	Pids.insert(make_pair (pid, b));
 
 	return b->GetBinding();
-	#endif
-
+}
+#else
+const uintptr_t EventMachine_t::WatchPid (int pid UNUSED)
+{
 	throw std::runtime_error("no pid watching support on this system");
 }
+#endif
 
 /**************************
 EventMachine_t::UnwatchPid
@@ -2307,7 +2316,7 @@ void EventMachine_t::_ReadInotifyEvents()
 
 	for (;;) {
 		int returned = read(inotify->GetSocket(), buffer, sizeof(buffer));
-		assert(!(returned == 0 || returned == -1 && errno == EINVAL));
+		assert(!(returned == 0 || (returned == -1 && errno == EINVAL)));
 		if (returned <= 0) {
 			break;
 		}

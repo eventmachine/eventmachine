@@ -175,6 +175,26 @@ else
   CONFIG['LDSHARED'] = "$(CXX) -shared"
 end
 
+# This is our wishlist. We use whichever flags work on the host.
+# deprecated-declarations are used in OS X OpenSSL
+# ignored-qualifiers are used by the Bindings (would-be void *)
+# unused-result because GCC 4.6 no longer silences (void) ignore_this(function)
+%w(
+  -Wall
+  -Wextra
+  -Werror
+  -Wno-deprecated-declarations
+  -Wno-ignored-qualifiers
+  -Wno-unused-result
+).select do |flag|
+  try_link('int main() {return 0;}', flag)
+end.each do |flag|
+  $CFLAGS << ' ' << flag
+  $CPPFLAGS << ' ' << flag
+end
+puts "CFLAGS=#{$CFLAGS}"
+puts "CPPFLAGS=#{$CPPFLAGS}"
+
 # Platform-specific time functions
 if have_func('clock_gettime')
   # clock_gettime is POSIX, but the monotonic clocks are not
