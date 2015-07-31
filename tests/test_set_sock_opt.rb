@@ -15,6 +15,8 @@ class TestSetSockOpt < Test::Unit::TestCase
     #-------------------------------------
 
     def test_set_sock_opt
+      omit_if(windows?)
+
       test = self
       EM.run do
         EM.connect 'google.com', 80, Module.new {

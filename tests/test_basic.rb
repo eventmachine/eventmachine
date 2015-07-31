@@ -246,6 +246,7 @@ class TestBasic < Test::Unit::TestCase
 
   def test_fork_safe
     omit_if(jruby?)
+    omit_if(windows?)
     omit_if(rbx?, 'Omitting test on Rubinius because it hangs for unknown reasons')
 
     read, write = IO.pipe

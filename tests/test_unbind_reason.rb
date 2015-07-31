@@ -20,7 +20,7 @@ class TestUnbindReason < Test::Unit::TestCase
           EM.stop
         end
       }
-      conn.pending_connect_timeout = 0.1
+      conn.pending_connect_timeout = TIMEOUT_INTERVAL
     }
     assert_equal Errno::ETIMEDOUT, error
   end

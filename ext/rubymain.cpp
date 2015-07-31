@@ -865,12 +865,11 @@ t_invoke_popen
 
 static VALUE t_invoke_popen (VALUE self UNUSED, VALUE cmd)
 {
-	// 1.8.7+
-	#ifdef RARRAY_LEN
-		int len = RARRAY_LEN(cmd);
-	#else
-		int len = RARRAY (cmd)->len;
+	#ifdef OS_WIN32
+	rb_raise (EM_eUnsupported, "popen is not available on this platform");
 	#endif
+
+	int len = RARRAY_LEN(cmd);
 	if (len >= 2048)
 		rb_raise (rb_eRuntimeError, "%s", "too many arguments to popen");
 	char *strings [2048];
@@ -885,7 +884,7 @@ static VALUE t_invoke_popen (VALUE self UNUSED, VALUE cmd)
 	try {
 		f = evma_popen (strings);
 	} catch (std::runtime_error e) {
-		f = 0; // raise exception below
+		rb_raise (rb_eRuntimeError, "%s", e.what());
 	}
 	if (!f) {
 		char *err = strerror (errno);
