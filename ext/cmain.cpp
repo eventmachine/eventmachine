@@ -521,10 +521,10 @@ extern "C" int evma_get_sockname (const uintptr_t binding, struct sockaddr *sa, 
 evma_get_subprocess_pid
 ***********************/
 
+#ifdef OS_UNIX
 extern "C" int evma_get_subprocess_pid (const uintptr_t binding, pid_t *pid)
 {
 	ensure_eventmachine("evma_get_subprocess_pid");
-	#ifdef OS_UNIX
 	PipeDescriptor *pd = dynamic_cast <PipeDescriptor*> (Bindable_t::GetObject (binding));
 	if (pd) {
 		return pd->GetSubprocessPid (pid) ? 1 : 0;
@@ -535,10 +535,13 @@ extern "C" int evma_get_subprocess_pid (const uintptr_t binding, pid_t *pid)
 	}
 	else
 		return 0;
-	#else
-	return 0;
-	#endif
 }
+#else
+extern "C" int evma_get_subprocess_pid (const uintptr_t binding UNUSED, pid_t *pid UNUSED)
+{
+	return 0;
+}
+#endif
 
 /**************************
 evma_get_subprocess_status

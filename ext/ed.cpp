@@ -49,18 +49,20 @@ bool SetSocketNonblocking (SOCKET sd)
 SetFdCloexec
 ************/
 
+#ifdef OS_UNIX
 bool SetFdCloexec (int fd)
 {
-	#ifdef OS_UNIX
 	int flags = fcntl(fd, F_GETFD, 0);
 	assert (flags >= 0);
 	flags |= FD_CLOEXEC;
 	return (fcntl(fd, F_SETFD, FD_CLOEXEC) == 0) ? true : false;
-	#else
-	// TODO: Windows?
-	return true;
-	#endif
 }
+#else
+bool SetFdCloexec (int fd UNUSED)
+{
+	return true;
+}
+#endif
 
 /****************************************
 EventableDescriptor::EventableDescriptor

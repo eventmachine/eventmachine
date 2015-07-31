@@ -239,6 +239,7 @@ void EventMachine_t::SetTimerQuantum (int interval)
 (STATIC) EventMachine_t::SetuidString
 *************************************/
 
+#ifdef OS_UNIX
 void EventMachine_t::SetuidString (const char *username)
 {
 	/* This method takes a caller-supplied username and tries to setuid
@@ -255,7 +256,6 @@ void EventMachine_t::SetuidString (const char *username)
 	 * A setuid failure here would be in the latter category.
 	 */
 
-	#ifdef OS_UNIX
 	if (!username || !*username)
 		throw std::runtime_error ("setuid_string failed: no username specified");
 
@@ -267,17 +267,18 @@ void EventMachine_t::SetuidString (const char *username)
 		throw std::runtime_error ("setuid_string failed: no setuid");
 
 	// Success.
-	#endif
 }
-
+#else
+void EventMachine_t::SetuidString (const char *username UNUSED) { }
+#endif
 
 /****************************************
 (STATIC) EventMachine_t::SetRlimitNofile
 ****************************************/
 
+#ifdef OS_UNIX
 int EventMachine_t::SetRlimitNofile (int nofiles)
 {
-	#ifdef OS_UNIX
 	struct rlimit rlim;
 	getrlimit (RLIMIT_NOFILE, &rlim);
 	if (nofiles >= 0) {
@@ -290,14 +291,10 @@ int EventMachine_t::SetRlimitNofile (int nofiles)
 	}
 	getrlimit (RLIMIT_NOFILE, &rlim);
 	return rlim.rlim_cur;
-	#endif
-
-	#ifdef OS_WIN32
-	// No meaningful implementation on Windows.
-	return 0;
-	#endif
 }
-
+#else
+int EventMachine_t::SetRlimitNofile (int nofiles UNUSED) { return 0; }
+#endif
 
 /*********************************
 EventMachine_t::SignalLoopBreaker
@@ -1343,6 +1340,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 EventMachine_t::ConnectToUnixServer
 ***********************************/
 
+#ifdef OS_UNIX
 const uintptr_t EventMachine_t::ConnectToUnixServer (const char *server)
 {
 	/* Connect to a Unix-domain server, which by definition is running
@@ -1351,14 +1349,6 @@ const uintptr_t EventMachine_t::ConnectToUnixServer (const char *server)
 	 * There's no need to do a nonblocking connect, since the connection
 	 * is always local and can always be fulfilled immediately.
 	 */
-
-	#ifdef OS_WIN32
-	throw std::runtime_error ("unix-domain connection unavailable on this platform");
-	return 0;
-	#endif
-
-	// The whole rest of this function is only compiled on Unix systems.
-	#ifdef OS_UNIX
 
 	uintptr_t out = 0;
 
@@ -1409,8 +1399,13 @@ const uintptr_t EventMachine_t::ConnectToUnixServer (const char *server)
 		close (fd);
 
 	return out;
-	#endif
 }
+#else
+const uintptr_t EventMachine_t::ConnectToUnixServer (const char *server UNUSED)
+{
+	throw std::runtime_error ("unix-domain connection unavailable on this platform");
+}
+#endif
 
 /************************
 EventMachine_t::AttachFD
@@ -1938,6 +1933,7 @@ void EventMachine_t::Deregister (EventableDescriptor *ed)
 EventMachine_t::CreateUnixDomainServer
 **************************************/
 
+#ifdef OS_UNIX
 const uintptr_t EventMachine_t::CreateUnixDomainServer (const char *filename)
 {
 	/* Create a UNIX-domain acceptor (server) socket and add it to the event machine.
@@ -1946,13 +1942,6 @@ const uintptr_t EventMachine_t::CreateUnixDomainServer (const char *filename)
 	 * to indicate accepted connections.
 	 * THERE IS NO MEANINGFUL IMPLEMENTATION ON WINDOWS.
 	 */
-
-	#ifdef OS_WIN32
-	throw std::runtime_error ("unix-domain server unavailable on this platform");
-	#endif
-
-	// The whole rest of this function is only compiled on Unix systems.
-	#ifdef OS_UNIX
 
 	struct sockaddr_un s_sun;
 
@@ -1996,8 +1985,13 @@ const uintptr_t EventMachine_t::CreateUnixDomainServer (const char *filename)
 	if (sd_accept != INVALID_SOCKET)
 		close (sd_accept);
 	return 0;
-	#endif // OS_UNIX
 }
+#else
+const uintptr_t EventMachine_t::CreateUnixDomainServer (const char *filename UNUSED)
+{
+	throw std::runtime_error ("unix-domain server unavailable on this platform");
+}
+#endif
 
 
 /**************************************
@@ -2039,15 +2033,9 @@ const uintptr_t EventMachine_t::AttachSD (SOCKET sd_accept)
 EventMachine_t::Socketpair
 **************************/
 
-const uintptr_t EventMachine_t::Socketpair (char * const*cmd_strings)
+#ifdef OS_UNIX
+const uintptr_t EventMachine_t::Socketpair (char * const * cmd_strings)
 {
-	#ifdef OS_WIN32
-	throw std::runtime_error ("socketpair is currently unavailable on this platform");
-	#endif
-
-	// The whole rest of this function is only compiled on Unix systems.
-	// Eventually we need this functionality (or a full-duplex equivalent) on Windows.
-	#ifdef OS_UNIX
 	// Make sure the incoming array of command strings is sane.
 	if (!cmd_strings)
 		return 0;
@@ -2095,8 +2083,14 @@ const uintptr_t EventMachine_t::Socketpair (char * const*cmd_strings)
 		throw std::runtime_error ("no fork");
 
 	return output_binding;
-	#endif
 }
+#else
+const uintptr_t EventMachine_t::Socketpair (char * const * cmd_strings UNUSED)
+{
+	throw std::runtime_error ("socketpair is currently unavailable on this platform");
+}
+#endif
+
 
 
 /****************************
