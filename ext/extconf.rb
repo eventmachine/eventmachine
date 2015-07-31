@@ -63,8 +63,6 @@ end
 # Try to use pkg_config first, fixes #73
 if (!ENV['CROSS_COMPILING'] and pkg_config('openssl')) || manual_ssl_config
   add_define "WITH_SSL"
-else
-  add_define "WITHOUT_SSL"
 end
 
 add_define 'BUILD_FOR_RUBY'

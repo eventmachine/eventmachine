@@ -345,11 +345,11 @@ static VALUE t_set_tls_parms (VALUE self UNUSED, VALUE signature, VALUE privkeyf
 t_get_peer_cert
 ***************/
 
+#ifdef WITH_SSL
 static VALUE t_get_peer_cert (VALUE self UNUSED, VALUE signature)
 {
 	VALUE ret = Qnil;
 
-	#ifdef WITH_SSL
 	X509 *cert = NULL;
 	BUF_MEM *buf;
 	BIO *out;
@@ -364,10 +364,15 @@ static VALUE t_get_peer_cert (VALUE self UNUSED, VALUE signature)
 		X509_free(cert);
 		BIO_free(out);
 	}
-	#endif
 
 	return ret;
 }
+#else
+static VALUE t_get_peer_cert (VALUE self UNUSED, VALUE signature UNUSED)
+{
+	return Qnil;
+}
+#endif
 
 /**************
 t_get_peername
