@@ -38,6 +38,33 @@ static unsigned int SimultaneousAcceptCount = 10;
  */
 static struct sockaddr *name2address (const char *server, int port, int *family, int *bind_size);
 
+/* Internal helper to create a socket with SOCK_CLOEXEC set, and fall
+ * back to fcntl'ing it if the headers/runtime don't support it.
+ */
+
+int EmSocket (int domain, int type, int protocol)
+{
+	int sd;
+#ifdef HAVE_SOCKET_CLOEXEC
+	sd = socket (domain, type | SOCK_CLOEXEC, protocol);
+	if (sd < 0) {
+		sd = socket (domain, type, protocol);
+		if (sd < 0) {
+			return sd;
+		}
+		SetFdCloexec(sd);
+	}
+#else
+	sd = socket (domain, type, protocol);
+	if (sd < 0) {
+		return sd;
+	}
+	SetFdCloexec(sd);
+#endif
+	return sd;
+}
+
+
 /***************************************
 STATIC EventMachine_t::GetMaxTimerCount
 ***************************************/
@@ -333,7 +360,17 @@ void EventMachine_t::_InitializeLoopBreaker()
 
 	#ifdef OS_UNIX
 	int fd[2];
+#if defined (HAVE_CLOEXEC) && defined (HAVE_PIPE2)
+	int pipestatus = pipe2(fd, O_CLOEXEC);
+	if (pipestatus < 0) {
+		if (pipe(fd))
+			throw std::runtime_error (strerror(errno));
+	}
+#else
 	if (pipe (fd))
+		throw std::runtime_error (strerror(errno));
+#endif
+	if (!SetFdCloexec(fd[0]) || !SetFdCloexec(fd[1]))
 		throw std::runtime_error (strerror(errno));
 
 	LoopBreakerWriter = fd[1];
@@ -345,7 +382,7 @@ void EventMachine_t::_InitializeLoopBreaker()
 	#endif
 
 	#ifdef OS_WIN32
-	int sd = socket (AF_INET, SOCK_DGRAM, 0);
+	int sd = EmSocket (AF_INET, SOCK_DGRAM, 0);
 	if (sd == INVALID_SOCKET)
 		throw std::runtime_error ("no loop breaker socket");
 	SetSocketNonblocking (sd);
@@ -1174,7 +1211,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 		throw std::runtime_error ("unable to resolve server address");
 	bind_as = *bind_as_ptr; // copy because name2address points to a static
 
-	int sd = socket (family, SOCK_STREAM, 0);
+	int sd = EmSocket (family, SOCK_STREAM, 0);
 	if (sd == INVALID_SOCKET) {
 		char buf [200];
 		snprintf (buf, sizeof(buf)-1, "unable to create new socket: %s", strerror(errno));
@@ -1360,7 +1397,7 @@ const uintptr_t EventMachine_t::ConnectToUnixServer (const char *server)
 
 	strcpy (pun.sun_path, server);
 
-	int fd = socket (AF_LOCAL, SOCK_STREAM, 0);
+	int fd = EmSocket (AF_LOCAL, SOCK_STREAM, 0);
 	if (fd == INVALID_SOCKET)
 		return 0;
 
@@ -1595,7 +1632,7 @@ const uintptr_t EventMachine_t::CreateTcpServer (const char *server, int port)
 
 	//struct sockaddr_in sin;
 
-	int sd_accept = socket (family, SOCK_STREAM, 0);
+	int sd_accept = EmSocket (family, SOCK_STREAM, 0);
 	if (sd_accept == INVALID_SOCKET) {
 		goto fail;
 	}
@@ -1646,7 +1683,7 @@ const uintptr_t EventMachine_t::OpenDatagramSocket (const char *address, int por
 {
 	uintptr_t output_binding = 0;
 
-	int sd = socket (AF_INET, SOCK_DGRAM, 0);
+	int sd = EmSocket (AF_INET, SOCK_DGRAM, 0);
 	if (sd == INVALID_SOCKET)
 		goto fail;
 	// from here on, early returns must close the socket!
@@ -1677,16 +1714,6 @@ const uintptr_t EventMachine_t::OpenDatagramSocket (const char *address, int por
 		//int val = fcntl (sd, F_GETFL, 0);
 		//if (fcntl (sd, F_SETFL, val | O_NONBLOCK) == -1)
 			goto fail;
-	}
-
-	// Set CLOEXEC. Only makes sense on Unix.
-	{
-		#ifdef OS_UNIX
-		int cloexec = fcntl (sd, F_GETFD, 0);
-		assert (cloexec >= 0);
-		cloexec |= FD_CLOEXEC;
-		fcntl (sd, F_SETFD, cloexec);
-		#endif
 	}
 
 	if (bind (sd, (struct sockaddr*)&sin, sizeof(sin)) != 0)
@@ -1933,7 +1960,7 @@ const uintptr_t EventMachine_t::CreateUnixDomainServer (const char *filename)
 
 	struct sockaddr_un s_sun;
 
-	int sd_accept = socket (AF_LOCAL, SOCK_STREAM, 0);
+	int sd_accept = EmSocket (AF_LOCAL, SOCK_STREAM, 0);
 	if (sd_accept == INVALID_SOCKET) {
 		goto fail;
 	}

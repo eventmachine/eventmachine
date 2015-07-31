@@ -76,6 +76,9 @@ add_define "HAVE_OLD_INOTIFY" if !inotify && have_macro('__NR_inotify_init', 'sy
 add_define 'HAVE_WRITEV' if have_func('writev', 'sys/uio.h')
 add_define 'HAVE_RB_THREAD_FD_SELECT' if have_func('rb_thread_fd_select')
 add_define 'HAVE_RB_FDSET_T' if have_type('rb_fdset_t', 'ruby/intern.h')
+add_define 'HAVE_PIPE2' if have_func('pipe2', 'unistd.h')
+add_define 'HAVE_ACCEPT4' if have_func('accept4', 'sys/socket.h')
+add_define 'HAVE_SOCK_CLOEXEC' if have_const('SOCK_CLOEXEC', 'sys/socket.h')
 
 have_func('rb_wait_for_single_fd')
 have_func('rb_enable_interrupt')

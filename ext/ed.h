@@ -27,7 +27,7 @@ class SslBox_t; // forward reference
 #endif
 
 bool SetSocketNonblocking (SOCKET);
-
+bool SetFdCloexec (int);
 
 /*************************
 class EventableDescriptor
@@ -418,5 +418,3 @@ class InotifyDescriptor: public EventableDescriptor
 };
 
 #endif // __EventableDescriptor__H_
-
-

@@ -31,7 +31,7 @@ bool SetSocketNonblocking (SOCKET sd)
 	int val = fcntl (sd, F_GETFL, 0);
 	return (fcntl (sd, F_SETFL, val | O_NONBLOCK) != SOCKET_ERROR) ? true : false;
 	#endif
-	
+
 	#ifdef OS_WIN32
 	#ifdef BUILD_FOR_RUBY
 	// 14Jun09 Ruby provides its own wrappers for ioctlsocket. On 1.8 this is a simple wrapper,
@@ -45,6 +45,22 @@ bool SetSocketNonblocking (SOCKET sd)
 	#endif
 }
 
+/************
+SetFdCloexec
+************/
+
+bool SetFdCloexec (int fd)
+{
+	#ifdef OS_UNIX
+	int flags = fcntl(fd, F_GETFD, 0);
+	assert (flags >= 0);
+	flags |= FD_CLOEXEC;
+	return (fcntl(fd, F_SETFD, FD_CLOEXEC) == 0) ? true : false;
+	#else
+	// TODO: Windows?
+	return true;
+	#endif
+}
 
 /****************************************
 EventableDescriptor::EventableDescriptor
@@ -1434,7 +1450,16 @@ void AcceptorDescriptor::Read()
 	int accept_count = EventMachine_t::GetSimultaneousAcceptCount();
 
 	for (int i=0; i < accept_count; i++) {
+#if defined(HAVE_SOCK_CLOEXEC) && defined(HAVE_ACCEPT4)
+		int sd = accept4 (GetSocket(), (struct sockaddr*)&pin, &addrlen, SOCK_CLOEXEC);
+		if (sd == INVALID_SOCKET) {
+			// We may be running in a kernel where
+			// SOCK_CLOEXEC is not supported - fall back:
+			sd = accept (GetSocket(), (struct sockaddr*)&pin, &addrlen);
+		}
+#else
 		int sd = accept (GetSocket(), (struct sockaddr*)&pin, &addrlen);
+#endif
 		if (sd == INVALID_SOCKET) {
 			// This breaks the loop when we've accepted everything on the kernel queue,
 			// up to 10 new connections. But what if the *first* accept fails?
@@ -1443,17 +1468,16 @@ void AcceptorDescriptor::Read()
 			break;
 		}
 
-		// Set the newly-accepted socket non-blocking.
+		// Set the newly-accepted socket non-blocking and to close on exec.
 		// On Windows, this may fail because, weirdly, Windows inherits the non-blocking
 		// attribute that we applied to the acceptor socket into the accepted one.
-		if (!SetSocketNonblocking (sd)) {
+		if (!SetFdCloexec(sd) || !SetSocketNonblocking (sd)) {
 		//int val = fcntl (sd, F_GETFL, 0);
 		//if (fcntl (sd, F_SETFL, val | O_NONBLOCK) == -1) {
 			shutdown (sd, 1);
 			close (sd);
 			continue;
 		}
-
 
 		// Disable slow-start (Nagle algorithm). Eventually make this configurable.
 		int one = 1;
