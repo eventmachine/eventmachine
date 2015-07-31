@@ -41,13 +41,12 @@ static struct sockaddr *name2address (const char *server, int port, int *family,
 /* Internal helper to create a socket with SOCK_CLOEXEC set, and fall
  * back to fcntl'ing it if the headers/runtime don't support it.
  */
-
-int EmSocket (int domain, int type, int protocol)
+SOCKET EmSocket (int domain, int type, int protocol)
 {
-	int sd;
+	SOCKET sd;
 #ifdef HAVE_SOCKET_CLOEXEC
 	sd = socket (domain, type | SOCK_CLOEXEC, protocol);
-	if (sd < 0) {
+	if (sd == INVALID_SOCKET) {
 		sd = socket (domain, type, protocol);
 		if (sd < 0) {
 			return sd;
@@ -56,7 +55,7 @@ int EmSocket (int domain, int type, int protocol)
 	}
 #else
 	sd = socket (domain, type, protocol);
-	if (sd < 0) {
+	if (sd == INVALID_SOCKET) {
 		return sd;
 	}
 	SetFdCloexec(sd);
@@ -114,8 +113,8 @@ EventMachine_t::EventMachine_t (EMCallback event_callback, Poller_t poller):
 	NumCloseScheduled (0),
 	HeartbeatInterval(2000000),
 	EventCallback (event_callback),
-	LoopBreakerReader (-1),
-	LoopBreakerWriter (-1),
+	LoopBreakerReader (INVALID_SOCKET),
+	LoopBreakerWriter (INVALID_SOCKET),
 	bTerminateSignalReceived (false),
 	Poller (poller),
 	epfd (-1),
@@ -353,7 +352,7 @@ void EventMachine_t::_InitializeLoopBreaker()
 	#endif
 
 	#ifdef OS_WIN32
-	int sd = EmSocket (AF_INET, SOCK_DGRAM, 0);
+	SOCKET sd = EmSocket (AF_INET, SOCK_DGRAM, 0);
 	if (sd == INVALID_SOCKET)
 		throw std::runtime_error ("no loop breaker socket");
 	SetSocketNonblocking (sd);
@@ -975,7 +974,7 @@ void EventMachine_t::_RunSelectOnce()
 	for (i = 0; i < Descriptors.size(); i++) {
 		EventableDescriptor *ed = Descriptors[i];
 		assert (ed);
-		int sd = ed->GetSocket();
+		SOCKET sd = ed->GetSocket();
 		if (ed->IsWatchOnly() && sd == INVALID_SOCKET)
 			continue;
 		assert (sd != INVALID_SOCKET);
@@ -1020,7 +1019,7 @@ void EventMachine_t::_RunSelectOnce()
 			for (i=0; i < Descriptors.size(); i++) {
 				EventableDescriptor *ed = Descriptors[i];
 				assert (ed);
-				int sd = ed->GetSocket();
+				SOCKET sd = ed->GetSocket();
 				if (ed->IsWatchOnly() && sd == INVALID_SOCKET)
 					continue;
 				assert (sd != INVALID_SOCKET);
@@ -1069,7 +1068,7 @@ void EventMachine_t::_CleanBadDescriptors()
 		if (ed->ShouldDelete())
 			continue;
 
-		int sd = ed->GetSocket();
+		SOCKET sd = ed->GetSocket();
 
 		struct timeval tv;
 		tv.tv_sec = 0;
@@ -1192,7 +1191,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 		throw std::runtime_error ("unable to resolve server address");
 	bind_as = *bind_as_ptr; // copy because name2address points to a static
 
-	int sd = EmSocket (family, SOCK_STREAM, 0);
+	SOCKET sd = EmSocket (family, SOCK_STREAM, 0);
 	if (sd == INVALID_SOCKET) {
 		char buf [200];
 		snprintf (buf, sizeof(buf)-1, "unable to create new socket: %s", strerror(errno));
@@ -1378,7 +1377,7 @@ const uintptr_t EventMachine_t::ConnectToUnixServer (const char *server)
 
 	strcpy (pun.sun_path, server);
 
-	int fd = EmSocket (AF_LOCAL, SOCK_STREAM, 0);
+	SOCKET fd = EmSocket (AF_LOCAL, SOCK_STREAM, 0);
 	if (fd == INVALID_SOCKET)
 		return 0;
 
@@ -1417,7 +1416,7 @@ const uintptr_t EventMachine_t::ConnectToUnixServer (const char *server)
 EventMachine_t::AttachFD
 ************************/
 
-const uintptr_t EventMachine_t::AttachFD (int fd, bool watch_mode)
+const uintptr_t EventMachine_t::AttachFD (SOCKET fd, bool watch_mode)
 {
 	#ifdef OS_UNIX
 	if (fcntl(fd, F_GETFL, 0) < 0)
@@ -1473,7 +1472,7 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 	if (!ed)
 		throw std::runtime_error ("detaching bad descriptor");
 
-	int fd = ed->GetSocket();
+	SOCKET fd = ed->GetSocket();
 
 	#ifdef HAVE_EPOLL
 	if (Poller == Poller_Epoll) {
@@ -1613,7 +1612,7 @@ const uintptr_t EventMachine_t::CreateTcpServer (const char *server, int port)
 
 	//struct sockaddr_in sin;
 
-	int sd_accept = EmSocket (family, SOCK_STREAM, 0);
+	SOCKET sd_accept = EmSocket (family, SOCK_STREAM, 0);
 	if (sd_accept == INVALID_SOCKET) {
 		goto fail;
 	}
@@ -1664,7 +1663,7 @@ const uintptr_t EventMachine_t::OpenDatagramSocket (const char *address, int por
 {
 	uintptr_t output_binding = 0;
 
-	int sd = EmSocket (AF_INET, SOCK_DGRAM, 0);
+	SOCKET sd = EmSocket (AF_INET, SOCK_DGRAM, 0);
 	if (sd == INVALID_SOCKET)
 		goto fail;
 	// from here on, early returns must close the socket!
@@ -1957,7 +1956,7 @@ const uintptr_t EventMachine_t::CreateUnixDomainServer (const char *filename)
 
 	struct sockaddr_un s_sun;
 
-	int sd_accept = EmSocket (AF_LOCAL, SOCK_STREAM, 0);
+	SOCKET sd_accept = EmSocket (AF_LOCAL, SOCK_STREAM, 0);
 	if (sd_accept == INVALID_SOCKET) {
 		goto fail;
 	}
@@ -2005,7 +2004,7 @@ const uintptr_t EventMachine_t::CreateUnixDomainServer (const char *filename)
 EventMachine_t::AttachSD
 **************************************/
 
-const uintptr_t EventMachine_t::AttachSD (int sd_accept)
+const uintptr_t EventMachine_t::AttachSD (SOCKET sd_accept)
 {
 	uintptr_t output_binding = 0;
 

@@ -36,10 +36,10 @@ class EventableDescriptor
 class EventableDescriptor: public Bindable_t
 {
 	public:
-		EventableDescriptor (int, EventMachine_t*);
+		EventableDescriptor (SOCKET, EventMachine_t*);
 		virtual ~EventableDescriptor();
 
-		int GetSocket() {return MySocket;}
+		SOCKET GetSocket() {return MySocket;}
 		void SetSocketInvalid() { MySocket = INVALID_SOCKET; }
 		void Close();
 
@@ -108,7 +108,7 @@ class EventableDescriptor: public Bindable_t
 		bool bCloseAfterWriting;
 
 	protected:
-		int MySocket;
+		SOCKET MySocket;
 		bool bAttached;
 		bool bWatchOnly;
 
@@ -151,7 +151,7 @@ class LoopbreakDescriptor
 class LoopbreakDescriptor: public EventableDescriptor
 {
 	public:
-		LoopbreakDescriptor (int, EventMachine_t*);
+		LoopbreakDescriptor (SOCKET, EventMachine_t*);
 		virtual ~LoopbreakDescriptor() {}
 
 		virtual void Read();
@@ -170,7 +170,7 @@ class ConnectionDescriptor
 class ConnectionDescriptor: public EventableDescriptor
 {
 	public:
-		ConnectionDescriptor (int, EventMachine_t*);
+		ConnectionDescriptor (SOCKET, EventMachine_t*);
 		virtual ~ConnectionDescriptor();
 
 		int SendOutboundData (const char*, unsigned long);
@@ -275,7 +275,7 @@ class DatagramDescriptor
 class DatagramDescriptor: public EventableDescriptor
 {
 	public:
-		DatagramDescriptor (int, EventMachine_t*);
+		DatagramDescriptor (SOCKET, EventMachine_t*);
 		virtual ~DatagramDescriptor();
 
 		virtual void Read();
@@ -321,7 +321,7 @@ class AcceptorDescriptor
 class AcceptorDescriptor: public EventableDescriptor
 {
 	public:
-		AcceptorDescriptor (int, EventMachine_t*);
+		AcceptorDescriptor (SOCKET, EventMachine_t*);
 		virtual ~AcceptorDescriptor();
 
 		virtual void Read();
@@ -344,7 +344,7 @@ class PipeDescriptor
 class PipeDescriptor: public EventableDescriptor
 {
 	public:
-		PipeDescriptor (int, pid_t, EventMachine_t*);
+		PipeDescriptor (SOCKET, pid_t, EventMachine_t*);
 		virtual ~PipeDescriptor();
 
 		virtual void Read();
