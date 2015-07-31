@@ -65,11 +65,9 @@ module EventMachine
           next if line =~ /^#/
           addr, host = line.split(/\s+/)
 
-          if @hosts[host]
-            @hosts[host] << addr
-          else
-            @hosts[host] = [addr]
-          end
+          next unless addr && host
+          @hosts[host] ||= []
+          @hosts[host] << addr
         end
 
         @hosts

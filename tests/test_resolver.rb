@@ -1,6 +1,21 @@
 require 'em_test_helper'
 
 class TestResolver < Test::Unit::TestCase
+  def test_nameserver
+    assert_kind_of(String, EM::DNS::Resolver.nameserver)
+  end
+
+  def test_nameservers
+    assert_kind_of(Array, EM::DNS::Resolver.nameservers)
+  end
+
+  def test_hosts
+    assert_kind_of(Hash, EM::DNS::Resolver.hosts)
+
+    # Make sure that blank or comment lines are skipped
+    refute(EM::DNS::Resolver.hosts.include? nil)
+  end
+
   def test_a
     EM.run {
       d = EM::DNS::Resolver.resolve "google.com"
