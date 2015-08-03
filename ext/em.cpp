@@ -1221,9 +1221,9 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 	}
 
 	uintptr_t out = 0;
-	int e = 0;
 
 	#ifdef OS_UNIX
+	int e_reason = 0;
 	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
 	if (connect (sd, &bind_as, bind_size) == 0) {
 		// This is a connect success, which Linux appears
@@ -1271,13 +1271,13 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 			out = cd->GetBinding();
 		} else {
 			// Fall through to the !out case below.
-			e = error;
+			e_reason = error;
 		}
 	}
 	else {
 		// The error from connect was something other then EINPROGRESS (EHOSTDOWN, etc).
 		// Fall through to the !out case below
-		e = errno;
+		e_reason = errno;
 	}
 
 	if (!out) {
@@ -1296,7 +1296,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, this);
 		if (!cd)
 			throw std::runtime_error ("no connection allocated");
-		cd->SetUnbindReasonCode(e);
+		cd->SetUnbindReasonCode (e_reason);
 		cd->ScheduleClose (false);
 		Add (cd);
 		out = cd->GetBinding();
