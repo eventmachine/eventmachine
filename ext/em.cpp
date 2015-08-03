@@ -264,9 +264,17 @@ void EventMachine_t::SetuidString (const char *username)
 	if (!username || !*username)
 		throw std::runtime_error ("setuid_string failed: no username specified");
 
+	errno = 0;
 	struct passwd *p = getpwnam (username);
-	if (!p)
-		throw std::runtime_error ("setuid_string failed: unknown username");
+	if (!p) {
+		if (errno) {
+			char buf[200];
+			snprintf (buf, sizeof(buf)-1, "setuid_string failed: %s", strerror(errno));
+			throw std::runtime_error (buf);
+		} else {
+			throw std::runtime_error ("setuid_string failed: unknown username");
+		}
+	}
 
 	if (setuid (p->pw_uid) != 0)
 		throw std::runtime_error ("setuid_string failed: no setuid");
@@ -1189,8 +1197,11 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 
 	int family, bind_size;
 	struct sockaddr bind_as, *bind_as_ptr = name2address (server, port, &family, &bind_size);
-	if (!bind_as_ptr)
-		throw std::runtime_error ("unable to resolve server address");
+	if (!bind_as_ptr) {
+		char buf [200];
+		snprintf (buf, sizeof(buf)-1, "unable to resolve server address: %s", strerror(errno));
+		throw std::runtime_error (buf);
+	}
 	bind_as = *bind_as_ptr; // copy because name2address points to a static
 
 	SOCKET sd = EmSocket (family, SOCK_STREAM, 0);
@@ -1419,8 +1430,13 @@ EventMachine_t::AttachFD
 const uintptr_t EventMachine_t::AttachFD (SOCKET fd, bool watch_mode)
 {
 	#ifdef OS_UNIX
-	if (fcntl(fd, F_GETFL, 0) < 0)
-		throw std::runtime_error ("invalid file descriptor");
+	if (fcntl(fd, F_GETFL, 0) < 0) {
+		if (errno) {
+			throw std::runtime_error (strerror(errno));
+		} else {
+			throw std::runtime_error ("invalid file descriptor");
+		}
+	}
 	#endif
 
 	#ifdef OS_WIN32
