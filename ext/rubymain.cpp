@@ -30,9 +30,19 @@ See the file COPYING for complete licensing information.
 #if SIZEOF_VOIDP == SIZEOF_LONG
 # define BSIG2NUM(x)   (ULONG2NUM((unsigned long)(x)))
 # define NUM2BSIG(x)   (NUM2ULONG(x))
+# ifdef OS_WIN32
+#  define PRIFBSIG      "I32u"
+# else
+#  define PRIFBSIG      "lu"
+# endif
 #else
 # define BSIG2NUM(x)   (ULL2NUM((unsigned long long)(x)))
 # define NUM2BSIG(x)   (NUM2ULL(x))
+# ifdef OS_WIN32
+#  define PRIFBSIG      "I64u"
+# else
+#  define PRIFBSIG      "llu"
+# endif
 #endif
 
 /*******
@@ -79,7 +89,7 @@ static inline VALUE ensure_conn(const uintptr_t signature)
 {
 	VALUE conn = rb_hash_aref (EmConnsHash, BSIG2NUM (signature));
 	if (conn == Qnil)
-		rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
+		rb_raise (EM_eConnectionNotBound, "unknown connection: %" PRIFBSIG, signature);
 	return conn;
 }
 
@@ -100,7 +110,7 @@ static inline void event_callback (struct em_event* e)
 		{
 			VALUE conn = rb_hash_aref (EmConnsHash, BSIG2NUM (signature));
 			if (conn == Qnil)
-				rb_raise (EM_eConnectionNotBound, "received %lu bytes of data for unknown signature: %lu", data_num, signature);
+				rb_raise (EM_eConnectionNotBound, "received %lu bytes of data for unknown signature: %" PRIFBSIG, data_num, signature);
 			rb_funcall (conn, Intern_receive_data, 1, rb_str_new (data_str, data_num));
 			return;
 		}
