@@ -67,6 +67,7 @@ static VALUE Intern_event_callback;
 static VALUE Intern_run_deferred_callbacks;
 static VALUE Intern_delete;
 static VALUE Intern_call;
+static VALUE Intern_at;
 static VALUE Intern_receive_data;
 static VALUE Intern_ssl_handshake_completed;
 static VALUE Intern_ssl_verify_peer;
@@ -1144,20 +1145,17 @@ t_get_loop_time
 
 static VALUE t_get_loop_time (VALUE self UNUSED)
 {
-	#ifndef HAVE_RB_TIME_NEW
-	static VALUE cTime = rb_path2class("Time");
-	static ID at = rb_intern("at");
-	#endif
-
 	uint64_t current_time = evma_get_current_loop_time();
-	if (current_time != 0) {
-	#ifndef HAVE_RB_TIME_NEW
-		return rb_funcall(cTime, at, 2, INT2NUM(current_time / 1000000), INT2NUM(current_time % 1000000));
-	#else
-		return rb_time_new(current_time / 1000000, current_time % 1000000);
-	#endif
+	if (current_time == 0) {
+		return Qnil;
 	}
-	return Qnil;
+
+	// Generally the industry has moved to 64-bit time_t, this is just in case we're 32-bit time_t.
+	if (sizeof(time_t) < 8 && current_time > INT_MAX) {
+		return rb_funcall(rb_cTime, Intern_at, 2, INT2NUM(current_time / 1000000), INT2NUM(current_time % 1000000));
+	} else {
+		return rb_time_new(current_time / 1000000, current_time % 1000000);
+	}
 }
 
 
@@ -1272,6 +1270,7 @@ extern "C" void Init_rubyeventmachine()
 	Intern_run_deferred_callbacks = rb_intern ("run_deferred_callbacks");
 	Intern_delete = rb_intern ("delete");
 	Intern_call = rb_intern ("call");
+	Intern_at = rb_intern("at");
 	Intern_receive_data = rb_intern ("receive_data");
 	Intern_ssl_handshake_completed = rb_intern ("ssl_handshake_completed");
 	Intern_ssl_verify_peer = rb_intern ("ssl_verify_peer");
