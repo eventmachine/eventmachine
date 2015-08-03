@@ -444,6 +444,9 @@ void ConnectionDescriptor::_UpdateEvents(bool read, bool write)
 	if (MySocket == INVALID_SOCKET)
 		return;
 
+	if (!read && !write)
+		return;
+
 	#ifdef HAVE_EPOLL
 	unsigned int old = EpollEvent.events;
 
