@@ -85,6 +85,10 @@ class EventableDescriptor: public Bindable_t
 		struct epoll_event *GetEpollEvent() { return &EpollEvent; }
 		#endif
 
+		#ifdef HAVE_KQUEUE
+		bool GetKqueueArmWrite() { return bKqueueArmWrite; }
+		#endif
+
 		virtual void StartProxy(const uintptr_t, const unsigned long, const unsigned long);
 		virtual void StopProxy();
 		virtual unsigned long GetProxiedBytes(){ return ProxiedBytes; };
@@ -124,6 +128,10 @@ class EventableDescriptor: public Bindable_t
 
 		#ifdef HAVE_EPOLL
 		struct epoll_event EpollEvent;
+		#endif
+
+		#ifdef HAVE_KQUEUE
+		bool bKqueueArmWrite;
 		#endif
 
 		EventMachine_t *MyEventMachine;

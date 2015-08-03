@@ -466,8 +466,9 @@ void ConnectionDescriptor::_UpdateEvents(bool read, bool write)
 	#ifdef HAVE_KQUEUE
 	if (read && SelectForRead())
 		MyEventMachine->ArmKqueueReader (this);
-	if (write && SelectForWrite())
-		MyEventMachine->ArmKqueueWriter (this);
+	bKqueueArmWrite = SelectForWrite();
+	if (write && bKqueueArmWrite)
+		MyEventMachine->Modify (this);
 	#endif
 }
 
@@ -1501,8 +1502,9 @@ void AcceptorDescriptor::Read()
 		assert (MyEventMachine);
 		MyEventMachine->Add (cd);
 		#ifdef HAVE_KQUEUE
-		if (cd->SelectForWrite())
-			MyEventMachine->ArmKqueueWriter (cd);
+		bKqueueArmWrite = cd->SelectForWrite();
+		if (bKqueueArmWrite)
+			MyEventMachine->Modify (cd);
 		if (cd->SelectForRead())
 			MyEventMachine->ArmKqueueReader (cd);
 		#endif
@@ -1744,8 +1746,9 @@ void DatagramDescriptor::Write()
 	MyEventMachine->Modify (this);
 	#endif
 	#ifdef HAVE_KQUEUE
-	if (SelectForWrite())
-		MyEventMachine->ArmKqueueWriter (this);
+	bKqueueArmWrite = SelectForWrite();
+	assert (MyEventMachine);
+	MyEventMachine->Modify (this);
 	#endif
 }
 
@@ -1796,7 +1799,9 @@ int DatagramDescriptor::SendOutboundData (const char *data, unsigned long length
 	MyEventMachine->Modify (this);
 	#endif
 	#ifdef HAVE_KQUEUE
-	MyEventMachine->ArmKqueueWriter (this);
+	bKqueueArmWrite = true;
+	assert (MyEventMachine);
+	MyEventMachine->Modify (this);
 	#endif
 
 	return length;
@@ -1854,7 +1859,9 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, unsigned long le
 	MyEventMachine->Modify (this);
 	#endif
 	#ifdef HAVE_KQUEUE
-	MyEventMachine->ArmKqueueWriter (this);
+	bKqueueArmWrite = true;
+	assert (MyEventMachine);
+	MyEventMachine->Modify (this);
 	#endif
 
 	return length;
