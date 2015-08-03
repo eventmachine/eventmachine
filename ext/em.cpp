@@ -110,16 +110,15 @@ void EventMachine_t::SetSimultaneousAcceptCount (int count)
 EventMachine_t::EventMachine_t
 ******************************/
 
-EventMachine_t::EventMachine_t (EMCallback event_callback):
+EventMachine_t::EventMachine_t (EMCallback event_callback, Poller_t poller):
 	NumCloseScheduled (0),
 	HeartbeatInterval(2000000),
 	EventCallback (event_callback),
 	LoopBreakerReader (-1),
 	LoopBreakerWriter (-1),
 	bTerminateSignalReceived (false),
-	bEpoll (false),
+	Poller (poller),
 	epfd (-1),
-	bKqueue (false),
 	kqfd (-1)
 	#ifdef HAVE_INOTIFY
 	, inotify (NULL)
@@ -128,6 +127,11 @@ EventMachine_t::EventMachine_t (EMCallback event_callback):
 	// Default time-slice is just smaller than one hundred mills.
 	Quantum.tv_sec = 0;
 	Quantum.tv_usec = 90000;
+
+	// Override the requested poller back to default if needed.
+	#if !defined(HAVE_EPOLL) && !defined(HAVE_KQUEUE)
+	Poller = Poller_Default;
+	#endif
 
 	/* Initialize monotonic timekeeping on OS X before the first call to GetRealTime */
 	#ifdef OS_DARWIN
@@ -182,40 +186,6 @@ EventMachine_t::~EventMachine_t()
 		close (kqfd);
 
 	delete SelectData;
-}
-
-
-/*************************
-EventMachine_t::_UseEpoll
-*************************/
-
-void EventMachine_t::_UseEpoll()
-{
-	/* Temporary.
-	 * Use an internal flag to switch in epoll-based functionality until we determine
-	 * how it should be integrated properly and the extent of the required changes.
-	 * A permanent solution needs to allow the integration of additional technologies,
-	 * like kqueue and Solaris's events.
-	 */
-
-	#ifdef HAVE_EPOLL
-	bEpoll = true;
-	#endif
-}
-
-/**************************
-EventMachine_t::_UseKqueue
-**************************/
-
-void EventMachine_t::_UseKqueue()
-{
-	/* Temporary.
-	 * See comments under _UseEpoll.
-	 */
-
-	#ifdef HAVE_KQUEUE
-	bKqueue = true;
-	#endif
 }
 
 
@@ -405,6 +375,43 @@ void EventMachine_t::_InitializeLoopBreaker()
 		throw std::runtime_error ("no loop breaker");
 	LoopBreakerReader = sd;
 	#endif
+
+	#ifdef HAVE_EPOLL
+	if (Poller == Poller_Epoll) {
+		epfd = epoll_create (MaxEpollDescriptors);
+		if (epfd == -1) {
+			char buf[200];
+			snprintf (buf, sizeof(buf)-1, "unable to create epoll descriptor: %s", strerror(errno));
+			throw std::runtime_error (buf);
+		}
+		int cloexec = fcntl (epfd, F_GETFD, 0);
+		assert (cloexec >= 0);
+		cloexec |= FD_CLOEXEC;
+		fcntl (epfd, F_SETFD, cloexec);
+
+		assert (LoopBreakerReader >= 0);
+		LoopbreakDescriptor *ld = new LoopbreakDescriptor (LoopBreakerReader, this);
+		assert (ld);
+		Add (ld);
+	}
+	#endif
+
+	#ifdef HAVE_KQUEUE
+	if (Poller == Poller_Kqueue) {
+		kqfd = kqueue();
+		if (kqfd == -1) {
+			char buf[200];
+			snprintf (buf, sizeof(buf)-1, "unable to create kqueue descriptor: %s", strerror(errno));
+			throw std::runtime_error (buf);
+		}
+		// cloexec not needed. By definition, kqueues are not carried across forks.
+
+		assert (LoopBreakerReader >= 0);
+		LoopbreakDescriptor *ld = new LoopbreakDescriptor (LoopBreakerReader, this);
+		assert (ld);
+		Add (ld);
+	}
+	#endif
 }
 
 /***************************
@@ -549,75 +556,44 @@ EventMachine_t::Run
 
 void EventMachine_t::Run()
 {
-	#ifdef HAVE_EPOLL
-	if (bEpoll) {
-		epfd = epoll_create (MaxEpollDescriptors);
-		if (epfd == -1) {
-			char buf[200];
-			snprintf (buf, sizeof(buf)-1, "unable to create epoll descriptor: %s", strerror(errno));
-			throw std::runtime_error (buf);
-		}
-		int cloexec = fcntl (epfd, F_GETFD, 0);
-		assert (cloexec >= 0);
-		cloexec |= FD_CLOEXEC;
-		fcntl (epfd, F_SETFD, cloexec);
-
-		assert (LoopBreakerReader >= 0);
-		LoopbreakDescriptor *ld = new LoopbreakDescriptor (LoopBreakerReader, this);
-		assert (ld);
-		Add (ld);
-	}
-	#endif
-
-	#ifdef HAVE_KQUEUE
-	if (bKqueue) {
-		kqfd = kqueue();
-		if (kqfd == -1) {
-			char buf[200];
-			snprintf (buf, sizeof(buf)-1, "unable to create kqueue descriptor: %s", strerror(errno));
-			throw std::runtime_error (buf);
-		}
-		// cloexec not needed. By definition, kqueues are not carried across forks.
-
-		assert (LoopBreakerReader >= 0);
-		LoopbreakDescriptor *ld = new LoopbreakDescriptor (LoopBreakerReader, this);
-		assert (ld);
-		Add (ld);
-	}
-	#endif
-
-	while (true) {
-		_UpdateTime();
-		_RunTimers();
-
-		/* _Add must precede _Modify because the same descriptor might
-		 * be on both lists during the same pass through the machine,
-		 * and to modify a descriptor before adding it would fail.
-		 */
-		_AddNewDescriptors();
-		_ModifyDescriptors();
-
-		_RunOnce();
-		if (bTerminateSignalReceived)
-			break;
-	}
+	while (RunOnce()) ;
 }
 
+/***********************
+EventMachine_t::RunOnce
+***********************/
 
-/************************
-EventMachine_t::_RunOnce
-************************/
-
-void EventMachine_t::_RunOnce()
+bool EventMachine_t::RunOnce()
 {
-	if (bEpoll)
+	_UpdateTime();
+	_RunTimers();
+
+	/* _Add must precede _Modify because the same descriptor might
+	 * be on both lists during the same pass through the machine,
+	 * and to modify a descriptor before adding it would fail.
+	 */
+	_AddNewDescriptors();
+	_ModifyDescriptors();
+
+	switch (Poller) {
+	case Poller_Epoll:
 		_RunEpollOnce();
-	else if (bKqueue)
+		break;
+	case Poller_Kqueue:
 		_RunKqueueOnce();
-	else
+		break;
+	case Poller_Default:
 		_RunSelectOnce();
+		break;
+	}
+
 	_DispatchHeartbeats();
 	_CleanupSockets();
+
+	if (bTerminateSignalReceived)
+		return false;
+
+	return true;
 }
 
 
@@ -859,7 +835,7 @@ void EventMachine_t::_CleanupSockets()
 		assert (ed);
 		if (ed->ShouldDelete()) {
 		#ifdef HAVE_EPOLL
-			if (bEpoll) {
+			if (Poller == Poller_Epoll) {
 				assert (epfd != -1);
 				if (ed->GetSocket() != INVALID_SOCKET) {
 					int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
@@ -889,7 +865,7 @@ EventMachine_t::_ModifyEpollEvent
 #ifdef HAVE_EPOLL
 void EventMachine_t::_ModifyEpollEvent (EventableDescriptor *ed)
 {
-	if (bEpoll) {
+	if (Poller == Poller_Epoll) {
 		assert (epfd != -1);
 		assert (ed);
 		assert (ed->GetSocket() != INVALID_SOCKET);
@@ -1500,7 +1476,7 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 	int fd = ed->GetSocket();
 
 	#ifdef HAVE_EPOLL
-	if (bEpoll) {
+	if (Poller == Poller_Epoll) {
 		if (ed->GetSocket() != INVALID_SOCKET) {
 			assert (epfd != -1);
 			int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
@@ -1515,7 +1491,7 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 	#endif
 
 	#ifdef HAVE_KQUEUE
-	if (bKqueue) {
+	if (Poller == Poller_Kqueue) {
 		// remove any read/write events for this fd
 		struct kevent k;
 #ifdef __NetBSD__
@@ -1762,7 +1738,7 @@ EventMachine_t::ArmKqueueWriter
 #ifdef HAVE_KQUEUE
 void EventMachine_t::ArmKqueueWriter (EventableDescriptor *ed)
 {
-	if (bKqueue) {
+	if (Poller == Poller_Kqueue) {
 		if (!ed)
 			throw std::runtime_error ("added bad descriptor");
 		struct kevent k;
@@ -1790,7 +1766,7 @@ EventMachine_t::ArmKqueueReader
 #ifdef HAVE_KQUEUE
 void EventMachine_t::ArmKqueueReader (EventableDescriptor *ed)
 {
-	if (bKqueue) {
+	if (Poller == Poller_Kqueue) {
 		if (!ed)
 			throw std::runtime_error ("added bad descriptor");
 		struct kevent k;
@@ -1834,7 +1810,7 @@ void EventMachine_t::_AddNewDescriptors()
 			throw std::runtime_error ("adding bad descriptor");
 
 		#if HAVE_EPOLL
-		if (bEpoll) {
+		if (Poller == Poller_Epoll) {
 			assert (epfd != -1);
 			int e = epoll_ctl (epfd, EPOLL_CTL_ADD, ed->GetSocket(), ed->GetEpollEvent());
 			if (e) {
@@ -1847,7 +1823,7 @@ void EventMachine_t::_AddNewDescriptors()
 
 		#if HAVE_KQUEUE
 		/*
-		if (bKqueue) {
+		if (Poller == Poller_Kqueue) {
 			// INCOMPLETE. Some descriptors don't want to be readable.
 			assert (kqfd != -1);
 			struct kevent k;
@@ -1893,7 +1869,7 @@ void EventMachine_t::_ModifyDescriptors()
 	 */
 
 	#ifdef HAVE_EPOLL
-	if (bEpoll) {
+	if (Poller == Poller_Epoll) {
 		set<EventableDescriptor*>::iterator i = ModifiedDescriptors.begin();
 		while (i != ModifiedDescriptors.end()) {
 			assert (*i);
@@ -1931,7 +1907,7 @@ void EventMachine_t::Deregister (EventableDescriptor *ed)
 	// cut/paste from _CleanupSockets().  The error handling could be
 	// refactored out of there, but it is cut/paste all over the
 	// file already.
-	if (bEpoll) {
+	if (Poller == Poller_Epoll) {
 		assert (epfd != -1);
 		assert (ed->GetSocket() != INVALID_SOCKET);
 		int e = epoll_ctl (epfd, EPOLL_CTL_DEL, ed->GetSocket(), ed->GetEpollEvent());
@@ -2143,7 +2119,7 @@ EventMachine_t::WatchPid
 #ifdef HAVE_KQUEUE
 const uintptr_t EventMachine_t::WatchPid (int pid)
 {
-	if (!bKqueue)
+	if (Poller != Poller_Kqueue)
 		throw std::runtime_error("must enable kqueue (EM.kqueue=true) for pid watching support");
 
 	struct kevent event;
@@ -2243,7 +2219,7 @@ const uintptr_t EventMachine_t::WatchFile (const char *fpath)
 	#endif
 
 	#ifdef HAVE_KQUEUE
-	if (!bKqueue)
+	if (Poller != Poller_Kqueue)
 		throw std::runtime_error("must enable kqueue (EM.kqueue=true) for file watching support");
 
 	// With kqueue we have to open the file first and use the resulting fd to register for events

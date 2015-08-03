@@ -223,12 +223,21 @@ static VALUE t_initialize_event_machine (VALUE self UNUSED)
 }
 
 
+/******************
+t_run_machine_once
+******************/
 
-/*****************************
-t_run_machine_without_threads
-*****************************/
+static VALUE t_run_machine_once (VALUE self UNUSED)
+{
+	return evma_run_machine_once () ? Qtrue : Qfalse;
+}
 
-static VALUE t_run_machine_without_threads (VALUE self UNUSED)
+
+/*************
+t_run_machine
+*************/
+
+static VALUE t_run_machine (VALUE self UNUSED)
 {
 	evma_run_machine();
 	return Qnil;
@@ -973,6 +982,11 @@ t__epoll
 
 static VALUE t__epoll (VALUE self UNUSED)
 {
+	if (t__epoll_p(self) == Qfalse) {
+		rb_warn ("epoll is not supported on this platform");
+		return Qfalse;
+	}
+
 	evma_set_epoll (1);
 	return Qtrue;
 }
@@ -984,7 +998,7 @@ t__epoll_set
 static VALUE t__epoll_set (VALUE self, VALUE val)
 {
 	if (t__epoll_p(self) == Qfalse)
-		rb_raise (EM_eUnsupported, "%s", "epoll is not supported on this platform");
+		rb_warn ("epoll is not supported on this platform");
 
 	evma_set_epoll (val == Qtrue ? 1 : 0);
 	return val;
@@ -1010,6 +1024,11 @@ t__kqueue
 
 static VALUE t__kqueue (VALUE self UNUSED)
 {
+	if (t__kqueue_p(self) == Qfalse) {
+		rb_warn ("kqueue is not supported on this platform");
+		return Qfalse;
+	}
+
 	evma_set_kqueue (1);
 	return Qtrue;
 }
@@ -1021,7 +1040,7 @@ t__kqueue_set
 static VALUE t__kqueue_set (VALUE self, VALUE val)
 {
 	if (t__kqueue_p(self) == Qfalse)
-		rb_raise (EM_eUnsupported, "%s", "kqueue is not supported on this platform");
+		rb_warn ("kqueue is not supported on this platform");
 
 	evma_set_kqueue (val == Qtrue ? 1 : 0);
 	return val;
@@ -1261,8 +1280,9 @@ extern "C" void Init_rubyeventmachine()
 	EM_eUnsupported = rb_define_class_under (EmModule, "Unsupported", rb_eRuntimeError);
 
 	rb_define_module_function (EmModule, "initialize_event_machine", (VALUE(*)(...))t_initialize_event_machine, 0);
-	rb_define_module_function (EmModule, "run_machine", (VALUE(*)(...))t_run_machine_without_threads, 0);
-	rb_define_module_function (EmModule, "run_machine_without_threads", (VALUE(*)(...))t_run_machine_without_threads, 0);
+	rb_define_module_function (EmModule, "run_machine_once", (VALUE(*)(...))t_run_machine_once, 0);
+	rb_define_module_function (EmModule, "run_machine", (VALUE(*)(...))t_run_machine, 0);
+	rb_define_module_function (EmModule, "run_machine_without_threads", (VALUE(*)(...))t_run_machine, 0);
 	rb_define_module_function (EmModule, "add_oneshot_timer", (VALUE(*)(...))t_add_oneshot_timer, 1);
 	rb_define_module_function (EmModule, "start_tcp_server", (VALUE(*)(...))t_start_server, 2);
 	rb_define_module_function (EmModule, "stop_tcp_server", (VALUE(*)(...))t_stop_server, 1);

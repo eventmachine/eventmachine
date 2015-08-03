@@ -97,6 +97,16 @@ class EventableDescriptor;
 class InotifyDescriptor;
 struct SelectData_t;
 
+/*************
+enum Poller_t
+*************/
+enum Poller_t {
+	Poller_Default, // typically Select
+	Poller_Epoll,
+	Poller_Kqueue
+};
+
+
 /********************
 class EventMachine_t
 ********************/
@@ -111,9 +121,10 @@ class EventMachine_t
 		static void SetSimultaneousAcceptCount (int);
 
 	public:
-		EventMachine_t (EMCallback);
+		EventMachine_t (EMCallback, Poller_t);
 		virtual ~EventMachine_t();
 
+		bool RunOnce();
 		void Run();
 		void ScheduleHalt();
 		void SignalLoopBreaker();
@@ -169,20 +180,14 @@ class EventMachine_t
 
 		uint64_t GetCurrentLoopTime() { return MyCurrentLoopTime; }
 
-		// Temporary:
-		void _UseEpoll();
-		void _UseKqueue();
-
-		bool UsingKqueue() { return bKqueue; }
-		bool UsingEpoll() { return bEpoll; }
-
 		void QueueHeartbeat(EventableDescriptor*);
 		void ClearHeartbeat(uint64_t, EventableDescriptor*);
 
 		uint64_t GetRealTime();
 
+		Poller_t GetPoller() { return Poller; }
+
 	private:
-		void _RunOnce();
 		void _RunTimers();
 		void _UpdateTime();
 		void _AddNewDescriptors();
@@ -246,13 +251,13 @@ class EventMachine_t
 		bool bTerminateSignalReceived;
 		SelectData_t *SelectData;
 
-		bool bEpoll;
+		Poller_t Poller;
+
 		int epfd; // Epoll file-descriptor
 		#ifdef HAVE_EPOLL
 		struct epoll_event epoll_events [MaxEvents];
 		#endif
 
-		bool bKqueue;
 		int kqfd; // Kqueue file-descriptor
 		#ifdef HAVE_KQUEUE
 		struct kevent Karray [MaxEvents];

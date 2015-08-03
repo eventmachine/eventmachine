@@ -41,6 +41,7 @@ extern "C" {
 	};
 
 	void evma_initialize_library (EMCallback);
+	bool evma_run_machine_once();
 	void evma_run_machine();
 	void evma_release_library();
 	const uintptr_t evma_install_oneshot_timer (int seconds);
