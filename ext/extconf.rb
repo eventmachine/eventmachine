@@ -186,12 +186,14 @@ end
 # deprecated-declarations are used in OS X OpenSSL
 # ignored-qualifiers are used by the Bindings (would-be void *)
 # unused-result because GCC 4.6 no longer silences (void) ignore_this(function)
+# address because on Windows, rb_fd_select checks if &fds is non-NULL, which it cannot be
 %w(
   -Wall
   -Wextra
   -Wno-deprecated-declarations
   -Wno-ignored-qualifiers
   -Wno-unused-result
+  -Wno-address
 ).select do |flag|
   try_link('int main() {return 0;}', flag)
 end.each do |flag|
