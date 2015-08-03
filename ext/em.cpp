@@ -1530,15 +1530,10 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	// Check the more-common cases first.
 	// Return NULL if no resolution.
 
-	static struct sockaddr_in in4;
-	#ifndef __CYGWIN__
-	static struct sockaddr_in6 in6;
-	#endif
-	struct hostent *hp;
-
 	if (!server || !*server)
 		server = "0.0.0.0";
 
+	static struct sockaddr_in in4;
 	memset (&in4, 0, sizeof(in4));
 	if ( (in4.sin_addr.s_addr = inet_addr (server)) != INADDR_NONE) {
 		if (family)
@@ -1551,6 +1546,7 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	}
 
 	#if defined(OS_UNIX) && !defined(__CYGWIN__)
+	static struct sockaddr_in6 in6;
 	memset (&in6, 0, sizeof(in6));
 	if (inet_pton (AF_INET6, server, in6.sin6_addr.s6_addr) > 0) {
 		if (family)
@@ -1571,6 +1567,7 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	// For the time being, Ipv6 addresses aren't supported on Windows.
 	#endif
 
+	struct hostent *hp;
 	hp = gethostbyname ((char*)server); // Windows requires the cast.
 	if (hp) {
 		in4.sin_addr.s_addr = ((in_addr*)(hp->h_addr))->s_addr;
