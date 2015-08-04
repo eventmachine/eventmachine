@@ -176,13 +176,13 @@ else
 end
 
 # This is our wishlist. We use whichever flags work on the host.
+# In the future, add -Werror to make sure all warnings are resolved.
 # deprecated-declarations are used in OS X OpenSSL
 # ignored-qualifiers are used by the Bindings (would-be void *)
 # unused-result because GCC 4.6 no longer silences (void) ignore_this(function)
 %w(
   -Wall
   -Wextra
-  -Werror
   -Wno-deprecated-declarations
   -Wno-ignored-qualifiers
   -Wno-unused-result
