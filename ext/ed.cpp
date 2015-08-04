@@ -1185,9 +1185,9 @@ void ConnectionDescriptor::StartTls()
 ConnectionDescriptor::SetTlsParms
 *********************************/
 
+#ifdef WITH_SSL
 void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer)
 {
-	#ifdef WITH_SSL
 	if (SslBox)
 		throw std::runtime_error ("call SetTlsParms before calling StartTls");
 	if (privkey_filename && *privkey_filename)
@@ -1195,12 +1195,15 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 	if (certchain_filename && *certchain_filename)
 		CertChainFilename = certchain_filename;
 	bSslVerifyPeer = verify_peer;
-	#endif
 
-	#ifdef WITHOUT_SSL
-	throw std::runtime_error ("Encryption not available on this event-machine");
-	#endif
 }
+#endif
+
+#ifdef WITHOUT_SSL
+void ConnectionDescriptor::SetTlsParms (const char *privkey_filename UNUSED, const char *certchain_filename UNUSED, bool verify_peer UNUSED) {
+	throw std::runtime_error ("Encryption not available on this event-machine");
+}
+#endif
 
 
 /*********************************
