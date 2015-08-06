@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.8 (August 6, 2015)
+* fix kqueue assertion failed, postpone ArmKqueueWriter until all events are processed [#51, #176, #372, #401, #619]
+* fix Rubinius GC, crank the machine from Ruby space when running Rubinius [#201, #202, #617]
+* test to show that LineText2 preserves whitespace and newlines [#32, #622]
+* bump up compiler warnings and resolve them [#616]
+* fix Windows x64 use uintptr_t instead of unsigned long for binding pointers [#612, #615]
+* fix linetext2 unroll tail recursion to avoid stack level too deep [#609]
+* fix for compilation with SSL on windows [#601]
+* open file descriptors and sockets with O_CLOEXEC where possible [#298, #488, #591]
+* fix SmtpClient: send second EHLO after STARTTLS. [#589]
+* fix nul-terminated strings in C, use StringValueCStr instead of StringValuePtr 
+
 ## 1.0.7 (February 10, 2015)
 * fix delay in kqueue/epoll reactor shutdown when timers exist [#587]
 * fix memory leak introduced in v1.0.5 [#586]
