@@ -1555,7 +1555,11 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 		server = "0.0.0.0";
 
 	static struct sockaddr_in in4;
+	static struct sockaddr_in6 in6;
+
 	memset (&in4, 0, sizeof(in4));
+	memset (&in6, 0, sizeof(in6));
+
 	if ( (in4.sin_addr.s_addr = inet_addr (server)) != INADDR_NONE) {
 		if (family)
 			*family = AF_INET;
@@ -1567,8 +1571,6 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	}
 
 	#if defined(OS_UNIX) && !defined(__CYGWIN__)
-	static struct sockaddr_in6 in6;
-	memset (&in6, 0, sizeof(in6));
 	if (inet_pton (AF_INET6, server, in6.sin6_addr.s6_addr) > 0) {
 		if (family)
 			*family = AF_INET6;
@@ -1578,14 +1580,17 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 		in6.sin6_port = htons (port);
 		return (struct sockaddr*)&in6;
 	}
-	#endif
-
-	#ifdef OS_WIN32
-	// TODO, must complete this branch. Windows doesn't have inet_pton.
-	// A possible approach is to make a getaddrinfo call with the supplied
-	// server address, constraining the hints to ipv6 and seeing if we
-	// get any addresses.
-	// For the time being, Ipv6 addresses aren't supported on Windows.
+	#elif defined(OS_WIN32) && !defined(__CYGWIN__)
+	int len = sizeof(in6);
+	if (WSAStringToAddress ((char *)server, AF_INET6, NULL, (struct sockaddr *)&in6, &len) == 0) {
+		if (family)
+			*family = AF_INET6;
+		if (bind_size)
+			*bind_size = sizeof(in6);
+		in6.sin6_family = AF_INET6;
+		in6.sin6_port = htons (port);
+		return (struct sockaddr*)&in6;
+	}
 	#endif
 
 	struct hostent *hp;
