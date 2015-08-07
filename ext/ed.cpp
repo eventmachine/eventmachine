@@ -1024,6 +1024,8 @@ void ConnectionDescriptor::_WriteOutboundData()
 	for(int i = 0; i < iovcnt; i++){
 		OutboundPage *op = &(OutboundPages[i]);
 		#ifdef CC_SUNWspro
+		// TODO: The void * cast works fine on Solaris 11, but
+		// I don't know at what point that changed from older Solaris.
 		iov[i].iov_base = (char *)(op->Buffer + op->Offset);
 		#else
 		iov[i].iov_base = (void *)(op->Buffer + op->Offset);
