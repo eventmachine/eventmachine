@@ -20,10 +20,6 @@ See the file COPYING for complete licensing information.
 // THIS ENTIRE FILE WILL EVENTUALLY BE FOR UNIX BUILDS ONLY.
 //#ifdef OS_UNIX
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netdb.h>
-
 #include "project.h"
 
 /* The numer of max outstanding timers was once a const enum defined in em.h.
@@ -1597,26 +1593,37 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	}
 	#endif
 
+	int ai_family;
 	struct addrinfo *ai;
-	if (getaddrinfo (server, NULL, NULL, &ai) == 0) {
+	struct addrinfo hints;
+	memset (&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	if (getaddrinfo (server, NULL, &hints, &ai) == 0) {
 		if (family)
 			*family = ai->ai_family;
 		if (bind_size)
 			*bind_size = ai->ai_addrlen;
 
-		switch (ai->ai_family) {
+		ai_family = ai->ai_family;
+		switch (ai_family) {
 			case AF_INET:
-				memcpy(&in4, ai->ai_addr, ai->ai_addrlen);
+				memcpy (&in4, ai->ai_addr, ai->ai_addrlen);
 				in4.sin_port = htons(port);
-#ifndef CYGWIN
+		#ifndef __CYGWIN__
 			case AF_INET6:
-				memcpy(&in6, ai->ai_addr, ai->ai_addrlen);
+				memcpy (&in6, ai->ai_addr, ai->ai_addrlen);
 				in6.sin6_port = htons(port);
-#endif
+		#endif
 		}
 
 		freeaddrinfo(ai);
-		return (struct sockaddr*)&in4;
+
+		switch (ai_family) {
+			case AF_INET:
+				return (struct sockaddr*)&in4;
+			case AF_INET6:
+				return (struct sockaddr*)&in6;
+		}
 	}
 
 	return NULL;
