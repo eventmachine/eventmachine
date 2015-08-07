@@ -1597,7 +1597,6 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	}
 	#endif
 
-
 	struct addrinfo *ai;
 	if (getaddrinfo (server, NULL, NULL, &ai) == 0) {
 		if (family)
