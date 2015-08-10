@@ -137,6 +137,11 @@ EventMachine_t::EventMachine_t (EMCallback event_callback, Poller_t poller):
 	(void) mach_timebase_info(&mach_timebase);
 	#endif
 
+	#ifdef OS_WIN32
+	TickCountTickover = 0;
+	LastTickCount = 0;
+	#endif
+
 	// Make sure the current loop time is sane, in case we do any initializations of
 	// objects before we start running.
 	_UpdateTime();
