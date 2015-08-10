@@ -125,6 +125,10 @@ when /solaris/
   add_define 'OS_SOLARIS8'
   check_libs(%w[nsl socket], true)
 
+  # If Ruby was compiled for 32-bits, then select() can only handle 1024 fds
+  # There is an alternate function, select_large_fdset, that supports more.
+  add_define 'HAVE_SELECT_LARGE_FDSET' if have_func('select_large_fdset', 'sys/select.h')
+
   if CONFIG['CC'] == 'cc' && (
      `cc -flags 2>&1` =~ /Sun/ || # detect SUNWspro compiler
      `cc -V 2>&1` =~ /Sun/        # detect Solaris Studio compiler
