@@ -96,3 +96,16 @@ def gem_cmd(action, name, *args)
 end
 
 Rake::Task[:clean].enhance [:clobber_package]
+
+# DevKit task following the example of Luis Lavena's test-ruby-c-extension
+task :devkit do
+  begin
+    require "devkit"
+  rescue LoadError => e
+    abort "Failed to activate RubyInstaller's DevKit required for compilation."
+  end
+end
+
+if RUBY_PLATFORM =~ /mingw|mswin/ then
+  Rake::Task['compile'].prerequisites.unshift 'devkit'
+end

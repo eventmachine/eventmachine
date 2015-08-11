@@ -49,24 +49,26 @@ bool SetSocketNonblocking (SOCKET sd)
 SetFdCloexec
 ************/
 
+#ifdef OS_UNIX
 bool SetFdCloexec (int fd)
 {
-	#ifdef OS_UNIX
 	int flags = fcntl(fd, F_GETFD, 0);
 	assert (flags >= 0);
 	flags |= FD_CLOEXEC;
 	return (fcntl(fd, F_SETFD, FD_CLOEXEC) == 0) ? true : false;
-	#else
-	// TODO: Windows?
-	return true;
-	#endif
 }
+#else
+bool SetFdCloexec (int fd UNUSED)
+{
+	return true;
+}
+#endif
 
 /****************************************
 EventableDescriptor::EventableDescriptor
 ****************************************/
 
-EventableDescriptor::EventableDescriptor (int sd, EventMachine_t *em):
+EventableDescriptor::EventableDescriptor (SOCKET sd, EventMachine_t *em):
 	bCloseNow (false),
 	bCloseAfterWriting (false),
 	MySocket (sd),
@@ -387,7 +389,7 @@ uint64_t EventableDescriptor::GetNextHeartbeat()
 ConnectionDescriptor::ConnectionDescriptor
 ******************************************/
 
-ConnectionDescriptor::ConnectionDescriptor (int sd, EventMachine_t *em):
+ConnectionDescriptor::ConnectionDescriptor (SOCKET sd, EventMachine_t *em):
 	EventableDescriptor (sd, em),
 	bConnectPending (false),
 	bNotifyReadable (false),
@@ -440,6 +442,9 @@ void ConnectionDescriptor::_UpdateEvents()
 void ConnectionDescriptor::_UpdateEvents(bool read, bool write)
 {
 	if (MySocket == INVALID_SOCKET)
+		return;
+
+	if (!read && !write)
 		return;
 
 	#ifdef HAVE_EPOLL
@@ -768,7 +773,7 @@ void ConnectionDescriptor::Read()
 	 * come here more than once after being closed. (FCianfrocca)
 	 */
 
-	int sd = GetSocket();
+	SOCKET sd = GetSocket();
 	//assert (sd != INVALID_SOCKET); (original, removed 22Aug06)
 	if (sd == INVALID_SOCKET) {
 		assert (!bReadAttemptedAfterClose);
@@ -857,9 +862,9 @@ void ConnectionDescriptor::Read()
 ConnectionDescriptor::_DispatchInboundData
 ******************************************/
 
+#ifdef WITH_SSL
 void ConnectionDescriptor::_DispatchInboundData (const char *buffer, unsigned long size)
 {
-	#ifdef WITH_SSL
 	if (SslBox) {
 		SslBox->PutCiphertext (buffer, size);
 
@@ -883,12 +888,13 @@ void ConnectionDescriptor::_DispatchInboundData (const char *buffer, unsigned lo
 	else {
 		_GenericInboundDispatch(buffer, size);
 	}
-	#endif
-
-	#ifdef WITHOUT_SSL
-	_GenericInboundDispatch(buffer, size);
-	#endif
 }
+#else
+void ConnectionDescriptor::_DispatchInboundData (const char *buffer, unsigned long size)
+{
+	_GenericInboundDispatch(buffer, size);
+}
+#endif
 
 
 
@@ -1003,7 +1009,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 	 * doing it to address some reports of crashing under heavy loads.
 	 */
 
-	int sd = GetSocket();
+	SOCKET sd = GetSocket();
 	//assert (sd != INVALID_SOCKET);
 	if (sd == INVALID_SOCKET) {
 		assert (!bWriteAttemptedAfterClose);
@@ -1167,29 +1173,31 @@ int ConnectionDescriptor::ReportErrorStatus()
 ConnectionDescriptor::StartTls
 ******************************/
 
+#ifdef WITH_SSL
 void ConnectionDescriptor::StartTls()
 {
-	#ifdef WITH_SSL
 	if (SslBox)
 		throw std::runtime_error ("SSL/TLS already running on connection");
 
 	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, GetBinding());
 	_DispatchCiphertext();
-	#endif
 
-	#ifdef WITHOUT_SSL
-	throw std::runtime_error ("Encryption not available on this event-machine");
-	#endif
 }
+#else
+void ConnectionDescriptor::StartTls()
+{
+	throw std::runtime_error ("Encryption not available on this event-machine");
+}
+#endif
 
 
 /*********************************
 ConnectionDescriptor::SetTlsParms
 *********************************/
 
+#ifdef WITH_SSL
 void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer)
 {
-	#ifdef WITH_SSL
 	if (SslBox)
 		throw std::runtime_error ("call SetTlsParms before calling StartTls");
 	if (privkey_filename && *privkey_filename)
@@ -1197,12 +1205,13 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 	if (certchain_filename && *certchain_filename)
 		CertChainFilename = certchain_filename;
 	bSslVerifyPeer = verify_peer;
-	#endif
-
-	#ifdef WITHOUT_SSL
-	throw std::runtime_error ("Encryption not available on this event-machine");
-	#endif
 }
+#else
+void ConnectionDescriptor::SetTlsParms (const char *privkey_filename UNUSED, const char *certchain_filename UNUSED, bool verify_peer UNUSED)
+{
+	throw std::runtime_error ("Encryption not available on this event-machine");
+}
+#endif
 
 
 /*********************************
@@ -1346,7 +1355,7 @@ void ConnectionDescriptor::Heartbeat()
 LoopbreakDescriptor::LoopbreakDescriptor
 ****************************************/
 
-LoopbreakDescriptor::LoopbreakDescriptor (int sd, EventMachine_t *parent_em):
+LoopbreakDescriptor::LoopbreakDescriptor (SOCKET sd, EventMachine_t *parent_em):
 	EventableDescriptor (sd, parent_em)
 {
 	/* This is really bad and ugly. Change someday if possible.
@@ -1393,7 +1402,7 @@ void LoopbreakDescriptor::Write()
 AcceptorDescriptor::AcceptorDescriptor
 **************************************/
 
-AcceptorDescriptor::AcceptorDescriptor (int sd, EventMachine_t *parent_em):
+AcceptorDescriptor::AcceptorDescriptor (SOCKET sd, EventMachine_t *parent_em):
 	EventableDescriptor (sd, parent_em)
 {
 	#ifdef HAVE_EPOLL
@@ -1454,14 +1463,14 @@ void AcceptorDescriptor::Read()
 
 	for (int i=0; i < accept_count; i++) {
 #if defined(HAVE_SOCK_CLOEXEC) && defined(HAVE_ACCEPT4)
-		int sd = accept4 (GetSocket(), (struct sockaddr*)&pin, &addrlen, SOCK_CLOEXEC);
+		SOCKET sd = accept4 (GetSocket(), (struct sockaddr*)&pin, &addrlen, SOCK_CLOEXEC);
 		if (sd == INVALID_SOCKET) {
 			// We may be running in a kernel where
 			// SOCK_CLOEXEC is not supported - fall back:
 			sd = accept (GetSocket(), (struct sockaddr*)&pin, &addrlen);
 		}
 #else
-		int sd = accept (GetSocket(), (struct sockaddr*)&pin, &addrlen);
+		SOCKET sd = accept (GetSocket(), (struct sockaddr*)&pin, &addrlen);
 #endif
 		if (sd == INVALID_SOCKET) {
 			// This breaks the loop when we've accepted everything on the kernel queue,
@@ -1557,7 +1566,7 @@ bool AcceptorDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
 DatagramDescriptor::DatagramDescriptor
 **************************************/
 
-DatagramDescriptor::DatagramDescriptor (int sd, EventMachine_t *parent_em):
+DatagramDescriptor::DatagramDescriptor (SOCKET sd, EventMachine_t *parent_em):
 	EventableDescriptor (sd, parent_em),
 	OutboundDataSize (0)
 {
@@ -1625,7 +1634,7 @@ DatagramDescriptor::Read
 
 void DatagramDescriptor::Read()
 {
-	int sd = GetSocket();
+	SOCKET sd = GetSocket();
 	assert (sd != INVALID_SOCKET);
 	LastActivity = MyEventMachine->GetCurrentLoopTime();
 
@@ -1702,7 +1711,7 @@ void DatagramDescriptor::Write()
 	 * TODO, we are currently suppressing the EMSGSIZE error!!!
 	 */
 
-	int sd = GetSocket();
+	SOCKET sd = GetSocket();
 	assert (sd != INVALID_SOCKET);
 	LastActivity = MyEventMachine->GetCurrentLoopTime();
 

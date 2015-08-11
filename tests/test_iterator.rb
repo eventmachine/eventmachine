@@ -72,6 +72,8 @@ class TestIterator < Test::Unit::TestCase
   end
 
   def test_inject
+    omit_if(windows?)
+
     list = %w[ pwd uptime uname date ]
     EM.run {
       EM::Iterator.new(list, 2).inject({}, proc{ |hash,cmd,iter|

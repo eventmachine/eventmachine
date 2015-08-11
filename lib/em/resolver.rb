@@ -2,30 +2,31 @@ module EventMachine
   module DNS
     class Resolver
 
+      def self.windows?
+        if RUBY_PLATFORM =~ /mswin32|cygwin|mingw|bccwin/
+          require 'win32/resolv'
+          true
+        else
+          false
+        end
+      end
+
+      HOSTS_FILE = windows? ? Win32::Resolv.get_hosts_path : '/etc/hosts'
+
+      @hosts = nil
+      @nameservers = nil
+      @socket = nil
+
       def self.resolve(hostname)
         Request.new(socket, hostname)
       end
 
-      @socket = @nameservers = nil
-
       def self.socket
-        if !@socket || (@socket && @socket.error?)
+        if @socket && @socket.error?
           @socket = Socket.open
-
-          @hosts  = {}
-          IO.readlines('/etc/hosts').each do |line|
-            next if line =~ /^#/
-            addr, host = line.split(/\s+/)
-
-            if @hosts[host]
-              @hosts[host] << addr
-            else
-              @hosts[host] = [addr]
-            end
-          end
+        else
+          @socket ||= Socket.open
         end
-
-        @socket
       end
 
       def self.nameservers=(ns)
@@ -33,15 +34,23 @@ module EventMachine
       end
 
       def self.nameservers
-        if !@nameservers
-          @nameservers = []
-          IO.readlines('/etc/resolv.conf').each do |line|
-            if line =~ /^nameserver (.+)$/
-              @nameservers << $1.split(/\s+/).first
-            end
+        return @nameservers if @nameservers
+
+        if windows?
+          _, ns = Win32::Resolv.get_resolv_info
+          return @nameservers = ns || []
+        end
+
+        @nameservers = []
+        IO.readlines('/etc/resolv.conf').each do |line|
+          if line =~ /^nameserver (.+)$/
+            @nameservers << $1.split(/\s+/).first
           end
         end
+
         @nameservers
+      rescue
+        @nameservers = []
       end
 
       def self.nameserver
@@ -49,7 +58,21 @@ module EventMachine
       end
 
       def self.hosts
+        return @hosts if @hosts
+
+        @hosts = {}
+        IO.readlines(HOSTS_FILE).each do |line|
+          next if line =~ /^#/
+          addr, host = line.split(/\s+/)
+
+          next unless addr && host
+          @hosts[host] ||= []
+          @hosts[host] << addr
+        end
+
         @hosts
+      rescue
+        @hosts = {}
       end
     end
 

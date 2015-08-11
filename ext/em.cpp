@@ -41,13 +41,12 @@ static struct sockaddr *name2address (const char *server, int port, int *family,
 /* Internal helper to create a socket with SOCK_CLOEXEC set, and fall
  * back to fcntl'ing it if the headers/runtime don't support it.
  */
-
-int EmSocket (int domain, int type, int protocol)
+SOCKET EmSocket (int domain, int type, int protocol)
 {
-	int sd;
+	SOCKET sd;
 #ifdef HAVE_SOCKET_CLOEXEC
 	sd = socket (domain, type | SOCK_CLOEXEC, protocol);
-	if (sd < 0) {
+	if (sd == INVALID_SOCKET) {
 		sd = socket (domain, type, protocol);
 		if (sd < 0) {
 			return sd;
@@ -56,7 +55,7 @@ int EmSocket (int domain, int type, int protocol)
 	}
 #else
 	sd = socket (domain, type, protocol);
-	if (sd < 0) {
+	if (sd == INVALID_SOCKET) {
 		return sd;
 	}
 	SetFdCloexec(sd);
@@ -114,8 +113,8 @@ EventMachine_t::EventMachine_t (EMCallback event_callback, Poller_t poller):
 	NumCloseScheduled (0),
 	HeartbeatInterval(2000000),
 	EventCallback (event_callback),
-	LoopBreakerReader (-1),
-	LoopBreakerWriter (-1),
+	LoopBreakerReader (INVALID_SOCKET),
+	LoopBreakerWriter (INVALID_SOCKET),
 	bTerminateSignalReceived (false),
 	Poller (poller),
 	epfd (-1),
@@ -136,6 +135,11 @@ EventMachine_t::EventMachine_t (EMCallback event_callback, Poller_t poller):
 	/* Initialize monotonic timekeeping on OS X before the first call to GetRealTime */
 	#ifdef OS_DARWIN
 	(void) mach_timebase_info(&mach_timebase);
+	#endif
+
+	#ifdef OS_WIN32
+	TickCountTickover = 0;
+	LastTickCount = 0;
 	#endif
 
 	// Make sure the current loop time is sane, in case we do any initializations of
@@ -240,6 +244,7 @@ void EventMachine_t::SetTimerQuantum (int interval)
 (STATIC) EventMachine_t::SetuidString
 *************************************/
 
+#ifdef OS_UNIX
 void EventMachine_t::SetuidString (const char *username)
 {
 	/* This method takes a caller-supplied username and tries to setuid
@@ -256,7 +261,6 @@ void EventMachine_t::SetuidString (const char *username)
 	 * A setuid failure here would be in the latter category.
 	 */
 
-	#ifdef OS_UNIX
 	if (!username || !*username)
 		throw std::runtime_error ("setuid_string failed: no username specified");
 
@@ -268,17 +272,18 @@ void EventMachine_t::SetuidString (const char *username)
 		throw std::runtime_error ("setuid_string failed: no setuid");
 
 	// Success.
-	#endif
 }
-
+#else
+void EventMachine_t::SetuidString (const char *username UNUSED) { }
+#endif
 
 /****************************************
 (STATIC) EventMachine_t::SetRlimitNofile
 ****************************************/
 
+#ifdef OS_UNIX
 int EventMachine_t::SetRlimitNofile (int nofiles)
 {
-	#ifdef OS_UNIX
 	struct rlimit rlim;
 	getrlimit (RLIMIT_NOFILE, &rlim);
 	if (nofiles >= 0) {
@@ -291,14 +296,10 @@ int EventMachine_t::SetRlimitNofile (int nofiles)
 	}
 	getrlimit (RLIMIT_NOFILE, &rlim);
 	return rlim.rlim_cur;
-	#endif
-
-	#ifdef OS_WIN32
-	// No meaningful implementation on Windows.
-	return 0;
-	#endif
 }
-
+#else
+int EventMachine_t::SetRlimitNofile (int nofiles UNUSED) { return 0; }
+#endif
 
 /*********************************
 EventMachine_t::SignalLoopBreaker
@@ -353,7 +354,7 @@ void EventMachine_t::_InitializeLoopBreaker()
 	#endif
 
 	#ifdef OS_WIN32
-	int sd = EmSocket (AF_INET, SOCK_DGRAM, 0);
+	SOCKET sd = EmSocket (AF_INET, SOCK_DGRAM, 0);
 	if (sd == INVALID_SOCKET)
 		throw std::runtime_error ("no loop breaker socket");
 	SetSocketNonblocking (sd);
@@ -975,7 +976,7 @@ void EventMachine_t::_RunSelectOnce()
 	for (i = 0; i < Descriptors.size(); i++) {
 		EventableDescriptor *ed = Descriptors[i];
 		assert (ed);
-		int sd = ed->GetSocket();
+		SOCKET sd = ed->GetSocket();
 		if (ed->IsWatchOnly() && sd == INVALID_SOCKET)
 			continue;
 		assert (sd != INVALID_SOCKET);
@@ -1020,7 +1021,7 @@ void EventMachine_t::_RunSelectOnce()
 			for (i=0; i < Descriptors.size(); i++) {
 				EventableDescriptor *ed = Descriptors[i];
 				assert (ed);
-				int sd = ed->GetSocket();
+				SOCKET sd = ed->GetSocket();
 				if (ed->IsWatchOnly() && sd == INVALID_SOCKET)
 					continue;
 				assert (sd != INVALID_SOCKET);
@@ -1069,7 +1070,7 @@ void EventMachine_t::_CleanBadDescriptors()
 		if (ed->ShouldDelete())
 			continue;
 
-		int sd = ed->GetSocket();
+		SOCKET sd = ed->GetSocket();
 
 		struct timeval tv;
 		tv.tv_sec = 0;
@@ -1192,7 +1193,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 		throw std::runtime_error ("unable to resolve server address");
 	bind_as = *bind_as_ptr; // copy because name2address points to a static
 
-	int sd = EmSocket (family, SOCK_STREAM, 0);
+	SOCKET sd = EmSocket (family, SOCK_STREAM, 0);
 	if (sd == INVALID_SOCKET) {
 		char buf [200];
 		snprintf (buf, sizeof(buf)-1, "unable to create new socket: %s", strerror(errno));
@@ -1225,9 +1226,9 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 	}
 
 	uintptr_t out = 0;
-	int e = 0;
 
 	#ifdef OS_UNIX
+	int e_reason = 0;
 	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
 	if (connect (sd, &bind_as, bind_size) == 0) {
 		// This is a connect success, which Linux appears
@@ -1275,13 +1276,13 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 			out = cd->GetBinding();
 		} else {
 			// Fall through to the !out case below.
-			e = error;
+			e_reason = error;
 		}
 	}
 	else {
 		// The error from connect was something other then EINPROGRESS (EHOSTDOWN, etc).
 		// Fall through to the !out case below
-		e = errno;
+		e_reason = errno;
 	}
 
 	if (!out) {
@@ -1300,7 +1301,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 		ConnectionDescriptor *cd = new ConnectionDescriptor (sd, this);
 		if (!cd)
 			throw std::runtime_error ("no connection allocated");
-		cd->SetUnbindReasonCode(e);
+		cd->SetUnbindReasonCode (e_reason);
 		cd->ScheduleClose (false);
 		Add (cd);
 		out = cd->GetBinding();
@@ -1344,6 +1345,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 EventMachine_t::ConnectToUnixServer
 ***********************************/
 
+#ifdef OS_UNIX
 const uintptr_t EventMachine_t::ConnectToUnixServer (const char *server)
 {
 	/* Connect to a Unix-domain server, which by definition is running
@@ -1352,14 +1354,6 @@ const uintptr_t EventMachine_t::ConnectToUnixServer (const char *server)
 	 * There's no need to do a nonblocking connect, since the connection
 	 * is always local and can always be fulfilled immediately.
 	 */
-
-	#ifdef OS_WIN32
-	throw std::runtime_error ("unix-domain connection unavailable on this platform");
-	return 0;
-	#endif
-
-	// The whole rest of this function is only compiled on Unix systems.
-	#ifdef OS_UNIX
 
 	uintptr_t out = 0;
 
@@ -1378,7 +1372,7 @@ const uintptr_t EventMachine_t::ConnectToUnixServer (const char *server)
 
 	strcpy (pun.sun_path, server);
 
-	int fd = EmSocket (AF_LOCAL, SOCK_STREAM, 0);
+	SOCKET fd = EmSocket (AF_LOCAL, SOCK_STREAM, 0);
 	if (fd == INVALID_SOCKET)
 		return 0;
 
@@ -1410,14 +1404,19 @@ const uintptr_t EventMachine_t::ConnectToUnixServer (const char *server)
 		close (fd);
 
 	return out;
-	#endif
 }
+#else
+const uintptr_t EventMachine_t::ConnectToUnixServer (const char *server UNUSED)
+{
+	throw std::runtime_error ("unix-domain connection unavailable on this platform");
+}
+#endif
 
 /************************
 EventMachine_t::AttachFD
 ************************/
 
-const uintptr_t EventMachine_t::AttachFD (int fd, bool watch_mode)
+const uintptr_t EventMachine_t::AttachFD (SOCKET fd, bool watch_mode)
 {
 	#ifdef OS_UNIX
 	if (fcntl(fd, F_GETFL, 0) < 0)
@@ -1473,7 +1472,7 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 	if (!ed)
 		throw std::runtime_error ("detaching bad descriptor");
 
-	int fd = ed->GetSocket();
+	SOCKET fd = ed->GetSocket();
 
 	#ifdef HAVE_EPOLL
 	if (Poller == Poller_Epoll) {
@@ -1536,15 +1535,10 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	// Check the more-common cases first.
 	// Return NULL if no resolution.
 
-	static struct sockaddr_in in4;
-	#ifndef __CYGWIN__
-	static struct sockaddr_in6 in6;
-	#endif
-	struct hostent *hp;
-
 	if (!server || !*server)
 		server = "0.0.0.0";
 
+	static struct sockaddr_in in4;
 	memset (&in4, 0, sizeof(in4));
 	if ( (in4.sin_addr.s_addr = inet_addr (server)) != INADDR_NONE) {
 		if (family)
@@ -1557,6 +1551,7 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	}
 
 	#if defined(OS_UNIX) && !defined(__CYGWIN__)
+	static struct sockaddr_in6 in6;
 	memset (&in6, 0, sizeof(in6));
 	if (inet_pton (AF_INET6, server, in6.sin6_addr.s6_addr) > 0) {
 		if (family)
@@ -1577,6 +1572,7 @@ struct sockaddr *name2address (const char *server, int port, int *family, int *b
 	// For the time being, Ipv6 addresses aren't supported on Windows.
 	#endif
 
+	struct hostent *hp;
 	hp = gethostbyname ((char*)server); // Windows requires the cast.
 	if (hp) {
 		in4.sin_addr.s_addr = ((in_addr*)(hp->h_addr))->s_addr;
@@ -1613,7 +1609,7 @@ const uintptr_t EventMachine_t::CreateTcpServer (const char *server, int port)
 
 	//struct sockaddr_in sin;
 
-	int sd_accept = EmSocket (family, SOCK_STREAM, 0);
+	SOCKET sd_accept = EmSocket (family, SOCK_STREAM, 0);
 	if (sd_accept == INVALID_SOCKET) {
 		goto fail;
 	}
@@ -1664,7 +1660,7 @@ const uintptr_t EventMachine_t::OpenDatagramSocket (const char *address, int por
 {
 	uintptr_t output_binding = 0;
 
-	int sd = EmSocket (AF_INET, SOCK_DGRAM, 0);
+	SOCKET sd = EmSocket (AF_INET, SOCK_DGRAM, 0);
 	if (sd == INVALID_SOCKET)
 		goto fail;
 	// from here on, early returns must close the socket!
@@ -1939,6 +1935,7 @@ void EventMachine_t::Deregister (EventableDescriptor *ed)
 EventMachine_t::CreateUnixDomainServer
 **************************************/
 
+#ifdef OS_UNIX
 const uintptr_t EventMachine_t::CreateUnixDomainServer (const char *filename)
 {
 	/* Create a UNIX-domain acceptor (server) socket and add it to the event machine.
@@ -1948,16 +1945,9 @@ const uintptr_t EventMachine_t::CreateUnixDomainServer (const char *filename)
 	 * THERE IS NO MEANINGFUL IMPLEMENTATION ON WINDOWS.
 	 */
 
-	#ifdef OS_WIN32
-	throw std::runtime_error ("unix-domain server unavailable on this platform");
-	#endif
-
-	// The whole rest of this function is only compiled on Unix systems.
-	#ifdef OS_UNIX
-
 	struct sockaddr_un s_sun;
 
-	int sd_accept = EmSocket (AF_LOCAL, SOCK_STREAM, 0);
+	SOCKET sd_accept = EmSocket (AF_LOCAL, SOCK_STREAM, 0);
 	if (sd_accept == INVALID_SOCKET) {
 		goto fail;
 	}
@@ -1997,15 +1987,20 @@ const uintptr_t EventMachine_t::CreateUnixDomainServer (const char *filename)
 	if (sd_accept != INVALID_SOCKET)
 		close (sd_accept);
 	return 0;
-	#endif // OS_UNIX
 }
+#else
+const uintptr_t EventMachine_t::CreateUnixDomainServer (const char *filename UNUSED)
+{
+	throw std::runtime_error ("unix-domain server unavailable on this platform");
+}
+#endif
 
 
 /**************************************
 EventMachine_t::AttachSD
 **************************************/
 
-const uintptr_t EventMachine_t::AttachSD (int sd_accept)
+const uintptr_t EventMachine_t::AttachSD (SOCKET sd_accept)
 {
 	uintptr_t output_binding = 0;
 
@@ -2040,15 +2035,9 @@ const uintptr_t EventMachine_t::AttachSD (int sd_accept)
 EventMachine_t::Socketpair
 **************************/
 
-const uintptr_t EventMachine_t::Socketpair (char * const*cmd_strings)
+#ifdef OS_UNIX
+const uintptr_t EventMachine_t::Socketpair (char * const * cmd_strings)
 {
-	#ifdef OS_WIN32
-	throw std::runtime_error ("socketpair is currently unavailable on this platform");
-	#endif
-
-	// The whole rest of this function is only compiled on Unix systems.
-	// Eventually we need this functionality (or a full-duplex equivalent) on Windows.
-	#ifdef OS_UNIX
 	// Make sure the incoming array of command strings is sane.
 	if (!cmd_strings)
 		return 0;
@@ -2096,8 +2085,14 @@ const uintptr_t EventMachine_t::Socketpair (char * const*cmd_strings)
 		throw std::runtime_error ("no fork");
 
 	return output_binding;
-	#endif
 }
+#else
+const uintptr_t EventMachine_t::Socketpair (char * const * cmd_strings UNUSED)
+{
+	throw std::runtime_error ("socketpair is currently unavailable on this platform");
+}
+#endif
+
 
 
 /****************************

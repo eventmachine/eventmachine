@@ -22,10 +22,6 @@ See the file COPYING for complete licensing information.
 #define __Project__H_
 
 
-#ifdef OS_WIN32
-#pragma warning(disable:4786)
-#endif
-
 #include <iostream>
 #include <map>
 #include <set>

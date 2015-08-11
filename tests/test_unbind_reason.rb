@@ -20,12 +20,14 @@ class TestUnbindReason < Test::Unit::TestCase
           EM.stop
         end
       }
-      conn.pending_connect_timeout = 0.1
+      conn.pending_connect_timeout = TIMEOUT_INTERVAL
     }
     assert_equal Errno::ETIMEDOUT, error
   end
 
   def test_connect_refused
+    pend('FIXME: this test is broken on Windows') if windows?
+
     error = nil
     EM.run {
       EM.connect '127.0.0.1', 12388, Module.new{ |m|
@@ -39,6 +41,8 @@ class TestUnbindReason < Test::Unit::TestCase
   end
 
   def test_optional_argument
+    pend('FIXME: this test is broken on Windows') if windows?
+
     conn = nil
     EM.run {
       conn = EM.connect '127.0.0.1', 12388, StubConnection

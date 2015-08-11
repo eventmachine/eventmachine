@@ -148,7 +148,7 @@ class EventMachine_t
 		const uintptr_t CreateTcpServer (const char *, int);
 		const uintptr_t OpenDatagramSocket (const char *, int);
 		const uintptr_t CreateUnixDomainServer (const char*);
-		const uintptr_t AttachSD (int);
+		const uintptr_t AttachSD (SOCKET);
 		const uintptr_t OpenKeyboard();
 		//const char *Popen (const char*, const char*);
 		const uintptr_t Socketpair (char* const*);
@@ -157,7 +157,7 @@ class EventMachine_t
 		void Modify (EventableDescriptor*);
 		void Deregister (EventableDescriptor*);
 
-		const uintptr_t AttachFD (int, bool);
+		const uintptr_t AttachFD (SOCKET, bool);
 		int DetachFD (EventableDescriptor*);
 
 		void ArmKqueueWriter (EventableDescriptor*);
@@ -241,8 +241,8 @@ class EventMachine_t
 		vector<EventableDescriptor*> NewDescriptors;
 		set<EventableDescriptor*> ModifiedDescriptors;
 
-		int LoopBreakerReader;
-		int LoopBreakerWriter;
+		SOCKET LoopBreakerReader;
+		SOCKET LoopBreakerWriter;
 		#ifdef OS_WIN32
 		struct sockaddr_in LoopBreakerTarget;
 		#endif
@@ -294,7 +294,7 @@ struct SelectData_t
 	int _Select();
 	void _Clear();
 
-	int maxsocket;
+	SOCKET maxsocket;
 	rb_fdset_t fdreads;
 	rb_fdset_t fdwrites;
 	rb_fdset_t fderrors;

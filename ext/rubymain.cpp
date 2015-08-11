@@ -30,9 +30,19 @@ See the file COPYING for complete licensing information.
 #if SIZEOF_VOIDP == SIZEOF_LONG
 # define BSIG2NUM(x)   (ULONG2NUM((unsigned long)(x)))
 # define NUM2BSIG(x)   (NUM2ULONG(x))
+# ifdef OS_WIN32
+#  define PRIFBSIG      "I32u"
+# else
+#  define PRIFBSIG      "lu"
+# endif
 #else
 # define BSIG2NUM(x)   (ULL2NUM((unsigned long long)(x)))
 # define NUM2BSIG(x)   (NUM2ULL(x))
+# ifdef OS_WIN32
+#  define PRIFBSIG      "I64u"
+# else
+#  define PRIFBSIG      "llu"
+# endif
 #endif
 
 /*******
@@ -57,6 +67,7 @@ static VALUE Intern_event_callback;
 static VALUE Intern_run_deferred_callbacks;
 static VALUE Intern_delete;
 static VALUE Intern_call;
+static VALUE Intern_at;
 static VALUE Intern_receive_data;
 static VALUE Intern_ssl_handshake_completed;
 static VALUE Intern_ssl_verify_peer;
@@ -79,7 +90,7 @@ static inline VALUE ensure_conn(const uintptr_t signature)
 {
 	VALUE conn = rb_hash_aref (EmConnsHash, BSIG2NUM (signature));
 	if (conn == Qnil)
-		rb_raise (EM_eConnectionNotBound, "unknown connection: %lu", signature);
+		rb_raise (EM_eConnectionNotBound, "unknown connection: %" PRIFBSIG, signature);
 	return conn;
 }
 
@@ -100,7 +111,7 @@ static inline void event_callback (struct em_event* e)
 		{
 			VALUE conn = rb_hash_aref (EmConnsHash, BSIG2NUM (signature));
 			if (conn == Qnil)
-				rb_raise (EM_eConnectionNotBound, "received %lu bytes of data for unknown signature: %lu", data_num, signature);
+				rb_raise (EM_eConnectionNotBound, "received %lu bytes of data for unknown signature: %" PRIFBSIG, data_num, signature);
 			rb_funcall (conn, Intern_receive_data, 1, rb_str_new (data_str, data_num));
 			return;
 		}
@@ -345,11 +356,11 @@ static VALUE t_set_tls_parms (VALUE self UNUSED, VALUE signature, VALUE privkeyf
 t_get_peer_cert
 ***************/
 
+#ifdef WITH_SSL
 static VALUE t_get_peer_cert (VALUE self UNUSED, VALUE signature)
 {
 	VALUE ret = Qnil;
 
-	#ifdef WITH_SSL
 	X509 *cert = NULL;
 	BUF_MEM *buf;
 	BIO *out;
@@ -364,10 +375,15 @@ static VALUE t_get_peer_cert (VALUE self UNUSED, VALUE signature)
 		X509_free(cert);
 		BIO_free(out);
 	}
-	#endif
 
 	return ret;
 }
+#else
+static VALUE t_get_peer_cert (VALUE self UNUSED, VALUE signature UNUSED)
+{
+	return Qnil;
+}
+#endif
 
 /**************
 t_get_peername
@@ -865,12 +881,11 @@ t_invoke_popen
 
 static VALUE t_invoke_popen (VALUE self UNUSED, VALUE cmd)
 {
-	// 1.8.7+
-	#ifdef RARRAY_LEN
-		int len = RARRAY_LEN(cmd);
-	#else
-		int len = RARRAY (cmd)->len;
+	#ifdef OS_WIN32
+	rb_raise (EM_eUnsupported, "popen is not available on this platform");
 	#endif
+
+	int len = RARRAY_LEN(cmd);
 	if (len >= 2048)
 		rb_raise (rb_eRuntimeError, "%s", "too many arguments to popen");
 	char *strings [2048];
@@ -885,7 +900,7 @@ static VALUE t_invoke_popen (VALUE self UNUSED, VALUE cmd)
 	try {
 		f = evma_popen (strings);
 	} catch (std::runtime_error e) {
-		f = 0; // raise exception below
+		rb_raise (rb_eRuntimeError, "%s", e.what());
 	}
 	if (!f) {
 		char *err = strerror (errno);
@@ -1130,20 +1145,17 @@ t_get_loop_time
 
 static VALUE t_get_loop_time (VALUE self UNUSED)
 {
-	#ifndef HAVE_RB_TIME_NEW
-	static VALUE cTime = rb_path2class("Time");
-	static ID at = rb_intern("at");
-	#endif
-
 	uint64_t current_time = evma_get_current_loop_time();
-	if (current_time != 0) {
-	#ifndef HAVE_RB_TIME_NEW
-		return rb_funcall(cTime, at, 2, INT2NUM(current_time / 1000000), INT2NUM(current_time % 1000000));
-	#else
-		return rb_time_new(current_time / 1000000, current_time % 1000000);
-	#endif
+	if (current_time == 0) {
+		return Qnil;
 	}
-	return Qnil;
+
+	// Generally the industry has moved to 64-bit time_t, this is just in case we're 32-bit time_t.
+	if (sizeof(time_t) < 8 && current_time > INT_MAX) {
+		return rb_funcall(rb_cTime, Intern_at, 2, INT2NUM(current_time / 1000000), INT2NUM(current_time % 1000000));
+	} else {
+		return rb_time_new(current_time / 1000000, current_time % 1000000);
+	}
 }
 
 
@@ -1258,6 +1270,7 @@ extern "C" void Init_rubyeventmachine()
 	Intern_run_deferred_callbacks = rb_intern ("run_deferred_callbacks");
 	Intern_delete = rb_intern ("delete");
 	Intern_call = rb_intern ("call");
+	Intern_at = rb_intern("at");
 	Intern_receive_data = rb_intern ("receive_data");
 	Intern_ssl_handshake_completed = rb_intern ("ssl_handshake_completed");
 	Intern_ssl_verify_peer = rb_intern ("ssl_verify_peer");

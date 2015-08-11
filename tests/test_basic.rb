@@ -131,6 +131,8 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_bind_connect
+    pend('FIXME: this test is broken on Windows') if windows?
+
     local_ip = UDPSocket.open {|s| s.connect('google.com', 80); s.addr.last }
 
     bind_port = next_port
@@ -246,6 +248,7 @@ class TestBasic < Test::Unit::TestCase
 
   def test_fork_safe
     omit_if(jruby?)
+    omit_if(windows?)
     omit_if(rbx?, 'Omitting test on Rubinius because it hangs for unknown reasons')
 
     read, write = IO.pipe

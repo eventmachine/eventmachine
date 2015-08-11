@@ -9,6 +9,8 @@ class TestSystem < Test::Unit::TestCase
   end
 
   def test_system
+    omit_if(windows?)
+
     result = nil
     status = nil
     EM.run {
@@ -23,6 +25,8 @@ class TestSystem < Test::Unit::TestCase
   end
 
   def test_system_with_string
+    omit_if(windows?)
+
     result = nil
     status = nil
     EM.run {
