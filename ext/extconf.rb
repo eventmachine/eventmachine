@@ -161,6 +161,10 @@ when /mswin32/, /mingw32/, /bccwin32/
     $defs.push "-GR"
   end
 
+  # Newer versions of Ruby already define _WIN32_WINNT, which is needed
+  # to get access to newer POSIX networking functions (e.g. getaddrinfo)
+  add_define '_WIN32_WINNT=0x0501' unless have_func('getaddrinfo')
+
 when /solaris/
   add_define 'OS_SOLARIS8'
   check_libs(%w[nsl socket], true)
