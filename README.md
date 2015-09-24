@@ -18,7 +18,7 @@ This unique combination makes EventMachine a premier choice for designers of cri
 applications, including Web servers and proxies, email and IM production systems, authentication/authorization
 processors, and many more.
 
-EventMachine has been around since the early 2000s and is a mature and battle tested library.
+EventMachine has been around since the early 2000s and is a mature and battle-tested library.
 
 
 ## What EventMachine is good for? ##
