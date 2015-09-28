@@ -143,7 +143,7 @@ module EventMachine
       else
         raise ArgumentError, "deferrable expected from work"
       end
-    rescue Exception
+    rescue
       failure resource
       raise
     end
