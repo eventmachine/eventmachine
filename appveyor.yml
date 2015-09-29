@@ -21,9 +21,5 @@ environment:
     - ruby_version: "21-x64"
     - ruby_version: "22"
     - ruby_version: "22-x64"
-matrix:
-  allow_failures:
-    - ruby_version: "22"
-    - ruby_version: "22-x64"
 cache:
   - vendor
