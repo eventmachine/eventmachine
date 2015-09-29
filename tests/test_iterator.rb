@@ -21,6 +21,22 @@ class TestIterator < Test::Unit::TestCase
     assert_equal(list.to_a.sort, items.values.flatten.sort)
   end
 
+  def test_default_concurrency_with_a_proc
+    items = {}
+    list = (1..10).to_a
+    original_list = list.dup
+    EM.run {
+      EM::Iterator.new(proc{list.pop || EM::Iterator::Stop}).each( proc {|num,iter|
+        time = get_time
+        items[time] ||= []
+        items[time] << num
+        EM::Timer.new(1) {iter.next}
+      }, proc {EM.stop})
+    }
+    assert_equal(10, items.keys.size)
+    assert_equal(original_list.to_a.sort, items.values.flatten.sort)
+  end
+
   def test_concurrency_bigger_than_list_size
     items = {}
     list = [1,2,3]
