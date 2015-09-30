@@ -17,6 +17,11 @@ module EventMachine
       @uid  = 0
     end
 
+    # Return the number of current subscribers.
+    def num_subscribers
+      return @subs.size
+    end
+
     # Takes any arguments suitable for EM::Callback() and returns a subscriber
     # id for use when unsubscribing.
     #
