@@ -38,6 +38,7 @@ module EventMachine
         super
         lbp_init_line_state
       end
+
       def receive_data data
         if @lbp_mode == :lines
           begin

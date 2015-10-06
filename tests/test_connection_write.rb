@@ -19,8 +19,8 @@ class TestConnectionWrite < Test::Unit::TestCase
 
   def test_with_naughty_callback
     EM.run do
-      r1, w1 = IO.pipe
-      r2, w2 = IO.pipe
+      r1, _ = IO.pipe
+      r2, _ = IO.pipe
 
       # Adding EM.watches
       $conn1 = EM.watch(r1, SimpleClient)

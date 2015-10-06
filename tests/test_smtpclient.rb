@@ -52,4 +52,24 @@ class TestSmtpClient < Test::Unit::TestCase
     assert(err)
   end
 
+
+  EM::Protocols::SmtpClient.__send__(:public, :escape_leading_dots)
+
+  def test_escaping
+    smtp = EM::Protocols::SmtpClient.new :domain => "example.com"
+
+    expectations = {
+      "Hello\r\n" => "Hello\r\n",
+      "\r\n.whatever\r\n" => "\r\n..whatever\r\n",
+      "\r\n.\r\n" => "\r\n..\r\n",
+      "\r\n.\r\n." => "\r\n..\r\n..",
+      ".\r\n.\r\n" => "..\r\n..\r\n",
+      "..\r\n" => "...\r\n"
+    }
+
+    expectations.each do |input, output|
+      assert_equal output, smtp.escape_leading_dots(input)
+    end
+  end
+
 end

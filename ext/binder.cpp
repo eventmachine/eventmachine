@@ -22,16 +22,16 @@ See the file COPYING for complete licensing information.
 #define DEV_URANDOM "/dev/urandom"
 
 
-map<unsigned long, Bindable_t*> Bindable_t::BindingBag;
+map<uintptr_t, Bindable_t*> Bindable_t::BindingBag;
 
 
 /********************************
 STATIC Bindable_t::CreateBinding
 ********************************/
 
-unsigned long Bindable_t::CreateBinding()
+uintptr_t Bindable_t::CreateBinding()
 {
-	static unsigned long num = 0;
+	static uintptr_t num = 0;
 	while(BindingBag[++num]) {}
 	return num;
 }
@@ -90,13 +90,13 @@ string Bindable_t::CreateBinding()
 STATIC: Bindable_t::GetObject
 *****************************/
 
-Bindable_t *Bindable_t::GetObject (const unsigned long binding)
+Bindable_t *Bindable_t::GetObject (const uintptr_t binding)
 {
-  map<unsigned long, Bindable_t*>::const_iterator i = BindingBag.find (binding);
-  if (i != BindingBag.end())
-    return i->second;
-  else
-    return NULL;
+	map<uintptr_t, Bindable_t*>::const_iterator i = BindingBag.find (binding);
+	if (i != BindingBag.end())
+		return i->second;
+	else
+		return NULL;
 }
 
 

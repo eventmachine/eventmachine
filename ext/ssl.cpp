@@ -82,7 +82,7 @@ static char PrivateMaterials[] = {
 builtin_passwd_cb
 *****************/
 
-extern "C" int builtin_passwd_cb (char *buf, int bufsize, int rwflag, void *userdata)
+extern "C" int builtin_passwd_cb (char *buf UNUSED, int bufsize UNUSED, int rwflag UNUSED, void *userdata UNUSED)
 {
 	strcpy (buf, "kittycat");
 	return 8;
@@ -216,7 +216,7 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const string &snihostname, const unsigned long binding):
+SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const string &snihostname, const uintptr_t binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),
@@ -397,7 +397,7 @@ int SslBox_t::PutPlaintext (const char *buf, int bufsize)
 
 	bool fatal = false;
 	bool did_work = false;
-	int pending =  BIO_pending(pbioWrite);
+	int pending = BIO_pending(pbioWrite);
 
 	while (OutboundQ.HasPages() && pending < SSLBOX_WRITE_BUFFER_SIZE) {
 		const char *page;
@@ -405,7 +405,7 @@ int SslBox_t::PutPlaintext (const char *buf, int bufsize)
 		OutboundQ.Front (&page, &length);
 		assert (page && (length > 0));
 		int n = SSL_write (pSSL, page, length);
-		pending =  BIO_pending(pbioWrite);
+		pending = BIO_pending(pbioWrite);
 
 		if (n > 0) {
 			did_work = true;
@@ -447,9 +447,9 @@ X509 *SslBox_t::GetPeerCert()
 ssl_verify_wrapper
 *******************/
 
-extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
+extern "C" int ssl_verify_wrapper(int preverify_ok UNUSED, X509_STORE_CTX *ctx)
 {
-	unsigned long binding;
+	uintptr_t binding;
 	X509 *cert;
 	SSL *ssl;
 	BUF_MEM *buf;
@@ -458,7 +458,7 @@ extern "C" int ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
 
 	cert = X509_STORE_CTX_get_current_cert(ctx);
 	ssl = (SSL*) X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
-	binding = (unsigned long) SSL_get_ex_data(ssl, 0);
+	binding = (uintptr_t) SSL_get_ex_data(ssl, 0);
 
 	out = BIO_new(BIO_s_mem());
 	PEM_write_bio_X509(out, cert);

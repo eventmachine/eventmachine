@@ -74,6 +74,6 @@ KeyboardDescriptor::Read
 void KeyboardDescriptor::Read()
 {
 	char c;
-	read (GetSocket(), &c, 1);
+	(void)read (GetSocket(), &c, 1);
 	_GenericInboundDispatch(&c, 1);
 }

@@ -48,20 +48,20 @@ module EventMachine
     #     puts 'Email failed!'
     #   }
     #
-    # Sending generated emails (using mailfactory)
+    # Sending generated emails (using Mail)
     #
-    #   mail = MailFactory.new
-    #   mail.to = 'someone@site.co'
-    #   mail.from = 'me@site.com'
-    #   mail.subject = 'hi!'
-    #   mail.text = 'hello world'
-    #   mail.html = '<h1>hello world</h1>'
+    #   mail = Mail.new do
+    #     from    'alice@example.com'
+    #     to      'bob@example.com'
+    #     subject 'This is a test email'
+    #     body    'Hello, world!'
+    #   end
     #
     #   email = EM::P::SmtpClient.send(
-    #     :domain=>'site.com',
-    #     :from=>mail.from,
+    #     :domain=>'example.com',
+    #     :from=>mail.from.first,
     #     :to=>mail.to,
-    #     :content=>"#{mail.to_s}\r\n.\r\n"
+    #     :message=>mail.to_s
     #   )
     #
     class SmtpClient < Connection
@@ -108,25 +108,29 @@ module EventMachine
       #   of each requested recipient is available after the call completes. TODO, we should define
       #   an overridable stub that will be called on rejection of a recipient or a sender, giving
       #   user code the chance to try again or abort the connection.
-      # :header => Required hash of values to be transmitted in the header of the message.
-      #   The hash keys are the names of the headers (do NOT append a trailing colon), and the values are strings
-      #   containing the header values. TODO, support Arrays of header values, which would cause us to
-      #   send that specific header line more than once.
+      #
+      # One of either :message, :content, or :header and :body is required:
+      #
+      # :message => String
+      #   A valid RFC2822 Internet Message.
+      # :content => String
+      #   Raw data which MUST be in correct SMTP body format, with escaped leading dots and a trailing
+      #   dot line.
+      # :header => String or Hash of values to be transmitted in the header of the message.
+      #   The hash keys are the names of the headers (do NOT append a trailing colon), and the values
+      #   are strings containing the header values. TODO, support Arrays of header values, which would
+      #   cause us to send that specific header line more than once.
       #
       #   @example
       #     :header => {"Subject" => "Bogus", "CC" => "myboss@example.com"}
       #
-      # :body => Optional string, defaults blank.
+      # :body => Optional String or Array of Strings, defaults blank.
       #   This will be passed as the body of the email message.
       #   TODO, this needs to be significantly beefed up. As currently written, this requires the caller
       #   to properly format the input into CRLF-delimited lines of 7-bit characters in the standard
       #   SMTP transmission format. We need to be able to automatically convert binary data, and add
-      #   correct line-breaks to text data. I think the :body parameter should remain as it is, and we
-      #   should add a :content parameter that contains autoconversions and/or conversion parameters.
-      #   Then we can check if either :body or :content is present and do the right thing.
-      # :content => Optional array or string
-      #   Alternative to providing header and body, an array or string of raw data which MUST be in
-      #   correct SMTP body format, including a trailing dot line
+      #   correct line-breaks to text data.
+      #
       # :verbose => Optional.
       #   If true, will cause a lot of information (including the server-side of the
       #   conversation) to be dumped to $>.
@@ -233,12 +237,15 @@ module EventMachine
         close_connection_after_writing
       end
 
-      def receive_signon
-        return invoke_error unless @range == 2
+      def send_ehlo
         send_data "EHLO #{@args[:domain]}\r\n"
-        @responder = :receive_ehlo_response
       end
 
+      def receive_signon
+        return invoke_error unless @range == 2
+        send_ehlo
+        @responder = :receive_ehlo_response
+      end
       def receive_ehlo_response
         return invoke_error unless @range == 2
         @server_caps = @msg
@@ -258,6 +265,15 @@ module EventMachine
       def receive_starttls_response
         return invoke_error unless @range == 2
         start_tls
+        invoke_ehlo_over_tls
+      end
+
+      def invoke_ehlo_over_tls
+        send_ehlo
+        @responder = :receive_ehlo_over_tls_response
+      end
+      def receive_ehlo_over_tls_response
+        return invoke_error unless @range == 2
         invoke_auth
       end
 
@@ -316,6 +332,10 @@ module EventMachine
         invoke_rcpt_to
       end
 
+      def escape_leading_dots(s)
+        s.gsub(/^\./, '..')
+      end
+
       def invoke_data
         send_data "DATA\r\n"
         @responder = :receive_data_response
@@ -323,25 +343,34 @@ module EventMachine
       def receive_data_response
         return invoke_error unless @range == 3
 
-        # The data to send can be given either in @args[:content] (an array or string of raw data
-        # which MUST be in correct SMTP body format, including a trailing dot line), or a header and
-        # body given in @args[:header] and @args[:body].
+        # The data to send can be given in either @args[:message], @args[:content], or the
+        # combination of @args[:header] and @args[:body].
         #
-        if @args[:content]
+        #   - @args[:message] (String) MUST be a valid RFC2822 Internet Message
+        #
+        #   - @args[:content] (String) MUST be in correct SMTP body format, with escaped
+        #     leading dots and a trailing dot line
+        #
+        #   - @args[:header]  (Hash or String)
+        #   - @args[:body]    (Array or String)
+        if @args[:message]
+          send_data escape_leading_dots(@args[:message].to_s)
+          send_data "\r\n.\r\n"
+        elsif @args[:content]
           send_data @args[:content].to_s
         else
           # The header can be a hash or an array.
           if @args[:header].is_a?(Hash)
-            (@args[:header] || {}).each {|k,v| send_data "#{k}: #{v}\r\n" }
+            (@args[:header] || {}).each {|k,v| send_data escape_leading_dots("#{k}: #{v}\r\n") }
           else
-            send_data @args[:header].to_s
+            send_data escape_leading_dots(@args[:header].to_s)
           end
           send_data "\r\n"
 
           if @args[:body].is_a?(Array)
-            @args[:body].each {|e| send_data e}
+            @args[:body].each {|e| send_data escape_leading_dots(e)}
           else
-            send_data @args[:body].to_s
+            send_data escape_leading_dots(@args[:body].to_s)
           end
 
           send_data "\r\n.\r\n"

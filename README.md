@@ -18,7 +18,7 @@ This unique combination makes EventMachine a premier choice for designers of cri
 applications, including Web servers and proxies, email and IM production systems, authentication/authorization
 processors, and many more.
 
-EventMachine has been around since the early 2000s and is a mature and battle tested library.
+EventMachine has been around since the early 2000s and is a mature and battle-tested library.
 
 
 ## What EventMachine is good for? ##
@@ -32,7 +32,7 @@ EventMachine has been around since the early 2000s and is a mature and battle te
 
 ## What platforms are supported by EventMachine? ##
 
-EventMachine supports Ruby 1.8.7, 1.9.2, REE, JRuby and **works well on Windows** as well
+EventMachine supports Ruby >= 1.8.7 and <= 2.2 REE, JRuby and **works well on Windows** as well
 as many operating systems from the Unix family (Linux, Mac OS X, BSD flavors).
 
 

@@ -27,7 +27,7 @@ class SslBox_t; // forward reference
 #endif
 
 bool SetSocketNonblocking (SOCKET);
-
+bool SetFdCloexec (int);
 
 /*************************
 class EventableDescriptor
@@ -36,10 +36,10 @@ class EventableDescriptor
 class EventableDescriptor: public Bindable_t
 {
 	public:
-		EventableDescriptor (int, EventMachine_t*);
+		EventableDescriptor (SOCKET, EventMachine_t*);
 		virtual ~EventableDescriptor();
 
-		int GetSocket() {return MySocket;}
+		SOCKET GetSocket() {return MySocket;}
 		void SetSocketInvalid() { MySocket = INVALID_SOCKET; }
 		void Close();
 
@@ -85,11 +85,15 @@ class EventableDescriptor: public Bindable_t
 		struct epoll_event *GetEpollEvent() { return &EpollEvent; }
 		#endif
 
-		virtual void StartProxy(const unsigned long, const unsigned long, const unsigned long);
+		#ifdef HAVE_KQUEUE
+		bool GetKqueueArmWrite() { return bKqueueArmWrite; }
+		#endif
+
+		virtual void StartProxy(const uintptr_t, const unsigned long, const unsigned long);
 		virtual void StopProxy();
 		virtual unsigned long GetProxiedBytes(){ return ProxiedBytes; };
 		virtual void SetProxiedFrom(EventableDescriptor*, const unsigned long);
-		virtual int SendOutboundData(const char*,int){ return -1; }
+		virtual int SendOutboundData(const char*,unsigned long){ return -1; }
 		virtual bool IsPaused(){ return bPaused; }
 		virtual bool Pause(){ bPaused = true; return bPaused; }
 		virtual bool Resume(){ bPaused = false; return bPaused; }
@@ -104,12 +108,12 @@ class EventableDescriptor: public Bindable_t
 		bool bCloseAfterWriting;
 
 	protected:
-		int MySocket;
+		SOCKET MySocket;
 		bool bAttached;
 		bool bWatchOnly;
 
 		EMCallback EventCallback;
-		void _GenericInboundDispatch(const char*, int);
+		void _GenericInboundDispatch(const char *buffer, unsigned long size);
 
 		uint64_t CreatedAt;
 		bool bCallbackUnbind;
@@ -124,6 +128,10 @@ class EventableDescriptor: public Bindable_t
 
 		#ifdef HAVE_EPOLL
 		struct epoll_event EpollEvent;
+		#endif
+
+		#ifdef HAVE_KQUEUE
+		bool bKqueueArmWrite;
 		#endif
 
 		EventMachine_t *MyEventMachine;
@@ -143,7 +151,7 @@ class LoopbreakDescriptor
 class LoopbreakDescriptor: public EventableDescriptor
 {
 	public:
-		LoopbreakDescriptor (int, EventMachine_t*);
+		LoopbreakDescriptor (SOCKET, EventMachine_t*);
 		virtual ~LoopbreakDescriptor() {}
 
 		virtual void Read();
@@ -162,10 +170,10 @@ class ConnectionDescriptor
 class ConnectionDescriptor: public EventableDescriptor
 {
 	public:
-		ConnectionDescriptor (int, EventMachine_t*);
+		ConnectionDescriptor (SOCKET, EventMachine_t*);
 		virtual ~ConnectionDescriptor();
 
-		int SendOutboundData (const char*, int);
+		int SendOutboundData (const char*, unsigned long);
 
 		void SetConnectPending (bool f);
 		virtual void ScheduleClose (bool after_writing);
@@ -253,9 +261,9 @@ class ConnectionDescriptor: public EventableDescriptor
 		void _UpdateEvents();
 		void _UpdateEvents(bool, bool);
 		void _WriteOutboundData();
-		void _DispatchInboundData (const char *buffer, int size);
+		void _DispatchInboundData (const char *buffer, unsigned long size);
 		void _DispatchCiphertext();
-		int _SendRawOutboundData (const char*, int);
+		int _SendRawOutboundData (const char *buffer, unsigned long size);
 		void _CheckHandshakeStatus();
 
 };
@@ -268,7 +276,7 @@ class DatagramDescriptor
 class DatagramDescriptor: public EventableDescriptor
 {
 	public:
-		DatagramDescriptor (int, EventMachine_t*);
+		DatagramDescriptor (SOCKET, EventMachine_t*);
 		virtual ~DatagramDescriptor();
 
 		virtual void Read();
@@ -278,8 +286,8 @@ class DatagramDescriptor: public EventableDescriptor
 		virtual bool SelectForRead() {return true;}
 		virtual bool SelectForWrite();
 
-		int SendOutboundData (const char*, int);
-		int SendOutboundDatagram (const char*, int, const char*, int);
+		int SendOutboundData (const char*, unsigned long);
+		int SendOutboundDatagram (const char*, unsigned long, const char*, int);
 
 		// Do we have any data to write? This is used by ShouldDelete.
 		virtual int GetOutboundDataSize() {return OutboundDataSize;}
@@ -314,7 +322,7 @@ class AcceptorDescriptor
 class AcceptorDescriptor: public EventableDescriptor
 {
 	public:
-		AcceptorDescriptor (int, EventMachine_t*);
+		AcceptorDescriptor (SOCKET, EventMachine_t*);
 		virtual ~AcceptorDescriptor();
 
 		virtual void Read();
@@ -326,7 +334,7 @@ class AcceptorDescriptor: public EventableDescriptor
 
 		virtual bool GetSockname (struct sockaddr*, socklen_t*);
 
-		static void StopAcceptor (const unsigned long binding);
+		static void StopAcceptor (const uintptr_t binding);
 };
 
 /********************
@@ -337,7 +345,7 @@ class PipeDescriptor
 class PipeDescriptor: public EventableDescriptor
 {
 	public:
-		PipeDescriptor (int, pid_t, EventMachine_t*);
+		PipeDescriptor (SOCKET, pid_t, EventMachine_t*);
 		virtual ~PipeDescriptor();
 
 		virtual void Read();
@@ -347,7 +355,7 @@ class PipeDescriptor: public EventableDescriptor
 		virtual bool SelectForRead();
 		virtual bool SelectForWrite();
 
-		int SendOutboundData (const char*, int);
+		int SendOutboundData (const char*, unsigned long);
 		virtual int GetOutboundDataSize() {return OutboundDataSize;}
 
 		virtual bool GetSubprocessPid (pid_t*);
@@ -419,5 +427,3 @@ class InotifyDescriptor: public EventableDescriptor
 };
 
 #endif // __EventableDescriptor__H_
-
-

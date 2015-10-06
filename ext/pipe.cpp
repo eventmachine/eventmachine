@@ -242,7 +242,9 @@ void PipeDescriptor::Write()
 			OutboundPages.push_front (OutboundPage (buffer, len));
 		}
 		#ifdef HAVE_EPOLL
-		EpollEvent.events = (EPOLLIN | (SelectForWrite() ? EPOLLOUT : 0));
+		EpollEvent.events = EPOLLIN;
+		if (SelectForWrite())
+			EpollEvent.events |= EPOLLOUT;
 		assert (MyEventMachine);
 		MyEventMachine->Modify (this);
 		#endif
@@ -305,7 +307,7 @@ bool PipeDescriptor::SelectForWrite()
 PipeDescriptor::SendOutboundData
 ********************************/
 
-int PipeDescriptor::SendOutboundData (const char *data, int length)
+int PipeDescriptor::SendOutboundData (const char *data, unsigned long length)
 {
 	//if (bCloseNow || bCloseAfterWriting)
 	if (IsCloseScheduled())

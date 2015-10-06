@@ -34,6 +34,7 @@ class TestFileWatch < Test::Unit::TestCase
     end
 
     def test_events
+      omit_if(solaris?)
       EM.run{
         file = Tempfile.new('em-watch')
         $tmp_path = file.path

@@ -1,7 +1,7 @@
 # = EM::Completion
 #
 # A completion is a callback container for various states of completion. In
-# it's most basic form it has a start state and a finish state.
+# its most basic form it has a start state and a finish state.
 #
 # This implementation includes some hold-back from the EM::Deferrable
 # interface in order to be compatible - but it has a much cleaner
@@ -50,7 +50,7 @@
 #          @completion.fail :unknown, line
 #        end
 #      end
-#  
+#
 #      def unbind
 #        @completion.fail :disconnected unless @completion.completed?
 #      end

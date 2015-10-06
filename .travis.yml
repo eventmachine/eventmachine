@@ -1,3 +1,4 @@
+bundler_args: --without documentation
 script: bundle exec rake compile test
 env:
   global:

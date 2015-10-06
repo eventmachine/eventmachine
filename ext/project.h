@@ -22,10 +22,6 @@ See the file COPYING for complete licensing information.
 #define __Project__H_
 
 
-#ifdef OS_WIN32
-#pragma warning(disable:4786)
-#endif
-
 #include <iostream>
 #include <map>
 #include <set>
@@ -153,6 +149,12 @@ extern "C" {
   typedef void (*EMCallback)(const unsigned long, int, const char*, const unsigned long);
 #if __cplusplus
 }
+#endif
+
+#if defined(__GNUC__) && (__GNUC__ >= 3)
+#define UNUSED __attribute__ ((unused))
+#else
+#define UNUSED
 #endif
 
 #include "binder.h"

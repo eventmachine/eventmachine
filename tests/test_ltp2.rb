@@ -26,6 +26,26 @@ class TestLineText2 < Test::Unit::TestCase
     assert_equal( ["Line 1", "Line 2", "Line 3"], a.lines )
   end
 
+  # The basic test above shows that extra newlines are chomped
+  # This test shows that newlines are preserved if the delimiter isn't \n
+  class PreserveNewlines
+    include EM::Protocols::LineText2
+    attr_reader :lines
+    def initialize *args
+      super
+      @delim = "|"
+      set_delimiter @delim
+    end
+    def receive_line line
+      (@lines ||= []) << line
+    end
+  end
+  def test_preserve_newlines
+    a = PreserveNewlines.new
+    a.receive_data "aaa|bbb|ccc|\n|\r\n| \t ||"
+    assert_equal( ["aaa", "bbb", "ccc", "\n", "\r\n", " \t ", ""], a.lines )
+  end
+
   class ChangeDelimiter
     include EM::Protocols::LineText2
     attr_reader :lines
