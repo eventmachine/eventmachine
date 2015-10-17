@@ -1,5 +1,6 @@
 require 'mkmf'
 
+CONFIG['CXX'] = "g++"
 def check_libs libs = [], fatal = false
   libs.all? { |lib| have_library(lib) || (abort("could not find library: #{lib}") if fatal) }
 end
