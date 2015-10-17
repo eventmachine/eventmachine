@@ -754,7 +754,12 @@ module EventMachine
     end
 
     if io.respond_to?(:fileno)
-      fd = defined?(JRuby) ? JRuby.runtime.getDescriptorByFileno(io.fileno).getChannel : io.fileno
+      # getDescriptorByFileno deprecated in JRuby 1.7.x, removed in JRuby 9000
+      if defined?(JRuby) && JRuby.runtime.respond_to?(:getDescriptorByFileno)
+        fd = JRuby.runtime.getDescriptorByFileno(io.fileno).getChannel
+      else
+        fd = io.fileno
+      end
     else
       fd = io
     end
