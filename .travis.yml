@@ -12,12 +12,16 @@ rvm:
   - 2.0.0
   - 2.1
   - 2.2
+  - ruby-head
   - rbx
-  - jruby
+  - jruby-1.7
+  - jruby-9
 matrix:
   allow_failures:
+    - rvm: ruby-head
     - rvm: rbx
-    - rvm: jruby
+    - rvm: jruby-1.7
+    - rvm: jruby-9
   include:
     - rvm: 2.0.0
       os: osx
