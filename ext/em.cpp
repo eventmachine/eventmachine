@@ -34,7 +34,7 @@ static unsigned int SimultaneousAcceptCount = 10;
 
 
 /* Internal helper to convert strings to internet addresses. IPv6-aware.
- * Not reentrant or threadsafe, optimized for speed.
+ * Must free the return value.
  */
 static struct sockaddr *name2address (const char *server, int port, int *family, int *bind_size);
 
@@ -1196,13 +1196,12 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 		throw std::runtime_error ("invalid server or port");
 
 	int family, bind_size;
-	struct sockaddr_storage bind_as, *bind_as_ptr = (struct sockaddr_storage*)name2address (server, port, &family, &bind_size);
-	if (!bind_as_ptr) {
+	const std::auto_ptr<struct sockaddr> bind_as (name2address (server, port, &family, &bind_size));
+	if (!bind_as.get()) {
 		char buf [200];
 		snprintf (buf, sizeof(buf)-1, "unable to resolve server address: %s", strerror(errno));
 		throw std::runtime_error (buf);
 	}
-	bind_as = *bind_as_ptr; // copy because name2address points to a static
 
 	SOCKET sd = EmSocket (family, SOCK_STREAM, 0);
 	if (sd == INVALID_SOCKET) {
@@ -1225,12 +1224,12 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 
 	if (bind_addr) {
 		int bind_to_size, bind_to_family;
-		struct sockaddr *bind_to = name2address (bind_addr, bind_port, &bind_to_family, &bind_to_size);
-		if (!bind_to) {
+		const std::auto_ptr<struct sockaddr> bind_to (name2address (bind_addr, bind_port, &bind_to_family, &bind_to_size));
+		if (!bind_to.get()) {
 			close (sd);
 			throw std::runtime_error ("invalid bind address");
 		}
-		if (bind (sd, bind_to, bind_to_size) < 0) {
+		if (bind (sd, bind_to.get(), bind_to_size) < 0) {
 			close (sd);
 			throw std::runtime_error ("couldn't bind to address");
 		}
@@ -1240,8 +1239,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 
 	#ifdef OS_UNIX
 	int e_reason = 0;
-	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
-	if (connect (sd, (struct sockaddr*)&bind_as, bind_size) == 0) {
+	if (connect (sd, bind_as.get(), bind_size) == 0) {
 		// This is a connect success, which Linux appears
 		// never to give when the socket is nonblocking,
 		// even if the connection is intramachine or to
@@ -1320,8 +1318,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 	#endif
 
 	#ifdef OS_WIN32
-	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
-	if (connect (sd, &bind_as, bind_size) == 0) {
+	if (connect (sd, bind_as.get(), bind_size) == 0) {
 		// This is a connect success, which Windows appears
 		// never to give when the socket is nonblocking,
 		// even if the connection is intramachine or to
@@ -1547,83 +1544,31 @@ name2address
 
 struct sockaddr *name2address (const char *server, int port, int *family, int *bind_size)
 {
-	// THIS IS NOT RE-ENTRANT OR THREADSAFE. Optimize for speed.
-	// Check the more-common cases first.
-	// Return NULL if no resolution.
-
 	if (!server || !*server)
 		server = "0.0.0.0";
 
-	static struct sockaddr_in in4;
-	static struct sockaddr_in6 in6;
-
-	memset (&in4, 0, sizeof(in4));
-	memset (&in6, 0, sizeof(in6));
-
-	if ( (in4.sin_addr.s_addr = inet_addr (server)) != INADDR_NONE) {
-		if (family)
-			*family = AF_INET;
-		if (bind_size)
-			*bind_size = sizeof(in4);
-		in4.sin_family = AF_INET;
-		in4.sin_port = htons (port);
-		return (struct sockaddr*)&in4;
-	}
-
-	#if defined(OS_UNIX) && !defined(__CYGWIN__)
-	if (inet_pton (AF_INET6, server, in6.sin6_addr.s6_addr) > 0) {
-		if (family)
-			*family = AF_INET6;
-		if (bind_size)
-			*bind_size = sizeof(in6);
-		in6.sin6_family = AF_INET6;
-		in6.sin6_port = htons (port);
-		return (struct sockaddr*)&in6;
-	}
-	#elif defined(OS_WIN32) && !defined(__CYGWIN__)
-	int len = sizeof(in6);
-	if (WSAStringToAddress ((char *)server, AF_INET6, NULL, (struct sockaddr *)&in6, &len) == 0) {
-		if (family)
-			*family = AF_INET6;
-		if (bind_size)
-			*bind_size = sizeof(in6);
-		in6.sin6_family = AF_INET6;
-		in6.sin6_port = htons (port);
-		return (struct sockaddr*)&in6;
-	}
-	#endif
-
-	int ai_family;
 	struct addrinfo *ai;
 	struct addrinfo hints;
 	memset (&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
-	if (getaddrinfo (server, NULL, &hints, &ai) == 0) {
+	hints.ai_flags = AI_NUMERICSERV;
+
+	char portstr[12];
+	snprintf(portstr, sizeof(portstr), "%u", port);
+
+	if (getaddrinfo (server, portstr, &hints, &ai) == 0) {
 		if (family)
 			*family = ai->ai_family;
 		if (bind_size)
 			*bind_size = ai->ai_addrlen;
 
-		ai_family = ai->ai_family;
-		switch (ai_family) {
-			case AF_INET:
-				memcpy (&in4, ai->ai_addr, ai->ai_addrlen);
-				in4.sin_port = htons(port);
-		#ifndef __CYGWIN__
-			case AF_INET6:
-				memcpy (&in6, ai->ai_addr, ai->ai_addrlen);
-				in6.sin6_port = htons(port);
-		#endif
-		}
+		// Use "new" so the caller must "delete" or be an auto_ptr
+		struct sockaddr *addr = (struct sockaddr *)new struct sockaddr_storage;
+		assert (ai->ai_addrlen <= sizeof(struct sockaddr_storage));
+		memcpy (addr, ai->ai_addr, ai->ai_addrlen);
 
 		freeaddrinfo(ai);
-
-		switch (ai_family) {
-			case AF_INET:
-				return (struct sockaddr*)&in4;
-			case AF_INET6:
-				return (struct sockaddr*)&in6;
-		}
+		return addr;
 	}
 
 	return NULL;
@@ -1644,8 +1589,8 @@ const uintptr_t EventMachine_t::CreateTcpServer (const char *server, int port)
 
 
 	int family, bind_size;
-	struct sockaddr *bind_here = name2address (server, port, &family, &bind_size);
-	if (!bind_here)
+	const std::auto_ptr<struct sockaddr> bind_here (name2address (server, port, &family, &bind_size));
+	if (!bind_here.get())
 		return 0;
 
 	//struct sockaddr_in sin;
@@ -1673,8 +1618,7 @@ const uintptr_t EventMachine_t::CreateTcpServer (const char *server, int port)
 	}
 
 
-	//if (bind (sd_accept, (struct sockaddr*)&sin, sizeof(sin))) {
-	if (bind (sd_accept, bind_here, bind_size)) {
+	if (bind (sd_accept, bind_here.get(), bind_size)) {
 		//__warning ("binding failed");
 		goto fail;
 	}
