@@ -200,6 +200,11 @@ class EventMachine_t
 
 		Poller_t GetPoller() { return Poller; }
 
+		/* Helper to convert strings to internet addresses. IPv6-aware.
+		 * Must delete the return value (or use an auto_ptr).
+		 */
+		static struct sockaddr *name2address(const char *server, int port, int *family, int *bind_size);
+
 	private:
 		void _RunTimers();
 		void _UpdateTime();

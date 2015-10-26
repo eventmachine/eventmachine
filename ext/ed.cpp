@@ -1725,7 +1725,8 @@ void DatagramDescriptor::Write()
 		OutboundPage *op = &(OutboundPages[0]);
 
 		// The nasty cast to (char*) is needed because Windows is brain-dead.
-		int s = sendto (sd, (char*)op->Buffer, op->Length, 0, (struct sockaddr*)&(op->From), sizeof(op->From));
+		int s = sendto (sd, (char*)op->Buffer, op->Length, 0, (struct sockaddr*)&(op->From),
+		               (op->From.sin6_family == AF_INET6 ? sizeof (struct sockaddr_in6) : sizeof (struct sockaddr_in)));
 #ifdef OS_WIN32
 		int e = WSAGetLastError();
 #else
@@ -1837,23 +1838,10 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, unsigned long le
 	if (!address || !*address || !port)
 		return 0;
 
-	sockaddr_in pin;
-	unsigned long HostAddr;
-
-	HostAddr = inet_addr (address);
-	if (HostAddr == INADDR_NONE) {
-		// The nasty cast to (char*) is because Windows is brain-dead.
-		hostent *hp = gethostbyname ((char*)address);
-		if (!hp)
-			return 0;
-		HostAddr = ((in_addr*)(hp->h_addr))->s_addr;
-	}
-
-	memset (&pin, 0, sizeof(pin));
-	pin.sin_family = AF_INET;
-	pin.sin_addr.s_addr = HostAddr;
-	pin.sin_port = htons (port);
-
+	int family, addr_size;
+	struct sockaddr *addr_here = EventMachine_t::name2address (address, port, &family, &addr_size);
+	if (!addr_here)
+		return -1;
 
 	if (!data && (length > 0))
 		throw std::runtime_error ("bad outbound data");
@@ -1862,8 +1850,9 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, unsigned long le
 		throw std::runtime_error ("no allocation for outbound data");
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
-	OutboundPages.push_back (OutboundPage (buffer, length, pin));
+	OutboundPages.push_back (OutboundPage (buffer, length, *(struct sockaddr_in6*)addr_here));
 	OutboundDataSize += length;
+	delete addr_here;
 
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = (EPOLLIN | EPOLLOUT);

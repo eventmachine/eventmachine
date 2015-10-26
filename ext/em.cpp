@@ -32,12 +32,6 @@ static unsigned int MaxOutstandingTimers = 100000;
  */
 static unsigned int SimultaneousAcceptCount = 10;
 
-
-/* Internal helper to convert strings to internet addresses. IPv6-aware.
- * Must free the return value.
- */
-static struct sockaddr *name2address (const char *server, int port, int *family, int *bind_size);
-
 /* Internal helper to create a socket with SOCK_CLOEXEC set, and fall
  * back to fcntl'ing it if the headers/runtime don't support it.
  */
@@ -1542,7 +1536,7 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 name2address
 ************/
 
-struct sockaddr *name2address (const char *server, int port, int *family, int *bind_size)
+struct sockaddr *EventMachine_t::name2address (const char *server, int port, int *family, int *bind_size)
 {
 	if (!server || !*server)
 		server = "0.0.0.0";
@@ -1592,8 +1586,6 @@ const uintptr_t EventMachine_t::CreateTcpServer (const char *server, int port)
 	const std::auto_ptr<struct sockaddr> bind_here (name2address (server, port, &family, &bind_size));
 	if (!bind_here.get())
 		return 0;
-
-	//struct sockaddr_in sin;
 
 	SOCKET sd_accept = EmSocket (family, SOCK_STREAM, 0);
 	if (sd_accept == INVALID_SOCKET) {
@@ -1645,40 +1637,21 @@ const uintptr_t EventMachine_t::OpenDatagramSocket (const char *address, int por
 {
 	uintptr_t output_binding = 0;
 
-	SOCKET sd = EmSocket (AF_INET, SOCK_DGRAM, 0);
+	int family, bind_size;
+	const std::auto_ptr<struct sockaddr> bind_here (name2address (address, port, &family, &bind_size));
+	if (!bind_here.get())
+		return 0;
+
+	// from here on, early returns must close the socket!
+	SOCKET sd = EmSocket (family, SOCK_DGRAM, 0);
 	if (sd == INVALID_SOCKET)
 		goto fail;
-	// from here on, early returns must close the socket!
-
-
-	struct sockaddr_in sin;
-	memset (&sin, 0, sizeof(sin));
-	sin.sin_family = AF_INET;
-	sin.sin_port = htons (port);
-
-
-	if (address && *address) {
-		sin.sin_addr.s_addr = inet_addr (address);
-		if (sin.sin_addr.s_addr == INADDR_NONE) {
-			hostent *hp = gethostbyname ((char*)address); // Windows requires the cast.
-			if (hp == NULL)
-				goto fail;
-			sin.sin_addr.s_addr = ((in_addr*)(hp->h_addr))->s_addr;
-		}
-	}
-	else
-		sin.sin_addr.s_addr = htonl (INADDR_ANY);
-
 
 	// Set the new socket nonblocking.
-	{
-		if (!SetSocketNonblocking (sd))
-		//int val = fcntl (sd, F_GETFL, 0);
-		//if (fcntl (sd, F_SETFL, val | O_NONBLOCK) == -1)
-			goto fail;
-	}
+	if (!SetSocketNonblocking (sd))
+		goto fail;
 
-	if (bind (sd, (struct sockaddr*)&sin, sizeof(sin)) != 0)
+	if (bind (sd, bind_here.get(), bind_size) != 0)
 		goto fail;
 
 	{ // Looking good.

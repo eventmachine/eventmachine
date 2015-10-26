@@ -299,18 +299,18 @@ class DatagramDescriptor: public EventableDescriptor
 
 	protected:
 		struct OutboundPage {
-			OutboundPage (const char *b, int l, struct sockaddr_in f, int o=0): Buffer(b), Length(l), Offset(o), From(f) {}
+			OutboundPage (const char *b, int l, struct sockaddr_in6 f, int o=0): Buffer(b), Length(l), Offset(o), From(f) {}
 			void Free() {if (Buffer) free (const_cast<char*>(Buffer)); }
 			const char *Buffer;
 			int Length;
 			int Offset;
-			struct sockaddr_in From;
+			struct sockaddr_in6 From;
 		};
 
 		deque<OutboundPage> OutboundPages;
 		int OutboundDataSize;
 
-		struct sockaddr_in ReturnAddress;
+		struct sockaddr_in6 ReturnAddress;
 };
 
 
