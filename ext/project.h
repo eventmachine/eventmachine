@@ -30,7 +30,6 @@ See the file COPYING for complete licensing information.
 #include <string>
 #include <sstream>
 #include <stdexcept>
-#include <memory>
 
 
 #ifdef OS_UNIX

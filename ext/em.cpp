@@ -1189,15 +1189,15 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 	if (!server || !*server || !port)
 		throw std::runtime_error ("invalid server or port");
 
-	int family, bind_size;
-	const std::auto_ptr<struct sockaddr> bind_as (name2address (server, port, &family, &bind_size));
-	if (!bind_as.get()) {
+	struct sockaddr_storage bind_as;
+	size_t bind_as_len = sizeof bind_as;
+	if (!name2address (server, port, (struct sockaddr *)&bind_as, &bind_as_len)) {
 		char buf [200];
 		snprintf (buf, sizeof(buf)-1, "unable to resolve server address: %s", strerror(errno));
 		throw std::runtime_error (buf);
 	}
 
-	SOCKET sd = EmSocket (family, SOCK_STREAM, 0);
+	SOCKET sd = EmSocket (bind_as.ss_family, SOCK_STREAM, 0);
 	if (sd == INVALID_SOCKET) {
 		char buf [200];
 		snprintf (buf, sizeof(buf)-1, "unable to create new socket: %s", strerror(errno));
@@ -1217,13 +1217,13 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 	setsockopt (sd, SOL_SOCKET, SO_REUSEADDR, (char*) &one, sizeof(one));
 
 	if (bind_addr) {
-		int bind_to_size, bind_to_family;
-		const std::auto_ptr<struct sockaddr> bind_to (name2address (bind_addr, bind_port, &bind_to_family, &bind_to_size));
-		if (!bind_to.get()) {
+		struct sockaddr_storage bind_to;
+		size_t bind_to_len = sizeof bind_to;
+		if (!name2address (bind_addr, bind_port, (struct sockaddr *)&bind_to, &bind_to_len)) {
 			close (sd);
 			throw std::runtime_error ("invalid bind address");
 		}
-		if (bind (sd, bind_to.get(), bind_to_size) < 0) {
+		if (bind (sd, (struct sockaddr *)&bind_to, bind_to_len) < 0) {
 			close (sd);
 			throw std::runtime_error ("couldn't bind to address");
 		}
@@ -1233,7 +1233,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 
 	#ifdef OS_UNIX
 	int e_reason = 0;
-	if (connect (sd, bind_as.get(), bind_size) == 0) {
+	if (connect (sd, (struct sockaddr *)&bind_as, bind_as_len) == 0) {
 		// This is a connect success, which Linux appears
 		// never to give when the socket is nonblocking,
 		// even if the connection is intramachine or to
@@ -1312,7 +1312,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 	#endif
 
 	#ifdef OS_WIN32
-	if (connect (sd, bind_as.get(), bind_size) == 0) {
+	if (connect (sd, (struct sockaddr *)&bind_as, bind_as_len) == 0) {
 		// This is a connect success, which Windows appears
 		// never to give when the socket is nonblocking,
 		// even if the connection is intramachine or to
@@ -1536,7 +1536,7 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 name2address
 ************/
 
-struct sockaddr *EventMachine_t::name2address (const char *server, int port, int *family, int *bind_size)
+bool EventMachine_t::name2address (const char *server, int port, struct sockaddr *addr, size_t *addr_len)
 {
 	if (!server || !*server)
 		server = "0.0.0.0";
@@ -1545,27 +1545,21 @@ struct sockaddr *EventMachine_t::name2address (const char *server, int port, int
 	struct addrinfo hints;
 	memset (&hints, 0, sizeof(hints));
 	hints.ai_family = AF_UNSPEC;
-	hints.ai_flags = AI_NUMERICSERV;
+	hints.ai_flags = AI_NUMERICSERV | AI_ADDRCONFIG;
 
 	char portstr[12];
 	snprintf(portstr, sizeof(portstr), "%u", port);
 
 	if (getaddrinfo (server, portstr, &hints, &ai) == 0) {
-		if (family)
-			*family = ai->ai_family;
-		if (bind_size)
-			*bind_size = ai->ai_addrlen;
-
-		// Use "new" so the caller must "delete" or be an auto_ptr
-		struct sockaddr *addr = (struct sockaddr *)new struct sockaddr_storage;
-		assert (ai->ai_addrlen <= sizeof(struct sockaddr_storage));
+		assert (ai->ai_addrlen <= *addr_len);
 		memcpy (addr, ai->ai_addr, ai->ai_addrlen);
+		*addr_len = ai->ai_addrlen;
 
 		freeaddrinfo(ai);
-		return addr;
+		return true;
 	}
 
-	return NULL;
+	return false;
 }
 
 
@@ -1582,12 +1576,12 @@ const uintptr_t EventMachine_t::CreateTcpServer (const char *server, int port)
 	 */
 
 
-	int family, bind_size;
-	const std::auto_ptr<struct sockaddr> bind_here (name2address (server, port, &family, &bind_size));
-	if (!bind_here.get())
+	struct sockaddr_storage bind_here;
+	size_t bind_here_len = sizeof bind_here;
+	if (!name2address (server, port, (struct sockaddr *)&bind_here, &bind_here_len))
 		return 0;
 
-	SOCKET sd_accept = EmSocket (family, SOCK_STREAM, 0);
+	SOCKET sd_accept = EmSocket (bind_here.ss_family, SOCK_STREAM, 0);
 	if (sd_accept == INVALID_SOCKET) {
 		goto fail;
 	}
@@ -1610,7 +1604,7 @@ const uintptr_t EventMachine_t::CreateTcpServer (const char *server, int port)
 	}
 
 
-	if (bind (sd_accept, bind_here.get(), bind_size)) {
+	if (bind (sd_accept, (struct sockaddr *)&bind_here, bind_here_len)) {
 		//__warning ("binding failed");
 		goto fail;
 	}
@@ -1637,13 +1631,13 @@ const uintptr_t EventMachine_t::OpenDatagramSocket (const char *address, int por
 {
 	uintptr_t output_binding = 0;
 
-	int family, bind_size;
-	const std::auto_ptr<struct sockaddr> bind_here (name2address (address, port, &family, &bind_size));
-	if (!bind_here.get())
+	struct sockaddr_storage bind_here;
+	size_t bind_here_len = sizeof bind_here;
+	if (!name2address (address, port, (struct sockaddr *)&bind_here, &bind_here_len))
 		return 0;
 
 	// from here on, early returns must close the socket!
-	SOCKET sd = EmSocket (family, SOCK_DGRAM, 0);
+	SOCKET sd = EmSocket (bind_here.ss_family, SOCK_DGRAM, 0);
 	if (sd == INVALID_SOCKET)
 		goto fail;
 
@@ -1651,7 +1645,7 @@ const uintptr_t EventMachine_t::OpenDatagramSocket (const char *address, int por
 	if (!SetSocketNonblocking (sd))
 		goto fail;
 
-	if (bind (sd, bind_here.get(), bind_size) != 0)
+	if (bind (sd, (struct sockaddr *)&bind_here, bind_here_len) != 0)
 		goto fail;
 
 	{ // Looking good.

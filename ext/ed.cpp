@@ -1838,9 +1838,9 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, unsigned long le
 	if (!address || !*address || !port)
 		return 0;
 
-	int family, addr_size;
-	struct sockaddr *addr_here = EventMachine_t::name2address (address, port, &family, &addr_size);
-	if (!addr_here)
+	struct sockaddr_in6 addr_here;
+	size_t addr_here_len = sizeof addr_here;
+	if (!EventMachine_t::name2address (address, port, (struct sockaddr *)&addr_here, &addr_here_len))
 		return -1;
 
 	if (!data && (length > 0))
@@ -1850,9 +1850,8 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, unsigned long le
 		throw std::runtime_error ("no allocation for outbound data");
 	memcpy (buffer, data, length);
 	buffer [length] = 0;
-	OutboundPages.push_back (OutboundPage (buffer, length, *(struct sockaddr_in6*)addr_here));
+	OutboundPages.push_back (OutboundPage (buffer, length, addr_here));
 	OutboundDataSize += length;
-	delete addr_here;
 
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = (EPOLLIN | EPOLLOUT);
