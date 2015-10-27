@@ -161,6 +161,7 @@ module EventMachine
       # Clean up reactor state so a new reactor boots up in this child.
       stop_event_loop
       release_machine
+      cleanup_machine
       @reactor_running = false
     end
 
@@ -198,30 +199,8 @@ module EventMachine
           @tails.pop.call
         end
 
-        begin
-          release_machine
-        ensure
-          if @threadpool
-            @threadpool.each { |t| t.exit }
-            @threadpool.each do |t|
-              next unless t.alive?
-              begin
-                # Thread#kill! does not exist on 1.9 or rbx, and raises
-                # NotImplemented on jruby
-                t.kill!
-              rescue NoMethodError, NotImplementedError
-                t.kill
-                # XXX t.join here?
-              end
-            end
-            @threadqueue = nil
-            @resultqueue = nil
-            @threadpool = nil
-            @all_threads_spawned = false
-          end
-
-          @next_tick_queue = []
-        end
+        release_machine
+        cleanup_machine
         @reactor_running = false
         @reactor_thread = nil
       end
@@ -266,12 +245,37 @@ module EventMachine
     # Original patch by Aman Gupta.
     #
     Kernel.fork do
-      if self.reactor_running?
-        self.stop_event_loop
-        self.release_machine
+      if reactor_running?
+        stop_event_loop
+        release_machine
+        cleanup_machine
         @reactor_running = false
+        @reactor_thread = nil
       end
-      self.run block
+      run block
+    end
+  end
+
+  # Clean up Ruby space following a release_machine
+  def self.cleanup_machine
+    @next_tick_queue = []
+    if @threadpool
+      @threadpool.each { |t| t.exit }
+      @threadpool.each do |t|
+        next unless t.alive?
+        begin
+          # Thread#kill! does not exist on 1.9 or rbx, and raises
+          # NotImplemented on jruby
+          t.kill!
+        rescue NoMethodError, NotImplementedError
+          t.kill
+          # XXX t.join here?
+        end
+      end
+      @threadqueue = nil
+      @resultqueue = nil
+      @threadpool = nil
+      @all_threads_spawned = false
     end
   end
 
