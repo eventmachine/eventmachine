@@ -246,31 +246,6 @@ class TestBasic < Test::Unit::TestCase
     assert_equal 1, num_close_scheduled
   end
 
-  def test_fork_safe
-    omit_if(jruby?)
-    omit_if(windows?)
-    omit_if(rbx?, 'Omitting test on Rubinius because it hangs for unknown reasons')
-
-    read, write = IO.pipe
-    EM.run do
-      fork do
-        write.puts "forked"
-        EM.run do
-          EM.next_tick do
-            write.puts "EM ran"
-            EM.stop
-          end
-        end
-      end
-      EM.stop
-    end
-    assert_equal "forked\n", read.readline
-    assert_equal "EM ran\n", read.readline
-  ensure
-    read.close rescue nil
-    write.close rescue nil
-  end
-
   def test_error_handler_idempotent # issue 185
     errors = []
     ticks = []
