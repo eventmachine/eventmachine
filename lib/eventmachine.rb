@@ -258,25 +258,17 @@ module EventMachine
 
   # Clean up Ruby space following a release_machine
   def self.cleanup_machine
-    @next_tick_queue = []
-    if @threadpool
+    if @threadpool && !@threadpool.empty?
+      # Tell the threads to stop
       @threadpool.each { |t| t.exit }
-      @threadpool.each do |t|
-        next unless t.alive?
-        begin
-          # Thread#kill! does not exist on 1.9 or rbx, and raises
-          # NotImplemented on jruby
-          t.kill!
-        rescue NoMethodError, NotImplementedError
-          t.kill
-          # XXX t.join here?
-        end
-      end
-      @threadqueue = nil
-      @resultqueue = nil
-      @threadpool = nil
-      @all_threads_spawned = false
+      # Join the threads or bump the stragglers one more time
+      @threadpool.each { |t| t.join 0.01 || t.exit }
     end
+    @threadpool = nil
+    @threadqueue = nil
+    @resultqueue = nil
+    @all_threads_spawned = false
+    @next_tick_queue = []
   end
 
   # Adds a block to call as the reactor is shutting down.
