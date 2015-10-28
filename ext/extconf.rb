@@ -181,6 +181,18 @@ else
   CONFIG['LDSHARED'] = "$(CXX) -shared"
 end
 
+# Platform-specific time functions
+if have_func('clock_gettime')
+  # clock_gettime is POSIX, but the monotonic clocks are not
+  have_const('CLOCK_MONOTONIC_RAW', 'time.h') # Linux
+  have_const('CLOCK_MONOTONIC', 'time.h') # Linux, Solaris, BSDs
+else
+  have_func('gethrtime') # Older Solaris and HP-UX
+end
+
+# Hack so that try_link will test with a C++ compiler instead of a C compiler
+TRY_LINK.sub!('$(CC)', '$(CXX)')
+
 # This is our wishlist. We use whichever flags work on the host.
 # In the future, add -Werror to make sure all warnings are resolved.
 # deprecated-declarations are used in OS X OpenSSL
@@ -197,23 +209,11 @@ end
 ).select do |flag|
   try_link('int main() {return 0;}', flag)
 end.each do |flag|
-  $CFLAGS << ' ' << flag
-  $CPPFLAGS << ' ' << flag
+  CONFIG['CXXFLAGS'] << ' ' << flag
 end
-puts "CFLAGS=#{$CFLAGS}"
-puts "CPPFLAGS=#{$CPPFLAGS}"
+puts "CXXFLAGS=#{CONFIG['CXXFLAGS']}"
 
-# Platform-specific time functions
-if have_func('clock_gettime')
-  # clock_gettime is POSIX, but the monotonic clocks are not
-  have_const('CLOCK_MONOTONIC_RAW', 'time.h') # Linux
-  have_const('CLOCK_MONOTONIC', 'time.h') # Linux, Solaris, BSDs
-else
-  have_func('gethrtime') # Older Solaris and HP-UX
-end
-
-# solaris c++ compiler doesn't have make_pair()
-TRY_LINK.sub!('$(CC)', '$(CXX)')
+# Solaris C++ compiler doesn't have make_pair()
 add_define 'HAVE_MAKE_PAIR' if try_link(<<SRC, '-lstdc++')
   #include <utility>
   using namespace std;
