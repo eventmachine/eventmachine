@@ -296,7 +296,7 @@ int SslBox_t::GetPlaintext (char *buf, int bufsize)
 {
 	if (!SSL_is_init_finished (pSSL)) {
 		int e = bIsServer ? SSL_accept (pSSL) : SSL_connect (pSSL);
-		if (e < 0) {
+		if (e != 1) {
 			int er = SSL_get_error (pSSL, e);
 			if (er != SSL_ERROR_WANT_READ) {
 				// Return -1 for a nonfatal error, -2 for an error that should force the connection down.
@@ -312,7 +312,7 @@ int SslBox_t::GetPlaintext (char *buf, int bufsize)
 	if (!SSL_is_init_finished (pSSL)) {
 		// We can get here if a browser abandons a handshake.
 		// The user can see a warning dialog and abort the connection.
-		cerr << "<SSL_incomp>";
+		//cerr << "<SSL_incomp>";
 		return 0;
 	}
 
