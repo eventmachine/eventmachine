@@ -6,70 +6,76 @@ require 'openssl'
 if EM.ssl?
   class TestSslMinVersion < Test::Unit::TestCase
 
+    module Client
+      def ssl_handshake_completed
+        $client_handshake_completed = true
+        close_connection
+      end
+
+      def unbind
+        EM.stop_event_loop
+      end
+    end
+
+    module Server
+      def ssl_handshake_completed
+        $server_handshake_completed = true
+      end
+    end
+
     module ClientAny
+      include Client
+      def connection_completed
+        start_tls(:protocols => %w(sslv2 sslv3 tlsv1 tlsv1.1 tlsv1.2))
+      end
+    end
+
+    module ClientDefault
+      include Client
       def connection_completed
         start_tls
       end
-
-      def ssl_handshake_completed
-        $client_handshake_completed = true
-        close_connection
-      end
-
-      def unbind
-        EM.stop_event_loop
-      end
     end
 
-    module ClientMinV3
+    module ClientSSLv3
+      include Client
       def connection_completed
         start_tls(:protocols => %w(SSLv3))
       end
-
-      def ssl_handshake_completed
-        $client_handshake_completed = true
-        close_connection
-      end
-
-      def unbind
-        EM.stop_event_loop
-      end
     end
 
-    module ServerMinV3
+    module ServerSSLv3
+      include Server
       def post_init
         start_tls(:protocols => %w(SSLv3))
-      end
-
-      def ssl_handshake_completed
-        $server_handshake_completed = true
       end
     end
 
     module ServerTLSv1CaseInsensitive
+      include Server
       def post_init
         start_tls(:protocols => %w(tlsv1))
-      end
-
-      def ssl_handshake_completed
-        $server_handshake_completed = true
       end
     end
 
     module ServerAny
+      include Server
       def post_init
-        start_tls(:protocols => %w(SSLv2 SSLv3 TLSv1 TLSv1.1 TLSv1.2))
+        start_tls(:protocols => %w(sslv2 sslv3 tlsv1 tlsv1.1 tlsv1.2))
       end
+    end
 
-      def ssl_handshake_completed
-        $server_handshake_completed = true
+    module ServerDefault
+      include Server
+      def post_init
+        start_tls
       end
     end
 
     def test_any_to_v3
       $client_handshake_completed, $server_handshake_completed = false, false
       EM.run do
-        EM.start_server("127.0.0.1", 16784, ServerMinV3)
+        EM.start_server("127.0.0.1", 16784, ServerSSLv3)
         EM.connect("127.0.0.1", 16784, ClientAny)
       end
 
@@ -92,7 +98,7 @@ if EM.ssl?
       $client_handshake_completed, $server_handshake_completed = false, false
       EM.run do
         EM.start_server("127.0.0.1", 16784, ServerAny)
-        EM.connect("127.0.0.1", 16784, ClientMinV3)
+        EM.connect("127.0.0.1", 16784, ClientSSLv3)
       end
 
       assert($client_handshake_completed)
@@ -102,8 +108,30 @@ if EM.ssl?
     def test_v3_to_v3
       $client_handshake_completed, $server_handshake_completed = false, false
       EM.run do
-        EM.start_server("127.0.0.1", 16784, ServerMinV3)
-        EM.connect("127.0.0.1", 16784, ClientMinV3)
+        EM.start_server("127.0.0.1", 16784, ServerSSLv3)
+        EM.connect("127.0.0.1", 16784, ClientSSLv3)
+      end
+
+      assert($client_handshake_completed)
+      assert($server_handshake_completed)
+    end
+
+    def test_any_to_any
+      $client_handshake_completed, $server_handshake_completed = false, false
+      EM.run do
+        EM.start_server("127.0.0.1", 16784, ServerAny)
+        EM.connect("127.0.0.1", 16784, ClientAny)
+      end
+
+      assert($client_handshake_completed)
+      assert($server_handshake_completed)
+    end
+
+    def test_default_to_default
+      $client_handshake_completed, $server_handshake_completed = false, false
+      EM.run do
+        EM.start_server("127.0.0.1", 16784, ServerDefault)
+        EM.connect("127.0.0.1", 16784, ClientDefault)
       end
 
       assert($client_handshake_completed)

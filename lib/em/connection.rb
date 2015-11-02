@@ -417,21 +417,27 @@ module EventMachine
       end
 
       protocols_bitmask = 0
-      protocols ||= []
-      protocols.each do |p|
-        case p.downcase
-        when 'sslv2'
-          protocols_bitmask |= EventMachine::EM_PROTO_SSLv2
-        when 'sslv3'
-          protocols_bitmask |= EventMachine::EM_PROTO_SSLv3
-        when 'tlsv1'
-          protocols_bitmask |= EventMachine::EM_PROTO_TLSv1
-        when 'tlsv1.1'
-          protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_1
-        when 'tlsv1.2'
-          protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_2
-        else
-          raise("Unrecognized SSL/TLS Protocol: #{p}")
+      if protocols.nil?
+        protocols_bitmask |= EventMachine::EM_PROTO_TLSv1
+        protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_1
+        protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_2
+      else
+        protocols ||= []
+        protocols.each do |p|
+          case p.downcase
+          when 'sslv2'
+            protocols_bitmask |= EventMachine::EM_PROTO_SSLv2
+          when 'sslv3'
+            protocols_bitmask |= EventMachine::EM_PROTO_SSLv3
+          when 'tlsv1'
+            protocols_bitmask |= EventMachine::EM_PROTO_TLSv1
+          when 'tlsv1.1'
+            protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_1
+          when 'tlsv1.2'
+            protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_2
+          else
+            raise("Unrecognized SSL/TLS Protocol: #{p}")
+          end
         end
       end
 
