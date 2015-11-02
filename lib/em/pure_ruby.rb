@@ -66,6 +66,11 @@ module EventMachine
     def release_machine
     end
 
+
+    def stopping?
+      return Reactor.instance.stop_scheduled
+    end
+
     # @private
     def stop
       Reactor.instance.stop
@@ -273,7 +278,7 @@ module EventMachine
 
     HeartbeatInterval = 2
 
-    attr_reader :current_loop_time
+    attr_reader :current_loop_time, :stop_scheduled
 
     def initialize
       initialize_for_run

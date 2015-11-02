@@ -93,12 +93,25 @@ class TestBasic < Test::Unit::TestCase
     end
   end
 
-  def test_unbind_error
+  def test_unbind_error_during_stop
     assert_raises( UnbindError::ERR ) {
       EM.run {
         EM.start_server "127.0.0.1", @port
-        EM.connect "127.0.0.1", @port, UnbindError
+        EM.connect "127.0.0.1", @port, UnbindError do
+          EM.stop
+        end
       }
+    }
+  end
+
+  def test_unbind_error
+    EM.run {
+      EM.error_handler do |e|
+        assert(e.is_a?(UnbindError::ERR))
+        EM.stop
+      end
+      EM.start_server "127.0.0.1", @port
+      EM.connect "127.0.0.1", @port, UnbindError
     }
   end
 

@@ -140,6 +140,7 @@ class EventMachine_t
 		bool RunOnce();
 		void Run();
 		void ScheduleHalt();
+		bool Stopping();
 		void SignalLoopBreaker();
 		const uintptr_t InstallOneshotTimer (int);
 		const uintptr_t ConnectToServer (const char *, int, const char *, int);

@@ -215,7 +215,10 @@ void EventMachine_t::ScheduleHalt()
 	SignalLoopBreaker();
 }
 
-
+bool EventMachine_t::Stopping()
+{
+    return bTerminateSignalReceived;
+}
 
 /*******************************
 EventMachine_t::SetTimerQuantum

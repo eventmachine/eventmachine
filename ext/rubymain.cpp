@@ -1073,6 +1073,23 @@ static VALUE t__ssl_p (VALUE self UNUSED)
 	#endif
 }
 
+/********
+t_stopping
+********/
+
+static VALUE t_stopping ()
+{
+    if (evma_stopping())
+    {
+        return Qtrue;
+    }
+    else
+    {
+        return Qfalse;
+    }
+
+}
+
 
 /****************
 t_send_file_data
@@ -1375,6 +1392,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "kqueue?", (VALUE(*)(...))t__kqueue_p, 0);
 
 	rb_define_module_function (EmModule, "ssl?", (VALUE(*)(...))t__ssl_p, 0);
+	rb_define_module_function(EmModule, "stopping?",(VALUE(*)(...))t_stopping, 0);
 
 	rb_define_method (EmConnection, "get_outbound_data_size", (VALUE(*)(...))conn_get_outbound_data_size, 0);
 	rb_define_method (EmConnection, "associate_callback_target", (VALUE(*)(...))conn_associate_callback_target, 1);
