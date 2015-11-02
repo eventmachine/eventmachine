@@ -72,6 +72,22 @@ if EM.ssl?
       end
     end
 
+    module InvalidProtocol
+      include Client
+      def post_init
+        start_tls(:protocols => %w(tlsv1 badinput))
+      end
+    end
+
+    def test_invalid_protocol
+      assert_raises(RuntimeError, "Unrecognized SSL/TLS Protocol: badinput") do
+        EM.run do
+          EM.start_server("127.0.0.1", 16784, InvalidProtocol)
+          EM.connect("127.0.0.1", 16784, InvalidProtocol)
+        end
+      end
+    end
+
     def test_any_to_v3
       $client_handshake_completed, $server_handshake_completed = false, false
       EM.run do
