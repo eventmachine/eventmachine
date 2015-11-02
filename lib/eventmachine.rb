@@ -993,11 +993,14 @@ module EventMachine
   # EventMachine.defer is used for integrating blocking operations into EventMachine's control flow.
   # The action of {.defer} is to take the block specified in the first parameter (the "operation")
   # and schedule it for asynchronous execution on an internal thread pool maintained by EventMachine.
-  # When the operation completes, it will pass the result computed by the block (if any)
-  # back to the EventMachine reactor. Then, EventMachine calls the block specified in the
-  # second parameter to {.defer} (the "callback"), as part of its normal event handling loop.
-  # The result computed by the operation block is passed as a parameter to the callback.
-  # You may omit the callback parameter if you don't need to execute any code after the operation completes.
+  # When the operation completes, it will pass the result computed by the block (if any) back to the
+  # EventMachine reactor. Then, EventMachine calls the block specified in the second parameter to
+  # {.defer} (the "callback"), as part of its normal event handling loop. The result computed by the
+  # operation block is passed as a parameter to the callback. You may omit the callback parameter if
+  # you don't need to execute any code after the operation completes. If the operation raises an
+  # unhandled exception, the exception will be passed to the third parameter to {.defer} (the
+  # "errback"), as part of its normal event handling loop. If no errback is provided, the exception
+  # will be allowed to blow through to the main thread immediately.
   #
   # ## Caveats ##
   #
@@ -1011,6 +1014,11 @@ module EventMachine
   # the number of threads in its pool, so if you do this enough times, your subsequent deferred
   # operations won't get a chance to run.
   #
+  # The threads within the EventMachine's thread pool have abort_on_exception set to true. As a result,
+  # if an unhandled exception is raised by the deferred operation and an errback is not provided, it
+  # will blow through to the main thread immediately. If the main thread is within an indiscriminate
+  # rescue block at that time, the exception could be handled improperly by the main thread.
+  #
   # @example
   #
   #  operation = proc {
@@ -1020,14 +1028,18 @@ module EventMachine
   #  callback = proc {|result|
   #    # do something with result here, such as send it back to a network client.
   #  }
+  #  errback = proc {|error|
+  #    # do something with error here, such as re-raising or logging.
+  #  }
   #
-  #  EventMachine.defer(operation, callback)
+  #  EventMachine.defer(operation, callback, errback)
   #
   # @param [#call] op       An operation you want to offload to EventMachine thread pool
   # @param [#call] callback A callback that will be run on the event loop thread after `operation` finishes.
+  # @param [#call] errback  An errback that will be run on the event loop thread after `operation` raises an exception.
   #
   # @see EventMachine.threadpool_size
-  def self.defer op = nil, callback = nil, &blk
+  def self.defer op = nil, callback = nil, errback = nil, &blk
     # OBSERVE that #next_tick hacks into this mechanism, so don't make any changes here
     # without syncing there.
     #
@@ -1044,7 +1056,7 @@ module EventMachine
       spawn_threadpool
     end
 
-    @threadqueue << [op||blk,callback]
+    @threadqueue << [op||blk,callback,errback]
   end
 
 
@@ -1055,13 +1067,18 @@ module EventMachine
         Thread.current.abort_on_exception = true
         while true
           begin
-            op, cback = *@threadqueue.pop
+            op, cback, eback = *@threadqueue.pop
           rescue ThreadError
             $stderr.puts $!.message
             break # Ruby 2.0 may fail at Queue.pop
           end
-          result = op.call
-          @resultqueue << [result, cback]
+          begin
+            result = op.call
+            @resultqueue << [result, cback]
+          rescue Exception => error
+            raise error unless eback
+            @resultqueue << [error, eback]
+          end
           EventMachine.signal_loopbreak
         end
       end
