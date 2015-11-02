@@ -59,4 +59,17 @@ class TestEMChannel < Test::Unit::TestCase
 
     assert_equal [1,2,3], out
   end
+
+  def test_channel_num_subscribers
+     subs = 0
+     EM.run do
+       c = EM::Channel.new
+       c.subscribe { |v| s = v }
+       c.subscribe { |v| s = v }
+       EM.next_tick { EM.stop }
+       subs = c.num_subscribers()
+     end
+
+     assert_equal subs, 2
+   end
 end
