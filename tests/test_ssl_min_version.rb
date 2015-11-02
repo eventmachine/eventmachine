@@ -1,5 +1,8 @@
 require 'em_test_helper'
 
+require 'socket'
+require 'openssl'
+
 if EM.ssl?
   class TestSslMinVersion < Test::Unit::TestCase
 
@@ -20,7 +23,7 @@ if EM.ssl?
 
     module ClientMinV3
       def connection_completed
-        start_tls(:min_version => :sslv3)
+        start_tls(:protocols => %w(SSLv3))
       end
 
       def ssl_handshake_completed
@@ -35,7 +38,7 @@ if EM.ssl?
 
     module ServerMinV3
       def post_init
-        start_tls(:min_version => :sslv3)
+        start_tls(:protocols => %w(SSLv3))
       end
 
       def ssl_handshake_completed
@@ -45,7 +48,7 @@ if EM.ssl?
 
     module ServerTLSv1CaseInsensitive
       def post_init
-        start_tls(:min_version => :TLSv1)
+        start_tls(:protocols => %w(tlsv1))
       end
 
       def ssl_handshake_completed
@@ -55,7 +58,7 @@ if EM.ssl?
 
     module ServerAny
       def post_init
-        start_tls
+        start_tls(:protocols => %w(SSLv2 SSLv3 TLSv1 TLSv1.1 TLSv1.2))
       end
 
       def ssl_handshake_completed
@@ -65,10 +68,10 @@ if EM.ssl?
 
     def test_any_to_v3
       $client_handshake_completed, $server_handshake_completed = false, false
-      EM.run {
+      EM.run do
         EM.start_server("127.0.0.1", 16784, ServerMinV3)
         EM.connect("127.0.0.1", 16784, ClientAny)
-      }
+      end
 
       assert($client_handshake_completed)
       assert($server_handshake_completed)
@@ -76,10 +79,10 @@ if EM.ssl?
 
     def test_case_insensitivity
       $client_handshake_completed, $server_handshake_completed = false, false
-      EM.run {
+      EM.run do
         EM.start_server("127.0.0.1", 16784, ServerTLSv1CaseInsensitive)
         EM.connect("127.0.0.1", 16784, ClientAny)
-      }
+      end
 
       assert($client_handshake_completed)
       assert($server_handshake_completed)
@@ -87,10 +90,10 @@ if EM.ssl?
 
     def test_v3_to_any
       $client_handshake_completed, $server_handshake_completed = false, false
-      EM.run {
+      EM.run do
         EM.start_server("127.0.0.1", 16784, ServerAny)
         EM.connect("127.0.0.1", 16784, ClientMinV3)
-      }
+      end
 
       assert($client_handshake_completed)
       assert($server_handshake_completed)
@@ -98,10 +101,10 @@ if EM.ssl?
 
     def test_v3_to_v3
       $client_handshake_completed, $server_handshake_completed = false, false
-      EM.run {
+      EM.run do
         EM.start_server("127.0.0.1", 16784, ServerMinV3)
         EM.connect("127.0.0.1", 16784, ClientMinV3)
-      }
+      end
 
       assert($client_handshake_completed)
       assert($server_handshake_completed)
@@ -109,7 +112,7 @@ if EM.ssl?
 
     module ServerV3StopAfterHandshake
       def post_init
-        start_tls(:min_version => :sslv3)
+        start_tls(:protocols => %w(SSLv3))
       end
 
       def ssl_handshake_completed
@@ -120,7 +123,7 @@ if EM.ssl?
 
     module ServerTLSv1StopAfterHandshake
       def post_init
-        start_tls(:min_version => :tlsv1)
+        start_tls(:protocols => %w(TLSv1))
       end
 
       def ssl_handshake_completed
@@ -131,33 +134,29 @@ if EM.ssl?
 
     def test_v3_with_external_client
       $server_handshake_completed = false
-      EM.run {
+      EM.run do
         setup_timeout(2)
         EM.start_server("127.0.0.1", 16784, ServerV3StopAfterHandshake)
-        EM.defer {
-          require "socket"
-          require "openssl"
+        EM.defer do
           sock = TCPSocket.new("127.0.0.1", 16784)
           ctx = OpenSSL::SSL::SSLContext.new
-          ctx.ssl_version = :TLSv1_client
+          ctx.ssl_version = :SSLv3_client
           ssl = OpenSSL::SSL::SSLSocket.new(sock, ctx)
           ssl.connect
           ssl.close rescue nil
           sock.close rescue nil
-        }
-      }
+        end
+      end
 
       assert($server_handshake_completed)
     end
 
     def test_tlsv1_with_external_client
       $server_handshake_completed = false
-      EM.run {
+      EM.run do
         setup_timeout(2)
         EM.start_server("127.0.0.1", 16784, ServerTLSv1StopAfterHandshake)
-        EM.defer {
-          require "socket"
-          require "openssl"
+        EM.defer do
           sock = TCPSocket.new("127.0.0.1", 16784)
           ctx = OpenSSL::SSL::SSLContext.new
           ctx.ssl_version = :TLSv1_client
@@ -165,8 +164,8 @@ if EM.ssl?
           ssl.connect
           ssl.close rescue nil
           sock.close rescue nil
-        }
-      }
+        end
+      end
 
       assert($server_handshake_completed)
     end
@@ -174,16 +173,14 @@ if EM.ssl?
     def test_tlsv1_required_with_external_client
       $server_handshake_completed = false
 
-      EM.run {
+      EM.run do
         n = 0
-        EM.add_periodic_timer(0.5) {
+        EM.add_periodic_timer(0.5) do
           n += 1
           (EM.stop rescue nil) if n == 2
-        }
+        end
         EM.start_server("127.0.0.1", 16784, ServerTLSv1StopAfterHandshake)
-        EM.defer {
-          require "socket"
-          require "openssl"
+        EM.defer do
           sock = TCPSocket.new("127.0.0.1", 16784)
           ctx = OpenSSL::SSL::SSLContext.new
           ctx.ssl_version = :SSLv3_client
@@ -194,8 +191,8 @@ if EM.ssl?
           ssl.close rescue nil
           sock.close rescue nil
           EM.stop rescue nil
-        }
-      }
+        end
+      end
 
       assert(!$server_handshake_completed)
     end

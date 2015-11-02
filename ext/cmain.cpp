@@ -459,12 +459,12 @@ extern "C" void evma_start_tls (const uintptr_t binding)
 evma_set_tls_parms
 ******************/
 
-extern "C" void evma_set_tls_parms (const uintptr_t binding, const char *privatekey_filename, const char *certchain_filename, int verify_peer, enum SslMinVersion min_version)
+extern "C" void evma_set_tls_parms (const uintptr_t binding, const char *privatekey_filename, const char *certchain_filename, int verify_peer, const char *cipherlist, int protocols)
 {
 	ensure_eventmachine("evma_set_tls_parms");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed)
-		ed->SetTlsParms (privatekey_filename, certchain_filename, (verify_peer == 1 ? true : false), min_version);
+		ed->SetTlsParms (privatekey_filename, certchain_filename, (verify_peer == 1 ? true : false), cipherlist, protocols);
 }
 
 /******************
