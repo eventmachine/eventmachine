@@ -32,12 +32,6 @@ static unsigned int MaxOutstandingTimers = 100000;
  */
 static unsigned int SimultaneousAcceptCount = 10;
 
-
-/* Internal helper to convert strings to internet addresses. IPv6-aware.
- * Not reentrant or threadsafe, optimized for speed.
- */
-static struct sockaddr *name2address (const char *server, int port, int *family, int *bind_size);
-
 /* Internal helper to create a socket with SOCK_CLOEXEC set, and fall
  * back to fcntl'ing it if the headers/runtime don't support it.
  */
@@ -1195,16 +1189,15 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 	if (!server || !*server || !port)
 		throw std::runtime_error ("invalid server or port");
 
-	int family, bind_size;
-	struct sockaddr_storage bind_as, *bind_as_ptr = (struct sockaddr_storage*)name2address (server, port, &family, &bind_size);
-	if (!bind_as_ptr) {
+	struct sockaddr_storage bind_as;
+	size_t bind_as_len = sizeof bind_as;
+	if (!name2address (server, port, (struct sockaddr *)&bind_as, &bind_as_len)) {
 		char buf [200];
 		snprintf (buf, sizeof(buf)-1, "unable to resolve server address: %s", strerror(errno));
 		throw std::runtime_error (buf);
 	}
-	bind_as = *bind_as_ptr; // copy because name2address points to a static
 
-	SOCKET sd = EmSocket (family, SOCK_STREAM, 0);
+	SOCKET sd = EmSocket (bind_as.ss_family, SOCK_STREAM, 0);
 	if (sd == INVALID_SOCKET) {
 		char buf [200];
 		snprintf (buf, sizeof(buf)-1, "unable to create new socket: %s", strerror(errno));
@@ -1224,13 +1217,13 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 	setsockopt (sd, SOL_SOCKET, SO_REUSEADDR, (char*) &one, sizeof(one));
 
 	if (bind_addr) {
-		int bind_to_size, bind_to_family;
-		struct sockaddr *bind_to = name2address (bind_addr, bind_port, &bind_to_family, &bind_to_size);
-		if (!bind_to) {
+		struct sockaddr_storage bind_to;
+		size_t bind_to_len = sizeof bind_to;
+		if (!name2address (bind_addr, bind_port, (struct sockaddr *)&bind_to, &bind_to_len)) {
 			close (sd);
 			throw std::runtime_error ("invalid bind address");
 		}
-		if (bind (sd, bind_to, bind_to_size) < 0) {
+		if (bind (sd, (struct sockaddr *)&bind_to, bind_to_len) < 0) {
 			close (sd);
 			throw std::runtime_error ("couldn't bind to address");
 		}
@@ -1240,8 +1233,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 
 	#ifdef OS_UNIX
 	int e_reason = 0;
-	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
-	if (connect (sd, (struct sockaddr*)&bind_as, bind_size) == 0) {
+	if (connect (sd, (struct sockaddr *)&bind_as, bind_as_len) == 0) {
 		// This is a connect success, which Linux appears
 		// never to give when the socket is nonblocking,
 		// even if the connection is intramachine or to
@@ -1320,8 +1312,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 	#endif
 
 	#ifdef OS_WIN32
-	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
-	if (connect (sd, &bind_as, bind_size) == 0) {
+	if (connect (sd, (struct sockaddr *)&bind_as, bind_as_len) == 0) {
 		// This is a connect success, which Windows appears
 		// never to give when the socket is nonblocking,
 		// even if the connection is intramachine or to
@@ -1545,68 +1536,30 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 name2address
 ************/
 
-struct sockaddr *name2address (const char *server, int port, int *family, int *bind_size)
+bool EventMachine_t::name2address (const char *server, int port, struct sockaddr *addr, size_t *addr_len)
 {
-	// THIS IS NOT RE-ENTRANT OR THREADSAFE. Optimize for speed.
-	// Check the more-common cases first.
-	// Return NULL if no resolution.
-
 	if (!server || !*server)
 		server = "0.0.0.0";
 
-	static struct sockaddr_in in4;
-	static struct sockaddr_in6 in6;
+	struct addrinfo *ai;
+	struct addrinfo hints;
+	memset (&hints, 0, sizeof(hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_flags = AI_NUMERICSERV | AI_ADDRCONFIG;
 
-	memset (&in4, 0, sizeof(in4));
-	memset (&in6, 0, sizeof(in6));
+	char portstr[12];
+	snprintf(portstr, sizeof(portstr), "%u", port);
 
-	if ( (in4.sin_addr.s_addr = inet_addr (server)) != INADDR_NONE) {
-		if (family)
-			*family = AF_INET;
-		if (bind_size)
-			*bind_size = sizeof(in4);
-		in4.sin_family = AF_INET;
-		in4.sin_port = htons (port);
-		return (struct sockaddr*)&in4;
+	if (getaddrinfo (server, portstr, &hints, &ai) == 0) {
+		assert (ai->ai_addrlen <= *addr_len);
+		memcpy (addr, ai->ai_addr, ai->ai_addrlen);
+		*addr_len = ai->ai_addrlen;
+
+		freeaddrinfo(ai);
+		return true;
 	}
 
-	#if defined(OS_UNIX) && !defined(__CYGWIN__)
-	if (inet_pton (AF_INET6, server, in6.sin6_addr.s6_addr) > 0) {
-		if (family)
-			*family = AF_INET6;
-		if (bind_size)
-			*bind_size = sizeof(in6);
-		in6.sin6_family = AF_INET6;
-		in6.sin6_port = htons (port);
-		return (struct sockaddr*)&in6;
-	}
-	#elif defined(OS_WIN32) && !defined(__CYGWIN__)
-	int len = sizeof(in6);
-	if (WSAStringToAddress ((char *)server, AF_INET6, NULL, (struct sockaddr *)&in6, &len) == 0) {
-		if (family)
-			*family = AF_INET6;
-		if (bind_size)
-			*bind_size = sizeof(in6);
-		in6.sin6_family = AF_INET6;
-		in6.sin6_port = htons (port);
-		return (struct sockaddr*)&in6;
-	}
-	#endif
-
-	struct hostent *hp;
-	hp = gethostbyname ((char*)server); // Windows requires the cast.
-	if (hp) {
-		in4.sin_addr.s_addr = ((in_addr*)(hp->h_addr))->s_addr;
-		if (family)
-			*family = AF_INET;
-		if (bind_size)
-			*bind_size = sizeof(in4);
-		in4.sin_family = AF_INET;
-		in4.sin_port = htons (port);
-		return (struct sockaddr*)&in4;
-	}
-
-	return NULL;
+	return false;
 }
 
 
@@ -1623,14 +1576,12 @@ const uintptr_t EventMachine_t::CreateTcpServer (const char *server, int port)
 	 */
 
 
-	int family, bind_size;
-	struct sockaddr *bind_here = name2address (server, port, &family, &bind_size);
-	if (!bind_here)
+	struct sockaddr_storage bind_here;
+	size_t bind_here_len = sizeof bind_here;
+	if (!name2address (server, port, (struct sockaddr *)&bind_here, &bind_here_len))
 		return 0;
 
-	//struct sockaddr_in sin;
-
-	SOCKET sd_accept = EmSocket (family, SOCK_STREAM, 0);
+	SOCKET sd_accept = EmSocket (bind_here.ss_family, SOCK_STREAM, 0);
 	if (sd_accept == INVALID_SOCKET) {
 		goto fail;
 	}
@@ -1653,8 +1604,7 @@ const uintptr_t EventMachine_t::CreateTcpServer (const char *server, int port)
 	}
 
 
-	//if (bind (sd_accept, (struct sockaddr*)&sin, sizeof(sin))) {
-	if (bind (sd_accept, bind_here, bind_size)) {
+	if (bind (sd_accept, (struct sockaddr *)&bind_here, bind_here_len)) {
 		//__warning ("binding failed");
 		goto fail;
 	}
@@ -1681,40 +1631,21 @@ const uintptr_t EventMachine_t::OpenDatagramSocket (const char *address, int por
 {
 	uintptr_t output_binding = 0;
 
-	SOCKET sd = EmSocket (AF_INET, SOCK_DGRAM, 0);
+	struct sockaddr_storage bind_here;
+	size_t bind_here_len = sizeof bind_here;
+	if (!name2address (address, port, (struct sockaddr *)&bind_here, &bind_here_len))
+		return 0;
+
+	// from here on, early returns must close the socket!
+	SOCKET sd = EmSocket (bind_here.ss_family, SOCK_DGRAM, 0);
 	if (sd == INVALID_SOCKET)
 		goto fail;
-	// from here on, early returns must close the socket!
-
-
-	struct sockaddr_in sin;
-	memset (&sin, 0, sizeof(sin));
-	sin.sin_family = AF_INET;
-	sin.sin_port = htons (port);
-
-
-	if (address && *address) {
-		sin.sin_addr.s_addr = inet_addr (address);
-		if (sin.sin_addr.s_addr == INADDR_NONE) {
-			hostent *hp = gethostbyname ((char*)address); // Windows requires the cast.
-			if (hp == NULL)
-				goto fail;
-			sin.sin_addr.s_addr = ((in_addr*)(hp->h_addr))->s_addr;
-		}
-	}
-	else
-		sin.sin_addr.s_addr = htonl (INADDR_ANY);
-
 
 	// Set the new socket nonblocking.
-	{
-		if (!SetSocketNonblocking (sd))
-		//int val = fcntl (sd, F_GETFL, 0);
-		//if (fcntl (sd, F_SETFL, val | O_NONBLOCK) == -1)
-			goto fail;
-	}
+	if (!SetSocketNonblocking (sd))
+		goto fail;
 
-	if (bind (sd, (struct sockaddr*)&sin, sizeof(sin)) != 0)
+	if (bind (sd, (struct sockaddr *)&bind_here, bind_here_len) != 0)
 		goto fail;
 
 	{ // Looking good.

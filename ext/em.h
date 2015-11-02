@@ -200,6 +200,8 @@ class EventMachine_t
 
 		Poller_t GetPoller() { return Poller; }
 
+		static bool name2address (const char *server, int port, struct sockaddr *addr, size_t *addr_len);
+
 	private:
 		void _RunTimers();
 		void _UpdateTime();
