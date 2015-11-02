@@ -482,6 +482,51 @@ extern "C" X509 *evma_get_peer_cert (const uintptr_t binding)
 }
 #endif
 
+/******************
+evma_get_cipher_bits
+******************/
+
+#ifdef WITH_SSL
+extern "C" int evma_get_cipher_bits (const uintptr_t binding)
+{
+	ensure_eventmachine("evma_get_cipher_bits");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return ed->GetCipherBits();
+	return -1;
+}
+#endif
+
+/******************
+evma_get_cipher_name
+******************/
+
+#ifdef WITH_SSL
+extern "C" const char *evma_get_cipher_name (const uintptr_t binding)
+{
+	ensure_eventmachine("evma_get_cipher_name");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return ed->GetCipherName();
+	return NULL;
+}
+#endif
+
+/******************
+evma_get_cipher_protocol
+******************/
+
+#ifdef WITH_SSL
+extern "C" const char *evma_get_cipher_protocol (const uintptr_t binding)
+{
+	ensure_eventmachine("evma_get_cipher_protocol");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return ed->GetCipherProtocol();
+	return NULL;
+}
+#endif
+
 /********************
 evma_accept_ssl_peer
 ********************/

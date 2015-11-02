@@ -80,6 +80,9 @@ extern "C" {
 
 	#ifdef WITH_SSL
 	X509 *evma_get_peer_cert (const uintptr_t binding);
+	int evma_get_cipher_bits (const uintptr_t binding);
+	const char *evma_get_cipher_name (const uintptr_t binding);
+	const char *evma_get_cipher_protocol (const uintptr_t binding);
 	void evma_accept_ssl_peer (const uintptr_t binding);
 	#endif
 

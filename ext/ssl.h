@@ -73,6 +73,9 @@ class SslBox_t
 		bool IsHandshakeCompleted() {return bHandshakeCompleted;}
 
 		X509 *GetPeerCert();
+		int GetCipherBits();
+		const char *GetCipherName();
+		const char *GetCipherProtocol();
 
 		void Shutdown();
 

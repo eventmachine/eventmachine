@@ -469,6 +469,39 @@ X509 *SslBox_t::GetPeerCert()
 	return cert;
 }
 
+/**********************
+SslBox_t::GetCipherBits
+**********************/
+
+int SslBox_t::GetCipherBits()
+{
+	int bits = -1;
+	if (pSSL)
+		SSL_get_cipher_bits(pSSL, &bits);
+	return bits;
+}
+
+/**********************
+SslBox_t::GetCipherName
+**********************/
+
+const char *SslBox_t::GetCipherName()
+{
+	if (pSSL)
+		return SSL_get_cipher_name(pSSL);
+	return NULL;
+}
+
+/**********************
+SslBox_t::GetCipherProtocol
+**********************/
+
+const char *SslBox_t::GetCipherProtocol()
+{
+	if (pSSL)
+		return SSL_get_cipher_version(pSSL);
+	return NULL;
+}
 
 /******************
 ssl_verify_wrapper

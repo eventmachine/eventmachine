@@ -1232,6 +1232,48 @@ X509 *ConnectionDescriptor::GetPeerCert()
 #endif
 
 
+/*********************************
+ConnectionDescriptor::GetCipherBits
+*********************************/
+
+#ifdef WITH_SSL
+int ConnectionDescriptor::GetCipherBits()
+{
+	if (!SslBox)
+		throw std::runtime_error ("SSL/TLS not running on this connection");
+	return SslBox->GetCipherBits();
+}
+#endif
+
+
+/*********************************
+ConnectionDescriptor::GetCipherName
+*********************************/
+
+#ifdef WITH_SSL
+const char *ConnectionDescriptor::GetCipherName()
+{
+	if (!SslBox)
+		throw std::runtime_error ("SSL/TLS not running on this connection");
+	return SslBox->GetCipherName();
+}
+#endif
+
+
+/*********************************
+ConnectionDescriptor::GetCipherProtocol
+*********************************/
+
+#ifdef WITH_SSL
+const char *ConnectionDescriptor::GetCipherProtocol()
+{
+	if (!SslBox)
+		throw std::runtime_error ("SSL/TLS not running on this connection");
+	return SslBox->GetCipherProtocol();
+}
+#endif
+
+
 /***********************************
 ConnectionDescriptor::VerifySslPeer
 ***********************************/

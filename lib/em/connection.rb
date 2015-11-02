@@ -517,6 +517,17 @@ module EventMachine
       EventMachine::get_peer_cert @signature
     end
 
+    def get_cipher_bits
+      EventMachine::get_cipher_bits @signature
+    end
+
+    def get_cipher_name
+      EventMachine::get_cipher_name @signature
+    end
+
+    def get_cipher_protocol
+      EventMachine::get_cipher_protocol @signature
+    end
 
     # Sends UDP messages.
     #

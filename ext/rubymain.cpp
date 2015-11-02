@@ -385,6 +385,65 @@ static VALUE t_get_peer_cert (VALUE self UNUSED, VALUE signature UNUSED)
 }
 #endif
 
+/***************
+t_get_cipher_bits
+***************/
+
+#ifdef WITH_SSL
+static VALUE t_get_cipher_bits (VALUE self UNUSED, VALUE signature)
+{
+	int bits = evma_get_cipher_bits (NUM2BSIG (signature));
+	if (bits == -1)
+		return Qnil;
+	return INT2NUM (bits);
+}
+#else
+static VALUE t_get_cipher_bits (VALUE self UNUSED, VALUE signature UNUSED)
+{
+	return Qnil;
+}
+#endif
+
+/***************
+t_get_cipher_name
+***************/
+
+#ifdef WITH_SSL
+static VALUE t_get_cipher_name (VALUE self UNUSED, VALUE signature)
+{
+	const char *protocol = evma_get_cipher_name (NUM2BSIG (signature));
+	if (protocol)
+		return rb_str_new2 (protocol);
+
+	return Qnil;
+}
+#else
+static VALUE t_get_cipher_bits (VALUE self UNUSED, VALUE signature UNUSED)
+{
+	return Qnil;
+}
+#endif
+
+/***************
+t_get_cipher_protocol
+***************/
+
+#ifdef WITH_SSL
+static VALUE t_get_cipher_protocol (VALUE self UNUSED, VALUE signature)
+{
+	const char *cipher = evma_get_cipher_protocol (NUM2BSIG (signature));
+	if (cipher)
+		return rb_str_new2 (cipher);
+
+	return Qnil;
+}
+#else
+static VALUE t_get_cipher_bits (VALUE self UNUSED, VALUE signature UNUSED)
+{
+	return Qnil;
+}
+#endif
+
 /**************
 t_get_peername
 **************/
@@ -1319,6 +1378,9 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 6);
 	rb_define_module_function (EmModule, "start_tls", (VALUE(*)(...))t_start_tls, 1);
 	rb_define_module_function (EmModule, "get_peer_cert", (VALUE(*)(...))t_get_peer_cert, 1);
+	rb_define_module_function (EmModule, "get_cipher_bits", (VALUE(*)(...))t_get_cipher_bits, 1);
+	rb_define_module_function (EmModule, "get_cipher_name", (VALUE(*)(...))t_get_cipher_name, 1);
+	rb_define_module_function (EmModule, "get_cipher_protocol", (VALUE(*)(...))t_get_cipher_protocol, 1);
 	rb_define_module_function (EmModule, "send_data", (VALUE(*)(...))t_send_data, 3);
 	rb_define_module_function (EmModule, "send_datagram", (VALUE(*)(...))t_send_datagram, 5);
 	rb_define_module_function (EmModule, "close_connection", (VALUE(*)(...))t_close_connection, 2);
