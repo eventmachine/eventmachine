@@ -1180,7 +1180,7 @@ void ConnectionDescriptor::StartTls()
 	if (SslBox)
 		throw std::runtime_error ("SSL/TLS already running on connection");
 
-	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, GetBinding());
+	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, SniHostName, GetBinding());
 	_DispatchCiphertext();
 
 }
@@ -1197,7 +1197,7 @@ ConnectionDescriptor::SetTlsParms
 *********************************/
 
 #ifdef WITH_SSL
-void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer)
+void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer, const char *sni_hostname)
 {
 	if (SslBox)
 		throw std::runtime_error ("call SetTlsParms before calling StartTls");
@@ -1205,10 +1205,12 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 		PrivateKeyFilename = privkey_filename;
 	if (certchain_filename && *certchain_filename)
 		CertChainFilename = certchain_filename;
+	if (sni_hostname && *sni_hostname)
+		SniHostName = sni_hostname;
 	bSslVerifyPeer = verify_peer;
 }
 #else
-void ConnectionDescriptor::SetTlsParms (const char *privkey_filename UNUSED, const char *certchain_filename UNUSED, bool verify_peer UNUSED)
+void ConnectionDescriptor::SetTlsParms (const char *privkey_filename UNUSED, const char *certchain_filename UNUSED, bool verify_peer UNUSED, const char *sni_hostname UNUSED)
 {
 	throw std::runtime_error ("Encryption not available on this event-machine");
 }
