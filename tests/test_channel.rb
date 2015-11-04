@@ -67,9 +67,9 @@ class TestEMChannel < Test::Unit::TestCase
        c.subscribe { |v| s = v }
        c.subscribe { |v| s = v }
        EM.next_tick { EM.stop }
-       subs = c.num_subscribers()
+       subs = c.num_subscribers
      end
 
      assert_equal subs, 2
-   end
+  end
 end
