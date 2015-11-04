@@ -418,7 +418,7 @@ static VALUE t_get_cipher_name (VALUE self UNUSED, VALUE signature)
 	return Qnil;
 }
 #else
-static VALUE t_get_cipher_bits (VALUE self UNUSED, VALUE signature UNUSED)
+static VALUE t_get_cipher_name (VALUE self UNUSED, VALUE signature UNUSED)
 {
 	return Qnil;
 }
@@ -438,7 +438,7 @@ static VALUE t_get_cipher_protocol (VALUE self UNUSED, VALUE signature)
 	return Qnil;
 }
 #else
-static VALUE t_get_cipher_bits (VALUE self UNUSED, VALUE signature UNUSED)
+static VALUE t_get_cipher_protocol (VALUE self UNUSED, VALUE signature UNUSED)
 {
 	return Qnil;
 }

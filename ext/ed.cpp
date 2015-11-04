@@ -1213,7 +1213,7 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 	Protocols = protocols;
 }
 #else
-void ConnectionDescriptor::SetTlsParms (const char *privkey_filename UNUSED, const char *certchain_filename UNUSED, bool verify_peer UNUSED, const char *cipherlist UNUSED, int protocols UNUSED)
+void ConnectionDescriptor::SetTlsParms (const char *privkey_filename UNUSED, const char *certchain_filename UNUSED, bool verify_peer UNUSED, const char *sni_hostname UNUSED, const char *cipherlist UNUSED, int protocols UNUSED)
 {
 	throw std::runtime_error ("Encryption not available on this event-machine");
 }
