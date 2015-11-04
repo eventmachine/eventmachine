@@ -4,7 +4,7 @@ require 'socket'
 require 'openssl'
 
 if EM.ssl?
-  class TestSslMinVersion < Test::Unit::TestCase
+  class TestSslProtocols < Test::Unit::TestCase
 
     module Client
       def ssl_handshake_completed
