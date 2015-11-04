@@ -529,6 +529,10 @@ module EventMachine
       EventMachine::get_cipher_protocol @signature
     end
 
+    def get_sni_hostname
+      EventMachine::get_sni_hostname @signature
+    end
+
     # Sends UDP messages.
     #
     # This method may be called from any Connection object that refers

@@ -508,6 +508,19 @@ const char *SslBox_t::GetCipherProtocol()
 	return NULL;
 }
 
+/**********************
+SslBox_t::GetSNIHostname
+**********************/
+
+const char *SslBox_t::GetSNIHostname()
+{
+	#ifdef TLSEXT_NAMETYPE_host_name
+	if (pSSL)
+		return SSL_get_servername (pSSL, TLSEXT_NAMETYPE_host_name);
+	#endif
+	return NULL;
+}
+
 /******************
 ssl_verify_wrapper
 *******************/

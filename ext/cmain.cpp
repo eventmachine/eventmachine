@@ -527,6 +527,21 @@ extern "C" const char *evma_get_cipher_protocol (const uintptr_t binding)
 }
 #endif
 
+/******************
+evma_get_sni_hostname
+******************/
+
+#ifdef WITH_SSL
+extern "C" const char *evma_get_sni_hostname (const uintptr_t binding)
+{
+	ensure_eventmachine("evma_get_sni_hostname");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return ed->GetSNIHostname();
+	return NULL;
+}
+#endif
+
 /********************
 evma_accept_ssl_peer
 ********************/

@@ -76,6 +76,7 @@ class SslBox_t
 		int GetCipherBits();
 		const char *GetCipherName();
 		const char *GetCipherProtocol();
+		const char *GetSNIHostname();
 
 		void Shutdown();
 

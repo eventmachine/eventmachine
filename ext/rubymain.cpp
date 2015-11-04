@@ -444,6 +444,26 @@ static VALUE t_get_cipher_bits (VALUE self UNUSED, VALUE signature UNUSED)
 }
 #endif
 
+/***************
+t_get_sni_hostname
+***************/
+
+#ifdef WITH_SSL
+static VALUE t_get_sni_hostname (VALUE self UNUSED, VALUE signature)
+{
+	const char *sni_hostname = evma_get_sni_hostname (NUM2BSIG (signature));
+	if (sni_hostname)
+		return rb_str_new2 (sni_hostname);
+
+	return Qnil;
+}
+#else
+static VALUE t_get_sni_hostname (VALUE self UNUSED, VALUE signature UNUSED)
+{
+	return Qnil;
+}
+#endif
+
 /**************
 t_get_peername
 **************/
@@ -1381,6 +1401,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "get_cipher_bits", (VALUE(*)(...))t_get_cipher_bits, 1);
 	rb_define_module_function (EmModule, "get_cipher_name", (VALUE(*)(...))t_get_cipher_name, 1);
 	rb_define_module_function (EmModule, "get_cipher_protocol", (VALUE(*)(...))t_get_cipher_protocol, 1);
+	rb_define_module_function (EmModule, "get_sni_hostname", (VALUE(*)(...))t_get_sni_hostname, 1);
 	rb_define_module_function (EmModule, "send_data", (VALUE(*)(...))t_send_data, 3);
 	rb_define_module_function (EmModule, "send_datagram", (VALUE(*)(...))t_send_datagram, 5);
 	rb_define_module_function (EmModule, "close_connection", (VALUE(*)(...))t_close_connection, 2);

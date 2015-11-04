@@ -1276,6 +1276,20 @@ const char *ConnectionDescriptor::GetCipherProtocol()
 #endif
 
 
+/*********************************
+ConnectionDescriptor::GetSNIHostname
+*********************************/
+
+#ifdef WITH_SSL
+const char *ConnectionDescriptor::GetSNIHostname()
+{
+	if (!SslBox)
+		throw std::runtime_error ("SSL/TLS not running on this connection");
+	return SslBox->GetSNIHostname();
+}
+#endif
+
+
 /***********************************
 ConnectionDescriptor::VerifySslPeer
 ***********************************/

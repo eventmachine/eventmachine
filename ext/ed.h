@@ -76,6 +76,7 @@ class EventableDescriptor: public Bindable_t
 		virtual int GetCipherBits() {return -1;}
 		virtual const char *GetCipherName() {return NULL;}
 		virtual const char *GetCipherProtocol() {return NULL;}
+		virtual const char *GetSNIHostname() {return NULL;}
 		#endif
 
 		virtual uint64_t GetCommInactivityTimeout() {return 0;}
@@ -211,6 +212,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		virtual int GetCipherBits();
 		virtual const char *GetCipherName();
 		virtual const char *GetCipherProtocol();
+		virtual const char *GetSNIHostname();
 		virtual bool VerifySslPeer(const char*);
 		virtual void AcceptSslPeer();
 		#endif
