@@ -120,7 +120,8 @@ static void InitializeDefaultCredentials()
 SslContext_t::SslContext_t
 **************************/
 
-SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile):
+SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &cipherlist, int protocols) :
+	bIsServer (is_server),
 	pCtx (NULL),
 	PrivateKey (NULL),
 	Certificate (NULL)
@@ -144,18 +145,46 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 		InitializeDefaultCredentials();
 	}
 
-	bIsServer = is_server;
-	pCtx = SSL_CTX_new (is_server ? SSLv23_server_method() : SSLv23_client_method());
+	pCtx = SSL_CTX_new (bIsServer ? SSLv23_server_method() : SSLv23_client_method());
 	if (!pCtx)
 		throw std::runtime_error ("no SSL context");
 
 	SSL_CTX_set_options (pCtx, SSL_OP_ALL);
-	//SSL_CTX_set_options (pCtx, (SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3));
-#ifdef SSL_MODE_RELEASE_BUFFERS
-	SSL_CTX_set_mode (pCtx, SSL_MODE_RELEASE_BUFFERS);
-#endif
 
-	if (is_server) {
+	#ifdef SSL_CTRL_CLEAR_OPTIONS
+	SSL_CTX_clear_options (pCtx, SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1);
+	# ifdef SSL_OP_NO_TLSv1_1
+	SSL_CTX_clear_options (pCtx, SSL_OP_NO_TLSv1_1);
+	# endif
+	# ifdef SSL_OP_NO_TLSv1_2
+	SSL_CTX_clear_options (pCtx, SSL_OP_NO_TLSv1_2);
+	# endif
+	#endif
+
+	if (!(protocols & EM_PROTO_SSLv2))
+		SSL_CTX_set_options (pCtx, SSL_OP_NO_SSLv2);
+
+	if (!(protocols & EM_PROTO_SSLv3))
+		SSL_CTX_set_options (pCtx, SSL_OP_NO_SSLv3);
+
+	if (!(protocols & EM_PROTO_TLSv1))
+		SSL_CTX_set_options (pCtx, SSL_OP_NO_TLSv1);
+
+	#ifdef SSL_OP_NO_TLSv1_1
+	if (!(protocols & EM_PROTO_TLSv1_1))
+		SSL_CTX_set_options (pCtx, SSL_OP_NO_TLSv1_1);
+	#endif
+
+	#ifdef SSL_OP_NO_TLSv1_2
+	if (!(protocols & EM_PROTO_TLSv1_2))
+		SSL_CTX_set_options (pCtx, SSL_OP_NO_TLSv1_2);
+	#endif
+
+	#ifdef SSL_MODE_RELEASE_BUFFERS
+	SSL_CTX_set_mode (pCtx, SSL_MODE_RELEASE_BUFFERS);
+	#endif
+
+	if (bIsServer) {
 		// The SSL_CTX calls here do NOT allocate memory.
 		int e;
 		if (privkeyfile.length() > 0)
@@ -173,9 +202,12 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 		assert (e > 0);
 	}
 
-	SSL_CTX_set_cipher_list (pCtx, "ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH");
+	if (cipherlist.length() > 0)
+		SSL_CTX_set_cipher_list (pCtx, cipherlist.c_str());
+	else
+		SSL_CTX_set_cipher_list (pCtx, "ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH");
 
-	if (is_server) {
+	if (bIsServer) {
 		SSL_CTX_sess_set_cache_size (pCtx, 128);
 		SSL_CTX_set_session_id_context (pCtx, (unsigned char*)"eventmachine", 12);
 	}
@@ -216,7 +248,7 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const uintptr_t binding):
+SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const string &snihostname, const string &cipherlist, int protocols, const uintptr_t binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),
@@ -228,7 +260,7 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	 * a new one every time we come here.
 	 */
 
-	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile);
+	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile, cipherlist, protocols);
 	assert (Context);
 
 	pbioRead = BIO_new (BIO_s_mem());
@@ -239,6 +271,11 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 
 	pSSL = SSL_new (Context->pCtx);
 	assert (pSSL);
+
+	if (snihostname.length() > 0) {
+		SSL_set_tlsext_host_name (pSSL, snihostname.c_str());
+	}
+
 	SSL_set_bio (pSSL, pbioRead, pbioWrite);
 
 	// Store a pointer to the binding signature in the SSL object so we can retrieve it later
@@ -437,6 +474,52 @@ X509 *SslBox_t::GetPeerCert()
 	return cert;
 }
 
+/**********************
+SslBox_t::GetCipherBits
+**********************/
+
+int SslBox_t::GetCipherBits()
+{
+	int bits = -1;
+	if (pSSL)
+		SSL_get_cipher_bits(pSSL, &bits);
+	return bits;
+}
+
+/**********************
+SslBox_t::GetCipherName
+**********************/
+
+const char *SslBox_t::GetCipherName()
+{
+	if (pSSL)
+		return SSL_get_cipher_name(pSSL);
+	return NULL;
+}
+
+/**********************
+SslBox_t::GetCipherProtocol
+**********************/
+
+const char *SslBox_t::GetCipherProtocol()
+{
+	if (pSSL)
+		return SSL_get_cipher_version(pSSL);
+	return NULL;
+}
+
+/**********************
+SslBox_t::GetSNIHostname
+**********************/
+
+const char *SslBox_t::GetSNIHostname()
+{
+	#ifdef TLSEXT_NAMETYPE_host_name
+	if (pSSL)
+		return SSL_get_servername (pSSL, TLSEXT_NAMETYPE_host_name);
+	#endif
+	return NULL;
+}
 
 /******************
 ssl_verify_wrapper

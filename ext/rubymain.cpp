@@ -341,14 +341,14 @@ static VALUE t_start_tls (VALUE self UNUSED, VALUE signature)
 t_set_tls_parms
 ***************/
 
-static VALUE t_set_tls_parms (VALUE self UNUSED, VALUE signature, VALUE privkeyfile, VALUE certchainfile, VALUE verify_peer)
+static VALUE t_set_tls_parms (VALUE self UNUSED, VALUE signature, VALUE privkeyfile, VALUE certchainfile, VALUE verify_peer, VALUE snihostname, VALUE cipherlist, VALUE protocols)
 {
 	/* set_tls_parms takes a series of positional arguments for specifying such things
 	 * as private keys and certificate chains.
 	 * It's expected that the parameter list will grow as we add more supported features.
 	 * ALL of these parameters are optional, and can be specified as empty or NULL strings.
 	 */
-	evma_set_tls_parms (NUM2BSIG (signature), StringValueCStr (privkeyfile), StringValueCStr (certchainfile), (verify_peer == Qtrue ? 1 : 0));
+	evma_set_tls_parms (NUM2BSIG (signature), StringValueCStr (privkeyfile), StringValueCStr (certchainfile), (verify_peer == Qtrue ? 1 : 0), StringValueCStr (snihostname), StringValueCStr (cipherlist), NUM2INT (protocols));
 	return Qnil;
 }
 
@@ -380,6 +380,85 @@ static VALUE t_get_peer_cert (VALUE self UNUSED, VALUE signature)
 }
 #else
 static VALUE t_get_peer_cert (VALUE self UNUSED, VALUE signature UNUSED)
+{
+	return Qnil;
+}
+#endif
+
+/***************
+t_get_cipher_bits
+***************/
+
+#ifdef WITH_SSL
+static VALUE t_get_cipher_bits (VALUE self UNUSED, VALUE signature)
+{
+	int bits = evma_get_cipher_bits (NUM2BSIG (signature));
+	if (bits == -1)
+		return Qnil;
+	return INT2NUM (bits);
+}
+#else
+static VALUE t_get_cipher_bits (VALUE self UNUSED, VALUE signature UNUSED)
+{
+	return Qnil;
+}
+#endif
+
+/***************
+t_get_cipher_name
+***************/
+
+#ifdef WITH_SSL
+static VALUE t_get_cipher_name (VALUE self UNUSED, VALUE signature)
+{
+	const char *protocol = evma_get_cipher_name (NUM2BSIG (signature));
+	if (protocol)
+		return rb_str_new2 (protocol);
+
+	return Qnil;
+}
+#else
+static VALUE t_get_cipher_bits (VALUE self UNUSED, VALUE signature UNUSED)
+{
+	return Qnil;
+}
+#endif
+
+/***************
+t_get_cipher_protocol
+***************/
+
+#ifdef WITH_SSL
+static VALUE t_get_cipher_protocol (VALUE self UNUSED, VALUE signature)
+{
+	const char *cipher = evma_get_cipher_protocol (NUM2BSIG (signature));
+	if (cipher)
+		return rb_str_new2 (cipher);
+
+	return Qnil;
+}
+#else
+static VALUE t_get_cipher_bits (VALUE self UNUSED, VALUE signature UNUSED)
+{
+	return Qnil;
+}
+#endif
+
+/***************
+t_get_sni_hostname
+***************/
+
+#ifdef WITH_SSL
+static VALUE t_get_sni_hostname (VALUE self UNUSED, VALUE signature)
+{
+	const char *sni_hostname = evma_get_sni_hostname (NUM2BSIG (signature));
+	if (sni_hostname)
+		return rb_str_new2 (sni_hostname);
+
+	return Qnil;
+}
+#else
+static VALUE t_get_sni_hostname (VALUE self UNUSED, VALUE signature UNUSED)
 {
 	return Qnil;
 }
@@ -1316,9 +1395,13 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "stop_tcp_server", (VALUE(*)(...))t_stop_server, 1);
 	rb_define_module_function (EmModule, "start_unix_server", (VALUE(*)(...))t_start_unix_server, 1);
 	rb_define_module_function (EmModule, "attach_sd", (VALUE(*)(...))t_attach_sd, 1);
-	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 4);
+	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 7);
 	rb_define_module_function (EmModule, "start_tls", (VALUE(*)(...))t_start_tls, 1);
 	rb_define_module_function (EmModule, "get_peer_cert", (VALUE(*)(...))t_get_peer_cert, 1);
+	rb_define_module_function (EmModule, "get_cipher_bits", (VALUE(*)(...))t_get_cipher_bits, 1);
+	rb_define_module_function (EmModule, "get_cipher_name", (VALUE(*)(...))t_get_cipher_name, 1);
+	rb_define_module_function (EmModule, "get_cipher_protocol", (VALUE(*)(...))t_get_cipher_protocol, 1);
+	rb_define_module_function (EmModule, "get_sni_hostname", (VALUE(*)(...))t_get_sni_hostname, 1);
 	rb_define_module_function (EmModule, "send_data", (VALUE(*)(...))t_send_data, 3);
 	rb_define_module_function (EmModule, "send_datagram", (VALUE(*)(...))t_send_datagram, 5);
 	rb_define_module_function (EmModule, "close_connection", (VALUE(*)(...))t_close_connection, 2);
@@ -1397,17 +1480,25 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_method (EmConnection, "get_outbound_data_size", (VALUE(*)(...))conn_get_outbound_data_size, 0);
 	rb_define_method (EmConnection, "associate_callback_target", (VALUE(*)(...))conn_associate_callback_target, 1);
 
-	rb_define_const (EmModule, "TimerFired", INT2NUM(100));
-	rb_define_const (EmModule, "ConnectionData", INT2NUM(101));
-	rb_define_const (EmModule, "ConnectionUnbound", INT2NUM(102));
-	rb_define_const (EmModule, "ConnectionAccepted", INT2NUM(103));
-	rb_define_const (EmModule, "ConnectionCompleted", INT2NUM(104));
-	rb_define_const (EmModule, "LoopbreakSignalled", INT2NUM(105));
+	// Connection states
+	rb_define_const (EmModule, "TimerFired",               INT2NUM(EM_TIMER_FIRED               ));
+	rb_define_const (EmModule, "ConnectionData",           INT2NUM(EM_CONNECTION_READ           ));
+	rb_define_const (EmModule, "ConnectionUnbound",        INT2NUM(EM_CONNECTION_UNBOUND        ));
+	rb_define_const (EmModule, "ConnectionAccepted",       INT2NUM(EM_CONNECTION_ACCEPTED       ));
+	rb_define_const (EmModule, "ConnectionCompleted",      INT2NUM(EM_CONNECTION_COMPLETED      ));
+	rb_define_const (EmModule, "LoopbreakSignalled",       INT2NUM(EM_LOOPBREAK_SIGNAL          ));
+	rb_define_const (EmModule, "ConnectionNotifyReadable", INT2NUM(EM_CONNECTION_NOTIFY_READABLE));
+	rb_define_const (EmModule, "ConnectionNotifyWritable", INT2NUM(EM_CONNECTION_NOTIFY_WRITABLE));
+	rb_define_const (EmModule, "SslHandshakeCompleted",    INT2NUM(EM_SSL_HANDSHAKE_COMPLETED   ));
+	// EM_SSL_VERIFY = 109,
+	// EM_PROXY_TARGET_UNBOUND = 110,
+	// EM_PROXY_COMPLETED = 111
 
-	rb_define_const (EmModule, "ConnectionNotifyReadable", INT2NUM(106));
-	rb_define_const (EmModule, "ConnectionNotifyWritable", INT2NUM(107));
-
-	rb_define_const (EmModule, "SslHandshakeCompleted", INT2NUM(108));
-
+	// SSL Protocols
+	rb_define_const (EmModule, "EM_PROTO_SSLv2",   INT2NUM(EM_PROTO_SSLv2  ));
+	rb_define_const (EmModule, "EM_PROTO_SSLv3",   INT2NUM(EM_PROTO_SSLv3  ));
+	rb_define_const (EmModule, "EM_PROTO_TLSv1",   INT2NUM(EM_PROTO_TLSv1  ));
+	rb_define_const (EmModule, "EM_PROTO_TLSv1_1", INT2NUM(EM_PROTO_TLSv1_1));
+	rb_define_const (EmModule, "EM_PROTO_TLSv1_2", INT2NUM(EM_PROTO_TLSv1_2));
 }
 

@@ -33,7 +33,7 @@ class SslContext_t
 class SslContext_t
 {
 	public:
-		SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile);
+		SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &cipherlist, int protocols);
 		virtual ~SslContext_t();
 
 	private:
@@ -61,7 +61,7 @@ class SslBox_t
 class SslBox_t
 {
 	public:
-		SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const uintptr_t binding);
+		SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const string &snihostname, const string &cipherlist, int protocols, const uintptr_t binding);
 		virtual ~SslBox_t();
 
 		int PutPlaintext (const char*, int);
@@ -73,6 +73,10 @@ class SslBox_t
 		bool IsHandshakeCompleted() {return bHandshakeCompleted;}
 
 		X509 *GetPeerCert();
+		int GetCipherBits();
+		const char *GetCipherName();
+		const char *GetCipherProtocol();
+		const char *GetSNIHostname();
 
 		void Shutdown();
 

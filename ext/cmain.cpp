@@ -459,12 +459,12 @@ extern "C" void evma_start_tls (const uintptr_t binding)
 evma_set_tls_parms
 ******************/
 
-extern "C" void evma_set_tls_parms (const uintptr_t binding, const char *privatekey_filename, const char *certchain_filename, int verify_peer)
+extern "C" void evma_set_tls_parms (const uintptr_t binding, const char *privatekey_filename, const char *certchain_filename, int verify_peer, const char *sni_hostname, const char *cipherlist, int protocols)
 {
 	ensure_eventmachine("evma_set_tls_parms");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed)
-		ed->SetTlsParms (privatekey_filename, certchain_filename, (verify_peer == 1 ? true : false));
+		ed->SetTlsParms (privatekey_filename, certchain_filename, (verify_peer == 1 ? true : false), sni_hostname, cipherlist, protocols);
 }
 
 /******************
@@ -478,6 +478,66 @@ extern "C" X509 *evma_get_peer_cert (const uintptr_t binding)
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (ed)
 		return ed->GetPeerCert();
+	return NULL;
+}
+#endif
+
+/******************
+evma_get_cipher_bits
+******************/
+
+#ifdef WITH_SSL
+extern "C" int evma_get_cipher_bits (const uintptr_t binding)
+{
+	ensure_eventmachine("evma_get_cipher_bits");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return ed->GetCipherBits();
+	return -1;
+}
+#endif
+
+/******************
+evma_get_cipher_name
+******************/
+
+#ifdef WITH_SSL
+extern "C" const char *evma_get_cipher_name (const uintptr_t binding)
+{
+	ensure_eventmachine("evma_get_cipher_name");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return ed->GetCipherName();
+	return NULL;
+}
+#endif
+
+/******************
+evma_get_cipher_protocol
+******************/
+
+#ifdef WITH_SSL
+extern "C" const char *evma_get_cipher_protocol (const uintptr_t binding)
+{
+	ensure_eventmachine("evma_get_cipher_protocol");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return ed->GetCipherProtocol();
+	return NULL;
+}
+#endif
+
+/******************
+evma_get_sni_hostname
+******************/
+
+#ifdef WITH_SSL
+extern "C" const char *evma_get_sni_hostname (const uintptr_t binding)
+{
+	ensure_eventmachine("evma_get_sni_hostname");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return ed->GetSNIHostname();
 	return NULL;
 }
 #endif

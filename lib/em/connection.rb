@@ -380,6 +380,10 @@ module EventMachine
     #                                               If true, the {#ssl_verify_peer} callback on the {EventMachine::Connection} object is called with each certificate
     #                                               in the certificate chain provided by the peer. See documentation on {#ssl_verify_peer} for how to use this.
     #
+    # @option args [String] :cipher_list ("ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH") indicates the available SSL cipher values. Default value is "ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH". Check the format of the OpenSSL cipher string at http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT.
+    #
+    # @option args [Array] :protocols (TLSv1 TLSv1.1 TLSv1.2) indicates the allowed SSL/TLS protocols versions. Possible values are: {SSLv2}, {SSLv3}, {TLSv1}, {TLSv1.1}, {TLSv1.2}.
+    #
     # @example Using TLS with EventMachine
     #
     #  require 'rubygems'
@@ -404,7 +408,7 @@ module EventMachine
     #
     # @see #ssl_verify_peer
     def start_tls args={}
-      priv_key, cert_chain, verify_peer = args.values_at(:private_key_file, :cert_chain_file, :verify_peer)
+      priv_key, cert_chain, verify_peer, sni_hostname, cipher_list, protocols = args.values_at(:private_key_file, :cert_chain_file, :verify_peer, :sni_hostname, :cipher_list, :protocols)
 
       [priv_key, cert_chain].each do |file|
         next if file.nil? or file.empty?
@@ -412,7 +416,32 @@ module EventMachine
         "Could not find #{file} for start_tls" unless File.exist? file
       end
 
-      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer)
+      protocols_bitmask = 0
+      if protocols.nil?
+        protocols_bitmask |= EventMachine::EM_PROTO_TLSv1
+        protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_1
+        protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_2
+      else
+        protocols ||= []
+        protocols.each do |p|
+          case p.downcase
+          when 'sslv2'
+            protocols_bitmask |= EventMachine::EM_PROTO_SSLv2
+          when 'sslv3'
+            protocols_bitmask |= EventMachine::EM_PROTO_SSLv3
+          when 'tlsv1'
+            protocols_bitmask |= EventMachine::EM_PROTO_TLSv1
+          when 'tlsv1.1'
+            protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_1
+          when 'tlsv1.2'
+            protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_2
+          else
+            raise("Unrecognized SSL/TLS Protocol: #{p}")
+          end
+        end
+      end
+
+      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer, sni_hostname || '', cipher_list || '', protocols_bitmask)
       EventMachine::start_tls @signature
     end
 
@@ -488,6 +517,21 @@ module EventMachine
       EventMachine::get_peer_cert @signature
     end
 
+    def get_cipher_bits
+      EventMachine::get_cipher_bits @signature
+    end
+
+    def get_cipher_name
+      EventMachine::get_cipher_name @signature
+    end
+
+    def get_cipher_protocol
+      EventMachine::get_cipher_protocol @signature
+    end
+
+    def get_sni_hostname
+      EventMachine::get_sni_hostname @signature
+    end
 
     # Sends UDP messages.
     #

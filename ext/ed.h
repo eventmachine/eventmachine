@@ -69,10 +69,14 @@ class EventableDescriptor: public Bindable_t
 		virtual bool GetSubprocessPid (pid_t*) {return false;}
 
 		virtual void StartTls() {}
-		virtual void SetTlsParms (const char *, const char *, bool) {}
+		virtual void SetTlsParms (const char *, const char *, bool, const char *, const char *, int) {}
 
 		#ifdef WITH_SSL
 		virtual X509 *GetPeerCert() {return NULL;}
+		virtual int GetCipherBits() {return -1;}
+		virtual const char *GetCipherName() {return NULL;}
+		virtual const char *GetCipherProtocol() {return NULL;}
+		virtual const char *GetSNIHostname() {return NULL;}
 		#endif
 
 		virtual uint64_t GetCommInactivityTimeout() {return 0;}
@@ -201,10 +205,14 @@ class ConnectionDescriptor: public EventableDescriptor
 		virtual int GetOutboundDataSize() {return OutboundDataSize;}
 
 		virtual void StartTls();
-		virtual void SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer);
+		virtual void SetTlsParms (const char *, const char *, bool, const char *, const char *, int);
 
 		#ifdef WITH_SSL
 		virtual X509 *GetPeerCert();
+		virtual int GetCipherBits();
+		virtual const char *GetCipherName();
+		virtual const char *GetCipherProtocol();
+		virtual const char *GetSNIHostname();
 		virtual bool VerifySslPeer(const char*);
 		virtual void AcceptSslPeer();
 		#endif
@@ -245,8 +253,11 @@ class ConnectionDescriptor: public EventableDescriptor
 		SslBox_t *SslBox;
 		std::string CertChainFilename;
 		std::string PrivateKeyFilename;
+		std::string CipherList;
+		int Protocols;
 		bool bHandshakeSignaled;
 		bool bSslVerifyPeer;
+		std::string SniHostName;
 		bool bSslPeerAccepted;
 		#endif
 
