@@ -380,7 +380,14 @@ module EventMachine
     #                                               If true, the {#ssl_verify_peer} callback on the {EventMachine::Connection} object is called with each certificate
     #                                               in the certificate chain provided by the peer. See documentation on {#ssl_verify_peer} for how to use this.
     #
+    # @option args [Boolean] :fail_if_no_peer_cert (false)   Used in conjunction with verify_peer. If set the SSL handshake will be terminated if the peer does not provide a certificate.
+    #
+    #
     # @option args [String] :cipher_list ("ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH") indicates the available SSL cipher values. Default value is "ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH". Check the format of the OpenSSL cipher string at http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT.
+    #
+    # @option args [String] :ecdh_curve (nil)  The curve for ECDHE ciphers. See available ciphers with 'openssl ecparam -list_curves'
+    #
+    # @option args [String] :dhparam (nil)  The local path of a file containing DH parameters for EDH ciphers in [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail) See: 'openssl dhparam'
     #
     # @option args [Array] :protocols (TLSv1 TLSv1.1 TLSv1.2) indicates the allowed SSL/TLS protocols versions. Possible values are: {SSLv2}, {SSLv3}, {TLSv1}, {TLSv1.1}, {TLSv1.2}.
     #
@@ -408,7 +415,7 @@ module EventMachine
     #
     # @see #ssl_verify_peer
     def start_tls args={}
-      priv_key, cert_chain, verify_peer, sni_hostname, cipher_list, protocols = args.values_at(:private_key_file, :cert_chain_file, :verify_peer, :sni_hostname, :cipher_list, :protocols)
+      priv_key, cert_chain, verify_peer, fail_if_no_peer_cert, sni_hostname, cipher_list, ecdh_curve, dhparam, protocols = args.values_at(:private_key_file, :cert_chain_file, :verify_peer, :fail_if_no_peer_cert, :sni_hostname, :cipher_list, :ecdh_curve, :dhparam, :protocols)
 
       [priv_key, cert_chain].each do |file|
         next if file.nil? or file.empty?
@@ -441,7 +448,7 @@ module EventMachine
         end
       end
 
-      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer, sni_hostname || '', cipher_list || '', protocols_bitmask)
+      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer, fail_if_no_peer_cert, sni_hostname || '', cipher_list || '', ecdh_curve || '', dhparam || '', protocols_bitmask)
       EventMachine::start_tls @signature
     end
 

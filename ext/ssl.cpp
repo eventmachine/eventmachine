@@ -120,7 +120,7 @@ static void InitializeDefaultCredentials()
 SslContext_t::SslContext_t
 **************************/
 
-SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &cipherlist, int protocols) :
+SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &cipherlist, const string &ecdh_curve, const string &dhparam, int protocols) :
 	bIsServer (is_server),
 	pCtx (NULL),
 	PrivateKey (NULL),
@@ -185,6 +185,7 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 	#endif
 
 	if (bIsServer) {
+
 		// The SSL_CTX calls here do NOT allocate memory.
 		int e;
 		if (privkeyfile.length() > 0)
@@ -200,6 +201,61 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 			e = SSL_CTX_use_certificate (pCtx, DefaultCertificate);
 		if (e <= 0) ERR_print_errors_fp(stderr);
 		assert (e > 0);
+
+		if (dhparam.length() > 0) {
+			DH   *dh;
+			BIO  *bio;
+
+			bio = BIO_new_file(dhparam.c_str(), "r");
+			if (bio == NULL) {
+				char buf [500];
+				snprintf (buf, sizeof(buf)-1, "dhparam: BIO_new_file(%s) failed", dhparam.c_str());
+				throw std::runtime_error (buf);
+			}
+
+			dh = PEM_read_bio_DHparams(bio, NULL, NULL, NULL);
+
+			if (dh == NULL) {
+				BIO_free(bio);
+				char buf [500];
+				snprintf (buf, sizeof(buf)-1, "dhparam: PEM_read_bio_DHparams(%s) failed", dhparam.c_str());
+				throw new std::runtime_error(buf);
+			}
+
+			SSL_CTX_set_tmp_dh(pCtx, dh);
+
+			DH_free(dh);
+			BIO_free(bio);
+		}
+
+		if (ecdh_curve.length() > 0) {
+			#if OPENSSL_VERSION_NUMBER >= 0x0090800fL && !defined(OPENSSL_NO_ECDH)
+				int      nid;
+				EC_KEY  *ecdh;
+
+				nid = OBJ_sn2nid((const char *) ecdh_curve.c_str());
+				if (nid == 0) {
+					char buf [200];
+					snprintf (buf, sizeof(buf)-1, "ecdh_curve: Unknown curve name: %s", ecdh_curve.c_str());
+					throw std::runtime_error (buf);
+				}
+
+				ecdh = EC_KEY_new_by_curve_name(nid);
+				if (ecdh == NULL) {
+					char buf [200];
+					snprintf (buf, sizeof(buf)-1, "ecdh_curve: Unable to create: %s", ecdh_curve.c_str());
+					throw std::runtime_error (buf);
+				}
+
+				SSL_CTX_set_options(pCtx, SSL_OP_SINGLE_ECDH_USE);
+
+				SSL_CTX_set_tmp_ecdh(pCtx, ecdh);
+
+				EC_KEY_free(ecdh);
+			#else
+				throw std::runtime_error ("No openssl ECDH support");
+			#endif
+		}
 	}
 
 	if (cipherlist.length() > 0)
@@ -248,10 +304,11 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const string &snihostname, const string &cipherlist, int protocols, const uintptr_t binding):
+SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, bool fail_if_no_peer_cert, const string &snihostname, const string &cipherlist, const string &ecdh_curve, const string &dhparam, int protocols, const uintptr_t binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),
+	bFailIfNoPeerCert (fail_if_no_peer_cert),
 	pSSL (NULL),
 	pbioRead (NULL),
 	pbioWrite (NULL)
@@ -260,7 +317,7 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	 * a new one every time we come here.
 	 */
 
-	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile, cipherlist, protocols);
+	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile, cipherlist, ecdh_curve, dhparam, protocols);
 	assert (Context);
 
 	pbioRead = BIO_new (BIO_s_mem());
@@ -281,8 +338,12 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	// Store a pointer to the binding signature in the SSL object so we can retrieve it later
 	SSL_set_ex_data(pSSL, 0, (void*) binding);
 
-	if (bVerifyPeer)
-		SSL_set_verify(pSSL, SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE, ssl_verify_wrapper);
+	if(bVerifyPeer) {
+		int mode = SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE;
+		if(bFailIfNoPeerCert)
+			mode = mode | SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+		SSL_set_verify(pSSL, mode, ssl_verify_wrapper);
+	}
 
 	if (!bIsServer)
 		SSL_connect (pSSL);

@@ -33,7 +33,7 @@ class SslContext_t
 class SslContext_t
 {
 	public:
-		SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &cipherlist, int protocols);
+		SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &cipherlist, const string &ecdh_curve, const string &dhparam, int protocols);
 		virtual ~SslContext_t();
 
 	private:
@@ -61,7 +61,7 @@ class SslBox_t
 class SslBox_t
 {
 	public:
-		SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, const string &snihostname, const string &cipherlist, int protocols, const uintptr_t binding);
+		SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, bool fail_if_no_peer_cert, const string &snihostname, const string &cipherlist, const string &ecdh_curve, const string &dhparam, int protocols, const uintptr_t binding);
 		virtual ~SslBox_t();
 
 		int PutPlaintext (const char*, int);
@@ -86,6 +86,7 @@ class SslBox_t
 		bool bIsServer;
 		bool bHandshakeCompleted;
 		bool bVerifyPeer;
+		bool bFailIfNoPeerCert;
 		SSL *pSSL;
 		BIO *pbioRead;
 		BIO *pbioWrite;
