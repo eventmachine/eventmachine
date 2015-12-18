@@ -1644,6 +1644,12 @@ const uintptr_t EventMachine_t::OpenDatagramSocket (const char *address, int por
 	if (sd == INVALID_SOCKET)
 		goto fail;
 
+	{ // set the SO_REUSEADDR on the socket before we bind, otherwise it won't work for a second one
+		int oval = 1;
+		if (setsockopt (sd, SOL_SOCKET, SO_REUSEADDR, (char*)&oval, sizeof(oval)) < 0)
+			goto fail;
+	}
+
 	// Set the new socket nonblocking.
 	if (!SetSocketNonblocking (sd))
 		goto fail;
