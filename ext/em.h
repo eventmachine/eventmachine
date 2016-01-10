@@ -37,7 +37,7 @@ See the file COPYING for complete licensing information.
     #include <ruby/io.h>
   #endif
 
-  #if defined(HAVE_RBTRAP)
+  #if defined(HAVE_RB_TRAP_IMMEDIATE)
     #include <rubysig.h>
   #elif defined(HAVE_RB_ENABLE_INTERRUPT)
     extern "C" {
@@ -69,7 +69,7 @@ See the file COPYING for complete licensing information.
   #define EmSelect select
 #endif
 
-#if !defined(HAVE_RB_FDSET_T)
+#if !defined(HAVE_TYPE_RB_FDSET_T)
 #define fd_check(n) (((n) < FD_SETSIZE) ? 1 : 0*fprintf(stderr, "fd %d too large for select\n", (n)))
 // These definitions are cribbed from include/ruby/intern.h in Ruby 1.9.3,
 // with this change: any macros that read or write the nth element of an
