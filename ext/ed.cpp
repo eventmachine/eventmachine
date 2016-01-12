@@ -1524,7 +1524,7 @@ void AcceptorDescriptor::Read()
 	int accept_count = EventMachine_t::GetSimultaneousAcceptCount();
 
 	for (int i=0; i < accept_count; i++) {
-#if defined(HAVE_SOCK_CLOEXEC) && defined(HAVE_ACCEPT4)
+#if defined(HAVE_CONST_SOCK_CLOEXEC) && defined(HAVE_ACCEPT4)
 		SOCKET sd = accept4 (GetSocket(), (struct sockaddr*)&pin, &addrlen, SOCK_CLOEXEC);
 		if (sd == INVALID_SOCKET) {
 			// We may be running in a kernel where
