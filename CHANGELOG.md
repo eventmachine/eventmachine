@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.0.9 (January 13, 2016)
+* Try more ways to detect OpenSSL [#602, #643, #661, #663, #668, #669]
+* Use WSAGetLastError in pipe.cpp same as ed.cpp [#659]
+* Test compiler flags with the C++ compiler and add them to CXXFLAGS [#634, #651]
+* Restore silent-fail on unsupported EM.epoll and EM.kqueue [#638, #649]
+* getDescriptorByFileno deprecated in JRuby 1.7.x, removed in JRuby 9000 [#642, #648]
+* Add -Wno-address always-true because on Windows rb_fd_select [#578]
+* Remove the WITHOUT_SSL constant [#578]
+* Fix SSL error when the server replies a TLS Alert to our ClientHello [#544, #653]
+* Use WSAStringToAddress in lieu of inet_pton for IPv6 address detection on Windows [#595, #632]
+* Fix nasty TCP/IPv6 bug [#595, #632]
+* Use select_large_fdset on Solaris [#611, #625]
+* Detect the Solaris Studio compiler [#611, #625]
+* Throw a message with strerror included [#136, #621]
+
 ## 1.0.8 (August 6, 2015)
 * fix kqueue assertion failed, postpone ArmKqueueWriter until all events are processed [#51, #176, #372, #401, #619]
 * fix Rubinius GC, crank the machine from Ruby space when running Rubinius [#201, #202, #617]
@@ -10,7 +25,7 @@
 * fix for compilation with SSL on windows [#601]
 * open file descriptors and sockets with O_CLOEXEC where possible [#298, #488, #591]
 * fix SmtpClient: send second EHLO after STARTTLS. [#589]
-* fix nul-terminated strings in C, use StringValueCStr instead of StringValuePtr 
+* fix nul-terminated strings in C, use StringValueCStr instead of StringValuePtr
 
 ## 1.0.7 (February 10, 2015)
 * fix delay in kqueue/epoll reactor shutdown when timers exist [#587]
