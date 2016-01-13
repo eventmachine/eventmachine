@@ -58,6 +58,7 @@ def dir_config_search(pretty_name, name, paths, &b)
       return true
     end
   end
+  false
 end
 
 def pkg_config_wrapper(pretty_name, name)
