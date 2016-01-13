@@ -857,9 +857,9 @@ void ConnectionDescriptor::Read()
 ConnectionDescriptor::_DispatchInboundData
 ******************************************/
 
+#ifdef WITH_SSL
 void ConnectionDescriptor::_DispatchInboundData (const char *buffer, unsigned long size)
 {
-	#ifdef WITH_SSL
 	if (SslBox) {
 		SslBox->PutCiphertext (buffer, size);
 
@@ -873,6 +873,7 @@ void ConnectionDescriptor::_DispatchInboundData (const char *buffer, unsigned lo
 
 		// If our SSL handshake had a problem, shut down the connection.
 		if (s == -2) {
+			UnbindReasonCode = EPROTO;
 			ScheduleClose(false);
 			return;
 		}
@@ -883,12 +884,13 @@ void ConnectionDescriptor::_DispatchInboundData (const char *buffer, unsigned lo
 	else {
 		_GenericInboundDispatch(buffer, size);
 	}
-	#endif
-
-	#ifdef WITHOUT_SSL
-	_GenericInboundDispatch(buffer, size);
-	#endif
 }
+#else
+void ConnectionDescriptor::_DispatchInboundData (const char *buffer, unsigned long size)
+{
+	_GenericInboundDispatch(buffer, size);
+}
+#endif
 
 
 
@@ -1024,6 +1026,8 @@ void ConnectionDescriptor::_WriteOutboundData()
 	for(int i = 0; i < iovcnt; i++){
 		OutboundPage *op = &(OutboundPages[i]);
 		#ifdef CC_SUNWspro
+		// TODO: The void * cast works fine on Solaris 11, but
+		// I don't know at what point that changed from older Solaris.
 		iov[i].iov_base = (char *)(op->Buffer + op->Offset);
 		#else
 		iov[i].iov_base = (void *)(op->Buffer + op->Offset);
@@ -1165,29 +1169,31 @@ int ConnectionDescriptor::ReportErrorStatus()
 ConnectionDescriptor::StartTls
 ******************************/
 
+#ifdef WITH_SSL
 void ConnectionDescriptor::StartTls()
 {
-	#ifdef WITH_SSL
 	if (SslBox)
 		throw std::runtime_error ("SSL/TLS already running on connection");
 
 	SslBox = new SslBox_t (bIsServer, PrivateKeyFilename, CertChainFilename, bSslVerifyPeer, GetBinding());
 	_DispatchCiphertext();
-	#endif
 
-	#ifdef WITHOUT_SSL
-	throw std::runtime_error ("Encryption not available on this event-machine");
-	#endif
 }
+#else
+void ConnectionDescriptor::StartTls()
+{
+	throw std::runtime_error ("Encryption not available on this event-machine");
+}
+#endif
 
 
 /*********************************
 ConnectionDescriptor::SetTlsParms
 *********************************/
 
+#ifdef WITH_SSL
 void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char *certchain_filename, bool verify_peer)
 {
-	#ifdef WITH_SSL
 	if (SslBox)
 		throw std::runtime_error ("call SetTlsParms before calling StartTls");
 	if (privkey_filename && *privkey_filename)
@@ -1195,12 +1201,13 @@ void ConnectionDescriptor::SetTlsParms (const char *privkey_filename, const char
 	if (certchain_filename && *certchain_filename)
 		CertChainFilename = certchain_filename;
 	bSslVerifyPeer = verify_peer;
-	#endif
-
-	#ifdef WITHOUT_SSL
-	throw std::runtime_error ("Encryption not available on this event-machine");
-	#endif
 }
+#else
+void ConnectionDescriptor::SetTlsParms (const char *privkey_filename UNUSED, const char *certchain_filename UNUSED, bool verify_peer UNUSED)
+{
+	throw std::runtime_error ("Encryption not available on this event-machine");
+}
+#endif
 
 
 /*********************************

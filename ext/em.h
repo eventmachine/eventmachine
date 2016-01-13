@@ -93,6 +93,19 @@ typedef fd_set rb_fdset_t;
   rb_thread_select(fd_check((n)-1) ? (n) : FD_SETSIZE, (rfds), (wfds), (efds), (timeout))
 #endif
 
+
+// This Solaris fix is adapted from eval_intern.h in Ruby 1.9.3:
+// Solaris sys/select.h switches select to select_large_fdset to support larger
+// file descriptors if FD_SETSIZE is larger than 1024 on 32bit environment.
+// But Ruby doesn't change FD_SETSIZE because fd_set is allocated dynamically.
+// So following definition is required to use select_large_fdset.
+#ifdef HAVE_SELECT_LARGE_FDSET
+#define select(n, r, w, e, t) select_large_fdset((n), (r), (w), (e), (t))
+extern "C" {
+  int select_large_fdset(int, fd_set *, fd_set *, fd_set *, struct timeval *);
+}
+#endif
+
 class EventableDescriptor;
 class InotifyDescriptor;
 struct SelectData_t;

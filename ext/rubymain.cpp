@@ -345,11 +345,11 @@ static VALUE t_set_tls_parms (VALUE self UNUSED, VALUE signature, VALUE privkeyf
 t_get_peer_cert
 ***************/
 
+#ifdef WITH_SSL
 static VALUE t_get_peer_cert (VALUE self UNUSED, VALUE signature)
 {
 	VALUE ret = Qnil;
 
-	#ifdef WITH_SSL
 	X509 *cert = NULL;
 	BUF_MEM *buf;
 	BIO *out;
@@ -364,10 +364,15 @@ static VALUE t_get_peer_cert (VALUE self UNUSED, VALUE signature)
 		X509_free(cert);
 		BIO_free(out);
 	}
-	#endif
 
 	return ret;
 }
+#else
+static VALUE t_get_peer_cert (VALUE self UNUSED, VALUE signature UNUSED)
+{
+	return Qnil;
+}
+#endif
 
 /**************
 t_get_peername
@@ -982,10 +987,8 @@ t__epoll
 
 static VALUE t__epoll (VALUE self UNUSED)
 {
-	if (t__epoll_p(self) == Qfalse) {
-		rb_warn ("epoll is not supported on this platform");
+	if (t__epoll_p(self) == Qfalse)
 		return Qfalse;
-	}
 
 	evma_set_epoll (1);
 	return Qtrue;
@@ -997,8 +1000,8 @@ t__epoll_set
 
 static VALUE t__epoll_set (VALUE self, VALUE val)
 {
-	if (t__epoll_p(self) == Qfalse)
-		rb_warn ("epoll is not supported on this platform");
+	if (t__epoll_p(self) == Qfalse && val == Qtrue)
+		rb_raise (EM_eUnsupported, "%s", "epoll is not supported on this platform");
 
 	evma_set_epoll (val == Qtrue ? 1 : 0);
 	return val;
@@ -1024,10 +1027,8 @@ t__kqueue
 
 static VALUE t__kqueue (VALUE self UNUSED)
 {
-	if (t__kqueue_p(self) == Qfalse) {
-		rb_warn ("kqueue is not supported on this platform");
+	if (t__kqueue_p(self) == Qfalse)
 		return Qfalse;
-	}
 
 	evma_set_kqueue (1);
 	return Qtrue;
@@ -1039,8 +1040,8 @@ t__kqueue_set
 
 static VALUE t__kqueue_set (VALUE self, VALUE val)
 {
-	if (t__kqueue_p(self) == Qfalse)
-		rb_warn ("kqueue is not supported on this platform");
+	if (t__kqueue_p(self) == Qfalse && val == Qtrue)
+		rb_raise (EM_eUnsupported, "%s", "kqueue is not supported on this platform");
 
 	evma_set_kqueue (val == Qtrue ? 1 : 0);
 	return val;

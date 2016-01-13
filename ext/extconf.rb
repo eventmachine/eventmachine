@@ -1,6 +1,9 @@
 require 'fileutils'
 require 'mkmf'
 
+# Eager check devs tools
+have_devel? if respond_to?(:have_devel?)
+
 def check_libs libs = [], fatal = false
   libs.all? { |lib| have_library(lib) || (abort("could not find library: #{lib}") if fatal) }
 end
@@ -22,34 +25,58 @@ def append_library(libs, lib)
   libs + " " + format(LIBARG, lib)
 end
 
-def manual_ssl_config
-  ssl_libs_heads_args = {
-    :unix => [%w[ssl crypto], %w[openssl/ssl.h openssl/err.h]],
-    :mswin => [%w[ssleay32 libeay32], %w[openssl/ssl.h openssl/err.h]],
-  }
-
-  dc_flags = ['ssl']
-  dc_flags += ["#{ENV['OPENSSL']}/include", ENV['OPENSSL']] if /linux/ =~ RUBY_PLATFORM and ENV['OPENSSL']
-
-  libs, heads = case RUBY_PLATFORM
-  when /mswin|mingw|bccwin/ ; ssl_libs_heads_args[:mswin]
-  else                        ssl_libs_heads_args[:unix]
-  end
-  dir_config(*dc_flags)
-  check_libs(libs) and check_heads(heads)
+SSL_HEADS = %w(openssl/ssl.h openssl/err.h)
+SSL_LIBS = case RUBY_PLATFORM
+when /mswin|mingw|bccwin/ ; %w(ssleay32 libeay32)
+else                      ; %w(crypto ssl)
 end
 
-# Eager check devs tools
-have_devel? if respond_to?(:have_devel?)
+def dir_config_wrapper(pretty_name, name, idefault=nil, ldefault=nil)
+  inc, lib = dir_config(name, idefault, ldefault)
+  if inc && lib
+    # TODO: Remove when 2.0.0 is the minimum supported version
+    # Ruby versions not incorporating the mkmf fix at
+    # https://bugs.ruby-lang.org/projects/ruby-trunk/repository/revisions/39717
+    # do not properly search for lib directories, and must be corrected
+    unless lib && lib[-3, 3] == 'lib'
+      @libdir_basename = 'lib'
+      inc, lib = dir_config(name, idefault, ldefault)
+    end
+    unless idefault && ldefault
+      abort "-----\nCannot find #{pretty_name} include path #{inc}\n-----" unless inc && inc.split(File::PATH_SEPARATOR).any? { |dir| File.directory?(dir) }
+      abort "-----\nCannot find #{pretty_name} library path #{lib}\n-----" unless lib && lib.split(File::PATH_SEPARATOR).any? { |dir| File.directory?(dir) }
+      warn "-----\nUsing #{pretty_name} in path #{File.dirname inc}\n-----"
+    end
+    true
+  end
+end
+
+def dir_config_search(pretty_name, name, paths, &b)
+  paths.each do |p|
+    if dir_config_wrapper('OpenSSL', 'ssl', p + '/include', p + '/lib') && yield
+      warn "-----\nFound #{pretty_name} in path #{p}\n-----"
+      return true
+    end
+  end
+end
+
+def pkg_config_wrapper(pretty_name, name)
+  cflags, ldflags, libs = pkg_config(name)
+  unless [cflags, ldflags, libs].any?(&:nil?) || [cflags, ldflags, libs].any?(&:empty?)
+    warn "-----\nUsing #{pretty_name} from pkg-config #{cflags} && #{ldflags} && #{libs}\n-----"
+    true
+  end
+end
 
 if ENV['CROSS_COMPILING']
-  openssl_version = ENV.fetch("OPENSSL_VERSION", "1.0.1i")
+  openssl_version = ENV.fetch("OPENSSL_VERSION", "1.0.2e")
   openssl_dir = File.expand_path("~/.rake-compiler/builds/openssl-#{openssl_version}/")
   if File.exist?(openssl_dir)
     FileUtils.mkdir_p Dir.pwd+"/openssl/"
     FileUtils.cp Dir[openssl_dir+"/include/openssl/*.h"], Dir.pwd+"/openssl/", :verbose => true
     FileUtils.cp Dir[openssl_dir+"/lib*.a"], Dir.pwd, :verbose => true
     $INCFLAGS << " -I#{Dir.pwd}" # for the openssl headers
+    add_define "WITH_SSL"
   else
     STDERR.puts
     STDERR.puts "**************************************************************************************"
@@ -58,13 +85,20 @@ if ENV['CROSS_COMPILING']
     STDERR.puts "**************************************************************************************"
     STDERR.puts
   end
-end
-
-# Try to use pkg_config first, fixes #73
-if (!ENV['CROSS_COMPILING'] and pkg_config('openssl')) || manual_ssl_config
-  add_define "WITH_SSL"
-else
-  add_define "WITHOUT_SSL"
+elsif dir_config_wrapper('OpenSSL', 'ssl')
+  # If the user has provided a --with-ssl-dir argument, we must respect it or fail.
+  add_define 'WITH_SSL' if check_libs(SSL_LIBS) && check_heads(SSL_HEADS)
+elsif pkg_config_wrapper('OpenSSL', 'openssl')
+  # If we can detect OpenSSL by pkg-config, use it as the next-best option
+  add_define 'WITH_SSL' if check_libs(SSL_LIBS) && check_heads(SSL_HEADS)
+elsif check_libs(SSL_LIBS) && check_heads(SSL_HEADS)
+  # If we don't even need any options to find a usable OpenSSL, go with it
+  add_define 'WITH_SSL'
+elsif dir_config_search('OpenSSL', 'ssl', ['/usr/local', '/opt/local', '/usr/local/opt/openssl']) do
+    check_libs(SSL_LIBS) && check_heads(SSL_HEADS)
+  end
+  # Finally, look for OpenSSL in alternate locations including MacPorts and HomeBrew
+  add_define 'WITH_SSL'
 end
 
 add_define 'BUILD_FOR_RUBY'
@@ -125,13 +159,21 @@ when /solaris/
   add_define 'OS_SOLARIS8'
   check_libs(%w[nsl socket], true)
 
-  if CONFIG['CC'] == 'cc' and `cc -flags 2>&1` =~ /Sun/ # detect SUNWspro compiler
+  # If Ruby was compiled for 32-bits, then select() can only handle 1024 fds
+  # There is an alternate function, select_large_fdset, that supports more.
+  add_define 'HAVE_SELECT_LARGE_FDSET' if have_func('select_large_fdset', 'sys/select.h')
+
+  if CONFIG['CC'] == 'cc' && (
+     `cc -flags 2>&1` =~ /Sun/ || # detect SUNWspro compiler
+     `cc -V 2>&1` =~ /Sun/        # detect Solaris Studio compiler
+    )
     # SUN CHAIN
     add_define 'CC_SUNWspro'
     $preload = ["\nCXX = CC"] # hack a CXX= line into the makefile
     $CFLAGS = CONFIG['CFLAGS'] = "-KPIC"
     CONFIG['CCDLFLAGS'] = "-KPIC"
     CONFIG['LDSHARED'] = "$(CXX) -G -KPIC -lCstd"
+    CONFIG['LDSHAREDXX'] = "$(CXX) -G -KPIC -lCstd"
   else
     # GNU CHAIN
     # on Unix we need a g++ link, not gcc.
@@ -175,26 +217,6 @@ else
   CONFIG['LDSHARED'] = "$(CXX) -shared"
 end
 
-# This is our wishlist. We use whichever flags work on the host.
-# In the future, add -Werror to make sure all warnings are resolved.
-# deprecated-declarations are used in OS X OpenSSL
-# ignored-qualifiers are used by the Bindings (would-be void *)
-# unused-result because GCC 4.6 no longer silences (void) ignore_this(function)
-%w(
-  -Wall
-  -Wextra
-  -Wno-deprecated-declarations
-  -Wno-ignored-qualifiers
-  -Wno-unused-result
-).select do |flag|
-  try_link('int main() {return 0;}', flag)
-end.each do |flag|
-  $CFLAGS << ' ' << flag
-  $CPPFLAGS << ' ' << flag
-end
-puts "CFLAGS=#{$CFLAGS}"
-puts "CPPFLAGS=#{$CPPFLAGS}"
-
 # Platform-specific time functions
 if have_func('clock_gettime')
   # clock_gettime is POSIX, but the monotonic clocks are not
@@ -204,8 +226,30 @@ else
   have_func('gethrtime') # Older Solaris and HP-UX
 end
 
-# solaris c++ compiler doesn't have make_pair()
+# Hack so that try_link will test with a C++ compiler instead of a C compiler
 TRY_LINK.sub!('$(CC)', '$(CXX)')
+
+# This is our wishlist. We use whichever flags work on the host.
+# In the future, add -Werror to make sure all warnings are resolved.
+# deprecated-declarations are used in OS X OpenSSL
+# ignored-qualifiers are used by the Bindings (would-be void *)
+# unused-result because GCC 4.6 no longer silences (void) ignore_this(function)
+# address because on Windows, rb_fd_select checks if &fds is non-NULL, which it cannot be
+%w(
+  -Wall
+  -Wextra
+  -Wno-deprecated-declarations
+  -Wno-ignored-qualifiers
+  -Wno-unused-result
+  -Wno-address
+).select do |flag|
+  try_link('int main() {return 0;}', flag)
+end.each do |flag|
+  CONFIG['CXXFLAGS'] << ' ' << flag
+end
+puts "CXXFLAGS=#{CONFIG['CXXFLAGS']}"
+
+# Solaris C++ compiler doesn't have make_pair()
 add_define 'HAVE_MAKE_PAIR' if try_link(<<SRC, '-lstdc++')
   #include <utility>
   using namespace std;

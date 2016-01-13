@@ -89,6 +89,8 @@ void Mapper_t::Close()
 	// Calls to GetChunk are invalid after a call to Close.
 	if (MapPoint) {
 		#ifdef CC_SUNWspro
+		// TODO: The void * cast works fine on Solaris 11, but
+		// I don't know at what point that changed from older Solaris.
 		munmap ((char*)MapPoint, FileSize);
 		#else
 		munmap ((void*)MapPoint, FileSize);
