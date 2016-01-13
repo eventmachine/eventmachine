@@ -1239,7 +1239,6 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 	int e = 0;
 
 	#ifdef OS_UNIX
-	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
 	if (connect (sd, (struct sockaddr*)&bind_as, bind_size) == 0) {
 		// This is a connect success, which Linux appears
 		// never to give when the socket is nonblocking,
@@ -1319,8 +1318,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 	#endif
 
 	#ifdef OS_WIN32
-	//if (connect (sd, (sockaddr*)&pin, sizeof pin) == 0) {
-	if (connect (sd, &bind_as, bind_size) == 0) {
+	if (connect (sd, (struct sockaddr*)&bind_as, bind_size) == 0) {
 		// This is a connect success, which Windows appears
 		// never to give when the socket is nonblocking,
 		// even if the connection is intramachine or to
