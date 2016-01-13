@@ -873,7 +873,12 @@ void ConnectionDescriptor::_DispatchInboundData (const char *buffer, unsigned lo
 
 		// If our SSL handshake had a problem, shut down the connection.
 		if (s == -2) {
+			#ifdef OS_UNIX
 			UnbindReasonCode = EPROTO;
+			#endif
+			#ifdef OS_WIN32
+			UnbindReasonCode = WSAECONNABORTED;
+			#endif
 			ScheduleClose(false);
 			return;
 		}
