@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.9.1 (January 14, 2016)
+* Fix EPROTO not defined on Windows [#676]
+* Fix missing cast to struct sockaddr * [#671]
+* Fix bug in OpenSSL path detection [#675]
+
 ## 1.0.9 (January 13, 2016)
 * Try more ways to detect OpenSSL [#602, #643, #661, #663, #668, #669]
 * Use WSAGetLastError in pipe.cpp same as ed.cpp [#659]
