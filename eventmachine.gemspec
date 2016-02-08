@@ -4,7 +4,7 @@ Gem::Specification.new do |s|
   s.name = 'eventmachine'
   s.version = EventMachine::VERSION
   s.homepage = 'http://rubyeventmachine.com'
-  s.licenses = ["Ruby", "GPL"]
+  s.licenses = ['Ruby', 'GPL-2.0']
 
   s.authors = ["Francis Cianfrocca", "Aman Gupta"]
   s.email   = ["garbagecat10@gmail.com", "aman@tmm1.net"]
