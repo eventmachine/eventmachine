@@ -338,9 +338,9 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	// Store a pointer to the binding signature in the SSL object so we can retrieve it later
 	SSL_set_ex_data(pSSL, 0, (void*) binding);
 
-	if(bVerifyPeer) {
+	if (bVerifyPeer) {
 		int mode = SSL_VERIFY_PEER | SSL_VERIFY_CLIENT_ONCE;
-		if(bFailIfNoPeerCert)
+		if (bFailIfNoPeerCert)
 			mode = mode | SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
 		SSL_set_verify(pSSL, mode, ssl_verify_wrapper);
 	}

@@ -532,9 +532,9 @@ static VALUE t_get_subprocess_status (VALUE self UNUSED, VALUE signature)
 			rb_iv_set(proc_status, "@pid", INT2FIX(pid));
 			if (WIFEXITED(status)) {
 				rb_iv_set(proc_status, "@status", INT2FIX(WEXITSTATUS(status)));
-			} else if(WIFSIGNALED(status)) {
+			} else if (WIFSIGNALED(status)) {
 				rb_iv_set(proc_status, "@termsig", INT2FIX(WTERMSIG(status)));
-			} else if(WIFSTOPPED(status)){
+			} else if (WIFSTOPPED(status)){
 				rb_iv_set(proc_status, "@stopsig", INT2FIX(WSTOPSIG(status)));
 			}
 #endif
