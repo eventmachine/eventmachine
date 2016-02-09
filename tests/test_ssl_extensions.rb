@@ -17,7 +17,7 @@ if EM.ssl?
       end
 
       def connection_completed
-        start_tls(:protocols => %w(tlsv1), :sni_hostname => 'example.com')
+        start_tls(:ssl_version => :tlsv1, :sni_hostname => 'example.com')
       end
     end
 
@@ -28,7 +28,7 @@ if EM.ssl?
       end
 
       def post_init
-        start_tls(:protocols => %w(TLSv1))
+        start_tls(:ssl_version => :TLSv1)
       end
     end
 
