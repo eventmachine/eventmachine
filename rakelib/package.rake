@@ -25,7 +25,7 @@ else
   def setup_cross_compilation(ext)
     unless RUBY_PLATFORM =~ /mswin|mingw/
       ext.cross_compile = true
-      ext.cross_platform = ['x86-mingw32', 'x86-mswin32-60']
+      ext.cross_platform = ['x86-mingw32', 'x64-mingw32']
     end
   end
   def hack_cross_compilation(ext)
@@ -106,6 +106,15 @@ task :devkit do
   end
 end
 
-if RUBY_PLATFORM =~ /mingw|mswin/ then
+if RUBY_PLATFORM =~ /mingw|mswin/
   Rake::Task['compile'].prerequisites.unshift 'devkit'
+end
+
+desc "Build binary gems for Windows with rake-compiler-dock"
+task 'gem:windows' do
+  require 'rake_compiler_dock'
+  RakeCompilerDock.sh <<-EOT
+    RUBY_CC_VERSION="${RUBY_CC_VERSION//1.8.7/}"
+    bundle && rake cross native gem
+  EOT
 end
