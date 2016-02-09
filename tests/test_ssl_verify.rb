@@ -6,6 +6,21 @@ class TestSslVerify < Test::Unit::TestCase
     $cert_from_file = File.read($dir+'client.crt')
   end
 
+  module ClientNoCert
+    def connection_completed
+      start_tls()
+    end
+
+    def ssl_handshake_completed
+      $client_handshake_completed = true
+      close_connection
+    end
+
+    def unbind
+      EM.stop_event_loop
+    end
+  end
+
   module Client
     def connection_completed
       start_tls(:private_key_file => $dir+'client.key', :cert_chain_file => $dir+'client.crt')
@@ -50,6 +65,35 @@ class TestSslVerify < Test::Unit::TestCase
     def ssl_handshake_completed
       $server_handshake_completed = true
     end
+  end
+
+  module FailServerNoPeerCert
+    def post_init
+      start_tls(:verify_peer => true, :fail_if_no_peer_cert => true)
+    end
+
+    def ssl_verify_peer(cert)
+      raise "Verify peer should not get called for a client without a certificate"
+    end
+
+    def ssl_handshake_completed
+      $server_handshake_completed = true
+    end
+  end
+
+  def test_fail_no_peer_cert
+    omit_unless(EM.ssl?)
+    omit_if(rbx?)
+
+    $client_handshake_completed, $server_handshake_completed = false, false
+
+    EM.run {
+      EM.start_server("127.0.0.1", 16784, FailServerNoPeerCert)
+      EM.connect("127.0.0.1", 16784, ClientNoCert)
+    }
+
+    assert(!$client_handshake_completed)
+    assert(!$server_handshake_completed)
   end
 
   def test_accept_server
