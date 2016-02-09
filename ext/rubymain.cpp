@@ -472,8 +472,12 @@ static VALUE t_get_peername (VALUE self UNUSED, VALUE signature)
 {
 	char buf[1024];
 	socklen_t len = sizeof buf;
-	if (evma_get_peername (NUM2BSIG (signature), (struct sockaddr*)buf, &len)) {
-		return rb_str_new (buf, len);
+	try {
+		if (evma_get_peername (NUM2BSIG (signature), (struct sockaddr*)buf, &len)) {
+			return rb_str_new (buf, len);
+		}
+	} catch (std::runtime_error e) {
+		rb_raise (rb_eRuntimeError, "%s", e.what());
 	}
 
 	return Qnil;
@@ -487,8 +491,12 @@ static VALUE t_get_sockname (VALUE self UNUSED, VALUE signature)
 {
 	char buf[1024];
 	socklen_t len = sizeof buf;
-	if (evma_get_sockname (NUM2BSIG (signature), (struct sockaddr*)buf, &len)) {
-		return rb_str_new (buf, len);
+	try {
+		if (evma_get_sockname (NUM2BSIG (signature), (struct sockaddr*)buf, &len)) {
+			return rb_str_new (buf, len);
+		}
+	} catch (std::runtime_error e) {
+		rb_raise (rb_eRuntimeError, "%s", e.what());
 	}
 
 	return Qnil;

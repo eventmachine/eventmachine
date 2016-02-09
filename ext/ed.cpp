@@ -1956,13 +1956,17 @@ ConnectionDescriptor::GetPeername
 
 bool ConnectionDescriptor::GetPeername (struct sockaddr *s, socklen_t *len)
 {
-	bool ok = false;
-	if (s) {
-		int gp = getpeername (GetSocket(), s, len);
-		if (gp == 0)
-			ok = true;
+	if (!s)
+		return false;
+
+	int gp = getpeername (GetSocket(), s, len);
+	if (gp == -1) {
+		char buf[200];
+		snprintf (buf, sizeof(buf)-1, "unable to get peer name: %s", strerror(errno));
+		throw std::runtime_error (buf);
 	}
-	return ok;
+
+	return true;
 }
 
 /*********************************
@@ -1971,13 +1975,17 @@ ConnectionDescriptor::GetSockname
 
 bool ConnectionDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
 {
-	bool ok = false;
-	if (s) {
-		int gp = getsockname (GetSocket(), s, len);
-		if (gp == 0)
-			ok = true;
+	if (!s)
+		return false;
+
+	int gp = getsockname (GetSocket(), s, len);
+	if (gp == -1) {
+		char buf[200];
+		snprintf (buf, sizeof(buf)-1, "unable to get sock name: %s", strerror(errno));
+		throw std::runtime_error (buf);
 	}
-	return ok;
+
+	return true;
 }
 
 
