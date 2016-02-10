@@ -88,6 +88,21 @@ class TestIterator < Test::Unit::TestCase
     }
   end
 
+  def test_with_object
+    list = %w[ pwd uptime uname date ]
+    EM.run {
+      EM::Iterator.new(list, 2).with_object({}, proc{ |hash,cmd,iter|
+        EM.system(cmd){ |output,status|
+          hash[cmd] = status.exitstatus == 0 ? output.strip : nil
+          iter.next
+        }
+      }, proc{ |results|
+        assert_equal(results.keys, list)
+        EM.stop
+      })
+    }
+  end
+
   def test_concurrency_is_0
     EM.run {
       assert_raise ArgumentError do

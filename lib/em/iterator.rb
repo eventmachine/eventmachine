@@ -1,4 +1,16 @@
+require 'em/worker_queue'
 module EventMachine
+  Enumerator = if defined? ::Enumerable::Enumerator
+                 ::Enumerable::Enumerator
+               else
+                 ::Enumerator
+               end
+  Generater  = if defined? ::Generator
+                 ::Generator
+               else
+                 ::Enumerator::Generator
+               end
+
   # A simple iterator for concurrent asynchronous work.
   #
   # Unlike ruby's built-in iterators, the end of the current iteration cycle is signaled manually,
@@ -41,6 +53,7 @@ module EventMachine
   #   end
   #
   class Iterator
+
     # Create a new parallel async iterator with specified concurrency.
     #
     #   i = EM::Iterator.new(1..100, 10)
@@ -49,25 +62,57 @@ module EventMachine
     # is started via #each, #map or #inject
     #
     def initialize(list, concurrency = 1)
-      raise ArgumentError, 'argument must be an array' unless list.respond_to?(:to_a)
       raise ArgumentError, 'concurrency must be bigger than zero' unless (concurrency > 0)
-      @list = list.to_a.dup
+      @enum = list
       @concurrency = concurrency
-
-      @started = false
-      @ended = false
+      @worker = nil
     end
 
     # Change the concurrency of this iterator. Workers will automatically be spawned or destroyed
     # to accomodate the new concurrency level.
     #
     def concurrency=(val)
-      old = @concurrency
       @concurrency = val
-
-      spawn_workers if val > old and @started and !@ended
+      @worker.concurrency = val  if @worker
     end
     attr_reader :concurrency
+
+    class EachQueue < WorkerQueue # :nodoc:
+      class Worker < WorkerQueue::Worker # :nodoc:
+        private :done
+        def next
+          raise RuntimeError, 'already completed this iteration' if done?
+          done
+        end
+      end
+
+      def initialize(foreach, ondone, concurrency)
+        super foreach, ondone, :concurrency => concurrency
+      end
+    end
+
+    def _iterate
+      # We allow generator interface for Enumerator only in Ruby 1.9.x where Fiber is introduced
+      if @enum.respond_to?(:next) && (defined?(::Fiber) ||
+                                      !(Enumerator === @enum || Generator === @enum))
+        @worker.on_empty{
+          begin
+            @worker.push @enum.next
+          rescue StopIteration
+            @worker.close
+          rescue StandardError => e
+            @worker.close
+            raise e
+          end
+        }
+        @worker.run
+      elsif EM::Queue === @enum
+        @worker.on_empty{ @enum.pop{|v| @worker.push v} }
+      else
+        @enum.each{|args| @worker.push args }
+        @worker.close
+      end
+    end
 
     # Iterate over a set of items using the specified block or proc.
     #
@@ -84,55 +129,45 @@ module EventMachine
     #   )
     #
     def each(foreach=nil, after=nil, &blk)
+      foreach, after = blk, foreach  if after.nil? && blk
       raise ArgumentError, 'proc or block required for iteration' unless foreach ||= blk
-      raise RuntimeError, 'cannot iterate over an iterator more than once' if @started or @ended
+      raise RuntimeError, 'cannot iterate over an iterator more than once' if @worker && @worker.closed?
 
-      @started = true
-      @pending = 0
-      @workers = 0
+      @worker = EachQueue.new(foreach, after, @concurrency)
+      _iterate
+    end
 
-      all_done = proc{
-        after.call if after and @ended and @pending == 0
-      }
-
-      @process_next = proc{
-        # p [:process_next, :pending=, @pending, :workers=, @workers, :ended=, @ended, :concurrency=, @concurrency, :list=, @list]
-        unless @ended or @workers > @concurrency
-          if @list.empty?
-            @ended = true
-            @workers -= 1
-            all_done.call
-          else
-            item = @list.shift
-            @pending += 1
-
-            is_done = false
-            on_done = proc{
-              raise RuntimeError, 'already completed this iteration' if is_done
-              is_done = true
-
-              @pending -= 1
-
-              if @ended
-                all_done.call
-              else
-                EM.next_tick(@process_next)
-              end
-            }
-            class << on_done
-              alias :next :call
-            end
-
-            foreach.call(item, on_done)
-          end
-        else
-          @workers -= 1
+    class MapQueue < WorkerQueue # :nodoc:
+      class Worker < WorkerQueue::Worker # :nodoc:
+        def initialize(master, value, callback)
+          super
+          @index = @master._index
         end
-      }
+        private :done
+        def return(value)
+          raise RuntimeError, 'already returned a value for this iteration' if done?
+          @master._assign(@index, value)
+          done
+        end
+      end
 
-      spawn_workers
+      attr_reader :_index
+      def initialize(foreach, after, concurrency)
+        @accum = []
+        @_index = 0
+        _after = proc{ after.call(@accum) }
+        super foreach, _after, concurrency
+      end
 
-      self
+      def _assign(index, value)
+        @accum[index] = value
+      end
+
+      def spawn_worker(value)
+        v = super
+        @_index += 1
+        v
+      end
     end
 
     # Collect the results of an asynchronous iteration into an array.
@@ -145,32 +180,35 @@ module EventMachine
     #     p results
     #   })
     #
-    def map(foreach, after)
-      index = 0
+    def map(foreach, after = nil, &blk)
+      foreach, after = blk, foreach  if after.nil? && blk
+      raise ArgumentError, 'proc or block required for iteration' unless foreach ||= blk
+      raise ArgumentError, 'EM::Iterator meaningless without after proc' unless after
+      raise RuntimeError, 'cannot iterate over an iterator more than once' if @worker && @worker.closed?
 
-      inject([], proc{ |results,item,iter|
-        i = index
-        index += 1
+      @worker = MapQueue.new(foreach, after, @concurrency)
+      _iterate
+    end
 
-        is_done = false
-        on_done = proc{ |res|
-          raise RuntimeError, 'already returned a value for this iteration' if is_done
-          is_done = true
-
-          results[i] = res
-          iter.return(results)
-        }
-        class << on_done
-          alias :return :call
-          def next
-            raise NoMethodError, 'must call #return on a map iterator'
-          end
+    class InjectQueue < WorkerQueue # :nodoc:
+      class Worker < WorkerQueue::Worker # :nodoc:
+        private :done
+        def return(value)
+          raise RuntimeError, 'already returned a value for this iteration' if done?
+          @master._obj = value
+          done
         end
+        def call
+          @callback.call(@master._obj, @value, self)
+        end
+      end
 
-        foreach.call(item, on_done)
-      }, proc{ |results|
-        after.call(results)
-      })
+      attr_accessor :_obj
+      def initialize(obj, foreach, after, concurrency)
+        @_obj = obj
+        _after = proc{ after.call(@_obj) }
+        super foreach, _after, concurrency
+      end
     end
 
     # Inject the results of an asynchronous iteration onto a given object.
@@ -184,43 +222,48 @@ module EventMachine
     #     p results
     #   })
     #
-    def inject(obj, foreach, after)
-      each(proc{ |item,iter|
-        is_done = false
-        on_done = proc{ |res|
-          raise RuntimeError, 'already returned a value for this iteration' if is_done
-          is_done = true
+    def inject(obj, foreach, after = nil, &blk)
+      foreach, after = blk, foreach  if after.nil? && blk
+      raise ArgumentError, 'proc required for iteration' unless foreach ||= blk
+      raise RuntimeError, 'cannot iterate over an iterator more than once' if @worker && @worker.closed?
 
-          obj = res
-          iter.next
-        }
-        class << on_done
-          alias :return :call
-          def next
-            raise NoMethodError, 'must call #return on an inject iterator'
-          end
-        end
-
-        foreach.call(obj, item, on_done)
-      }, proc{
-        after.call(obj)
-      })
+      @worker = InjectQueue.new(obj, foreach, after, @concurrency)
+      _iterate
     end
 
-    private
-
-    # Spawn workers to consume items from the iterator's enumerator based on the current concurrency level.
-    #
-    def spawn_workers
-      EM.next_tick(start_worker = proc{
-        if @workers < @concurrency and !@ended
-          # p [:spawning_worker, :workers=, @workers, :concurrency=, @concurrency, :ended=, @ended]
-          @workers += 1
-          @process_next.call
-          EM.next_tick(start_worker)
+    class WithObjectQueue < EachQueue # :nodoc:
+      class Worker < EachQueue::Worker # :nodoc:
+        def call
+          @callback.call(@master._obj, @value, self)
         end
-      })
-      nil
+      end
+
+      attr_reader :_obj
+      def initialize(obj, foreach, after, concurrency)
+        @_obj = obj
+        _after = proc{ after.call(@_obj) }
+        super foreach, _after, concurrency
+      end
+    end
+
+    # Inject the results of an asynchronous iteration onto a given object.
+    #
+    #   EM::Iterator.new(%w[ pwd uptime uname date ], 2).with_object({}, proc{ |hash,cmd,iter|
+    #     EM.system(cmd){ |output,status|
+    #       hash[cmd] = status.exitstatus == 0 ? output.strip : nil
+    #       iter.next
+    #     }
+    #   }, proc{ |results|
+    #     p results
+    #   })
+    #
+    def with_object(obj, foreach, after = nil, &blk)
+      foreach, after = blk, foreach  if after.nil? && blk
+      raise ArgumentError, 'proc required for iteration' unless foreach ||= blk
+      raise RuntimeError, 'cannot iterate over an iterator more than once' if @worker && @worker.closed?
+
+      @worker = WithObjectQueue.new(obj, foreach, after, @concurrency)
+      _iterate
     end
   end
 end
