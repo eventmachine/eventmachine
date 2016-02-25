@@ -50,7 +50,7 @@ static VALUE mapper_new (VALUE self, VALUE filename)
 {
 	Mapper_t *m = new Mapper_t (StringValueCStr (filename));
 	if (!m)
-		rb_raise (rb_eException, "No Mapper Object");
+		rb_raise (rb_eStandardError, "No Mapper Object");
 	VALUE v = Data_Wrap_Struct (Mapper, 0, mapper_dt, (void*)m);
 	return v;
 }
@@ -65,17 +65,17 @@ static VALUE mapper_get_chunk (VALUE self, VALUE start, VALUE length)
 	Mapper_t *m = NULL;
 	Data_Get_Struct (self, Mapper_t, m);
 	if (!m)
-		rb_raise (rb_eException, "No Mapper Object");
+		rb_raise (rb_eStandardError, "No Mapper Object");
 
 	// TODO, what if some moron sends us a negative start value?
 	unsigned _start = NUM2INT (start);
 	unsigned _length = NUM2INT (length);
 	if ((_start + _length) > m->GetFileSize())
-		rb_raise (rb_eException, "Mapper Range Error");
+		rb_raise (rb_eStandardError, "Mapper Range Error");
 
 	const char *chunk = m->GetChunk (_start);
 	if (!chunk)
-		rb_raise (rb_eException, "No Mapper Chunk");
+		rb_raise (rb_eStandardError, "No Mapper Chunk");
 	return rb_str_new (chunk, _length);
 }
 
@@ -88,7 +88,7 @@ static VALUE mapper_close (VALUE self)
 	Mapper_t *m = NULL;
 	Data_Get_Struct (self, Mapper_t, m);
 	if (!m)
-		rb_raise (rb_eException, "No Mapper Object");
+		rb_raise (rb_eStandardError, "No Mapper Object");
 	m->Close();
 	return Qnil;
 }
@@ -102,7 +102,7 @@ static VALUE mapper_size (VALUE self)
 	Mapper_t *m = NULL;
 	Data_Get_Struct (self, Mapper_t, m);
 	if (!m)
-		rb_raise (rb_eException, "No Mapper Object");
+		rb_raise (rb_eStandardError, "No Mapper Object");
 	return INT2NUM (m->GetFileSize());
 }
 

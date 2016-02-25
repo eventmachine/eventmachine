@@ -71,7 +71,7 @@ module EventMachine
         begin
           result = yield @resource
           completion.succeed result
-        rescue Exception => e
+        rescue => e
           completion.fail e
         end
       end

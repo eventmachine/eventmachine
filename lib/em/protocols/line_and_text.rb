@@ -45,7 +45,7 @@ module EventMachine
             @lpb_buffer.extract(data).each do |line|
               receive_line(line.chomp) if respond_to?(:receive_line)
             end
-          rescue Exception
+          rescue
             receive_error('overlength line') if respond_to?(:receive_error)
             close_connection
             return
