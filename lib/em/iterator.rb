@@ -41,6 +41,7 @@ module EventMachine
   #   end
   #
   class Iterator
+    Stop = "EM::Stop"
     # Create a new parallel async iterator with specified concurrency.
     #
     #   i = EM::Iterator.new(1..100, 10)
@@ -48,10 +49,21 @@ module EventMachine
     # will create an iterator over the range that processes 10 items at a time. Iteration
     # is started via #each, #map or #inject
     #
+    # The list may either be an array-like object, or a proc that returns a new object
+    # to be processed each time it is called.  If a proc is used, it must return
+    # EventMachine::Iterator::Stop to signal the end of the iterations.
+    #
     def initialize(list, concurrency = 1)
-      raise ArgumentError, 'argument must be an array' unless list.respond_to?(:to_a)
       raise ArgumentError, 'concurrency must be bigger than zero' unless (concurrency > 0)
-      @list = list.to_a.dup
+      if list.respond_to?(:call)
+        @list = nil
+        @list_proc = list
+      elsif list.respond_to?(:to_a)
+        @list = list.to_a.dup
+        @list_proc = nil
+      else
+        raise ArgumentError, 'argument must be a proc or an array'
+      end
       @concurrency = concurrency
 
       @started = false
@@ -98,12 +110,12 @@ module EventMachine
       @process_next = proc{
         # p [:process_next, :pending=, @pending, :workers=, @workers, :ended=, @ended, :concurrency=, @concurrency, :list=, @list]
         unless @ended or @workers > @concurrency
-          if @list.empty?
+          item = next_item()
+          if item.equal?(Stop)
             @ended = true
             @workers -= 1
             all_done.call
           else
-            item = @list.shift
             @pending += 1
 
             is_done = false
@@ -222,10 +234,19 @@ module EventMachine
       })
       nil
     end
+
+    # Return the next item from @list or @list_proc.
+    # Once items have run out, will return EM::Iterator::Stop.  Procs must supply this themselves
+    def next_item
+      if @list_proc
+        @list_proc.call
+      else
+        @list.empty? ? Stop : @list.shift
+      end
+    end
   end
 end
 
 # TODO: pass in one object instead of two? .each{ |iter| puts iter.current; iter.next }
 # TODO: support iter.pause/resume/stop/break/continue?
 # TODO: create some exceptions instead of using RuntimeError
-# TODO: support proc instead of enumerable? EM::Iterator.new(proc{ return queue.pop })
