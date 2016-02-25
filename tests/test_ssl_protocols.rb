@@ -26,7 +26,7 @@ if EM.ssl?
     module ClientAny
       include Client
       def connection_completed
-        start_tls(:protocols => %w(sslv2 sslv3 tlsv1 tlsv1.1 tlsv1.2))
+        start_tls(:ssl_version => %w(sslv2 sslv3 tlsv1 tlsv1_1 tlsv1_2))
       end
     end
 
@@ -40,28 +40,28 @@ if EM.ssl?
     module ClientSSLv3
       include Client
       def connection_completed
-        start_tls(:protocols => %w(SSLv3))
+        start_tls(:ssl_version => %w(SSLv3))
       end
     end
 
     module ServerSSLv3
       include Server
       def post_init
-        start_tls(:protocols => %w(SSLv3))
+        start_tls(:ssl_version => %w(SSLv3))
       end
     end
 
     module ServerTLSv1CaseInsensitive
       include Server
       def post_init
-        start_tls(:protocols => %w(tlsv1))
+        start_tls(:ssl_version => %w(tlsv1))
       end
     end
 
     module ServerAny
       include Server
       def post_init
-        start_tls(:protocols => %w(sslv2 sslv3 tlsv1 tlsv1.1 tlsv1.2))
+        start_tls(:ssl_version => %w(sslv2 sslv3 tlsv1 tlsv1_1 tlsv1_2))
       end
     end
 
@@ -75,12 +75,12 @@ if EM.ssl?
     module InvalidProtocol
       include Client
       def post_init
-        start_tls(:protocols => %w(tlsv1 badinput))
+        start_tls(:ssl_version => %w(tlsv1 badinput))
       end
     end
 
-    def test_invalid_protocol
-      assert_raises(RuntimeError, "Unrecognized SSL/TLS Protocol: badinput") do
+    def test_invalid_ssl_version
+      assert_raises(RuntimeError, "Unrecognized SSL/TLS Version: badinput") do
         EM.run do
           EM.start_server("127.0.0.1", 16784, InvalidProtocol)
           EM.connect("127.0.0.1", 16784, InvalidProtocol)
@@ -156,7 +156,7 @@ if EM.ssl?
 
     module ServerV3StopAfterHandshake
       def post_init
-        start_tls(:protocols => %w(SSLv3))
+        start_tls(:ssl_version => %w(SSLv3))
       end
 
       def ssl_handshake_completed
@@ -167,7 +167,7 @@ if EM.ssl?
 
     module ServerTLSv1StopAfterHandshake
       def post_init
-        start_tls(:protocols => %w(TLSv1))
+        start_tls(:ssl_version => %w(TLSv1))
       end
 
       def ssl_handshake_completed

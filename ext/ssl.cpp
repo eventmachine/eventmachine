@@ -120,7 +120,7 @@ static void InitializeDefaultCredentials()
 SslContext_t::SslContext_t
 **************************/
 
-SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &cipherlist, const string &ecdh_curve, const string &dhparam, int protocols) :
+SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &cipherlist, const string &ecdh_curve, const string &dhparam, int ssl_version) :
 	bIsServer (is_server),
 	pCtx (NULL),
 	PrivateKey (NULL),
@@ -161,22 +161,22 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 	# endif
 	#endif
 
-	if (!(protocols & EM_PROTO_SSLv2))
+	if (!(ssl_version & EM_PROTO_SSLv2))
 		SSL_CTX_set_options (pCtx, SSL_OP_NO_SSLv2);
 
-	if (!(protocols & EM_PROTO_SSLv3))
+	if (!(ssl_version & EM_PROTO_SSLv3))
 		SSL_CTX_set_options (pCtx, SSL_OP_NO_SSLv3);
 
-	if (!(protocols & EM_PROTO_TLSv1))
+	if (!(ssl_version & EM_PROTO_TLSv1))
 		SSL_CTX_set_options (pCtx, SSL_OP_NO_TLSv1);
 
 	#ifdef SSL_OP_NO_TLSv1_1
-	if (!(protocols & EM_PROTO_TLSv1_1))
+	if (!(ssl_version & EM_PROTO_TLSv1_1))
 		SSL_CTX_set_options (pCtx, SSL_OP_NO_TLSv1_1);
 	#endif
 
 	#ifdef SSL_OP_NO_TLSv1_2
-	if (!(protocols & EM_PROTO_TLSv1_2))
+	if (!(ssl_version & EM_PROTO_TLSv1_2))
 		SSL_CTX_set_options (pCtx, SSL_OP_NO_TLSv1_2);
 	#endif
 
@@ -304,7 +304,7 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, bool fail_if_no_peer_cert, const string &snihostname, const string &cipherlist, const string &ecdh_curve, const string &dhparam, int protocols, const uintptr_t binding):
+SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, bool fail_if_no_peer_cert, const string &snihostname, const string &cipherlist, const string &ecdh_curve, const string &dhparam, int ssl_version, const uintptr_t binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),
@@ -317,7 +317,7 @@ SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &cer
 	 * a new one every time we come here.
 	 */
 
-	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile, cipherlist, ecdh_curve, dhparam, protocols);
+	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile, cipherlist, ecdh_curve, dhparam, ssl_version);
 	assert (Context);
 
 	pbioRead = BIO_new (BIO_s_mem());

@@ -389,7 +389,7 @@ module EventMachine
     #
     # @option args [String] :dhparam (nil)  The local path of a file containing DH parameters for EDH ciphers in [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail) See: 'openssl dhparam'
     #
-    # @option args [Array] :protocols (TLSv1 TLSv1.1 TLSv1.2) indicates the allowed SSL/TLS protocols versions. Possible values are: {SSLv2}, {SSLv3}, {TLSv1}, {TLSv1.1}, {TLSv1.2}.
+    # @option args [Array] :ssl_version (TLSv1 TLSv1_1 TLSv1_2) indicates the allowed SSL/TLS versions. Possible values are: {SSLv2}, {SSLv3}, {TLSv1}, {TLSv1_1}, {TLSv1_2}.
     #
     # @example Using TLS with EventMachine
     #
@@ -415,7 +415,15 @@ module EventMachine
     #
     # @see #ssl_verify_peer
     def start_tls args={}
-      priv_key, cert_chain, verify_peer, fail_if_no_peer_cert, sni_hostname, cipher_list, ecdh_curve, dhparam, protocols = args.values_at(:private_key_file, :cert_chain_file, :verify_peer, :fail_if_no_peer_cert, :sni_hostname, :cipher_list, :ecdh_curve, :dhparam, :protocols)
+      priv_key     = args[:private_key_file]
+      cert_chain   = args[:cert_chain_file]
+      verify_peer  = args[:verify_peer]
+      sni_hostname = args[:sni_hostname]
+      cipher_list  = args[:cipher_list]
+      ssl_version  = args[:ssl_version]
+      ecdh_curve   = args[:ecdh_curve]
+      dhparam      = args[:dhparam]
+      fail_if_no_peer_cert = args[:fail_if_no_peer_cert]
 
       [priv_key, cert_chain].each do |file|
         next if file.nil? or file.empty?
@@ -424,23 +432,22 @@ module EventMachine
       end
 
       protocols_bitmask = 0
-      if protocols.nil?
+      if ssl_version.nil?
         protocols_bitmask |= EventMachine::EM_PROTO_TLSv1
         protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_1
         protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_2
       else
-        protocols ||= []
-        protocols.each do |p|
-          case p.downcase
+        [ssl_version].flatten.each do |p|
+          case p.to_s.downcase
           when 'sslv2'
             protocols_bitmask |= EventMachine::EM_PROTO_SSLv2
           when 'sslv3'
             protocols_bitmask |= EventMachine::EM_PROTO_SSLv3
           when 'tlsv1'
             protocols_bitmask |= EventMachine::EM_PROTO_TLSv1
-          when 'tlsv1.1'
+          when 'tlsv1_1'
             protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_1
-          when 'tlsv1.2'
+          when 'tlsv1_2'
             protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_2
           else
             raise("Unrecognized SSL/TLS Protocol: #{p}")
