@@ -878,6 +878,9 @@ void ConnectionDescriptor::_DispatchInboundData (const char *buffer, unsigned lo
 
 		// If our SSL handshake had a problem, shut down the connection.
 		if (s == -2) {
+			#ifndef EPROTO // OpenBSD does not have EPROTO
+			#define EPROTO EINTR
+			#endif
 			#ifdef OS_UNIX
 			UnbindReasonCode = EPROTO;
 			#endif
