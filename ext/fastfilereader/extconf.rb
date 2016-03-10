@@ -90,8 +90,7 @@ when /linux/
   CONFIG['LDSHARED'] = "$(CXX) -shared"
 
 when /aix/
-  # on Unix we need a g++ link, not gcc.
-  CONFIG['LDSHARED'] = "$(CXX) -shared -Wl,-G"
+  CONFIG['LDSHARED'] = "$(CXX) -Wl,-bstatic -Wl,-bdynamic -Wl,-G -Wl,-brtl"
 
 when /cygwin/
   # For rubies built with Cygwin, CXX may be set to CC, which is just

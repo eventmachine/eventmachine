@@ -211,7 +211,7 @@ when /linux/
   CONFIG['LDSHARED'] = "$(CXX) -shared"
 
 when /aix/
-  CONFIG['LDSHARED'] = "$(CXX) -shared -Wl,-G -Wl,-brtl"
+  CONFIG['LDSHARED'] = "$(CXX) -Wl,-bstatic -Wl,-bdynamic -Wl,-G -Wl,-brtl"
 
 when /cygwin/
   # For rubies built with Cygwin, CXX may be set to CC, which is just
