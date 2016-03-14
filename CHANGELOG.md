@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.2.0 (March 15, 2016)
+* Integrate work from the EventMachine-LE 1.1.x versions [#570]
+* Add start_tls options :ecdh_curve, :dhparam, :fail_if_no_peer_cert [#195, #275, #399, #665]
+* Add start_tls option :ssl_version for choosing SSL/TLS versions and ciphers [#359, #348, #603, #654]
+* Add start_tls option :sni_hostname to be passed to TLS params [#593]
+* Add method EM::Channel#num_subscribers to get the number of subscribers to a channel [#640]
+* Add support for proc-sources in EM::Iterator [#639]
+* Factor out method cleanup_machine to cleanup code from EM.run [#650]
+* Replace Exception class with StandardError [#637]
+* Close socket on close_connection even after close_connection_after_writing [#694]
+* Allow reusing of datagram socket/setting bind device [#662]
+* Handle deferred exceptions in reactor thread [#486]
+* Reimplement Queue to avoid shift/push performance problem [#311]
+* Windows: Switch from gethostbyname to getaddrinfo, support IPv6 addresses [#303, #630]
+* Windows: Use rake-compiler-dock to cross-compile gems [#627]
+* Windows: Add AppVeyor configuration for Windows CI testing [#578]
+* Windows: Bump rake-compiler to version 0.9.x [#542]
+* Fix compilation on AIX (w/ XLC) [#693]
+* Fix build on OpenBSD [#690]
+* Fix OpenSSL compile issue on AIX 7.1 [#678]
+* Fix EventMachine.fork_reactor keeps the threadpool of the original process [#425]
+* Fix to prevent event machine from stopping when a raise is done in an unbind [#327]
+
 ## 1.0.9.1 (January 14, 2016)
 * Fix EPROTO not defined on Windows [#676]
 * Fix missing cast to struct sockaddr * [#671]
