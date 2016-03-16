@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.0.1 (March 15, 2016)
+* Fix crash when accepting IPv6 connections due to struct sockaddr_in [#698, #699]
+
 ## 1.2.0 (March 15, 2016)
 * Integrate work from the EventMachine-LE 1.1.x versions [#570]
 * Add start_tls options :ecdh_curve, :dhparam, :fail_if_no_peer_cert [#195, #275, #399, #665]
