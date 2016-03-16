@@ -1540,7 +1540,7 @@ void AcceptorDescriptor::Read()
 	 */
 
 
-	struct sockaddr_in pin;
+	struct sockaddr_in6 pin;
 	socklen_t addrlen = sizeof (pin);
 	int accept_count = EventMachine_t::GetSimultaneousAcceptCount();
 
@@ -1733,7 +1733,7 @@ void DatagramDescriptor::Read()
 		// That's so we can put a guard byte at the end of what we send
 		// to user code.
 
-		struct sockaddr_in sin;
+		struct sockaddr_in6 sin;
 		socklen_t slen = sizeof (sin);
 		memset (&sin, 0, slen);
 
