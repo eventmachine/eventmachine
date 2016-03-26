@@ -64,7 +64,7 @@ module EventMachine
                 ln.chomp!
               end
               receive_line ln
-              remaining_data = remaining_data[(ix+@lt2_delimiter.length)..-1]
+              remaining_data = remaining_data[(ix+remaining_data.slice(@lt2_delimiter).length)..-1]
             else
               @lt2_linebuffer << remaining_data
               remaining_data = ""
@@ -101,9 +101,15 @@ module EventMachine
         end
       end
 
-
+      # The line delimiter may be a regular expression or a string.  Anything 
+      # passed to set_delimiter other than a regular expression will be 
+      # converted to a string.
       def set_delimiter delim
-        @lt2_delimiter = delim.to_s
+        if delim.class == Regexp
+          @lt2_delimiter = delim
+        else
+          @lt2_delimiter = delim.to_s
+        end
       end
 
       # Called internally but also exposed to user code, for the case in which
