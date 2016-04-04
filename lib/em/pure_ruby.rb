@@ -499,6 +499,14 @@ module EventMachine
 
     def heartbeat
     end
+
+    def schedule_close(after_writing=false)
+      if after_writing
+        @close_requested = true
+      else
+        @close_scheduled = true
+      end
+    end
   end
 
 end
@@ -604,16 +612,6 @@ module EventMachine
       # TODO, coalesce here perhaps by being smarter about appending to @outbound_q.last?
       unless @close_scheduled or @close_requested or !data or data.length <= 0
         @outbound_q << data.to_s
-      end
-    end
-
-    # #schedule_close
-    # The application wants to close the connection.
-    def schedule_close after_writing
-      if after_writing
-        @close_requested = true
-      else
-        @close_scheduled = true
       end
     end
 
@@ -1005,18 +1003,14 @@ module EventMachine
         @close_scheduled = true
         EventMachine::event_callback uuid, ConnectionUnbound, nil
       end
-
     end
-
 
     def send_data data
       send_datagram data, @return_address
     end
-
   end
 end
 
 # load base EM api on top, now that we have the underlying pure ruby
 # implementation defined
 require 'eventmachine'
-
