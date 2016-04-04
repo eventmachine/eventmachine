@@ -223,6 +223,12 @@ module EventMachine
       r = Reactor.instance.get_selectable( sig ) or raise "unknown set_comm_inactivity_timeout target"
       r.set_inactivity_timeout tm
     end
+
+    # @private
+    def set_pending_connect_timeout sig, tm
+      # Needs to be implemented. Currently a no-op stub to allow
+      # certain software to operate with the EM pure-ruby.
+    end
   end
 end
 
