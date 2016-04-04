@@ -92,14 +92,10 @@ module EventMachine
       selectable.send_data data
     end
 
-
-    # The extension version does NOT raise any kind of an error if an attempt is made
-    # to close a non-existent connection. Not sure whether we should. For now, we'll
-    # raise an error here in that case.
     # @private
     def close_connection target, after_writing
-      selectable = Reactor.instance.get_selectable( target ) or raise "unknown close_connection target"
-      selectable.schedule_close after_writing
+      selectable = Reactor.instance.get_selectable( target )
+      selectable.schedule_close after_writing if selectable
     end
 
     # @private
