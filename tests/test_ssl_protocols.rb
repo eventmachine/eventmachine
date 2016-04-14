@@ -25,21 +25,21 @@ if EM.ssl?
 
     module ClientAny
       include Client
-      def connection_completed
+      def post_init
         start_tls(:ssl_version => %w(sslv2 sslv3 tlsv1 tlsv1_1 tlsv1_2))
       end
     end
 
     module ClientDefault
       include Client
-      def connection_completed
+      def post_init
         start_tls
       end
     end
 
     module ClientSSLv3
       include Client
-      def connection_completed
+      def post_init
         start_tls(:ssl_version => %w(SSLv3))
       end
     end

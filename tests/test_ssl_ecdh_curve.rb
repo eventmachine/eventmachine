@@ -2,7 +2,7 @@ require 'em_test_helper'
 
 class TestSslEcdhCurve < Test::Unit::TestCase
   module Client
-    def connection_completed
+    def post_init
       start_tls
     end
 
@@ -56,6 +56,7 @@ class TestSslEcdhCurve < Test::Unit::TestCase
 
   def test_ecdh_curve
     omit_unless(EM.ssl?)
+    omit_if(EM.library_type == :pure_ruby && RUBY_VERSION < "2.3.0")
     omit_if(rbx?)
 
     $client_handshake_completed, $server_handshake_completed = false, false

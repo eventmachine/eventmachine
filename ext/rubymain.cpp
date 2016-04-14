@@ -1490,7 +1490,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_const (EmModule, "ConnectionNotifyReadable", INT2NUM(EM_CONNECTION_NOTIFY_READABLE));
 	rb_define_const (EmModule, "ConnectionNotifyWritable", INT2NUM(EM_CONNECTION_NOTIFY_WRITABLE));
 	rb_define_const (EmModule, "SslHandshakeCompleted",    INT2NUM(EM_SSL_HANDSHAKE_COMPLETED   ));
-	// EM_SSL_VERIFY = 109,
+       rb_define_const (EmModule, "SslVerify",                INT2NUM(EM_SSL_VERIFY                ));
 	// EM_PROXY_TARGET_UNBOUND = 110,
 	// EM_PROXY_COMPLETED = 111
 

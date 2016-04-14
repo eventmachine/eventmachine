@@ -16,7 +16,7 @@ if EM.ssl?
         EM.stop_event_loop
       end
 
-      def connection_completed
+      def post_init
         start_tls(:ssl_version => :tlsv1, :sni_hostname => 'example.com')
       end
     end

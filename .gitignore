@@ -19,4 +19,4 @@ Gemfile.lock
 
 .yardoc/*
 doc/*
-
+tmp/*
