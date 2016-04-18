@@ -56,7 +56,14 @@ module EventMachine
 
         while remaining_data.length > 0
           if @lt2_mode == :lines
-            if ix = remaining_data.index( @lt2_delimiter )
+            delimiter_string = case @lt2_delimiter
+            when Regexp
+              remaining_data.slice(@lt2_delimiter)
+            else
+              @lt2_delimiter
+            end
+            ix = remaining_data.index(delimiter_string) if delimiter_string
+            if ix
               @lt2_linebuffer << remaining_data[0...ix]
               ln = @lt2_linebuffer.join
               @lt2_linebuffer.clear
@@ -64,7 +71,7 @@ module EventMachine
                 ln.chomp!
               end
               receive_line ln
-              remaining_data = remaining_data[(ix+@lt2_delimiter.length)..-1]
+              remaining_data = remaining_data[(ix+delimiter_string.length)..-1]
             else
               @lt2_linebuffer << remaining_data
               remaining_data = ""
@@ -101,9 +108,16 @@ module EventMachine
         end
       end
 
-
+      # The line delimiter may be a regular expression or a string.  Anything
+      # passed to set_delimiter other than a regular expression will be
+      # converted to a string.
       def set_delimiter delim
-        @lt2_delimiter = delim.to_s
+        @lt2_delimiter = case delim
+        when Regexp
+          delim
+        else
+          delim.to_s
+        end
       end
 
       # Called internally but also exposed to user code, for the case in which
@@ -163,4 +177,3 @@ module EventMachine
     end
   end
 end
-
