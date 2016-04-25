@@ -85,4 +85,55 @@ class TestPure < Test::Unit::TestCase
     assert a
   end
 
+  module TLSServer
+    def post_init
+      start_tls
+    end
+
+    def ssl_handshake_completed
+      $server_handshake_completed = true
+    end
+
+    def receive_data(data)
+      $server_received_data = data
+      send_data(data)
+    end
+  end
+
+  module TLSClient
+    def post_init
+      start_tls
+    end
+
+    def ssl_handshake_completed
+      $client_handshake_completed = true
+    end
+
+    def connection_completed
+      send_data('Hello World!')
+    end
+
+    def receive_data(data)
+      $client_received_data = data
+      close_connection
+    end
+
+    def unbind
+      EM.stop_event_loop
+    end
+  end
+
+  def test_start_tls
+    $client_handshake_completed, $server_handshake_completed = false, false
+    $client_received_data, $server_received_data = nil, nil
+    EM.run do
+      EM.start_server("127.0.0.1", 16789, TLSServer)
+      EM.connect("127.0.0.1", 16789, TLSClient)
+    end
+
+    assert($client_handshake_completed)
+    assert($server_handshake_completed)
+    assert($client_received_data == "Hello World!")
+    assert($server_received_data == "Hello World!")
+  end
 end

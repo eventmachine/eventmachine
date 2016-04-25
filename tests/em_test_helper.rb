@@ -1,7 +1,10 @@
+require 'em/pure_ruby' if ENV['EM_PURE_RUBY']
 require 'eventmachine'
 require 'test/unit'
 require 'rbconfig'
 require 'socket'
+
+puts "EM Library Type: #{EM.library_type}"
 
 class Test::Unit::TestCase
   class EMTestTimeout < StandardError ; end

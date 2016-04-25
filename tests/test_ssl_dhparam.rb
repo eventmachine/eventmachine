@@ -7,7 +7,7 @@ class TestSslDhParam < Test::Unit::TestCase
   end
 
   module Client
-    def connection_completed
+    def post_init
       start_tls
     end
 
@@ -46,6 +46,7 @@ class TestSslDhParam < Test::Unit::TestCase
 
   def test_no_dhparam
     omit_unless(EM.ssl?)
+    omit_if(EM.library_type == :pure_ruby) # DH will work with defaults
     omit_if(rbx?)
 
     $client_handshake_completed, $server_handshake_completed = false, false
