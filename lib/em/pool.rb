@@ -6,6 +6,8 @@ module EventMachine
   #
   # Example:
   #
+  #    require 'em-http-request'
+  #
   #    EM.run do
   #      pool  = EM::Pool.new
   #      spawn = lambda { pool.add EM::HttpRequest.new('http://example.org') }
@@ -21,7 +23,8 @@ module EventMachine
   #    
   #      pool.on_error { |conn| spawn[] }
   #    
-  #      100.times do
+  #      100.times do |i|
+  #        scheduled += 1
   #        pool.perform do |conn|
   #          req = conn.get :path => '/', :keepalive => true
   #    
