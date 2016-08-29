@@ -1,44 +1,41 @@
 module EventMachine
-  # = EventMachine::Pool
-  #
   # A simple async resource pool based on a resource and work queue. Resources
   # are enqueued and work waits for resources to become available.
   #
-  # Example:
+  # @example
+  #   require 'em-http-request'
   #
-  #    require 'em-http-request'
+  #   EM.run do
+  #     pool  = EM::Pool.new
+  #     spawn = lambda { pool.add EM::HttpRequest.new('http://example.org') }
+  #     10.times { spawn[] }
+  #     done, scheduled = 0, 0
   #
-  #    EM.run do
-  #      pool  = EM::Pool.new
-  #      spawn = lambda { pool.add EM::HttpRequest.new('http://example.org') }
-  #      10.times { spawn[] }
-  #      done, scheduled = 0, 0
-  #    
-  #      check = lambda do
-  #        done += 1
-  #        if done >= scheduled
-  #          EM.stop
-  #        end
-  #      end
-  #    
-  #      pool.on_error { |conn| spawn[] }
-  #    
-  #      100.times do |i|
-  #        scheduled += 1
-  #        pool.perform do |conn|
-  #          req = conn.get :path => '/', :keepalive => true
-  #    
-  #          req.callback do
-  #            p [:success, conn.object_id, i, req.response.size]
-  #            check[]
-  #          end
-  #    
-  #          req.errback { check[] }
-  #    
-  #          req
-  #        end
-  #      end
-  #    end
+  #     check = lambda do
+  #       done += 1
+  #       if done >= scheduled
+  #         EM.stop
+  #       end
+  #     end
+  #
+  #     pool.on_error { |conn| spawn[] }
+  #
+  #     100.times do |i|
+  #       scheduled += 1
+  #       pool.perform do |conn|
+  #         req = conn.get :path => '/', :keepalive => true
+  #
+  #         req.callback do
+  #           p [:success, conn.object_id, i, req.response.size]
+  #           check[]
+  #         end
+  #
+  #         req.errback { check[] }
+  #
+  #         req
+  #       end
+  #     end
+  #   end
   #
   # Resources are expected to be controlled by an object responding to a
   # deferrable/completion style API with callback and errback blocks.
@@ -67,8 +64,8 @@ module EventMachine
     # example use case is periodic statistics collection against a set of
     # connection resources.
     #
-    # For example: 
-    #     pool.contents.inject(0) { |sum, connection| connection.num_bytes }
+    # @example
+    #   pool.contents.inject(0) { |sum, connection| connection.num_bytes }
     def contents
       @contents.dup
     end
