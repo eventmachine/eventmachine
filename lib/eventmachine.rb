@@ -658,9 +658,7 @@ module EventMachine
   #
   # @see EventMachine.connect
   def self.bind_connect bind_addr, bind_port, server, port=nil, handler=nil, *args
-    begin
-      port = Integer(port)
-    rescue ArgumentError, TypeError
+    unless port.is_a? Integer
       # there was no port, so server must be a unix domain socket
       # the port argument is actually the handler, and the handler is one of the args
       args.unshift handler if handler
