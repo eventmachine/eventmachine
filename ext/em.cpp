@@ -1889,6 +1889,14 @@ void EventMachine_t::Deregister (EventableDescriptor *ed)
 		ModifiedDescriptors.erase(ed);
 	}
 	#endif
+
+	#ifdef HAVE_KQUEUE
+	if (Poller == Poller_Kqueue) {
+		assert (ed->GetSocket() != INVALID_SOCKET);
+
+		ModifiedDescriptors.erase(ed);
+	}
+	#endif
 }
 
 
