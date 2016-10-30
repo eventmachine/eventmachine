@@ -217,7 +217,7 @@ void EventMachine_t::ScheduleHalt()
 
 bool EventMachine_t::Stopping()
 {
-    return bTerminateSignalReceived;
+	return bTerminateSignalReceived;
 }
 
 /*******************************

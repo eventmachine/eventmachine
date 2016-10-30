@@ -534,7 +534,7 @@ static VALUE t_get_subprocess_status (VALUE self UNUSED, VALUE signature)
 				rb_iv_set(proc_status, "@status", INT2FIX(WEXITSTATUS(status)));
 			} else if (WIFSIGNALED(status)) {
 				rb_iv_set(proc_status, "@termsig", INT2FIX(WTERMSIG(status)));
-			} else if (WIFSTOPPED(status)){
+			} else if (WIFSTOPPED(status)) {
 				rb_iv_set(proc_status, "@stopsig", INT2FIX(WSTOPSIG(status)));
 			}
 #endif
@@ -1158,15 +1158,11 @@ t_stopping
 
 static VALUE t_stopping ()
 {
-    if (evma_stopping())
-    {
-        return Qtrue;
-    }
-    else
-    {
-        return Qfalse;
-    }
-
+	if (evma_stopping()) {
+		return Qtrue;
+	} else {
+		return Qfalse;
+	}
 }
 
 
@@ -1490,7 +1486,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_const (EmModule, "ConnectionNotifyReadable", INT2NUM(EM_CONNECTION_NOTIFY_READABLE));
 	rb_define_const (EmModule, "ConnectionNotifyWritable", INT2NUM(EM_CONNECTION_NOTIFY_WRITABLE));
 	rb_define_const (EmModule, "SslHandshakeCompleted",    INT2NUM(EM_SSL_HANDSHAKE_COMPLETED   ));
-       rb_define_const (EmModule, "SslVerify",                INT2NUM(EM_SSL_VERIFY                ));
+	rb_define_const (EmModule, "SslVerify",                INT2NUM(EM_SSL_VERIFY                ));
 	// EM_PROXY_TARGET_UNBOUND = 110,
 	// EM_PROXY_COMPLETED = 111
 
