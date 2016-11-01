@@ -5,8 +5,12 @@ before_install:
 env:
   global:
     - TESTOPTS=-v
+    - MAKE="make -j 2"
 language: ruby
 sudo: false
+cache:
+  - bundler
+  - ccache
 rvm:
   - 2.3.0
   - 2.2
