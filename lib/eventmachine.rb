@@ -881,6 +881,19 @@ module EventMachine
     c
   end
 
+  # Same as open_datagram_socket but also multicast subscribes
+  def self.open_datagram_socket_and_mcastjoin address, port, handler=nil, *args
+
+    klass = klass_from_handler(Connection, handler, *args)
+    s = EM::open_udp_socket address, port.to_i
+    ip =  IPAddr.new( address ).hton + IPAddr.new("0.0.0.0").hton
+    set_sock_opt s, Socket::IPPROTO_IP, Socket::IP_ADD_MEMBERSHIP, ip
+    c = klass.new s, *args
+    @conns[s] = c
+    block_given? and yield c
+    c
+  end
+
 
   # For advanced users. This function sets the default timer granularity, which by default is
   # slightly smaller than 100 milliseconds. Call this function to set a higher or lower granularity.
