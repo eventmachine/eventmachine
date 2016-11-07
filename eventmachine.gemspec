@@ -12,7 +12,12 @@ Gem::Specification.new do |s|
   s.files = `git ls-files README.md CHANGELOG.md GNU LICENSE rakelib ext java lib docs`.split
   s.test_files = `git ls-files tests examples`.split
 
-  s.extensions = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
+  if RUBY_PLATFORM =~ /java/
+    s.files << "lib/rubyeventmachine.jar"
+    s.platform = 'java'
+  else
+    s.extensions = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
+  end
 
   s.add_development_dependency 'test-unit', '~> 2.0'
   s.add_development_dependency 'rake-compiler', '~> 0.9.5'

@@ -77,6 +77,8 @@ module EventMachine
   ConnectionNotifyWritable = 107
   # @private
   SslHandshakeCompleted = 108
+  # @private
+  SslVerify = 109
 
   # Exceptions that are defined in rubymain.cpp
   class ConnectionError < RuntimeError; end
