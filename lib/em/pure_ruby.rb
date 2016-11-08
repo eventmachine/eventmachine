@@ -879,7 +879,7 @@ module EventMachine
         # TODO, this assumes a current Ruby snapshot.
         # We need to degrade to a nonblocking connect otherwise.
         sd.connect_nonblock( Socket.pack_sockaddr_in( port, host ))
-      rescue Errno::EINPROGRESS
+      rescue Errno::ECONNREFUSED, Errno::EINPROGRESS
       end
       EvmaTCPClient.new sd
     end
