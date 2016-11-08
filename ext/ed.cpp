@@ -1922,7 +1922,7 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, unsigned long le
 
 	struct sockaddr_in6 addr_here;
 	size_t addr_here_len = sizeof addr_here;
-	if (!EventMachine_t::name2address (address, port, (struct sockaddr *)&addr_here, &addr_here_len))
+	if (0 != EventMachine_t::name2address (address, port, (struct sockaddr *)&addr_here, &addr_here_len))
 		return -1;
 
 	if (!data && (length > 0))

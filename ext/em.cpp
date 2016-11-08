@@ -1194,9 +1194,10 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 
 	struct sockaddr_storage bind_as;
 	size_t bind_as_len = sizeof bind_as;
-	if (!name2address (server, port, (struct sockaddr *)&bind_as, &bind_as_len)) {
+	int gai = name2address (server, port, (struct sockaddr *)&bind_as, &bind_as_len);
+	if (gai != 0) {
 		char buf [200];
-		snprintf (buf, sizeof(buf)-1, "unable to resolve server address: %s", strerror(errno));
+		snprintf (buf, sizeof(buf)-1, "unable to resolve address: %s", gai_strerror(gai));
 		throw std::runtime_error (buf);
 	}
 
@@ -1222,9 +1223,12 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 	if (bind_addr) {
 		struct sockaddr_storage bind_to;
 		size_t bind_to_len = sizeof bind_to;
-		if (!name2address (bind_addr, bind_port, (struct sockaddr *)&bind_to, &bind_to_len)) {
+		gai = name2address (bind_addr, bind_port, (struct sockaddr *)&bind_to, &bind_to_len);
+		if (gai != 0) {
 			close (sd);
-			throw std::runtime_error ("invalid bind address");
+			char buf [200];
+			snprintf (buf, sizeof(buf)-1, "invalid bind address: %s", gai_strerror(gai));
+			throw std::runtime_error (buf);
 		}
 		if (bind (sd, (struct sockaddr *)&bind_to, bind_to_len) < 0) {
 			close (sd);
@@ -1539,7 +1543,7 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 name2address
 ************/
 
-bool EventMachine_t::name2address (const char *server, int port, struct sockaddr *addr, size_t *addr_len)
+int EventMachine_t::name2address (const char *server, int port, struct sockaddr *addr, size_t *addr_len)
 {
 	if (!server || !*server)
 		server = "0.0.0.0";
@@ -1553,16 +1557,15 @@ bool EventMachine_t::name2address (const char *server, int port, struct sockaddr
 	char portstr[12];
 	snprintf(portstr, sizeof(portstr), "%u", port);
 
-	if (getaddrinfo (server, portstr, &hints, &ai) == 0) {
+	int gai = getaddrinfo (server, portstr, &hints, &ai);
+	if (gai == 0) {
 		assert (ai->ai_addrlen <= *addr_len);
 		memcpy (addr, ai->ai_addr, ai->ai_addrlen);
 		*addr_len = ai->ai_addrlen;
-
 		freeaddrinfo(ai);
-		return true;
 	}
 
-	return false;
+	return gai;
 }
 
 
@@ -1581,7 +1584,7 @@ const uintptr_t EventMachine_t::CreateTcpServer (const char *server, int port)
 
 	struct sockaddr_storage bind_here;
 	size_t bind_here_len = sizeof bind_here;
-	if (!name2address (server, port, (struct sockaddr *)&bind_here, &bind_here_len))
+	if (0 != name2address (server, port, (struct sockaddr *)&bind_here, &bind_here_len))
 		return 0;
 
 	SOCKET sd_accept = EmSocket (bind_here.ss_family, SOCK_STREAM, 0);
@@ -1636,7 +1639,7 @@ const uintptr_t EventMachine_t::OpenDatagramSocket (const char *address, int por
 
 	struct sockaddr_storage bind_here;
 	size_t bind_here_len = sizeof bind_here;
-	if (!name2address (address, port, (struct sockaddr *)&bind_here, &bind_here_len))
+	if (0 != name2address (address, port, (struct sockaddr *)&bind_here, &bind_here_len))
 		return 0;
 
 	// from here on, early returns must close the socket!
