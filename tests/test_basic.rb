@@ -171,6 +171,38 @@ class TestBasic < Test::Unit::TestCase
     assert_equal local_ip, ip
   end
 
+  def test_invalid_address_bind_connect_dst
+    e = nil
+    EM.run do
+      begin
+        EM.bind_connect('localhost', nil, 'invalid.invalid', 80)
+      rescue Exception => e
+        # capture the exception
+      ensure
+        EM.stop
+      end
+    end
+
+    assert_kind_of(EventMachine::ConnectionError, e)
+    assert_match(/unable to resolve address:.*not known/, e.message)
+  end
+
+  def test_invalid_address_bind_connect_src
+    e = nil
+    EM.run do
+      begin
+        EM.bind_connect('invalid.invalid', nil, 'localhost', 80)
+      rescue Exception => e
+        # capture the exception
+      ensure
+        EM.stop
+      end
+    end
+
+    assert_kind_of(EventMachine::ConnectionError, e)
+    assert_match(/invalid bind address:.*not known/, e.message)
+  end
+
   def test_reactor_thread?
     assert !EM.reactor_thread?
     EM.run { assert EM.reactor_thread?; EM.stop }
