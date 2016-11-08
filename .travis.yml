@@ -7,20 +7,20 @@ env:
     - TESTOPTS=-v
 language: ruby
 sudo: false
+dist: trusty
 rvm:
   - 2.3.0
   - 2.2
   - 2.1
   - 2.0.0
   - 1.9.3
-  - 1.9.2
-  - 1.8.7
   - ruby-head
 #  - rbx
 #  - rbx-2
 #  - jruby-1.7
 #  - jruby-9
 matrix:
+  fast_finish: true
   allow_failures:
 #    - rvm: rbx
 #    - rvm: rbx-2
@@ -28,10 +28,14 @@ matrix:
     - rvm: 2.0.0
     - rvm: 2.0.0
       os: osx
-      osx_image: xcode7.2
+      osx_image: xcode8
 #    - rvm: jruby-1.7
 #    - rvm: jruby-9
   include:
+    - rvm: 1.8.7
+      dist: precise
+    - rvm: 1.9.2
+      dist: precise
     - rvm: 2.0.0
       os: osx
-      osx_image: xcode7.2
+      osx_image: xcode8
