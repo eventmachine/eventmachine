@@ -340,6 +340,45 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, unsigned long
 }
 
 
+/*********************************
+EventableDescriptor::_GenericGetPeername
+*********************************/
+
+bool EventableDescriptor::_GenericGetPeername (struct sockaddr *s, socklen_t *len)
+{
+	if (!s)
+		return false;
+
+	int gp = getpeername (GetSocket(), s, len);
+	if (gp == -1) {
+		char buf[200];
+		snprintf (buf, sizeof(buf)-1, "unable to get peer name: %s", strerror(errno));
+		throw std::runtime_error (buf);
+	}
+
+	return true;
+}
+
+/*********************************
+EventableDescriptor::_GenericGetSockname
+*********************************/
+
+bool EventableDescriptor::_GenericGetSockname (struct sockaddr *s, socklen_t *len)
+{
+	if (!s)
+		return false;
+
+	int gp = getsockname (GetSocket(), s, len);
+	if (gp == -1) {
+		char buf[200];
+		snprintf (buf, sizeof(buf)-1, "unable to get sock name: %s", strerror(errno));
+		throw std::runtime_error (buf);
+	}
+
+	return true;
+}
+
+
 /*********************************************
 EventableDescriptor::GetPendingConnectTimeout
 *********************************************/
@@ -1628,23 +1667,6 @@ void AcceptorDescriptor::Heartbeat()
 }
 
 
-/*******************************
-AcceptorDescriptor::GetSockname
-*******************************/
-
-bool AcceptorDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
-{
-	bool ok = false;
-	if (s) {
-		int gp = getsockname (GetSocket(), s, len);
-		if (gp == 0)
-			ok = true;
-	}
-	return ok;
-}
-
-
-
 /**************************************
 DatagramDescriptor::DatagramDescriptor
 **************************************/
@@ -1950,37 +1972,6 @@ int DatagramDescriptor::SendOutboundDatagram (const char *data, unsigned long le
 }
 
 
-/*********************************
-ConnectionDescriptor::GetPeername
-*********************************/
-
-bool ConnectionDescriptor::GetPeername (struct sockaddr *s, socklen_t *len)
-{
-	bool ok = false;
-	if (s) {
-		int gp = getpeername (GetSocket(), s, len);
-		if (gp == 0)
-			ok = true;
-	}
-	return ok;
-}
-
-/*********************************
-ConnectionDescriptor::GetSockname
-*********************************/
-
-bool ConnectionDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
-{
-	bool ok = false;
-	if (s) {
-		int gp = getsockname (GetSocket(), s, len);
-		if (gp == 0)
-			ok = true;
-	}
-	return ok;
-}
-
-
 /**********************************************
 ConnectionDescriptor::GetCommInactivityTimeout
 **********************************************/
@@ -2017,22 +2008,6 @@ bool DatagramDescriptor::GetPeername (struct sockaddr *s, socklen_t *len)
 	}
 	return ok;
 }
-
-/*******************************
-DatagramDescriptor::GetSockname
-*******************************/
-
-bool DatagramDescriptor::GetSockname (struct sockaddr *s, socklen_t *len)
-{
-	bool ok = false;
-	if (s) {
-		int gp = getsockname (GetSocket(), s, len);
-		if (gp == 0)
-			ok = true;
-	}
-	return ok;
-}
-
 
 
 /********************************************

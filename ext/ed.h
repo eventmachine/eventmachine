@@ -64,8 +64,8 @@ class EventableDescriptor: public Bindable_t
 
 		void SetEventCallback (EMCallback);
 
-		virtual bool GetPeername (struct sockaddr*, socklen_t*) {return false;}
-		virtual bool GetSockname (struct sockaddr*, socklen_t*) {return false;}
+		virtual bool GetPeername (struct sockaddr*, socklen_t*) = 0;
+		virtual bool GetSockname (struct sockaddr*, socklen_t*) = 0;
 		virtual bool GetSubprocessPid (pid_t*) {return false;}
 
 		virtual void StartTls() {}
@@ -117,7 +117,9 @@ class EventableDescriptor: public Bindable_t
 		bool bWatchOnly;
 
 		EMCallback EventCallback;
-		void _GenericInboundDispatch(const char *buffer, unsigned long size);
+		void _GenericInboundDispatch (const char *buffer, unsigned long size);
+		bool _GenericGetPeername (struct sockaddr*, socklen_t*);
+		bool _GenericGetSockname (struct sockaddr*, socklen_t*);
 
 		uint64_t CreatedAt;
 		bool bCallbackUnbind;
@@ -164,6 +166,9 @@ class LoopbreakDescriptor: public EventableDescriptor
 
 		virtual bool SelectForRead() {return true;}
 		virtual bool SelectForWrite() {return false;}
+
+		virtual bool GetPeername (struct sockaddr* s, socklen_t* len) { return _GenericGetPeername (s, len); }
+		virtual bool GetSockname (struct sockaddr* s, socklen_t* len) { return _GenericGetSockname (s, len); }
 };
 
 
@@ -219,8 +224,8 @@ class ConnectionDescriptor: public EventableDescriptor
 
 		void SetServerMode() {bIsServer = true;}
 
-		virtual bool GetPeername (struct sockaddr*, socklen_t*);
-		virtual bool GetSockname (struct sockaddr*, socklen_t*);
+		virtual bool GetPeername (struct sockaddr* s, socklen_t* len) { return _GenericGetPeername (s, len); }
+		virtual bool GetSockname (struct sockaddr* s, socklen_t* len) { return _GenericGetSockname (s, len); }
 
 		virtual uint64_t GetCommInactivityTimeout();
 		virtual int SetCommInactivityTimeout (uint64_t value);
@@ -305,8 +310,8 @@ class DatagramDescriptor: public EventableDescriptor
 		// Do we have any data to write? This is used by ShouldDelete.
 		virtual int GetOutboundDataSize() {return OutboundDataSize;}
 
-		virtual bool GetPeername (struct sockaddr*, socklen_t*);
-		virtual bool GetSockname (struct sockaddr*, socklen_t*);
+		virtual bool GetPeername (struct sockaddr* s, socklen_t* len);
+		virtual bool GetSockname (struct sockaddr* s, socklen_t* len) { return _GenericGetSockname (s, len); };
 
 		virtual uint64_t GetCommInactivityTimeout();
 		virtual int SetCommInactivityTimeout (uint64_t value);
@@ -345,7 +350,8 @@ class AcceptorDescriptor: public EventableDescriptor
 		virtual bool SelectForRead() {return true;}
 		virtual bool SelectForWrite() {return false;}
 
-		virtual bool GetSockname (struct sockaddr*, socklen_t*);
+		virtual bool GetPeername (struct sockaddr* s, socklen_t* len) { return _GenericGetPeername (s, len); }
+		virtual bool GetSockname (struct sockaddr* s, socklen_t* len) { return _GenericGetSockname (s, len); };
 
 		static void StopAcceptor (const uintptr_t binding);
 };
@@ -370,6 +376,9 @@ class PipeDescriptor: public EventableDescriptor
 
 		int SendOutboundData (const char*, unsigned long);
 		virtual int GetOutboundDataSize() {return OutboundDataSize;}
+
+		virtual bool GetPeername (struct sockaddr* s, socklen_t* len) { return _GenericGetPeername (s, len); }
+		virtual bool GetSockname (struct sockaddr* s, socklen_t* len) { return _GenericGetSockname (s, len); }
 
 		virtual bool GetSubprocessPid (pid_t*);
 
@@ -413,6 +422,9 @@ class KeyboardDescriptor: public EventableDescriptor
 		virtual bool SelectForRead() {return true;}
 		virtual bool SelectForWrite() {return false;}
 
+		virtual bool GetPeername (struct sockaddr* s, socklen_t* len) { return _GenericGetPeername (s, len); }
+		virtual bool GetSockname (struct sockaddr* s, socklen_t* len) { return _GenericGetSockname (s, len); }
+
 	protected:
 		bool bReadAttemptedAfterClose;
 
@@ -437,6 +449,9 @@ class InotifyDescriptor: public EventableDescriptor
 		virtual void Heartbeat() {}
 		virtual bool SelectForRead() {return true;}
 		virtual bool SelectForWrite() {return false;}
+
+		virtual bool GetPeername (struct sockaddr* s, socklen_t* len) { return false; }
+		virtual bool GetSockname (struct sockaddr* s, socklen_t* len) { return false; }
 };
 
 #endif // __EventableDescriptor__H_
