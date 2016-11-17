@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.1 (November 15, 2016)
+* Throw strerror(errno) when getsockname or getpeername fail [#683]
+* Use a single concrete implementation of getpeername/getsockname, the rest pure virtuals [#683]
+* Use gai_strerror to get the failure string from getaddrinfo [#744]
+* Fix deregistering descriptor when using KQUEUE [#728]
+* Fix to enable to work an example code in EM::Pool [#731]
+* LineText2: Add regular expression delimiter support [#706]
+* Pure Ruby: EM rescue ECONNREFUSED on initial TCP connect [#741]
+* Pure Ruby: EM SSL (working start_tls) [#712]
+* Pure Ruby: EM fixes [#707]
+* Java: Use Acceptors to get peer and sock names if not present in Connections [#743]
+
 ## 1.2.0.1 (March 15, 2016)
 * Fix crash when accepting IPv6 connections due to struct sockaddr_in [#698, #699]
 
