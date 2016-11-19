@@ -1194,7 +1194,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 
 	struct sockaddr_storage bind_as;
 	size_t bind_as_len = sizeof bind_as;
-	int gai = name2address (server, port, (struct sockaddr *)&bind_as, &bind_as_len);
+	int gai = name2address (server, port, SOCK_STREAM, (struct sockaddr *)&bind_as, &bind_as_len);
 	if (gai != 0) {
 		char buf [200];
 		snprintf (buf, sizeof(buf)-1, "unable to resolve address: %s", gai_strerror(gai));
@@ -1223,7 +1223,7 @@ const uintptr_t EventMachine_t::ConnectToServer (const char *bind_addr, int bind
 	if (bind_addr) {
 		struct sockaddr_storage bind_to;
 		size_t bind_to_len = sizeof bind_to;
-		gai = name2address (bind_addr, bind_port, (struct sockaddr *)&bind_to, &bind_to_len);
+		gai = name2address (bind_addr, bind_port, SOCK_STREAM, (struct sockaddr *)&bind_to, &bind_to_len);
 		if (gai != 0) {
 			close (sd);
 			char buf [200];
@@ -1543,7 +1543,7 @@ int EventMachine_t::DetachFD (EventableDescriptor *ed)
 name2address
 ************/
 
-int EventMachine_t::name2address (const char *server, int port, struct sockaddr *addr, size_t *addr_len)
+int EventMachine_t::name2address (const char *server, int port, int socktype, struct sockaddr *addr, size_t *addr_len)
 {
 	if (!server || !*server)
 		server = "0.0.0.0";
@@ -1551,6 +1551,7 @@ int EventMachine_t::name2address (const char *server, int port, struct sockaddr 
 	struct addrinfo *ai;
 	struct addrinfo hints;
 	memset (&hints, 0, sizeof(hints));
+	hints.ai_socktype = socktype;
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_flags = AI_NUMERICSERV | AI_ADDRCONFIG;
 
@@ -1584,7 +1585,7 @@ const uintptr_t EventMachine_t::CreateTcpServer (const char *server, int port)
 
 	struct sockaddr_storage bind_here;
 	size_t bind_here_len = sizeof bind_here;
-	if (0 != name2address (server, port, (struct sockaddr *)&bind_here, &bind_here_len))
+	if (0 != name2address (server, port, SOCK_STREAM, (struct sockaddr *)&bind_here, &bind_here_len))
 		return 0;
 
 	SOCKET sd_accept = EmSocket (bind_here.ss_family, SOCK_STREAM, 0);
@@ -1639,7 +1640,7 @@ const uintptr_t EventMachine_t::OpenDatagramSocket (const char *address, int por
 
 	struct sockaddr_storage bind_here;
 	size_t bind_here_len = sizeof bind_here;
-	if (0 != name2address (address, port, (struct sockaddr *)&bind_here, &bind_here_len))
+	if (0 != name2address (address, port, SOCK_DGRAM, (struct sockaddr *)&bind_here, &bind_here_len))
 		return 0;
 
 	// from here on, early returns must close the socket!
