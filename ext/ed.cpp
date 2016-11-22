@@ -84,6 +84,7 @@ EventableDescriptor::EventableDescriptor (SOCKET sd, EventMachine_t *em):
 	MyEventMachine (em),
 	PendingConnectTimeout(20000000),
 	InactivityTimeout (0),
+	NextHeartbeat (0),
 	bPaused (false)
 {
 	/* There are three ways to close a socket, all of which should
@@ -112,12 +113,12 @@ EventableDescriptor::EventableDescriptor (SOCKET sd, EventMachine_t *em):
 	if (MyEventMachine == NULL)
 		throw std::runtime_error ("bad em in eventable descriptor");
 	CreatedAt = MyEventMachine->GetCurrentLoopTime();
+	LastActivity = MyEventMachine->GetCurrentLoopTime();
 
 	#ifdef HAVE_EPOLL
 	EpollEvent.events = 0;
 	EpollEvent.data.ptr = this;
 	#endif
-	LastActivity = MyEventMachine->GetCurrentLoopTime();
 }
 
 
