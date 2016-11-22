@@ -4,32 +4,6 @@ class TestIPv6 < Test::Unit::TestCase
 
   if Test::Unit::TestCase.public_ipv6?
 
-    # Tries to connect to ipv6.google.com (2607:f8b0:4010:800::1006) port 80 via TCP.
-    # Timeout in 6 seconds.
-    def test_ipv6_tcp_client_with_ipv6_google_com
-      conn = nil
-      setup_timeout(6)
-
-      EM.run do
-        conn = EM::connect("2607:f8b0:4010:800::1006", 80) do |c|
-          def c.connected
-            @connected
-          end
-
-          def c.unbind(reason)
-            warn "unbind: #{reason.inspect}" if reason # XXX at least find out why it failed
-          end
-
-          def c.connection_completed
-            @connected = true
-            EM.stop
-          end
-        end
-      end
-
-      assert conn.connected
-    end
-
     # Runs a TCP server in the local IPv6 address, connects to it and sends a specific data.
     # Timeout in 2 seconds.
     def test_ipv6_tcp_local_server
