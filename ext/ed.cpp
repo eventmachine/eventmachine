@@ -84,6 +84,7 @@ EventableDescriptor::EventableDescriptor (SOCKET sd, EventMachine_t *em):
 	MyEventMachine (em),
 	PendingConnectTimeout(20000000),
 	InactivityTimeout (0),
+	NextHeartbeat (0),
 	bPaused (false)
 {
 	/* There are three ways to close a socket, all of which should
