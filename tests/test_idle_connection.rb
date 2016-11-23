@@ -1,25 +1,31 @@
 require 'em_test_helper'
 
 class TestIdleConnection < Test::Unit::TestCase
-  if EM.respond_to?(:get_idle_time)
-    def test_idle_time
-      EM.run{
-        conn = EM.connect 'www.google.com', 80
-        EM.add_timer(3){
-          $idle_time = conn.get_idle_time
-          conn.send_data "GET / HTTP/1.0\r\n\r\n"
-          EM.next_tick{
-            EM.next_tick{
-              $idle_time_after_send = conn.get_idle_time
-              conn.close_connection
-              EM.stop
-            }
-          }
-        }
-      }
+  def setup
+    @port = next_port
+  end
 
-      assert_in_delta 3, $idle_time, 0.2
-      assert_in_delta 0, $idle_time_after_send, 0.1
+  def test_idle_time
+    omit_if(!EM.respond_to?(:get_idle_time))
+
+    a, b = nil, nil
+    EM.run do
+      EM.start_server '127.0.0.1', @port, Module.new
+      conn = EM.connect '127.0.0.1', @port
+      EM.add_timer(0.3) do
+        a = conn.get_idle_time
+        conn.send_data 'a'
+        EM.next_tick do
+          EM.next_tick do
+            b = conn.get_idle_time
+            conn.close_connection
+            EM.stop
+          end
+        end
+      end
     end
+
+    assert_in_delta 0.3, a, 0.1
+    assert_in_delta 0, b, 0.1
   end
 end
