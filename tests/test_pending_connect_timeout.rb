@@ -25,7 +25,7 @@ class TestPendingConnectTimeout < Test::Unit::TestCase
 
       timeout_handler = Module.new do
         define_method :unbind do
-          finish = Time.now
+          finish = EM.current_time
           EM.stop
         end
       end
@@ -33,8 +33,8 @@ class TestPendingConnectTimeout < Test::Unit::TestCase
       EM.run {
         setup_timeout
         EM.heartbeat_interval = 0.1
-        start = Time.now
-        c = EM.connect("1.2.3.4", 54321, timeout_handler)
+        start = EM.current_time
+        c = EM.connect('192.0.2.0', 54321, timeout_handler)
         c.pending_connect_timeout = 0.2
       }
 
