@@ -9,19 +9,20 @@ class TestStomp < Test::Unit::TestCase
     size || str.size
   end
 
-  def test_content_length_in_bytes
-    connection = Object.new
-    connection.instance_eval do 
-      extend EM::P::Stomp
+  class TStomp
+    include EM::P::Stomp
 
-      def last_sent_content_length
-        @sent && Integer(@sent[CONTENT_LENGTH_REGEX, 1])
-      end
-
-      def send_data(string)
-        @sent = string
-      end
+    def last_sent_content_length
+      @sent && Integer(@sent[CONTENT_LENGTH_REGEX, 1])
     end
+
+    def send_data(string)
+      @sent = string
+    end
+  end
+
+  def test_content_length_in_bytes
+    connection = TStomp.new
 
     queue = "queue"
     failure_message = "header content-length is not the byte size of last sent body"
