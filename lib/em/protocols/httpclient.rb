@@ -62,6 +62,7 @@ module EventMachine
 
       def initialize
         warn "HttpClient is deprecated and will be removed. EM-Http-Request should be used instead."
+        @connected = false
       end
 
       # @param args [Hash] The request arguments

@@ -146,7 +146,7 @@ class TestBasic < Test::Unit::TestCase
   def test_bind_connect
     pend('FIXME: this test is broken on Windows') if windows?
 
-    local_ip = UDPSocket.open {|s| s.connect('google.com', 80); s.addr.last }
+    local_ip = UDPSocket.open {|s| s.connect('localhost', 80); s.addr.last }
 
     bind_port = next_port
 
