@@ -1,13 +1,42 @@
 require 'em_test_helper'
 
 class TestConnectionCount < Test::Unit::TestCase
+  def teardown
+    EM.epoll = false
+    EM.kqueue = false
+  end
+
   def test_idle_connection_count
+    count = nil
     EM.run {
-      $count = EM.connection_count
+      count = EM.connection_count
       EM.stop_event_loop
     }
+    assert_equal(0, count)
+  end
 
-    assert_equal(0, $count)
+  # Run this again with epoll enabled (if available)
+  def test_idle_connection_count_epoll
+    EM.epoll if EM.epoll?
+
+    count = nil
+    EM.run {
+      count = EM.connection_count
+      EM.stop_event_loop
+    }
+    assert_equal(0, count)
+  end
+
+  # Run this again with kqueue enabled (if available)
+  def test_idle_connection_count_kqueue
+    EM.kqueue if EM.kqueue?
+
+    count = nil
+    EM.run {
+      count = EM.connection_count
+      EM.stop_event_loop
+    }
+    assert_equal(0, count)
   end
 
   module Client
