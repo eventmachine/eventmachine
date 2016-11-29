@@ -2088,7 +2088,12 @@ EventMachine_t::GetConnectionCount
 
 int EventMachine_t::GetConnectionCount ()
 {
-	return Descriptors.size() + NewDescriptors.size();
+	int i = 0;
+	// Subtract one for epoll or kqueue because of the LoopbreakDescriptor
+	if (Poller == Poller_Epoll || Poller == Poller_Kqueue)
+		i = 1;
+
+	return Descriptors.size() + NewDescriptors.size() - i;
 }
 
 
