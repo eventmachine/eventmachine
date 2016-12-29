@@ -58,6 +58,7 @@ static VALUE EM_eConnectionError;
 static VALUE EM_eUnknownTimerFired;
 static VALUE EM_eConnectionNotBound;
 static VALUE EM_eUnsupported;
+static VALUE EM_eInvalidWatchSignature;
 
 static VALUE Intern_at_signature;
 static VALUE Intern_at_timers;
@@ -1036,7 +1037,12 @@ t_unwatch_filename
 
 static VALUE t_unwatch_filename (VALUE self UNUSED, VALUE sig)
 {
-	evma_unwatch_filename(NUM2BSIG (sig));
+	try {
+		evma_unwatch_filename(NUM2BSIG (sig));
+	} catch (std::runtime_error e) {
+		rb_raise (EM_eInvalidWatchSignature, "%s", e.what());
+	}
+	
 	return Qnil;
 }
 
@@ -1389,6 +1395,7 @@ extern "C" void Init_rubyeventmachine()
 	EM_eConnectionNotBound = rb_define_class_under (EmModule, "ConnectionNotBound", rb_eRuntimeError);
 	EM_eUnknownTimerFired = rb_define_class_under (EmModule, "UnknownTimerFired", rb_eRuntimeError);
 	EM_eUnsupported = rb_define_class_under (EmModule, "Unsupported", rb_eRuntimeError);
+	EM_eInvalidWatchSignature = rb_define_class_under (EmModule, "InvalidWatchSignature", rb_eRuntimeError);
 
 	rb_define_module_function (EmModule, "initialize_event_machine", (VALUE(*)(...))t_initialize_event_machine, 0);
 	rb_define_module_function (EmModule, "run_machine_once", (VALUE(*)(...))t_run_machine_once, 0);
