@@ -58,7 +58,10 @@ class TestFileWatch < Test::Unit::TestCase
 
     # Refer: https://github.com/eventmachine/eventmachine/issues/512
     def test_invalid_signature
-      EventMachine.run {
+      # This works fine with kqueue, only fails with linux inotify.
+      omit_if(EM.kqueue?)
+
+      EM.run {
         file = Tempfile.new('foo')
 
         w1 = EventMachine.watch_file(file.path)
@@ -67,6 +70,8 @@ class TestFileWatch < Test::Unit::TestCase
         assert_raise EventMachine::InvalidSignature do
           w2.stop_watching
         end
+
+        EM.stop
       }
     end
   else
