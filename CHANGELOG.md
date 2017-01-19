@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.2 (January 23, 2016)
+* Java: Fix Fixnum deprecated warning in Ruby 2.4+ [#759]
+* Fix uncaught C++ exception in file watcher and raise InvalidSignature [#512, #757]
+* Fix connection count off-by-one for epoll and kqueue [#750]
+* Fix uninitialized variable warning in EM::P::HttpClient [#749]
+* Fix missing initial value for EventableDescriptor NextHeartbeat [#748]
+* Fix hostname resolution on Solaris, Ilumos, SmartOS, et al [#745, #746]
+* Improve reliability of tests, reduce public Internet accesses in tests [#656, #666, #749]
+
 ## 1.2.1 (November 15, 2016)
 * Throw strerror(errno) when getsockname or getpeername fail [#683]
 * Use a single concrete implementation of getpeername/getsockname, the rest pure virtuals [#683]
