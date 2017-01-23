@@ -55,6 +55,25 @@ class TestFileWatch < Test::Unit::TestCase
       assert($deleted)
       assert($unbind)
     end
+
+    # Refer: https://github.com/eventmachine/eventmachine/issues/512
+    def test_invalid_signature
+      # This works fine with kqueue, only fails with linux inotify.
+      omit_if(EM.kqueue?)
+
+      EM.run {
+        file = Tempfile.new('foo')
+
+        w1 = EventMachine.watch_file(file.path)
+        w2 = EventMachine.watch_file(file.path)
+
+        assert_raise EventMachine::InvalidSignature do
+          w2.stop_watching
+        end
+
+        EM.stop
+      }
+    end
   else
     warn "EM.watch_file not implemented, skipping tests in #{__FILE__}"
 
