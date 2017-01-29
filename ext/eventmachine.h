@@ -123,6 +123,7 @@ extern "C" {
 
 	const uintptr_t evma_watch_pid (int);
 	void evma_unwatch_pid (const uintptr_t binding);
+	int evma_is_watch_only(const uintptr_t binding);
 
 	void evma_start_proxy(const uintptr_t from, const uintptr_t to, const unsigned long bufsize, const unsigned long length);
 	void evma_stop_proxy(const uintptr_t from);

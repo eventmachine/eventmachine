@@ -1073,6 +1073,16 @@ static VALUE t_unwatch_pid (VALUE self UNUSED, VALUE sig)
 }
 
 
+/*************
+t_watch_only_p
+*************/
+
+static VALUE t_watch_only_p (VALUE self UNUSED, VALUE signature)
+{
+	return evma_is_watch_only(NUM2BSIG (signature)) ? Qtrue : Qfalse;
+}
+
+
 /**********
 t__epoll_p
 **********/
@@ -1445,6 +1455,7 @@ extern "C" void Init_rubyeventmachine()
 
 	rb_define_module_function (EmModule, "watch_pid", (VALUE (*)(...))t_watch_pid, 1);
 	rb_define_module_function (EmModule, "unwatch_pid", (VALUE (*)(...))t_unwatch_pid, 1);
+	rb_define_module_function (EmModule, "watch_only?", (VALUE (*)(...))t_watch_only_p, 1);
 
 	rb_define_module_function (EmModule, "current_time", (VALUE(*)(...))t_get_loop_time, 0);
 
