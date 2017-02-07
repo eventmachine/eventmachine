@@ -47,6 +47,9 @@ PipeDescriptor::~PipeDescriptor
 *******************************/
 
 PipeDescriptor::~PipeDescriptor()
+#if __cplusplus >= 201103L
+noexcept(false)
+#endif
 {
 	// Run down any stranded outbound data.
 	for (size_t i=0; i < OutboundPages.size(); i++)

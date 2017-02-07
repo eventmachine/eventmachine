@@ -30,7 +30,11 @@ class Bindable_t
 
 	public:
 		Bindable_t();
+#if __cplusplus < 201103L
 		virtual ~Bindable_t();
+#else
+		virtual ~Bindable_t() noexcept(false);
+#endif
 
 		const uintptr_t GetBinding() {return Binding;}
 

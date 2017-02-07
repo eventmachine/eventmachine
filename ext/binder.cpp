@@ -117,6 +117,9 @@ Bindable_t::~Bindable_t
 ***********************/
 
 Bindable_t::~Bindable_t()
+#if __cplusplus >= 201103L
+noexcept(false)
+#endif
 {
 	BindingBag.erase (Binding);
 }

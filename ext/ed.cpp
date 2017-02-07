@@ -127,6 +127,9 @@ EventableDescriptor::~EventableDescriptor
 *****************************************/
 
 EventableDescriptor::~EventableDescriptor()
+#if __cplusplus >= 201103L
+noexcept(false)
+#endif
 {
 	if (NextHeartbeat)
 		MyEventMachine->ClearHeartbeat(NextHeartbeat, this);
