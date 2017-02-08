@@ -126,10 +126,7 @@ EventableDescriptor::EventableDescriptor (SOCKET sd, EventMachine_t *em):
 EventableDescriptor::~EventableDescriptor
 *****************************************/
 
-EventableDescriptor::~EventableDescriptor()
-#if __cplusplus >= 201103L
-noexcept(false)
-#endif
+EventableDescriptor::~EventableDescriptor() NO_EXCEPT_FALSE
 {
 	if (NextHeartbeat)
 		MyEventMachine->ClearHeartbeat(NextHeartbeat, this);

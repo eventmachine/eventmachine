@@ -21,6 +21,12 @@ See the file COPYING for complete licensing information.
 #define __ObjectBindings__H_
 
 
+#if __cplusplus >= 201103L
+#define NO_EXCEPT_FALSE noexcept(false)
+#else
+#define NO_EXCEPT_FALSE
+#endif
+
 class Bindable_t
 {
 	public:
@@ -30,11 +36,7 @@ class Bindable_t
 
 	public:
 		Bindable_t();
-#if __cplusplus < 201103L
-		virtual ~Bindable_t();
-#else
-		virtual ~Bindable_t() noexcept(false);
-#endif
+		virtual ~Bindable_t() NO_EXCEPT_FALSE;
 
 		const uintptr_t GetBinding() {return Binding;}
 
