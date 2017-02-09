@@ -43,4 +43,16 @@ class TestSomeExceptions < Test::Unit::TestCase
     }
     }
   end
+
+  EM.error_handler do |e|
+    puts "Error raised during event loop: #{e.message}"
+  end
+
+  def test_exception_on_unbind_handled
+    assert_raises(DoomedConnectionError) {
+      EM.run {
+      EM.connect("localhost", 80, DoomedConnection)
+    }
+    }
+  end
 end
