@@ -167,7 +167,7 @@ EventMachine_t::~EventMachine_t()
 	for (i = 0; i < NewDescriptors.size(); i++)
 		delete NewDescriptors[i];
 	for (i = 0; i < Descriptors.size(); i++)
-		delete Descriptors[i];
+		if (Descriptors[i]) delete Descriptors[i];
 
 	close (LoopBreakerReader);
 	close (LoopBreakerWriter);
@@ -838,8 +838,7 @@ void EventMachine_t::_CleanupSockets()
 	int nSockets = Descriptors.size();
 	for (i=0, j=0; i < nSockets; i++) {
 		EventableDescriptor *ed = Descriptors[i];
-		assert (ed);
-		if (ed->ShouldDelete()) {
+		if (ed && ed->ShouldDelete()) {
 		#ifdef HAVE_EPOLL
 			if (Poller == Poller_Epoll) {
 				assert (epfd != -1);
@@ -855,6 +854,7 @@ void EventMachine_t::_CleanupSockets()
 				ModifiedDescriptors.erase(ed);
 			}
 		#endif
+			Descriptors[i] = NULL; // This slot is invalid, delete ed might throw
 			delete ed;
 		}
 		else
@@ -980,7 +980,8 @@ void EventMachine_t::_RunSelectOnce()
 	size_t i;
 	for (i = 0; i < Descriptors.size(); i++) {
 		EventableDescriptor *ed = Descriptors[i];
-		assert (ed);
+		if (!ed) continue;
+
 		SOCKET sd = ed->GetSocket();
 		if (ed->IsWatchOnly() && sd == INVALID_SOCKET)
 			continue;
@@ -1025,7 +1026,8 @@ void EventMachine_t::_RunSelectOnce()
 			 */
 			for (i=0; i < Descriptors.size(); i++) {
 				EventableDescriptor *ed = Descriptors[i];
-				assert (ed);
+				if (!ed) continue;
+
 				SOCKET sd = ed->GetSocket();
 				if (ed->IsWatchOnly() && sd == INVALID_SOCKET)
 					continue;
@@ -1072,6 +1074,7 @@ void EventMachine_t::_CleanBadDescriptors()
 
 	for (i = 0; i < Descriptors.size(); i++) {
 		EventableDescriptor *ed = Descriptors[i];
+		if (!ed) continue;
 		if (ed->ShouldDelete())
 			continue;
 
@@ -1447,7 +1450,7 @@ const uintptr_t EventMachine_t::AttachFD (SOCKET fd, bool watch_mode)
 		size_t i;
 		for (i = 0; i < Descriptors.size(); i++) {
 			EventableDescriptor *ed = Descriptors[i];
-			assert (ed);
+			if (!ed) continue;
 			if (ed->GetSocket() == fd)
 				throw std::runtime_error ("adding existing descriptor");
 		}
