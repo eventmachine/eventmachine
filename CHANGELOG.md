@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.2 (January 23, 2016)
+## 1.2.2 (January 23, 2017)
 * Java: Fix Fixnum deprecated warning in Ruby 2.4+ [#759]
 * Fix uncaught C++ exception in file watcher and raise InvalidSignature [#512, #757]
 * Fix connection count off-by-one for epoll and kqueue [#750]
