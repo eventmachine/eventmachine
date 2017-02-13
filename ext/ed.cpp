@@ -126,7 +126,7 @@ EventableDescriptor::EventableDescriptor (SOCKET sd, EventMachine_t *em):
 EventableDescriptor::~EventableDescriptor
 *****************************************/
 
-EventableDescriptor::~EventableDescriptor()
+EventableDescriptor::~EventableDescriptor() NO_EXCEPT_FALSE
 {
 	if (NextHeartbeat)
 		MyEventMachine->ClearHeartbeat(NextHeartbeat, this);

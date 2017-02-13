@@ -46,7 +46,7 @@ PipeDescriptor::PipeDescriptor (int fd, pid_t subpid, EventMachine_t *parent_em)
 PipeDescriptor::~PipeDescriptor
 *******************************/
 
-PipeDescriptor::~PipeDescriptor()
+PipeDescriptor::~PipeDescriptor() NO_EXCEPT_FALSE
 {
 	// Run down any stranded outbound data.
 	for (size_t i=0; i < OutboundPages.size(); i++)

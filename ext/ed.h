@@ -37,7 +37,7 @@ class EventableDescriptor: public Bindable_t
 {
 	public:
 		EventableDescriptor (SOCKET, EventMachine_t*);
-		virtual ~EventableDescriptor();
+		virtual ~EventableDescriptor() NO_EXCEPT_FALSE;
 
 		SOCKET GetSocket() {return MySocket;}
 		void SetSocketInvalid() { MySocket = INVALID_SOCKET; }
@@ -365,7 +365,7 @@ class PipeDescriptor: public EventableDescriptor
 {
 	public:
 		PipeDescriptor (SOCKET, pid_t, EventMachine_t*);
-		virtual ~PipeDescriptor();
+		virtual ~PipeDescriptor() NO_EXCEPT_FALSE;
 
 		virtual void Read();
 		virtual void Write();

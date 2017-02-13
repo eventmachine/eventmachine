@@ -116,7 +116,7 @@ Bindable_t::Bindable_t()
 Bindable_t::~Bindable_t
 ***********************/
 
-Bindable_t::~Bindable_t()
+Bindable_t::~Bindable_t() NO_EXCEPT_FALSE
 {
 	BindingBag.erase (Binding);
 }
