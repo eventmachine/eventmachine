@@ -52,11 +52,15 @@ module EventMachine
         # associate_callback_target sig
 
         # Call a superclass's #initialize if it has one
-        initialize(*args)
+        begin
+          initialize(*args)
 
-        # post initialize callback
-        post_init
-
+          # post initialize callback
+          post_init
+        rescue Exception => ex
+          EventMachine::close_connection @signature, false
+          raise ex
+        end
         self
       end
     end
