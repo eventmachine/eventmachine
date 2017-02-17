@@ -173,7 +173,7 @@ module EventMachine
       @conns = {}
       @acceptors = {}
       @timers = {}
-      @wrapped_exception = nil
+      @wrapped_exceptions = []
       @next_tick_queue ||= []
       @tails ||= []
       begin
@@ -205,7 +205,18 @@ module EventMachine
         @reactor_thread = nil
       end
 
-      raise @wrapped_exception if @wrapped_exception
+      wrapped_exceptions, @wrapped_exceptions = @wrapped_exceptions, nil
+      if wrapped_exceptions.size == 1
+        raise wrapped_exceptions.first
+      elsif wrapped_exceptions.size > 1
+        raise MultipleExceptions, wrapped_exceptions
+      end
+    end
+  end
+
+  class MultipleExceptions < StandardError
+    def initialize(causes)
+      super("#{causes.map(&:message).join(', ')}")
     end
   end
 
@@ -1362,10 +1373,19 @@ module EventMachine
   def self.error_handler cb = nil, &blk
     if cb or blk
       @error_handler = cb || blk
-    elsif instance_variable_defined? :@error_handler
-      remove_instance_variable :@error_handler
+    else
+      @error_handler = default_error_hander
     end
   end
+
+  def self.default_error_hander
+    @default_error_handler ||= lambda do |ex|
+      @wrapped_exceptions << ex
+      stop
+    end
+  end
+
+  error_handler(default_error_hander)
 
   # This method allows for direct writing of incoming data back out to another descriptor, at the C++ level in the reactor.
   # This is very efficient and especially useful for proxies where high performance is required. Propogating data from a server response
@@ -1492,7 +1512,7 @@ module EventMachine
           end
         rescue Exception => e
           if stopping?
-            @wrapped_exception = $!
+            @wrapped_exceptions << $!
             stop
           else
             raise e
@@ -1500,13 +1520,8 @@ module EventMachine
         end
       elsif c = @acceptors.delete( conn_binding )
         # no-op
-      else
-        if $! # Bubble user generated errors.
-          @wrapped_exception = $!
-          EM.stop
-        else
-          raise ConnectionNotBound, "received ConnectionUnbound for an unknown signature: #{conn_binding}"
-        end
+      elsif @wrapped_exceptions.empty?
+        raise ConnectionNotBound, "received ConnectionUnbound for an unknown signature: #{conn_binding}"
       end
     elsif opcode == ConnectionAccepted
       accep,args,blk = @acceptors[conn_binding]

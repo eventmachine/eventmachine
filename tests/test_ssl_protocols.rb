@@ -80,7 +80,7 @@ if EM.ssl?
     end
 
     def test_invalid_ssl_version
-      assert_raises(RuntimeError, "Unrecognized SSL/TLS Version: badinput") do
+      assert_raises(EventMachine::MultipleExceptions, "Unrecognized SSL/TLS Protocol: badinput") do
         EM.run do
           EM.start_server("127.0.0.1", 16784, InvalidProtocol)
           EM.connect("127.0.0.1", 16784, InvalidProtocol)
