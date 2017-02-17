@@ -1,6 +1,13 @@
 require 'em_test_helper'
 
 class TestSomeExceptions < Test::Unit::TestCase
+  class DoomedConnectionError < StandardError
+  end
+  class DoomedConnection < EventMachine::Connection
+    def unbind
+      raise DoomedConnectionError
+    end
+  end
 
   # Read the commentary in EM#run.
   # This test exercises the ensure block in #run that makes sure
@@ -25,4 +32,11 @@ class TestSomeExceptions < Test::Unit::TestCase
     }
   end
 
+  def test_exception_on_unbind
+    assert_raises(DoomedConnectionError) {
+      EM.run {
+      EM.connect("localhost", 8888, DoomedConnection)
+    }
+    }
+  end
 end
