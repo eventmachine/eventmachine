@@ -242,6 +242,7 @@ class EventMachine_t
 		map<int, Bindable_t*> Pids;
 		vector<EventableDescriptor*> Descriptors;
 		vector<EventableDescriptor*> NewDescriptors;
+		vector<EventableDescriptor*> DescriptorsToDelete;
 		set<EventableDescriptor*> ModifiedDescriptors;
 
 		SOCKET LoopBreakerReader;
