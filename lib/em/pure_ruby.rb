@@ -215,6 +215,12 @@ module EventMachine
     end
 
     # @private
+    def get_sockname sig
+      selectable = Reactor.instance.get_selectable( sig ) or raise "unknown get_sockname target"
+      selectable.get_sockname
+    end
+
+    # @private
     def open_udp_socket host, port
       EvmaUDPSocket.create(host, port).uuid
     end
@@ -657,6 +663,7 @@ class IO
   def_delegator :@my_selectable, :send_data
   def_delegator :@my_selectable, :schedule_close
   def_delegator :@my_selectable, :get_peername
+  def_delegator :@my_selectable, :get_sockname
   def_delegator :@my_selectable, :send_datagram
   def_delegator :@my_selectable, :get_outbound_data_size
   def_delegator :@my_selectable, :set_inactivity_timeout
@@ -713,6 +720,10 @@ module EventMachine
     end
 
     def get_peername
+      nil
+    end
+
+    def get_sockname
       nil
     end
 
@@ -845,6 +856,14 @@ module EventMachine
     # We could also use a convenience method that did the unpacking automatically.
     def get_peername
       io.getpeername
+    end
+
+    # #get_sockname
+    # This is defined in the normal way on connected stream objects.
+    # Return an object that is suitable for passing to Socket#unpack_sockaddr_in or variants.
+    # We could also use a convenience method that did the unpacking automatically.
+    def get_sockname
+      io.getsockname
     end
 
     # #get_outbound_data_size
