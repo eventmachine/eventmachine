@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.3 (February 22, 2017)
+* Pure Ruby: Add get_sockname [#308, #772]
+* Fix segfault when an Exception is raised from unbind callback [#765, #766]
+* Allow destructors to throw when compiling in >= C++11 [#767]
+
 ## 1.2.2 (January 23, 2017)
 * Java: Fix Fixnum deprecated warning in Ruby 2.4+ [#759]
 * Fix uncaught C++ exception in file watcher and raise InvalidSignature [#512, #757]
