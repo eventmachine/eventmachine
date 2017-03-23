@@ -27,7 +27,7 @@ end
 
 SSL_HEADS = %w(openssl/ssl.h openssl/err.h)
 SSL_LIBS = case RUBY_PLATFORM
-when /mswin|mingw|bccwin/ ; %w(ssleay32 libeay32)
+when /mswin|mingw|bccwin/ ; %w(libcrypto libssl)
 else                      ; %w(crypto ssl)
 end
 
