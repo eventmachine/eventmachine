@@ -3,7 +3,7 @@
 # Author:: Francis Cianfrocca (gmail: blackhedd)
 # Homepage::  http://rubyeventmachine.com
 # Date:: 15 November 2006
-# 
+#
 # See EventMachine and EventMachine::Connection for documentation and
 # usage examples.
 #
@@ -11,18 +11,18 @@
 #
 # Copyright (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
 # Gmail: blackhedd
-# 
+#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of either: 1) the GNU General Public License
 # as published by the Free Software Foundation; either version 2 of the
 # License, or (at your option) any later version; or 2) Ruby's License.
-# 
+#
 # See the file COPYING for complete licensing information.
 #
 #---------------------------------------------------------------------------
 #
-# 
-# 
+#
+#
 
 module EventMachine
   module Protocols
@@ -63,6 +63,17 @@ module EventMachine
         alias :headers :header
         # Body of the message
         attr_accessor :body
+        # Message ID
+        attr_accessor :message_id
+
+        def ack
+          send_ack "ACK"
+        end
+
+        def nack
+          raise "You cannot send a NACK command using version 1.0" if Stomp.version[-1].to_i == 0
+          send_ack "NACK"
+        end
 
         # @private
         def initialize
@@ -82,6 +93,7 @@ module EventMachine
               if @content_length
                 yield( [:sized_text, @content_length+1] )
               else
+                Stomp.version ||= @header["version"]
                 @state = :body
                 yield( [:unsized_text] )
               end
@@ -92,6 +104,7 @@ module EventMachine
               if k == "content-length"
                 @content_length = v.to_i
               end
+              @message_id = v  if k == "message-id"
             else
               # This is a protocol error. How to signal it?
             end
@@ -100,6 +113,20 @@ module EventMachine
             yield( [:dispatch] )
           end
         end
+
+        private
+        def send_ack(frame)
+          return if @header_id.nil?
+          send_frame frame, 'message-id'=> @header_id
+        end
+      end
+
+      def self.version
+        @version
+      end
+
+      def self.version=(v)
+        @version ||= v
       end
 
       # @private
@@ -170,33 +197,21 @@ module EventMachine
 
       # SUBSCRIBE command, for subscribing to topics
       #
-      #  subscribe '/topic/name', false
+      #  subscribe '/topic/name', (true || {})
       #
+      # The ack header is optional, and defaults to auto.
       def subscribe dest, ack=false
-        send_frame "SUBSCRIBE", {:destination=>dest, :ack=>(ack ? "client" : "auto")}
+        if (ack ||= {}).kind_of?(Hash)
+          ack[:destination] ||= dest
+        else
+          ack = { :destination => dest, :ack => 'client' }
+        end
+        send_frame "SUBSCRIBE", ack
       end
 
-      # ACK command, for acknowledging receipt of messages
-      #
-      #  module StompClient
-      #    include EM::P::Stomp
-      #
-      #    def connection_completed
-      #      connect :login => 'guest', :passcode => 'guest'
-      #      # subscribe with ack mode
-      #      subscribe '/some/topic', true
-      #    end
-      #
-      #    def receive_msg msg
-      #      if msg.command == "MESSAGE"
-      #        ack msg.headers['message-id']
-      #        puts msg.body
-      #      end
-      #    end
-      #  end
-      #
-      def ack msgid
-        send_frame "ACK", 'message-id'=> msgid
+      # Protocol Version helper method
+      def version
+        Stomp.version
       end
 
     end
