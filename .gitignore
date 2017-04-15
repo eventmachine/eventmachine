@@ -1,6 +1,7 @@
 pkg
 rdoc
 Makefile
+.idea
 
 *.idea
 *.bundle
