@@ -22,14 +22,17 @@ class TestThreadedResource < Test::Unit::TestCase
         fail 'Resource dispatch timed out'
       end
       completion = resource.dispatch do |o|
+        puts 'Hello from the resource dispatch'
         o[:foo] = :bar
         :foo
       end
       completion.callback do |result|
+        puts 'Hello from the completion callback'
         assert_equal :foo, result
         EM.stop
       end
       completion.errback do |error|
+        puts 'Hello from the completion errback'
         EM.stop
         fail "Unexpected error: #{error.message}"
       end
