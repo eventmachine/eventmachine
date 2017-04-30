@@ -175,8 +175,8 @@ EventMachine_t::~EventMachine_t()
 	close (LoopBreakerWriter);
 
 	// Remove any file watch descriptors
-	while(!Files.empty()) {
-		map<int, Bindable_t*>::iterator f = Files.begin();
+	while (!Files.empty()) {
+		Files_t::iterator f = Files.begin();
 		UnwatchFile (f->first);
 	}
 
@@ -505,7 +505,7 @@ void EventMachine_t::_DispatchHeartbeats()
 	// is changed out from underneath MyCurrentLoopTime.
 	const EventableDescriptor *head = NULL;
 
-	for (multimap<uint64_t,EventableDescriptor*>::iterator i = Heartbeats.begin();
+	for (Heartbeats_t::iterator i = Heartbeats.begin();
 		 i != Heartbeats.end() && i->first <= MyCurrentLoopTime;
 		 ) {
 		EventableDescriptor *ed = i->second;
@@ -530,7 +530,7 @@ void EventMachine_t::QueueHeartbeat(EventableDescriptor *ed)
 
 	if (heartbeat) {
 		#ifndef HAVE_MAKE_PAIR
-		Heartbeats.insert (multimap<uint64_t,EventableDescriptor*>::value_type (heartbeat, ed));
+		Heartbeats.insert (Heartbeats_t::value_type (heartbeat, ed));
 		#else
 		Heartbeats.insert (make_pair (heartbeat, ed));
 		#endif
@@ -543,8 +543,8 @@ EventMachine_t::ClearHeartbeat
 
 void EventMachine_t::ClearHeartbeat(uint64_t key, EventableDescriptor* ed)
 {
-	multimap<uint64_t,EventableDescriptor*>::iterator it;
-	pair<multimap<uint64_t,EventableDescriptor*>::iterator,multimap<uint64_t,EventableDescriptor*>::iterator> ret;
+	Heartbeats_t::iterator it;
+	pair<Heartbeats_t::iterator,Heartbeats_t::iterator> ret;
 	ret = Heartbeats.equal_range (key);
 	for (it = ret.first; it != ret.second; ++it) {
 		if (it->second == ed) {
@@ -782,12 +782,12 @@ timeval EventMachine_t::_TimeTilNextEvent()
 	uint64_t current_time = GetRealTime();
 
 	if (!Heartbeats.empty()) {
-		multimap<uint64_t,EventableDescriptor*>::iterator heartbeats = Heartbeats.begin();
+		Heartbeats_t::iterator heartbeats = Heartbeats.begin();
 		next_event = heartbeats->first;
 	}
 
 	if (!Timers.empty()) {
-		multimap<uint64_t,Timer_t>::iterator timers = Timers.begin();
+		Timers_t::iterator timers = Timers.begin();
 		if (next_event == 0 || timers->first < next_event)
 			next_event = timers->first;
 	}
@@ -982,8 +982,7 @@ void EventMachine_t::_RunSelectOnce()
 		SelectData->maxsocket = LoopBreakerReader;
 
 	// prepare the sockets for reading and writing
-	size_t i;
-	for (i = 0; i < Descriptors.size(); i++) {
+	for (size_t i = 0; i < Descriptors.size(); i++) {
 		EventableDescriptor *ed = Descriptors[i];
 		assert (ed);
 		SOCKET sd = ed->GetSocket();
@@ -1028,7 +1027,7 @@ void EventMachine_t::_RunSelectOnce()
 			 * IMMEDIATELY if _ReadLoopBreaker is done here instead of after
 			 * the other descriptors are processed. That defeats the whole purpose.
 			 */
-			for (i=0; i < Descriptors.size(); i++) {
+			for (size_t i = 0; i < Descriptors.size(); i++) {
 				EventableDescriptor *ed = Descriptors[i];
 				assert (ed);
 				SOCKET sd = ed->GetSocket();
@@ -1073,9 +1072,7 @@ void EventMachine_t::_RunSelectOnce()
 
 void EventMachine_t::_CleanBadDescriptors()
 {
-	size_t i;
-
-	for (i = 0; i < Descriptors.size(); i++) {
+	for (size_t i = 0; i < Descriptors.size(); i++) {
 		EventableDescriptor *ed = Descriptors[i];
 		if (ed->ShouldDelete())
 			continue;
@@ -1129,7 +1126,7 @@ void EventMachine_t::_RunTimers()
 	// Just keep inspecting and processing the list head until we hit
 	// one that hasn't expired yet.
 
-	for (multimap<uint64_t,Timer_t>::iterator i = Timers.begin();
+	for (Timers_t::iterator i = Timers.begin();
 		 i != Timers.end() && i->first <= MyCurrentLoopTime;
 		 Timers.erase (i)) {
 		if (EventCallback)
@@ -1153,9 +1150,9 @@ const uintptr_t EventMachine_t::InstallOneshotTimer (int milliseconds)
 
 	Timer_t t;
 	#ifndef HAVE_MAKE_PAIR
-	multimap<uint64_t,Timer_t>::iterator i = Timers.insert (multimap<uint64_t,Timer_t>::value_type (fire_at, t));
+	Timers_t::iterator i = Timers.insert (Timers_t::value_type (fire_at, t));
 	#else
-	multimap<uint64_t,Timer_t>::iterator i = Timers.insert (make_pair (fire_at, t));
+	Timers_t::iterator i = Timers.insert (make_pair (fire_at, t));
 	#endif
 	return i->second.GetBinding();
 }
@@ -1832,7 +1829,7 @@ void EventMachine_t::_ModifyDescriptors()
 
 	#ifdef HAVE_EPOLL
 	if (Poller == Poller_Epoll) {
-		for (set<EventableDescriptor*>::iterator i = ModifiedDescriptors.begin();
+		for (ModifiedDescriptors_t::iterator i = ModifiedDescriptors.begin();
 		     i != ModifiedDescriptors.end();
 		     ++i) {
 			assert (*i);
@@ -1843,7 +1840,7 @@ void EventMachine_t::_ModifyDescriptors()
 
 	#ifdef HAVE_KQUEUE
 	if (Poller == Poller_Kqueue) {
-		for (set<EventableDescriptor*>::iterator i = ModifiedDescriptors.begin();
+		for (ModifiedDescriptors_t::iterator i = ModifiedDescriptors.begin();
 		     i != ModifiedDescriptors.end();
 		     ++i) {
 			assert (*i);
@@ -2158,7 +2155,7 @@ void EventMachine_t::UnwatchPid (int pid)
 
 void EventMachine_t::UnwatchPid (const uintptr_t sig)
 {
-	for(map<int, Bindable_t*>::iterator i=Pids.begin(); i != Pids.end(); i++)
+	for (Pids_t::iterator i = Pids.begin(); i != Pids.end(); i++)
 	{
 		if (i->second->GetBinding() == sig) {
 			UnwatchPid (i->first);
@@ -2254,7 +2251,7 @@ void EventMachine_t::UnwatchFile (int wd)
 
 void EventMachine_t::UnwatchFile (const uintptr_t sig)
 {
-	for(map<int, Bindable_t*>::iterator i=Files.begin(); i != Files.end(); i++)
+	for (Files_t::iterator i = Files.begin(); i != Files.end(); i++)
 	{
 		if (i->second->GetBinding() == sig) {
 			UnwatchFile (i->first);
@@ -2287,7 +2284,7 @@ void EventMachine_t::_ReadInotifyEvents()
 		     current += sizeof(struct inotify_event) + event->len) {
 
 			struct inotify_event* event = (struct inotify_event*)(buffer+current);
-			map<int, Bindable_t*>::const_iterator bindable = Files.find(event->wd);
+			Files_t::const_iterator bindable = Files.find(event->wd);
 			if (bindable != Files.end()) {
 				if (event->mask & (IN_MODIFY | IN_CREATE | IN_DELETE | IN_MOVE)){
 					(*EventCallback)(bindable->second->GetBinding(), EM_CONNECTION_READ, "modified", 8);
