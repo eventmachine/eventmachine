@@ -505,13 +505,9 @@ void EventMachine_t::_DispatchHeartbeats()
 	// is changed out from underneath MyCurrentLoopTime.
 	const EventableDescriptor *head = NULL;
 
-	while (true) {
-		multimap<uint64_t,EventableDescriptor*>::iterator i = Heartbeats.begin();
-		if (i == Heartbeats.end())
-			break;
-		if (i->first > MyCurrentLoopTime)
-			break;
-
+	for (multimap<uint64_t,EventableDescriptor*>::iterator i = Heartbeats.begin();
+		 i != Heartbeats.end() && i->first <= MyCurrentLoopTime;
+		 ) {
 		EventableDescriptor *ed = i->second;
 		if (ed == head)
 			break;
@@ -722,8 +718,9 @@ void EventMachine_t::_RunKqueueOnce()
 	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, &ts);
 	#endif
 
-	struct kevent *ke = Karray;
-	while (k > 0) {
+	for (struct kevent *ke = Karray;
+	     k > 0;
+	     --k, ++ke) {
 		switch (ke->filter)
 		{
 			case EVFILT_VNODE:
@@ -752,8 +749,7 @@ void EventMachine_t::_RunKqueueOnce()
 				break;
 		}
 
-		--k;
-		++ke;
+
 	}
 
 	// TODO, replace this with rb_thread_blocking_region for 1.9 builds.
@@ -1133,15 +1129,11 @@ void EventMachine_t::_RunTimers()
 	// Just keep inspecting and processing the list head until we hit
 	// one that hasn't expired yet.
 
-	while (true) {
-		multimap<uint64_t,Timer_t>::iterator i = Timers.begin();
-		if (i == Timers.end())
-			break;
-		if (i->first > MyCurrentLoopTime)
-			break;
+	for (multimap<uint64_t,Timer_t>::iterator i = Timers.begin();
+		 i != Timers.end() && i->first <= MyCurrentLoopTime;
+		 Timers.erase (i)) {
 		if (EventCallback)
 			(*EventCallback) (0, EM_TIMER_FIRED, NULL, i->second.GetBinding());
-		Timers.erase (i);
 	}
 }
 
@@ -1840,23 +1832,23 @@ void EventMachine_t::_ModifyDescriptors()
 
 	#ifdef HAVE_EPOLL
 	if (Poller == Poller_Epoll) {
-		set<EventableDescriptor*>::iterator i = ModifiedDescriptors.begin();
-		while (i != ModifiedDescriptors.end()) {
+		for (set<EventableDescriptor*>::iterator i = ModifiedDescriptors.begin();
+		     i != ModifiedDescriptors.end();
+		     ++i) {
 			assert (*i);
 			_ModifyEpollEvent (*i);
-			++i;
 		}
 	}
 	#endif
 
 	#ifdef HAVE_KQUEUE
 	if (Poller == Poller_Kqueue) {
-		set<EventableDescriptor*>::iterator i = ModifiedDescriptors.begin();
-		while (i != ModifiedDescriptors.end()) {
+		for (set<EventableDescriptor*>::iterator i = ModifiedDescriptors.begin();
+		     i != ModifiedDescriptors.end();
+		     ++i) {
 			assert (*i);
 			if ((*i)->GetKqueueArmWrite())
 				ArmKqueueWriter (*i);
-			++i;
 		}
 	}
 	#endif
@@ -2290,8 +2282,10 @@ void EventMachine_t::_ReadInotifyEvents()
 		if (returned <= 0) {
 			break;
 		}
-		int current = 0;
-		while (current < returned) {
+		for (int current = 0;
+		     current < returned;
+		     current += sizeof(struct inotify_event) + event->len) {
+
 			struct inotify_event* event = (struct inotify_event*)(buffer+current);
 			map<int, Bindable_t*>::const_iterator bindable = Files.find(event->wd);
 			if (bindable != Files.end()) {
@@ -2306,7 +2300,6 @@ void EventMachine_t::_ReadInotifyEvents()
 					UnwatchFile ((int)event->wd);
 				}
 			}
-			current += sizeof(struct inotify_event) + event->len;
 		}
 	}
 	#endif
