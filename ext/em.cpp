@@ -718,9 +718,7 @@ void EventMachine_t::_RunKqueueOnce()
 	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, &ts);
 	#endif
 
-	for (struct kevent *ke = Karray;
-	     k > 0;
-	     --k, ++ke) {
+	for (struct kevent *ke = Karray; k > 0; --k, ++ke) {
 		switch (ke->filter)
 		{
 			case EVFILT_VNODE:
@@ -748,8 +746,6 @@ void EventMachine_t::_RunKqueueOnce()
 
 				break;
 		}
-
-
 	}
 
 	// TODO, replace this with rb_thread_blocking_region for 1.9 builds.
@@ -2279,9 +2275,7 @@ void EventMachine_t::_ReadInotifyEvents()
 		if (returned <= 0) {
 			break;
 		}
-		for (int current = 0;
-		     current < returned;
-		     ) {
+		for (int current = 0; current < returned;) {
 
 			struct inotify_event* event = (struct inotify_event*)(buffer+current);
 			Files_t::const_iterator bindable = Files.find(event->wd);
