@@ -116,6 +116,12 @@ module EventMachine
     # errbacks match the arguments given in calls to #set_deferred_status, otherwise Ruby will raise
     # an ArgumentError.
     #
+    # A status that has been set will not be overridden. The Procs of the
+    # "other" status get deleted when none of the "current" are left to execute.
+    # If we overwrote the status, this would lead to interesting errors because
+    # from this point on the "other" status' Procs would be executed and after
+    # them the rest of the "current" status' Procs.
+    #
     #--
     # We're shifting callbacks off and discarding them as we execute them.
     # This is valid because by definition callbacks are executed no more than
@@ -140,6 +146,7 @@ module EventMachine
     #
     def set_deferred_status status, *args
       cancel_timeout
+      return if defined?(@deferred_status) && ![:unknown, status].include?(@deferred_status)
       @errbacks ||= nil
       @callbacks ||= nil
       @deferred_status = status
