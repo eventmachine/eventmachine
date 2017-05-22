@@ -26,10 +26,10 @@ def append_library(libs, lib)
 end
 
 SSL_HEADS = %w(openssl/ssl.h openssl/err.h)
-SSL_LIBS = case RUBY_PLATFORM
-when /mswin|mingw|bccwin/ ; %w(ssleay32 libeay32)
-else                      ; %w(crypto ssl)
-end
+SSL_LIBS = %w(crypto ssl)
+# OpenSSL 1.1.0 and above for Windows use the Unix library names
+# OpenSSL 0.9.8 and 1.0.x for Windows use the *eay32 library names
+SSL_LIBS_WIN = RUBY_PLATFORM =~ /mswin|mingw|bccwin/ ? %w(ssleay32 libeay32) : []
 
 def dir_config_wrapper(pretty_name, name, idefault=nil, ldefault=nil)
   inc, lib = dir_config(name, idefault, ldefault)
@@ -88,15 +88,15 @@ if ENV['CROSS_COMPILING']
   end
 elsif dir_config_wrapper('OpenSSL', 'ssl')
   # If the user has provided a --with-ssl-dir argument, we must respect it or fail.
-  add_define 'WITH_SSL' if check_libs(SSL_LIBS) && check_heads(SSL_HEADS)
+  add_define 'WITH_SSL' if (check_libs(SSL_LIBS) || check_libs(SSL_LIBS_WIN)) && check_heads(SSL_HEADS)
 elsif pkg_config_wrapper('OpenSSL', 'openssl')
   # If we can detect OpenSSL by pkg-config, use it as the next-best option
-  add_define 'WITH_SSL' if check_libs(SSL_LIBS) && check_heads(SSL_HEADS)
-elsif check_libs(SSL_LIBS) && check_heads(SSL_HEADS)
+  add_define 'WITH_SSL' if (check_libs(SSL_LIBS) || check_libs(SSL_LIBS_WIN)) && check_heads(SSL_HEADS)
+elsif (check_libs(SSL_LIBS) || check_libs(SSL_LIBS_WIN)) && check_heads(SSL_HEADS)
   # If we don't even need any options to find a usable OpenSSL, go with it
   add_define 'WITH_SSL'
 elsif dir_config_search('OpenSSL', 'ssl', ['/usr/local', '/opt/local', '/usr/local/opt/openssl']) do
-    check_libs(SSL_LIBS) && check_heads(SSL_HEADS)
+    (check_libs(SSL_LIBS) || check_libs(SSL_LIBS_WIN)) && check_heads(SSL_HEADS)
   end
   # Finally, look for OpenSSL in alternate locations including MacPorts and HomeBrew
   add_define 'WITH_SSL'
