@@ -58,6 +58,8 @@ public class EmReactor {
 	private ArrayList<Long> UnboundConnections;
 	private ArrayList<EventableSocketChannel> DetachedConnections;
 
+  private final Object TimersSemaphore;
+
 	private boolean bRunReactor;
 	private long BindingIndex;
 	private AtomicBoolean loopBreaker;
@@ -71,6 +73,8 @@ public class EmReactor {
 		NewConnections = new ArrayList<Long>();
 		UnboundConnections = new ArrayList<Long>();
 		DetachedConnections = new ArrayList<EventableSocketChannel>();
+
+    TimersSemaphore = new Object();
 
 		BindingIndex = 0;
 		loopBreaker = new AtomicBoolean();
@@ -356,36 +360,40 @@ public class EmReactor {
 	}
 
 	void runTimers() {
-		long now = new Date().getTime();
-		while (!Timers.isEmpty()) {
-			long k = Timers.firstKey();
-			if (k > now)
-				break;
+	  synchronized(TimersSemaphore) {
+      long now = new Date().getTime();
+      while (!Timers.isEmpty()) {
+        long k = Timers.firstKey();
+        if (k > now)
+        break;
 
-			ArrayList<Long> callbacks = Timers.get(k);
-			Timers.remove(k);
+        ArrayList<Long> callbacks = Timers.get(k);
+        Timers.remove(k);
 
-			// Fire all timers at this timestamp
-			ListIterator<Long> iter = callbacks.listIterator(0);
-			while (iter.hasNext()) {
-				eventCallback (0, EM_TIMER_FIRED, null, iter.next().longValue());
-			}
-		}
+        // Fire all timers at this timestamp
+        ListIterator<Long> iter = callbacks.listIterator(0);
+        while (iter.hasNext()) {
+        eventCallback (0, EM_TIMER_FIRED, null, iter.next().longValue());
+        }
+      }
+	  }
 	}
 
 	public long installOneshotTimer (int milliseconds) {
-		long s = createBinding();
-		long deadline = new Date().getTime() + milliseconds;
+	  synchronized(TimersSemaphore) {
+      long s = createBinding();
+      long deadline = new Date().getTime() + milliseconds;
 
-		if (Timers.containsKey(deadline)) {
-			Timers.get(deadline).add(s);
-		} else {
-			ArrayList<Long> callbacks = new ArrayList<Long>();
-			callbacks.add(s);
-			Timers.put(deadline, callbacks);
-		}
+      if (Timers.containsKey(deadline)) {
+        Timers.get(deadline).add(s);
+      } else {
+        ArrayList<Long> callbacks = new ArrayList<Long>();
+        callbacks.add(s);
+        Timers.put(deadline, callbacks);
+      }
 
-		return s;
+      return s;
+	  }
 	}
 
 	public long startTcpServer (SocketAddress sa) throws EmReactorException {
