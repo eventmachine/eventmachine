@@ -206,6 +206,7 @@ when /darwin/
 
 when /linux/
   add_define 'HAVE_EPOLL' if have_func('epoll_create', 'sys/epoll.h')
+  check_libs(%w[stdc++], true)
 
   # on Unix we need a g++ link, not gcc.
   CONFIG['LDSHARED'] = "$(CXX) -shared"
