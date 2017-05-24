@@ -93,6 +93,13 @@ class TestTimers < Test::Unit::TestCase
     assert_equal 4, x
   end
 
+  def test_oneshot_timer_large_future_value
+    large_value = 11948602000
+    EM.run {
+      EM.add_timer(large_value) { EM.stop }
+      EM.add_timer(0.02) { EM.stop }
+    }
+  end
 
   # This test is only applicable to compiled versions of the reactor.
   # Pure ruby and java versions have no built-in limit on the number of outstanding timers.
