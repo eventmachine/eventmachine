@@ -1151,7 +1151,7 @@ void EventMachine_t::_RunTimers()
 EventMachine_t::InstallOneshotTimer
 ***********************************/
 
-const uintptr_t EventMachine_t::InstallOneshotTimer (int milliseconds)
+const uintptr_t EventMachine_t::InstallOneshotTimer (uint64_t milliseconds)
 {
 	if (Timers.size() > MaxOutstandingTimers)
 		return false;

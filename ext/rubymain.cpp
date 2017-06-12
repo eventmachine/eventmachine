@@ -262,7 +262,7 @@ t_add_oneshot_timer
 
 static VALUE t_add_oneshot_timer (VALUE self UNUSED, VALUE interval)
 {
-	const uintptr_t f = evma_install_oneshot_timer (FIX2INT (interval));
+	const uintptr_t f = evma_install_oneshot_timer (FIX2LONG (interval));
 	if (!f)
 		rb_raise (rb_eRuntimeError, "%s", "ran out of timers; use #set_max_timers to increase limit");
 	return BSIG2NUM (f);

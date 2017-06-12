@@ -373,7 +373,7 @@ public class EmReactor {
 		}
 	}
 
-	public long installOneshotTimer (int milliseconds) {
+	public long installOneshotTimer (BigInteger milliseconds) {
 		long s = createBinding();
 		long deadline = new Date().getTime() + milliseconds;
 
