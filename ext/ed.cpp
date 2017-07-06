@@ -2002,7 +2002,7 @@ bool DatagramDescriptor::GetPeername (struct sockaddr *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		*len = sizeof(struct sockaddr);
+		*len = ReturnAddress.sin6_len;
 		memset (s, 0, sizeof(struct sockaddr));
 		memcpy (s, &ReturnAddress, sizeof(ReturnAddress));
 		ok = true;
