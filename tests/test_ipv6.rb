@@ -35,11 +35,13 @@ class TestIPv6 < Test::Unit::TestCase
     def test_ipv6_udp_local_server
       @@received_data = nil
       @local_port = next_port
+      @@remote_ip = nil
       setup_timeout(2)
 
       EM.run do
         EM.open_datagram_socket(@@public_ipv6, @local_port) do |s|
           def s.receive_data data
+            _port, @@remote_ip = Socket.unpack_sockaddr_in(s.get_peername)
             @@received_data = data
             EM.stop
           end
@@ -49,7 +51,7 @@ class TestIPv6 < Test::Unit::TestCase
           c.send_datagram "ipv6/udp", @@public_ipv6, @local_port
         end
       end
-
+      assert_equal @@remote_ip, @@public_ipv6
       assert_equal "ipv6/udp", @@received_data
     end
 

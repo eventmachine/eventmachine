@@ -2002,8 +2002,8 @@ bool DatagramDescriptor::GetPeername (struct sockaddr *s, socklen_t *len)
 {
 	bool ok = false;
 	if (s) {
-		*len = sizeof(struct sockaddr);
-		memset (s, 0, sizeof(struct sockaddr));
+		*len = sizeof(ReturnAddress);
+		memset (s, 0, sizeof(ReturnAddress));
 		memcpy (s, &ReturnAddress, sizeof(ReturnAddress));
 		ok = true;
 	}
