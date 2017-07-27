@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.4 (July 27, 2017)
+* Java: Add EM_PROTO_SSL/TLS definitions [#773, #791]
+* Fix IPv6 UDP get_peername [#788]
+* Allow for larger values in oneshot timer intervals [#784]
+* Update extconf.rb to allow MinGW builds with OpenSSL 1.1.0 [#785]
+
 ## 1.2.3 (February 22, 2017)
 * Pure Ruby: Add get_sockname [#308, #772]
 * Fix segfault when an Exception is raised from unbind callback [#765, #766]
