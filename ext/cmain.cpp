@@ -100,10 +100,10 @@ extern "C" void evma_run_machine()
 evma_install_oneshot_timer
 **************************/
 
-extern "C" const uintptr_t evma_install_oneshot_timer (int seconds)
+extern "C" const uintptr_t evma_install_oneshot_timer (uint64_t milliseconds)
 {
 	ensure_eventmachine("evma_install_oneshot_timer");
-	return EventMachine->InstallOneshotTimer (seconds);
+	return EventMachine->InstallOneshotTimer (milliseconds);
 }
 
 
