@@ -13,6 +13,7 @@ Gem::Specification.new do |s|
   s.test_files = `git ls-files tests examples`.split
 
   s.extensions = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
+  s.metadata["msys2_mingw_dependencies"] = "openssl"
 
   s.add_development_dependency 'test-unit', '~> 2.0'
   s.add_development_dependency 'rake-compiler', '~> 0.9.5'
