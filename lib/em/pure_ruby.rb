@@ -433,7 +433,7 @@ module EventMachine
 
     # @private
     def report_connection_error_status signature
-      get_sock_opt signature, Socket::SOL_SOCKET, Socket::SO_ERROR
+      get_sock_opt(signature, Socket::SOL_SOCKET, Socket::SO_ERROR).int
     end
   end
 end
