@@ -430,6 +430,11 @@ module EventMachine
       # Needs to be implemented. Currently a no-op stub to allow
       # certain software to operate with the EM pure-ruby.
     end
+
+    # @private
+    def report_connection_error_status signature
+      get_sock_opt signature, Socket::SOL_SOCKET, Socket::SO_ERROR
+    end
   end
 end
 
