@@ -127,6 +127,8 @@ module EventMachine
   end
   def self.send_data sig, data, length
     @em.sendData sig, data.to_java_bytes
+  rescue java.lang.NullPointerException
+    0
   end
   def self.send_datagram sig, data, length, address, port
     @em.sendDatagram sig, data.to_java_bytes, length, address, port
