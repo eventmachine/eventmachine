@@ -1,4 +1,4 @@
-# About EventMachine  [![Code Climate](https://codeclimate.com/github/eventmachine/eventmachine.svg)](https://codeclimate.com/github/eventmachine/eventmachine)
+# About EventMachine  [![Build Status](https://travis-ci.org/eventmachine/eventmachine.svg?branch=master)](https://travis-ci.org/eventmachine/eventmachine) [![Code Climate Maintainability](https://api.codeclimate.com/v1/badges/e9b0603462905d5b9118/maintainability)](https://codeclimate.com/github/eventmachine/eventmachine/maintainability)
 
 
 ## What is EventMachine ##
