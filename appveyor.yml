@@ -27,7 +27,7 @@ install:
     )
   - ruby --version
   - gem  --version
-  - gem install bundler --quiet --no-document
+  # - gem install bundler --quiet --no-document
   - bundler --version
   - bundle install --without documentation --path vendor/%ruby_version%/bundle
 build_script:
