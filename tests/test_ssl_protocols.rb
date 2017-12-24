@@ -9,6 +9,9 @@ if EM.ssl?
     # equal to base METHODS, downcased, like ["tlsv1, "tlsv1_1", "tlsv1_2"]
     if RUBY_VERSION == "1.8.7"
       SSL_AVAIL = ["sslv3", "tlsv1"]
+    elsif ::OpenSSL::VERSION >= "2.1"
+      # Assume no SSLv3 in OpenSSL, OpenSSL::SSL::SSLContext::METHODS deprecated
+      SSL_AVAIL = ["tlsv1", "tlsv1_1", "tlsv1_2"]
     else
       SSL_AVAIL = ::OpenSSL::SSL::SSLContext::METHODS.select { |i| i =~ /[^\d]\d\z/ }.map { |i| i.to_s.downcase } 
     end

@@ -1,25 +1,61 @@
 ---
 version: "{build}"
 clone_depth: 10
+init:
+  - set PATH=C:\ruby%ruby_version%\bin;C:\Program Files\7-Zip;C:\Program Files\AppVeyor\BuildAgent;C:\Program Files\Git\cmd;C:\Windows\system32
+  - if %ruby_version%==_trunk (
+      appveyor DownloadFile https://ci.appveyor.com/api/projects/MSP-Greg/ruby-loco/artifacts/ruby_trunk.7z -FileName C:\ruby_trunk.7z &
+      7z x C:\ruby_trunk.7z -oC:\ruby_trunk &
+      C:\ruby_trunk\trunk_pkgs.cmd
+    )
 install:
-  - SET PATH=C:\Ruby%ruby_version%\bin;%PATH%
+  # RI DevKit is only installed in Ruby23 and Ruby23-x64 folders
+  # need to install OpenSSL since standard DevKit doesn't contain it
+  - if "%ri_file%"=="x86" (
+      appveyor DownloadFile https://dl.bintray.com/oneclick/OpenKnapsack/x86/openssl-1.0.2j-x86-windows.tar.lzma &
+      7z e openssl-1.0.2j-x86-windows.tar.lzma &
+      7z x -y openssl-1.0.2j-x86-windows.tar -oC:\ruby23\DevKit\mingw &
+      set b_config="--with-ssl-dir=C:/ruby23/DevKit/mingw --with-opt-include=C:/ruby23/DevKit/mingw/include" &
+      set SSL_CERT_FILE=C:/ruby24-x64/ssl/cert.pem
+    )
+  - if "%ri_file%"=="x64" (
+      appveyor DownloadFile https://dl.bintray.com/oneclick/OpenKnapsack/x64/openssl-1.0.2j-x64-windows.tar.lzma &
+      7z e openssl-1.0.2j-x64-windows.tar.lzma &
+      7z x -y openssl-1.0.2j-x64-windows.tar -oC:\ruby23-x64\DevKit\mingw &
+      set b_config="--with-ssl-dir=C:/ruby23-x64/DevKit/mingw --with-opt-include=C:/ruby23-x64/DevKit/mingw/include" &
+      set SSL_CERT_FILE=C:/ruby24-x64/ssl/cert.pem
+    )
   - ruby --version
-  - gem --version
-  - gem install bundler --quiet --no-ri --no-rdoc
+  - gem  --version
+  - gem install bundler --quiet --no-ri --no-rdoc --no-document
   - bundler --version
-  - bundle install --without documentation --path vendor/bundle
+  - bundle install --without documentation --path vendor/%ruby_version%/bundle
 build_script:
-  - bundle exec rake compile
+  - bundle config build.eventmachine --no-document --env-shebang %b_config%
+  - bundle exec rake -rdevkit compile -- %b_config%
 test_script:
-  - bundle exec rake test
+  - bundle exec rake -rdevkit test
+on_finish:
+ - ruby -v
 environment:
-  TESTOPTS: -v
+  TESTOPTS: -v --no-show-detail-immediately
+  ri_file: none
   matrix:
     - ruby_version: "200"
     - ruby_version: "200-x64"
     - ruby_version: "21"
     - ruby_version: "21-x64"
     - ruby_version: "22"
+      ri_file: x86
     - ruby_version: "22-x64"
+      ri_file: x64
+    - ruby_version: "23"
+      ri_file: x86
+    - ruby_version: "23-x64"
+      ri_file: x64
+    - ruby_version: "24-x64"
+      b_config: "--use-system-libraries"
+    - ruby_version: "_trunk"
+      b_config: "--use-system-libraries"
 cache:
   - vendor

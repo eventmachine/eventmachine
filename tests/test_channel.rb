@@ -64,8 +64,8 @@ class TestEMChannel < Test::Unit::TestCase
      subs = 0
      EM.run do
        c = EM::Channel.new
-       c.subscribe { |v| s = v }
-       c.subscribe { |v| s = v }
+       c.subscribe { |v| }
+       c.subscribe { |v| }
        EM.next_tick { EM.stop }
        subs = c.num_subscribers
      end

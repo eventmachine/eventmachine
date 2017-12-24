@@ -116,8 +116,8 @@ class Test::Unit::TestCase
   include PlatformHelper
   extend PlatformHelper
 
-  # Tests run significantly slower on windows. YMMV
-  TIMEOUT_INTERVAL = windows? ? 1 : 0.25
+  # Tests may run slower on windows or Appveyor. YMMV
+  TIMEOUT_INTERVAL = windows? ? 0.25 : 0.25
 
   def silent
     backup, $VERBOSE = $VERBOSE, nil

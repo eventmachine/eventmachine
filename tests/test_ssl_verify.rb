@@ -82,7 +82,7 @@ class TestSslVerify < Test::Unit::TestCase
   end
 
   def test_fail_no_peer_cert
-    omit_unless(EM.ssl?)
+    omit("No SSL") unless EM.ssl?
     omit_if(rbx?)
 
     $client_handshake_completed, $server_handshake_completed = false, false
@@ -97,7 +97,7 @@ class TestSslVerify < Test::Unit::TestCase
   end
 
   def test_accept_server
-    omit_unless(EM.ssl?)
+    omit("No SSL") unless EM.ssl?
     omit_if(EM.library_type == :pure_ruby) # Server has a default cert chain
     omit_if(rbx?)
     $client_handshake_completed, $server_handshake_completed = false, false
@@ -112,7 +112,7 @@ class TestSslVerify < Test::Unit::TestCase
   end
 
   def test_deny_server
-    omit_unless(EM.ssl?)
+    omit("No SSL") unless EM.ssl?
     omit_if(EM.library_type == :pure_ruby) # Server has a default cert chain
     omit_if(rbx?)
     $client_handshake_completed, $server_handshake_completed = false, false

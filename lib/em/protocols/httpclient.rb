@@ -23,38 +23,41 @@
 #
 #
 
+
 module EventMachine
   module Protocols
 
-    # <b>Note:</b> This class is deprecated and will be removed. Please use EM-HTTP-Request instead.
     #
     # @example
-    #  EventMachine.run {
-    #    http = EventMachine::Protocols::HttpClient.request(
-    #      :host => server,
-    #      :port => 80,
-    #      :request => "/index.html",
-    #      :query_string => "parm1=value1&parm2=value2"
-    #    )
-    #    http.callback {|response|
-    #      puts response[:status]
-    #      puts response[:headers]
-    #      puts response[:content]
-    #    }
-    #  }
+    # 
+    #   EventMachine.run {
+    #     http = EventMachine::Protocols::HttpClient.request(
+    #       :host => server,
+    #       :port => 80,
+    #       :request => "/index.html",
+    #       :query_string => "parm1=value1&parm2=value2"
+    #     )
+    #     http.callback {|response|
+    #       puts response[:status]
+    #       puts response[:headers]
+    #       puts response[:content]
+    #     }
+    #   }
     #--
-    # TODO:
-    # Add streaming so we can support enormous POSTs. Current max is 20meg.
-    # Timeout for connections that run too long or hang somewhere in the middle.
-    # Persistent connections (HTTP/1.1), may need a associated delegate object.
-    # DNS: Some way to cache DNS lookups for hostnames we connect to. Ruby's
-    # DNS lookups are unbelievably slow.
-    # HEAD requests.
-    # Convenience methods for requests. get, post, url, etc.
-    # SSL.
-    # Handle status codes like 304, 100, etc.
-    # Refactor this code so that protocol errors all get handled one way (an exception?),
-    # instead of sprinkling set_deferred_status :failed calls everywhere.
+    # @todo Add streaming so we can support enormous POSTs. Current max is 20meg.
+    #   Timeout for connections that run too long or hang somewhere in the middle.
+    #   Persistent connections (HTTP/1.1), may need a associated delegate object.
+    #   DNS: Some way to cache DNS lookups for hostnames we connect to. Ruby's
+    #   DNS lookups are unbelievably slow.
+    #   HEAD requests.
+    #   Convenience methods for requests. get, post, url, etc.
+    #   SSL.
+    #   Handle status codes like 304, 100, etc.
+    #   Refactor this code so that protocol errors all get handled one way (an exception?),
+    #   instead of sprinkling set_deferred_status :failed calls everywhere.
+    #
+    # @deprecated Please use [EM-HTTP-Request](https://github.com/igrigorik/em-http-request) instead.
+    #
     class HttpClient < Connection
       include EventMachine::Deferrable
 

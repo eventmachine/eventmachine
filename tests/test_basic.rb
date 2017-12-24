@@ -6,6 +6,8 @@ class TestBasic < Test::Unit::TestCase
     @port = next_port
   end
 
+  INVALID = "(not known|no data of the requested|No such host is known)"
+
   def test_connection_class_cache
     mod = Module.new
     a, b = nil, nil
@@ -20,7 +22,6 @@ class TestBasic < Test::Unit::TestCase
   end
 
   #-------------------------------------
-
 
   def test_em
     assert_nothing_raised do
@@ -144,8 +145,6 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_bind_connect
-    pend('FIXME: this test is broken on Windows') if windows?
-
     local_ip = UDPSocket.open {|s| s.connect('localhost', 80); s.addr.last }
 
     bind_port = next_port
@@ -184,7 +183,7 @@ class TestBasic < Test::Unit::TestCase
     end
 
     assert_kind_of(EventMachine::ConnectionError, e)
-    assert_match(/unable to resolve address:.*not known/, e.message)
+    assert_match(/unable to resolve address:.*#{INVALID}/, e.message)
   end
 
   def test_invalid_address_bind_connect_src
@@ -200,7 +199,7 @@ class TestBasic < Test::Unit::TestCase
     end
 
     assert_kind_of(EventMachine::ConnectionError, e)
-    assert_match(/invalid bind address:.*not known/, e.message)
+    assert_match(/invalid bind address:.*#{INVALID}/, e.message)
   end
 
   def test_reactor_thread?
@@ -217,7 +216,7 @@ class TestBasic < Test::Unit::TestCase
     end
     assert x
   end
-  
+
   def test_schedule_from_thread
     x = false
     EM.run do
@@ -236,14 +235,14 @@ class TestBasic < Test::Unit::TestCase
     }
     assert_equal(interval, $interval)
   end
-  
+
   module PostInitRaiser
     ERR = Class.new(StandardError)
     def post_init
       raise ERR
     end
   end
-  
+
   def test_bubble_errors_from_post_init
     assert_raises(PostInitRaiser::ERR) do
       EM.run do
@@ -252,14 +251,14 @@ class TestBasic < Test::Unit::TestCase
       end
     end
   end
-  
+
   module InitializeRaiser
     ERR = Class.new(StandardError)
     def initialize
       raise ERR
     end
   end
-  
+
   def test_bubble_errors_from_initialize
     assert_raises(InitializeRaiser::ERR) do
       EM.run do
@@ -268,7 +267,7 @@ class TestBasic < Test::Unit::TestCase
       end
     end
   end
-  
+
   def test_schedule_close
     omit_if(jruby?)
     localhost, port = '127.0.0.1', 9000

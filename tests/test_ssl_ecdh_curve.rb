@@ -1,6 +1,14 @@
 require 'em_test_helper'
 
 class TestSslEcdhCurve < Test::Unit::TestCase
+
+  if EM.ssl?
+    require 'openssl'
+    OPENSSL_GT_1_0 = ((OpenSSL::OPENSSL_VERSION[/ (\d+\.\d+\.\d+)[a-z]/,1] || "0.0") >= "1.1") or
+      (OpenSSL.const_defined?(:OPENSSL_LIBRARY_VERSION) ?
+        ((OpenSSL::OPENSSL_LIBRARY_VERSION[/ (\d+\.\d+\.\d+)[a-z]/,1] || "0.0") >= "1.1") : false)
+  end
+
   module Client
     def post_init
       start_tls
@@ -40,8 +48,9 @@ class TestSslEcdhCurve < Test::Unit::TestCase
   end
 
   def test_no_ecdh_curve
-    omit_unless(EM.ssl?)
+    omit("No SSL") unless EM.ssl?
     omit_if(rbx?)
+    omit("OpenSSL 1.1.x (and later) auto selects curve") if OPENSSL_GT_1_0
 
     $client_handshake_completed, $server_handshake_completed = false, false
 
@@ -55,7 +64,7 @@ class TestSslEcdhCurve < Test::Unit::TestCase
   end
 
   def test_ecdh_curve
-    omit_unless(EM.ssl?)
+    omit("No SSL") unless EM.ssl?
     omit_if(EM.library_type == :pure_ruby && RUBY_VERSION < "2.3.0")
     omit_if(rbx?)
 
