@@ -27,7 +27,6 @@ install:
     )
   - ruby --version
   - gem  --version
-  - gem install bundler --quiet --no-ri --no-rdoc --no-document
   - bundler --version
   - bundle install --without documentation --path vendor/%ruby_version%/bundle
 build_script:
@@ -58,4 +57,4 @@ environment:
     - ruby_version: "25-x64"
       b_config: "--use-system-libraries"
 cache:
-  - vendor
+  - vendor -> appveyor.yml
