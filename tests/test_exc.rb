@@ -18,25 +18,19 @@ class TestSomeExceptions < Test::Unit::TestCase
 
   def test_a
     assert_raises(RuntimeError) {
-      EM.run {
-      raise "some exception"
-    }
+      EM.run { raise "some exception" }
     }
   end
 
   def test_b
     assert_raises(RuntimeError) {
-      EM.run {
-      raise "some exception"
-    }
+      EM.run { raise "some exception" }
     }
   end
 
   def test_exception_on_unbind
     assert_raises(DoomedConnectionError) {
-      EM.run {
-      EM.connect("localhost", 8888, DoomedConnection)
-    }
+      EM.run { EM.connect("localhost", 8888, DoomedConnection) }
     }
   end
 

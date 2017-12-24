@@ -45,7 +45,7 @@ class TestSslDhParam < Test::Unit::TestCase
   end
 
   def test_no_dhparam
-    omit_unless(EM.ssl?)
+    omit("No SSL") unless EM.ssl?
     omit_if(EM.library_type == :pure_ruby) # DH will work with defaults
     omit_if(rbx?)
 
@@ -62,7 +62,7 @@ class TestSslDhParam < Test::Unit::TestCase
   end
 
   def test_dhparam
-    omit_unless(EM.ssl?)
+    omit("No SSL") unless EM.ssl?
     omit_if(rbx?)
 
     $client_handshake_completed, $server_handshake_completed = false, false

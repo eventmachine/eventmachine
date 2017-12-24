@@ -15,7 +15,8 @@ Gem::Specification.new do |s|
   s.extensions = ["ext/extconf.rb", "ext/fastfilereader/extconf.rb"]
 
   if s.respond_to?(:metadata=)
-    s.metadata = { "msys2_mingw_dependencies" => "openssl" }
+    s.metadata ||= {}
+    s.metadata["msys2_mingw_dependencies"] = "openssl"
   end
 
   s.add_development_dependency 'test-unit', '~> 2.0'

@@ -70,7 +70,7 @@ class TestFileWatch < Test::Unit::TestCase
         assert_raise EventMachine::InvalidSignature do
           w2.stop_watching
         end
-
+        w1.stop_watching rescue nil
         EM.stop
       }
     end

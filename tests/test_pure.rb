@@ -124,6 +124,7 @@ class TestPure < Test::Unit::TestCase
   end
 
   def test_start_tls
+    omit("No SSL") unless EM.ssl?
     $client_handshake_completed, $server_handshake_completed = false, false
     $client_received_data, $server_received_data = nil, nil
     EM.run do
