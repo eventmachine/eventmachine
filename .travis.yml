@@ -1,14 +1,16 @@
+sudo: false
+dist: trusty
+language: ruby
 bundler_args: --without documentation
 script: bundle exec rake compile test
+# Pin Rubygems to a working version. Sometimes it breaks upstream. Update now and then.
 before_install:
   - 'if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then brew install openssl; fi'
+  - gem update --system 2.7.4
   - gem update bundler
 env:
   global:
     - TESTOPTS=-v
-language: ruby
-sudo: false
-dist: trusty
 rvm:
   - 2.5
   - 2.4
