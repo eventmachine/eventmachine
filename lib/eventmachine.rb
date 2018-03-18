@@ -120,16 +120,16 @@ module EventMachine
   # @example Starting EventMachine event loop in the current thread to run the "Hello, world"-like Echo server example
   #
   #   #!/usr/bin/env ruby
-  #   
+  #
   #   require 'rubygems' # or use Bundler.setup
   #   require 'eventmachine'
-  #   
+  #
   #   class EchoServer < EM::Connection
   #     def receive_data(data)
   #       send_data(data)
   #     end
   #   end
-  #   
+  #
   #   EventMachine.run do
   #     EventMachine.start_server("0.0.0.0", 10000, EchoServer)
   #   end
@@ -380,24 +380,24 @@ module EventMachine
   #
   #   require 'rubygems'
   #   require 'eventmachine'
-  #   
+  #
   #   module Redmond
   #     def post_init
   #       puts "We're sending a dumb HTTP request to the remote peer."
   #       send_data "GET / HTTP/1.1\r\nHost: www.microsoft.com\r\n\r\n"
   #     end
-  #   
+  #
   #     def receive_data data
   #       puts "We received #{data.length} bytes from the remote peer."
   #       puts "We're going to stop the event loop now."
   #       EventMachine::stop_event_loop
   #     end
-  #   
+  #
   #     def unbind
   #       puts "A connection has terminated."
   #     end
   #   end
-  #   
+  #
   #   puts "We're starting the event loop now."
   #   EventMachine.run {
   #     EventMachine.connect "www.microsoft.com", 80, Redmond
@@ -528,7 +528,7 @@ module EventMachine
     klass = klass_from_handler(Connection, handler, *args)
 
     s = if port
-          start_tcp_server server, port
+          start_tcp_server server = (server == "localhost" ?  "127.0.0.1" : server), port
         else
           start_unix_server server
         end
