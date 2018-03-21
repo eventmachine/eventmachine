@@ -101,6 +101,26 @@ class TestTimers < Test::Unit::TestCase
     }
   end
 
+  def test_add_timer_increments_outstanding_timer_count
+    EM.run {
+      n = EM.get_outstanding_timer_count
+      EM::Timer.new(0.01) {
+        EM.stop
+      }
+      assert_equal(n+1, EM.get_outstanding_timer_count)
+    }
+  end
+
+  def test_timer_run_decrements_timer_count
+    EM.run {
+      n = EM.get_outstanding_timer_count
+      EM::Timer.new(0.01) {
+        assert_equal(n, EM.get_outstanding_timer_count)
+        EM.stop
+      }
+    }
+  end
+
   # This test is only applicable to compiled versions of the reactor.
   # Pure ruby and java versions have no built-in limit on the number of outstanding timers.
   unless [:pure_ruby, :java].include? EM.library_type

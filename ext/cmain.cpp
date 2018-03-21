@@ -95,6 +95,15 @@ extern "C" void evma_run_machine()
 	EventMachine->Run();
 }
 
+/********************************
+evma_get_outstanding_timer_count
+********************************/
+
+extern "C" const size_t evma_get_outstanding_timer_count ()
+{
+  ensure_eventmachine("evma_get_outstanding_timer_count");
+  return EventMachine->GetOutstandingTimerCount();
+}
 
 /**************************
 evma_install_oneshot_timer
