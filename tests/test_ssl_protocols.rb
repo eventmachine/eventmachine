@@ -7,11 +7,7 @@ if EM.ssl?
   class TestSslProtocols < Test::Unit::TestCase
 
     # equal to base METHODS, downcased, like ["tlsv1, "tlsv1_1", "tlsv1_2"]
-    if RUBY_VERSION == "1.8.7"
-      SSL_AVAIL = ["sslv3", "tlsv1"]
-    else
-      SSL_AVAIL = ::OpenSSL::SSL::SSLContext::METHODS.select { |i| i =~ /[^\d]\d\z/ }.map { |i| i.to_s.downcase } 
-    end
+    SSL_AVAIL = ::OpenSSL::SSL::SSLContext::METHODS.select { |i| i =~ /[^\d]\d\z/ }.map { |i| i.to_s.downcase }
 
     libr_vers =  OpenSSL.const_defined?(:OPENSSL_LIBRARY_VERSION) ?
       OpenSSL::OPENSSL_VERSION : 'na'

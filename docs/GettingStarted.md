@@ -34,7 +34,6 @@ we recommend you to use [JRuby](http://jruby.org) when running these examples.
 
 This guide assumes you have one of the supported Ruby implementations installed:
 
- * Ruby 1.8.7
  * Ruby 1.9.2
  * [JRuby](http://jruby.org) (we recommend 1.6)
  * [Rubinius](http://rubini.us) 1.2 or higher
