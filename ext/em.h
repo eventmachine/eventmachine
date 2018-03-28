@@ -142,7 +142,7 @@ class EventMachine_t
 		void ScheduleHalt();
 		bool Stopping();
 		void SignalLoopBreaker();
-		size_t GetOutstandingTimerCount();
+		size_t GetTimerCount();
 		const uintptr_t InstallOneshotTimer (uint64_t);
 		const uintptr_t ConnectToServer (const char *, int, const char *, int);
 		const uintptr_t ConnectToUnixServer (const char *);

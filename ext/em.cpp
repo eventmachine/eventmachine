@@ -1149,7 +1149,7 @@ void EventMachine_t::_RunTimers()
 EventMachine_t::_GetNumberOfOutstandingTimers
 *********************************************/
 
-size_t EventMachine_t::GetOutstandingTimerCount()
+size_t EventMachine_t::GetTimerCount()
 {
     return Timers.size();
 }

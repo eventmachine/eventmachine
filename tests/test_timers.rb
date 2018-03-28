@@ -103,19 +103,19 @@ class TestTimers < Test::Unit::TestCase
 
   def test_add_timer_increments_outstanding_timer_count
     EM.run {
-      n = EM.get_outstanding_timer_count
+      n = EM.get_timer_count
       EM::Timer.new(0.01) {
         EM.stop
       }
-      assert_equal(n+1, EM.get_outstanding_timer_count)
+      assert_equal(n+1, EM.get_timer_count)
     }
   end
 
   def test_timer_run_decrements_timer_count
     EM.run {
-      n = EM.get_outstanding_timer_count
+      n = EM.get_timer_count
       EM::Timer.new(0.01) {
-        assert_equal(n, EM.get_outstanding_timer_count)
+        assert_equal(n, EM.get_timer_count)
         EM.stop
       }
     }

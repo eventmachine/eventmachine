@@ -96,13 +96,13 @@ extern "C" void evma_run_machine()
 }
 
 /********************************
-evma_get_outstanding_timer_count
+evma_get_timer_count
 ********************************/
 
-extern "C" const size_t evma_get_outstanding_timer_count ()
+extern "C" const size_t evma_get_timer_count ()
 {
-  ensure_eventmachine("evma_get_outstanding_timer_count");
-  return EventMachine->GetOutstandingTimerCount();
+  ensure_eventmachine("evma_get_timer_count");
+  return EventMachine->GetTimerCount();
 }
 
 /**************************

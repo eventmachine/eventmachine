@@ -508,7 +508,7 @@ module EventMachine
       initialize_for_run
     end
 
-    def get_outstanding_timer_count
+    def get_timer_count
       @timers.size
     end
 
