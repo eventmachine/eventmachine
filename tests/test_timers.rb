@@ -101,7 +101,7 @@ class TestTimers < Test::Unit::TestCase
     }
   end
 
-  def test_add_timer_increments_outstanding_timer_count
+  def test_add_timer_increments_timer_count
     EM.run {
       n = EM.get_timer_count
       EM::Timer.new(0.01) {
