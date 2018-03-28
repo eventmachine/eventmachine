@@ -508,6 +508,10 @@ module EventMachine
       initialize_for_run
     end
 
+    def get_timer_count
+      @timers.size
+    end
+
     def install_oneshot_timer interval
       uuid = UuidGenerator::generate
       #@timers << [Time.now + interval, uuid]
