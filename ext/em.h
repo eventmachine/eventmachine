@@ -237,14 +237,29 @@ class EventMachine_t
 		class Timer_t: public Bindable_t {
 		};
 
-		multimap<uint64_t, Timer_t> Timers;
-		multimap<uint64_t, EventableDescriptor*> Heartbeats;
-		map<int, Bindable_t*> Files;
-		map<int, Bindable_t*> Pids;
-		vector<EventableDescriptor*> Descriptors;
-		vector<EventableDescriptor*> NewDescriptors;
-		vector<EventableDescriptor*> DescriptorsToDelete;
-		set<EventableDescriptor*> ModifiedDescriptors;
+		typedef multimap<uint64_t, Timer_t> Timers_t;
+		Timers_t Timers;
+
+		typedef multimap<uint64_t, EventableDescriptor*> Heartbeats_t;
+		Heartbeats_t Heartbeats;
+
+		typedef map<int, Bindable_t*> Files_t;
+		Files_t Files;
+
+		typedef map<int, Bindable_t*> Pids_t;
+		Pids_t Pids;
+
+		typedef vector<EventableDescriptor*> Descriptors_t;
+		Descriptors_t Descriptors;
+
+		typedef vector<EventableDescriptor*> NewDescriptors_t;
+		NewDescriptors_t NewDescriptors;
+
+		typedef vector<EventableDescriptor*> DeleteDescriptors_t;
+		DeleteDescriptors_t DescriptorsToDelete;
+
+		typedef set<EventableDescriptor*> ModifiedDescriptors_t;
+		ModifiedDescriptors_t ModifiedDescriptors;
 
 		SOCKET LoopBreakerReader;
 		SOCKET LoopBreakerWriter;
