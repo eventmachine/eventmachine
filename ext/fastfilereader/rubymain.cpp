@@ -21,7 +21,6 @@ See the file COPYING for complete licensing information.
 
 #include <iostream>
 #include <stdexcept>
-using namespace std;
 
 #include <ruby.h>
 #include "mapper.h"

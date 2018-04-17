@@ -120,7 +120,7 @@ static void InitializeDefaultCredentials()
 SslContext_t::SslContext_t
 **************************/
 
-SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const string &certchainfile, const string &cipherlist, const string &ecdh_curve, const string &dhparam, int ssl_version) :
+SslContext_t::SslContext_t (bool is_server, const std::string &privkeyfile, const std::string &certchainfile, const std::string &cipherlist, const std::string &ecdh_curve, const std::string &dhparam, int ssl_version) :
 	bIsServer (is_server),
 	pCtx (NULL),
 	PrivateKey (NULL),
@@ -219,7 +219,7 @@ SslContext_t::SslContext_t (bool is_server, const string &privkeyfile, const str
 				BIO_free(bio);
 				char buf [500];
 				snprintf (buf, sizeof(buf)-1, "dhparam: PEM_read_bio_DHparams(%s) failed", dhparam.c_str());
-				throw new std::runtime_error(buf);
+				throw std::runtime_error (buf);
 			}
 
 			SSL_CTX_set_tmp_dh(pCtx, dh);
@@ -304,7 +304,7 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const string &privkeyfile, const string &certchainfile, bool verify_peer, bool fail_if_no_peer_cert, const string &snihostname, const string &cipherlist, const string &ecdh_curve, const string &dhparam, int ssl_version, const uintptr_t binding):
+SslBox_t::SslBox_t (bool is_server, const std::string &privkeyfile, const std::string &certchainfile, bool verify_peer, bool fail_if_no_peer_cert, const std::string &snihostname, const std::string &cipherlist, const std::string &ecdh_curve, const std::string &dhparam, int ssl_version, const uintptr_t binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),

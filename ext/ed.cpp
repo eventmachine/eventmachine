@@ -320,7 +320,7 @@ void EventableDescriptor::_GenericInboundDispatch(const char *buf, unsigned long
 
 	if (ProxyTarget) {
 		if (BytesToProxy > 0) {
-			unsigned long proxied = min(BytesToProxy, size);
+			unsigned long proxied = std::min(BytesToProxy, size);
 			ProxyTarget->SendOutboundData(buf, proxied);
 			ProxiedBytes += (unsigned long) proxied;
 			BytesToProxy -= proxied;
@@ -1148,7 +1148,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 	#ifdef HAVE_WRITEV
 	if (!err) {
 		unsigned int sent = bytes_written;
-		deque<OutboundPage>::iterator op = OutboundPages.begin();
+		std::deque<OutboundPage>::iterator op = OutboundPages.begin();
 
 		for (int i = 0; i < iovcnt; i++) {
 			if (iov[i].iov_len <= sent) {

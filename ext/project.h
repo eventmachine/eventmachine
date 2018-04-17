@@ -115,8 +115,6 @@ typedef int SOCKET;
 #include <stdint.h>
 #endif
 
-using namespace std;
-
 #ifdef WITH_SSL
 #include <openssl/ssl.h>
 #include <openssl/err.h>

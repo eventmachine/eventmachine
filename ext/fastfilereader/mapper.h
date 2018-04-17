@@ -29,7 +29,7 @@ class Mapper_t
 class Mapper_t
 {
 	public:
-		Mapper_t (const string&);
+		Mapper_t (const std::string&);
 		virtual ~Mapper_t();
 
 		const char *GetChunk (unsigned);
