@@ -22,7 +22,7 @@ See the file COPYING for complete licensing information.
 #define DEV_URANDOM "/dev/urandom"
 
 
-map<uintptr_t, Bindable_t*> Bindable_t::BindingBag;
+std::map<uintptr_t, Bindable_t*> Bindable_t::BindingBag;
 
 
 /********************************
@@ -92,7 +92,7 @@ STATIC: Bindable_t::GetObject
 
 Bindable_t *Bindable_t::GetObject (const uintptr_t binding)
 {
-	map<uintptr_t, Bindable_t*>::const_iterator i = BindingBag.find (binding);
+	std::map<uintptr_t, Bindable_t*>::const_iterator i = BindingBag.find (binding);
 	if (i != BindingBag.end())
 		return i->second;
 	else

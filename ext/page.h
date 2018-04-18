@@ -44,7 +44,7 @@ class PageList
 		void PopFront();
 
 	private:
-		deque<Page> Pages;
+		std::deque<Page> Pages;
 };
 
 

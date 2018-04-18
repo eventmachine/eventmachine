@@ -237,14 +237,14 @@ class EventMachine_t
 		class Timer_t: public Bindable_t {
 		};
 
-		multimap<uint64_t, Timer_t> Timers;
-		multimap<uint64_t, EventableDescriptor*> Heartbeats;
-		map<int, Bindable_t*> Files;
-		map<int, Bindable_t*> Pids;
-		vector<EventableDescriptor*> Descriptors;
-		vector<EventableDescriptor*> NewDescriptors;
-		vector<EventableDescriptor*> DescriptorsToDelete;
-		set<EventableDescriptor*> ModifiedDescriptors;
+		std::multimap<uint64_t, Timer_t> Timers;
+		std::multimap<uint64_t, EventableDescriptor*> Heartbeats;
+		std::map<int, Bindable_t*> Files;
+		std::map<int, Bindable_t*> Pids;
+		std::vector<EventableDescriptor*> Descriptors;
+		std::vector<EventableDescriptor*> NewDescriptors;
+		std::vector<EventableDescriptor*> DescriptorsToDelete;
+		std::set<EventableDescriptor*> ModifiedDescriptors;
 
 		SOCKET LoopBreakerReader;
 		SOCKET LoopBreakerWriter;
