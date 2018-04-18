@@ -251,7 +251,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		bool bReadAttemptedAfterClose;
 		bool bWriteAttemptedAfterClose;
 
-		deque<OutboundPage> OutboundPages;
+		std::deque<OutboundPage> OutboundPages;
 		int OutboundDataSize;
 
 		#ifdef WITH_SSL
@@ -326,7 +326,7 @@ class DatagramDescriptor: public EventableDescriptor
 			struct sockaddr_in6 From;
 		};
 
-		deque<OutboundPage> OutboundPages;
+		std::deque<OutboundPage> OutboundPages;
 		int OutboundDataSize;
 
 		struct sockaddr_in6 ReturnAddress;
@@ -394,7 +394,7 @@ class PipeDescriptor: public EventableDescriptor
 	protected:
 		bool bReadAttemptedAfterClose;
 
-		deque<OutboundPage> OutboundPages;
+		std::deque<OutboundPage> OutboundPages;
 		int OutboundDataSize;
 
 		pid_t SubprocessPid;

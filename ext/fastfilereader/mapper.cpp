@@ -30,13 +30,12 @@ See the file COPYING for complete licensing information.
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include <iostream>
-#include "unistd.h"
 #include <string>
 #include <cstring>
 #include <stdexcept>
-using namespace std;
 
 #include "mapper.h"
 
@@ -44,7 +43,7 @@ using namespace std;
 Mapper_t::Mapper_t
 ******************/
 
-Mapper_t::Mapper_t (const string &filename)
+Mapper_t::Mapper_t (const std::string &filename)
 {
 	/* We ASSUME we can open the file.
 	 * (More precisely, we assume someone else checked before we got here.)
@@ -52,11 +51,11 @@ Mapper_t::Mapper_t (const string &filename)
 
 	Fd = open (filename.c_str(), O_RDONLY);
 	if (Fd < 0)
-		throw runtime_error (strerror (errno));
+		throw std::runtime_error (strerror (errno));
 
 	struct stat st;
 	if (fstat (Fd, &st))
-		throw runtime_error (strerror (errno));
+		throw std::runtime_error (strerror (errno));
 	FileSize = st.st_size;
 
 	#ifdef OS_WIN32
@@ -65,7 +64,7 @@ Mapper_t::Mapper_t (const string &filename)
 	MapPoint = (const char*) mmap (0, FileSize, PROT_READ, MAP_SHARED, Fd, 0);
 	#endif
 	if (MapPoint == MAP_FAILED)
-		throw runtime_error (strerror (errno));
+		throw std::runtime_error (strerror (errno));
 }
 
 
@@ -128,7 +127,6 @@ const char *Mapper_t::GetChunk (unsigned start)
 #include <iostream>
 #include <string>
 #include <stdexcept>
-using namespace std;
 
 #include "mapper.h"
 
@@ -136,7 +134,7 @@ using namespace std;
 Mapper_t::Mapper_t
 ******************/
 
-Mapper_t::Mapper_t (const string &filename)
+Mapper_t::Mapper_t (const std::string &filename)
 {
 	/* We ASSUME we can open the file.
 	 * (More precisely, we assume someone else checked before we got here.)
@@ -150,7 +148,7 @@ Mapper_t::Mapper_t (const string &filename)
 	hFile = CreateFile (filename.c_str(), GENERIC_READ|GENERIC_WRITE, FILE_SHARE_DELETE|FILE_SHARE_READ|FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
 	if (hFile == INVALID_HANDLE_VALUE)
-		throw runtime_error ("File not found");
+		throw std::runtime_error ("File not found");
 
 	BY_HANDLE_FILE_INFORMATION i;
 	if (GetFileInformationByHandle (hFile, &i))
@@ -158,7 +156,7 @@ Mapper_t::Mapper_t (const string &filename)
 
 	hMapping = CreateFileMapping (hFile, NULL, PAGE_READWRITE, 0, 0, NULL);
 	if (!hMapping)
-		throw runtime_error ("File not mapped");
+		throw std::runtime_error ("File not mapped");
 
 	#ifdef OS_WIN32
 	MapPoint = (char*) MapViewOfFile (hMapping, FILE_MAP_WRITE, 0, 0, 0);
@@ -166,7 +164,7 @@ Mapper_t::Mapper_t (const string &filename)
 	MapPoint = (const char*) MapViewOfFile (hMapping, FILE_MAP_WRITE, 0, 0, 0);
 	#endif
 	if (!MapPoint)
-		throw runtime_error ("Mappoint not read");
+		throw std::runtime_error ("Mappoint not read");
 }
 
 
