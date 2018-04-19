@@ -228,7 +228,6 @@ class EventMachine_t
 
 	private:
 		enum {
-			MaxEpollDescriptors = 64*1024,
 			MaxEvents = 4096
 		};
 		int HeartbeatInterval;

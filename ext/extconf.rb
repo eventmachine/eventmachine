@@ -205,7 +205,8 @@ when /darwin/
   CONFIG['LDSHARED'] = "$(CXX) " + CONFIG['LDSHARED'].split[1..-1].join(' ')
 
 when /linux/
-  add_define 'HAVE_EPOLL' if have_func('epoll_create', 'sys/epoll.h')
+  # epoll_create1 was added in Linux 2.6.27 and glibc 2.9
+  add_define 'HAVE_EPOLL' if have_func('epoll_create1', 'sys/epoll.h')
 
   # on Unix we need a g++ link, not gcc.
   CONFIG['LDSHARED'] = "$(CXX) -shared"
