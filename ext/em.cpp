@@ -386,16 +386,12 @@ void EventMachine_t::_InitializeLoopBreaker()
 
 	#ifdef HAVE_EPOLL
 	if (Poller == Poller_Epoll) {
-		epfd = epoll_create (MaxEpollDescriptors);
+		epfd = epoll_create1(EPOLL_CLOEXEC);
 		if (epfd == -1) {
 			char buf[200];
 			snprintf (buf, sizeof(buf)-1, "unable to create epoll descriptor: %s", strerror(errno));
 			throw std::runtime_error (buf);
 		}
-		int cloexec = fcntl (epfd, F_GETFD, 0);
-		assert (cloexec >= 0);
-		cloexec |= FD_CLOEXEC;
-		fcntl (epfd, F_SETFD, cloexec);
 
 		assert (LoopBreakerReader >= 0);
 		LoopbreakDescriptor *ld = new LoopbreakDescriptor (LoopBreakerReader, this);
