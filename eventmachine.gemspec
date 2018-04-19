@@ -19,8 +19,8 @@ Gem::Specification.new do |s|
   end
 
   s.add_development_dependency 'test-unit', '~> 2.0'
-  s.add_development_dependency 'rake-compiler', '~> 0.9.5'
-  s.add_development_dependency 'rake-compiler-dock', '~> 0.5.1'
+  s.add_development_dependency 'rake-compiler', '~> 1.0'
+  s.add_development_dependency 'rake-compiler-dock', '~> 0.6.3'
 
   s.summary = 'Ruby/EventMachine library'
   s.description = <<-EOT

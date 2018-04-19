@@ -12,6 +12,7 @@ env:
   global:
     - TESTOPTS=-v
 rvm:
+  - 2.6
   - 2.5
   - 2.4
   - 2.3
@@ -34,12 +35,10 @@ matrix:
 #    - rvm: rbx-3
     - rvm: ruby-head
     - rvm: 2.0.0
-    - rvm: 2.0.0
+    - rvm: 2.3
       os: osx
-      osx_image: xcode8
 #    - rvm: jruby-1.7
 #    - rvm: jruby-9
   include:
-    - rvm: 2.0.0
+    - rvm: 2.3
       os: osx
-      osx_image: xcode8
