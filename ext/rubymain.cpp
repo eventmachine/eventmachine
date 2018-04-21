@@ -261,7 +261,7 @@ t_get_timer_count
 
 static VALUE t_get_timer_count ()
 {
-    return SIZET2NUM (evma_get_timer_count ());
+	return SIZET2NUM (evma_get_timer_count ());
 }
 
 /*******************
@@ -1255,13 +1255,22 @@ static VALUE conn_associate_callback_target (VALUE self UNUSED, VALUE sig UNUSED
 t_enable_keepalive
 ******************/
 
-static VALUE t_enable_keepalive (VALUE self, VALUE idle, VALUE intvl, VALUE cnt)
+static VALUE t_enable_keepalive (int argc, VALUE *argv, VALUE self)
 {
-  VALUE sig = rb_ivar_get (self, Intern_at_signature);
-  int i_idle = NUM2INT(idle);
-  int i_intvl = NUM2INT(intvl);
-  int i_cnt = NUM2INT(cnt);
-  return INT2NUM (evma_enable_keepalive(NUM2ULONG(sig), i_idle, i_intvl, i_cnt));
+	VALUE idle, intvl, cnt;
+	rb_scan_args(argc, argv, "03", &idle, &intvl, &cnt);
+
+	// In ed.cpp, skip 0 values before calling setsockopt
+	int i_idle  = NIL_P(idle)  ? 0 : NUM2INT(idle);
+	int i_intvl = NIL_P(intvl) ? 0 : NUM2INT(intvl);
+	int i_cnt   = NIL_P(cnt)   ? 0 : NUM2INT(cnt);
+
+	VALUE sig = rb_ivar_get (self, Intern_at_signature);
+	try {
+		return INT2NUM (evma_enable_keepalive(NUM2ULONG(sig), i_idle, i_intvl, i_cnt));
+	} catch (std::runtime_error e) {
+		rb_raise (rb_eRuntimeError, "%s", e.what());
+	}
 }
 
 /******************
@@ -1270,8 +1279,12 @@ t_disable_keepalive
 
 static VALUE t_disable_keepalive (VALUE self)
 {
-  VALUE sig = rb_ivar_get (self, Intern_at_signature);
-  return INT2NUM (evma_disable_keepalive(NUM2ULONG(sig)));
+	VALUE sig = rb_ivar_get (self, Intern_at_signature);
+	try {
+		return INT2NUM (evma_disable_keepalive(NUM2ULONG(sig)));
+	} catch (std::runtime_error e) {
+		rb_raise (rb_eRuntimeError, "%s", e.what());
+	}
 }
 
 /***************
@@ -1522,7 +1535,7 @@ extern "C" void Init_rubyeventmachine()
 
 	rb_define_method (EmConnection, "get_outbound_data_size", (VALUE(*)(...))conn_get_outbound_data_size, 0);
 	rb_define_method (EmConnection, "associate_callback_target", (VALUE(*)(...))conn_associate_callback_target, 1);
-	rb_define_method (EmConnection, "enable_keepalive", (VALUE(*)(...))t_enable_keepalive, 3);
+	rb_define_method (EmConnection, "enable_keepalive", (VALUE(*)(...))t_enable_keepalive, -1);
 	rb_define_method (EmConnection, "disable_keepalive", (VALUE(*)(...))t_disable_keepalive, 0);
 
 	// Connection states
