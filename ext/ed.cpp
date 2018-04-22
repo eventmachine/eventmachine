@@ -272,11 +272,15 @@ int EventableDescriptor::EnableKeepalive(int idle, int intvl, int cnt)
 	int ret;
 
 #ifdef OS_WIN32
+	DWORD len;
 	struct tcp_keepalive args;
+
 	args.onoff = 1;
 
-	args.keepalivetime = idle;
-	args.keepaliveinterval = intvl;
+	if (idle > 0)
+		args.keepalivetime = idle * 1000;
+	if (intvl > 0)
+		args.keepaliveinterval = intvl * 1000;
 
 	ret = WSAIoctl(MySocket, SIO_KEEPALIVE_VALS, &args, sizeof(args), NULL, 0, &len, NULL, NULL);
 	if (ret < 0) {
@@ -362,6 +366,7 @@ int EventableDescriptor::DisableKeepalive()
 	int ret;
 
 #ifdef OS_WIN32
+	DWORD len;
 	struct tcp_keepalive args;
 	args.onoff = 0;
 	ret = WSAIoctl(MySocket, SIO_KEEPALIVE_VALS, &args, sizeof(args), NULL, 0, &len, NULL, NULL);

@@ -810,7 +810,7 @@ extern "C" int evma_get_outbound_data_size (const uintptr_t binding)
 evma_enable_keepalive
 *********************/
 
-extern "C" int evma_enable_keepalive (const unsigned long binding, int idle, int intvl, int cnt)
+extern "C" int evma_enable_keepalive (const uintptr_t binding, int idle, int intvl, int cnt)
 {
 	ensure_eventmachine("evma_enable_keepalive");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
@@ -829,7 +829,7 @@ extern "C" int evma_enable_keepalive (const unsigned long binding, int idle, int
 evma_disable_keepalive
 **********************/
 
-extern "C" int evma_disable_keepalive (const unsigned long binding)
+extern "C" int evma_disable_keepalive (const uintptr_t binding)
 {
 	ensure_eventmachine("evma_disable_keepalive");
 	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
