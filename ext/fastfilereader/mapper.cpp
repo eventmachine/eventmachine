@@ -134,7 +134,7 @@ const char *Mapper_t::GetChunk (unsigned start)
 Mapper_t::Mapper_t
 ******************/
 
-Mapper_t::Mapper_t (const string &filename)
+Mapper_t::Mapper_t (const std::string &filename)
 {
 	/* We ASSUME we can open the file.
 	 * (More precisely, we assume someone else checked before we got here.)
