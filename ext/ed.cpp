@@ -264,6 +264,134 @@ bool EventableDescriptor::IsCloseScheduled()
 }
 
 
+/***********************************
+EventableDescriptor::EnableKeepalive
+***********************************/
+int EventableDescriptor::EnableKeepalive(int idle, int intvl, int cnt)
+{
+	int ret;
+
+#ifdef OS_WIN32
+	struct tcp_keepalive args;
+	args.onoff = 1;
+
+	args.keepalivetime = idle;
+	args.keepaliveinterval = intvl;
+
+	ret = WSAIoctl(MySocket, SIO_KEEPALIVE_VALS, &args, sizeof(args), NULL, 0, &len, NULL, NULL);
+	if (ret < 0) {
+		int err = WSAGetLastError();
+		char buf[200];
+		buf[0] = '\0';
+
+		FormatMessage (FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, err, MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT), buf, sizeof(buf), NULL);
+
+		if (! buf[0])
+			snprintf (buf, sizeof(buf)-1, "unable to enable keepalive: %d", err);
+
+		throw std::runtime_error (buf);
+	}
+
+#else
+	int val = 1;
+
+	// All the Unixen
+	ret = setsockopt(MySocket, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val));
+	if (ret < 0) {
+		char buf[200];
+		snprintf (buf, sizeof(buf)-1, "unable to enable keepalive: %s", strerror(errno));
+		throw std::runtime_error (buf);
+	}
+
+	#ifdef TCP_KEEPALIVE
+	// BSDs and Mac OS X: idle time used when SO_KEEPALIVE is enabled
+	// 0 means use the system default value, so we let it through
+	if (idle >= 0) {
+		ret = setsockopt(MySocket, IPPROTO_TCP, TCP_KEEPALIVE, &idle, sizeof(idle));
+		if (ret < 0) {
+			char buf[200];
+			snprintf (buf, sizeof(buf)-1, "unable set keepalive idle: %s", strerror(errno));
+			throw std::runtime_error (buf);
+		}
+	}
+	#endif
+	#ifdef TCP_KEEPIDLE
+	// Linux: interval between last data pkt and first keepalive pkt
+	if (idle > 0) {
+		ret = setsockopt(MySocket, IPPROTO_TCP, TCP_KEEPIDLE, &idle, sizeof(idle));
+		if (ret < 0) {
+			char buf[200];
+			snprintf (buf, sizeof(buf)-1, "unable set keepalive idle: %s", strerror(errno));
+			throw std::runtime_error (buf);
+		}
+	}
+	#endif
+	#ifdef TCP_KEEPINTVL
+	// Linux (and recent BSDs, Mac OS X, Solaris): interval between keepalives
+	if (intvl > 0) {
+		ret = setsockopt(MySocket, IPPROTO_TCP, TCP_KEEPINTVL, &intvl, sizeof(intvl));
+		if (ret < 0) {
+			char buf[200];
+			snprintf (buf, sizeof(buf)-1, "unable set keepalive interval: %s", strerror(errno));
+			throw std::runtime_error (buf);
+		}
+	}
+	#endif
+	#ifdef TCP_KEEPCNT
+	// Linux (and recent BSDs, Mac OS X, Solaris): number of dropped probes before disconnect
+	if (cnt > 0) {
+		ret = setsockopt(MySocket, IPPROTO_TCP, TCP_KEEPCNT, &cnt, sizeof(cnt));
+		if (ret < 0) {
+			char buf[200];
+			snprintf (buf, sizeof(buf)-1, "unable set keepalive count: %s", strerror(errno));
+			throw std::runtime_error (buf);
+		}
+	}
+	#endif
+#endif
+
+	return ret;
+}
+
+/***********************************
+EventableDescriptor::DisableKeepalive
+***********************************/
+int EventableDescriptor::DisableKeepalive()
+{
+	int ret;
+
+#ifdef OS_WIN32
+	struct tcp_keepalive args;
+	args.onoff = 0;
+	ret = WSAIoctl(MySocket, SIO_KEEPALIVE_VALS, &args, sizeof(args), NULL, 0, &len, NULL, NULL);
+	if (ret < 0) {
+		int err = WSAGetLastError();
+		char buf[200];
+		buf[0] = '\0';
+
+		FormatMessage (FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+			NULL, err, MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT), buf, sizeof(buf), NULL);
+
+		if (! buf[0])
+			snprintf (buf, sizeof(buf)-1, "unable to enable keepalive: %d", err);
+
+		throw std::runtime_error (buf);
+	}
+#else
+	int val = 0;
+	ret = setsockopt(MySocket, SOL_SOCKET, SO_KEEPALIVE, &val, sizeof(val));
+	if (ret < 0) {
+		char buf[200];
+		snprintf (buf, sizeof(buf)-1, "unable to disable keepalive: %s", strerror(errno));
+		throw std::runtime_error (buf);
+	}
+#endif
+
+	return ret;
+}
+
+
 /*******************************
 EventableDescriptor::StartProxy
 *******************************/

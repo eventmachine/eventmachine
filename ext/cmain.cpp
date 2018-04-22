@@ -806,6 +806,43 @@ extern "C" int evma_get_outbound_data_size (const uintptr_t binding)
 	return ed ? ed->GetOutboundDataSize() : 0;
 }
 
+/*********************
+evma_enable_keepalive
+*********************/
+
+extern "C" int evma_enable_keepalive (const unsigned long binding, int idle, int intvl, int cnt)
+{
+	ensure_eventmachine("evma_enable_keepalive");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return ed->EnableKeepalive(idle, intvl, cnt);
+	else
+		#ifdef BUILD_FOR_RUBY
+			rb_raise(rb_eRuntimeError, "invalid binding to enable keepalive");
+		#else
+			throw std::runtime_error ("invalid binding to enable keepalive");
+		#endif
+			return -1;
+}
+
+/**********************
+evma_disable_keepalive
+**********************/
+
+extern "C" int evma_disable_keepalive (const unsigned long binding)
+{
+	ensure_eventmachine("evma_disable_keepalive");
+	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	if (ed)
+		return ed->DisableKeepalive();
+	else
+		#ifdef BUILD_FOR_RUBY
+			rb_raise(rb_eRuntimeError, "invalid binding to enable keepalive");
+		#else
+			throw std::runtime_error ("invalid binding to enable keepalive");
+		#endif
+			return -1;
+}
 
 /**************
 evma_set_epoll

@@ -92,6 +92,8 @@ extern "C" {
 	int evma_get_sockname (const uintptr_t binding, struct sockaddr*, socklen_t*);
 	int evma_get_subprocess_pid (const uintptr_t binding, pid_t*);
 	int evma_get_subprocess_status (const uintptr_t binding, int*);
+	int evma_enable_keepalive (const uintptr_t binding, int idle, int intvl, int cnt);
+	int evma_disable_keepalive (const uintptr_t binding);
 	int evma_get_connection_count();
 	int evma_send_data_to_connection (const uintptr_t binding, const char *data, int data_length);
 	int evma_send_datagram (const uintptr_t binding, const char *data, int data_length, const char *address, int port);
