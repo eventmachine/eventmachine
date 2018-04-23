@@ -1490,13 +1490,9 @@ module EventMachine
             rescue Errno::EBADF, IOError
             end
           end
-        rescue Exception => e
-          if stopping?
-            @wrapped_exception = $!
-            stop
-          else
-            raise e
-          end
+        rescue
+          @wrapped_exception = $!
+          stop
         end
       elsif c = @acceptors.delete( conn_binding )
         # no-op
