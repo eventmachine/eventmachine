@@ -192,7 +192,7 @@ void EventableDescriptor::Close()
 	 * the fd associated with this EventableDescriptor is
 	 * closing.
 	 *
-	 * EventMachine also never closes fds for STDIN, STDOUT and 
+	 * EventMachine also never closes fds for STDIN, STDOUT and
 	 * STDERR (0, 1 & 2)
 	 */
 
@@ -1192,7 +1192,7 @@ void ConnectionDescriptor::_WriteOutboundData()
 	 * and when we get here. So this condition is not an error.
 	 *
 	 * 20Jul07, added the same kind of protection against an invalid socket
-	 * that is at the top of ::Read. Not entirely how this could happen in 
+	 * that is at the top of ::Read. Not entirely how this could happen in
 	 * real life (connection-reset from the remote peer, perhaps?), but I'm
 	 * doing it to address some reports of crashing under heavy loads.
 	 */
@@ -1555,7 +1555,7 @@ void ConnectionDescriptor::_DispatchCiphertext()
 		// try to put plaintext. INCOMPLETE, doesn't belong here?
 		// In SendOutboundData, we're spooling plaintext directly
 		// into SslBox. That may be wrong, we may need to buffer it
-		// up here! 
+		// up here!
 		/*
 		const char *ptr;
 		int ptr_length;

@@ -165,7 +165,7 @@ EventMachine_t::~EventMachine_t()
 	// Run down descriptors
 	size_t i;
 	for (i = 0; i < DescriptorsToDelete.size(); i++)
- 		delete DescriptorsToDelete[i];
+		delete DescriptorsToDelete[i];
 	for (i = 0; i < NewDescriptors.size(); i++)
 		delete NewDescriptors[i];
 	for (i = 0; i < Descriptors.size(); i++)
@@ -1147,7 +1147,7 @@ EventMachine_t::_GetNumberOfOutstandingTimers
 
 size_t EventMachine_t::GetTimerCount()
 {
-    return Timers.size();
+	return Timers.size();
 }
 
 

@@ -527,15 +527,15 @@ public class EmReactor {
 	}
 
 	public Object[] getPeerName (long sig) {
-	    EventableChannel channel = Connections.get(sig);
-	    if (channel != null) {
-	        return Connections.get(sig).getPeerName();
-	    }
-	    else { 
-	        ServerSocketChannel acceptor = Acceptors.get(sig);
-	        return  new Object[] { acceptor.socket().getLocalPort(),
-	                acceptor.socket().getInetAddress().getHostAddress() };   
-	    }
+		EventableChannel channel = Connections.get(sig);
+		if (channel != null) {
+			return Connections.get(sig).getPeerName();
+		}
+		else {
+			ServerSocketChannel acceptor = Acceptors.get(sig);
+			return  new Object[] { acceptor.socket().getLocalPort(),
+					acceptor.socket().getInetAddress().getHostAddress() };
+		}
 	}
 
 	public Object[] getSockName (long sig) {
