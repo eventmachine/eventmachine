@@ -70,11 +70,11 @@ public class EventableDatagramChannel implements EventableChannel {
 	}
 
 	public void scheduleOutboundData (ByteBuffer bb) {
- 		try {
+		try {
 			if ((!bCloseScheduled) && (bb.remaining() > 0)) {
 				outboundQ.addLast(new Packet(bb, returnAddress));
 				outboundS += bb.remaining();
- 				channel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ, this);
+				channel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ, this);
 			}
 		} catch (ClosedChannelException e) {
 			throw new RuntimeException ("no outbound data");			
@@ -82,11 +82,11 @@ public class EventableDatagramChannel implements EventableChannel {
 	}
 	
 	public void scheduleOutboundDatagram (ByteBuffer bb, String recipAddress, int recipPort) {
- 		try {
+		try {
 			if ((!bCloseScheduled) && (bb.remaining() > 0)) {
 				outboundQ.addLast(new Packet (bb, new InetSocketAddress (recipAddress, recipPort)));
 				outboundS += bb.remaining();
- 				channel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ, this);
+				channel.register(selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ, this);
 			}
 		} catch (ClosedChannelException e) {
 			throw new RuntimeException ("no outbound data");			

@@ -242,7 +242,7 @@ public class EventableSocketChannel implements EventableChannel {
 		// If anyone wants to close immediately, they're responsible for clearing
 		// the outbound queue.
 		return (bCloseScheduled && outboundQ.isEmpty()) ? false : true;
- 	}
+	}
 	
 	public void setConnectPending() {
 		bConnectPending = true;
