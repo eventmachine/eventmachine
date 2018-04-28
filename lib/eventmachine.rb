@@ -984,7 +984,7 @@ module EventMachine
         # do some work during the next_tick. The only mechanism we have from the
         # ruby side is next_tick itself, although ideally, we'd just drop a byte
         # on the loopback descriptor.
-        EM.next_tick {} if exception_raised
+        next_tick {} if exception_raised
       end
     end
   end
@@ -1079,7 +1079,7 @@ module EventMachine
             raise error unless eback
             @resultqueue << [error, eback]
           end
-          EventMachine.signal_loopbreak
+          signal_loopbreak
         end
       end
       @threadpool << thread
@@ -1513,7 +1513,7 @@ module EventMachine
       else
         if $! # Bubble user generated errors.
           @wrapped_exception = $!
-          EM.stop
+          stop
         else
           raise ConnectionNotBound, "received ConnectionUnbound for an unknown signature: #{conn_binding}"
         end
