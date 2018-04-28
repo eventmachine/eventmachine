@@ -113,6 +113,9 @@ class TestBasic < Test::Unit::TestCase
       EM.start_server "127.0.0.1", @port
       EM.connect "127.0.0.1", @port, UnbindError
     }
+
+    # Remove the error handler before the next test
+    EM.error_handler(nil)
   end
 
   module BrsTestSrv
@@ -308,6 +311,9 @@ class TestBasic < Test::Unit::TestCase
       end
       EM.add_timer(0.001) { EM.stop }
     end
+
+    # Remove the error handler before the next test
+    EM.error_handler(nil)
 
     assert_equal 1, errors.size
     assert_equal [:first, :second], ticks

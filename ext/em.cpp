@@ -164,8 +164,6 @@ EventMachine_t::~EventMachine_t()
 {
 	// Run down descriptors
 	size_t i;
-	for (i = 0; i < DescriptorsToDelete.size(); i++)
-		delete DescriptorsToDelete[i];
 	for (i = 0; i < NewDescriptors.size(); i++)
 		delete NewDescriptors[i];
 	for (i = 0; i < Descriptors.size(); i++)
@@ -838,17 +836,6 @@ void EventMachine_t::_CleanupSockets()
 		EventableDescriptor *ed = Descriptors[i];
 		assert (ed);
 		if (ed->ShouldDelete()) {
-			DescriptorsToDelete.push_back(ed);
-		}
-		else
-			Descriptors [j++] = ed;
-	}
-	while ((size_t)j < Descriptors.size())
-		Descriptors.pop_back();
-
-	nSockets = DescriptorsToDelete.size();
-	for (i=0; i < nSockets; i++) {
-		EventableDescriptor *ed = DescriptorsToDelete[i];
 		#ifdef HAVE_EPOLL
 			if (Poller == Poller_Epoll) {
 				assert (epfd != -1);
@@ -864,9 +851,13 @@ void EventMachine_t::_CleanupSockets()
 				ModifiedDescriptors.erase(ed);
 			}
 		#endif
-		delete ed;
+			delete ed;
+		}
+		else
+			Descriptors [j++] = ed;
 	}
-	DescriptorsToDelete.clear();
+	while ((size_t)j < Descriptors.size())
+		Descriptors.pop_back();
 }
 
 /*********************************

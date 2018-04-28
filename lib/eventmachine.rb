@@ -1492,12 +1492,22 @@ module EventMachine
             rescue Errno::EBADF, IOError
             end
           end
-        rescue Exception => e
-          if stopping?
-            @wrapped_exception = $!
-            stop
+        # As noted above, unbind absolutely must not raise an exception or the reactor will crash.
+        # If there is no EM.error_handler, or if the error_handler retrows, then stop the reactor,
+        # stash the exception in $wrapped_exception, and the exception will be raised after the
+        # reactor is cleaned up (see the last line of self.run).
+        rescue Exception => error
+          if instance_variable_defined? :@error_handler
+            begin
+              @error_handler.call error
+              # No need to stop unless error_handler rethrows
+            rescue Exception => error
+              @wrapped_exception = error
+              stop
+            end
           else
-            raise e
+            @wrapped_exception = error
+            stop
           end
         end
       elsif c = @acceptors.delete( conn_binding )
