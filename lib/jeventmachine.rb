@@ -80,6 +80,9 @@ module EventMachine
   # @private
   SslVerify = 109
 
+  NULL_EM_REACTOR = com.rubyeventmachine.NullEmReactor.new
+  @em ||= NULL_EM_REACTOR
+
   # Exceptions that are defined in rubymain.cpp
   class ConnectionError < RuntimeError; end
   class ConnectionNotBound < RuntimeError; end
@@ -104,7 +107,7 @@ module EventMachine
     @em = JEM.new
   end
   def self.release_machine
-    @em = nil
+    @em = NULL_EM_REACTOR
   end
   def self.add_oneshot_timer interval
     @em.installOneshotTimer interval
@@ -302,4 +305,3 @@ module EventMachine
     end
   end
 end
-
