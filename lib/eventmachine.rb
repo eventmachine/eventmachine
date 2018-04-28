@@ -178,14 +178,15 @@ module EventMachine
       @next_tick_queue ||= []
       @tails ||= []
       begin
-        @reactor_pid = Process.pid
-        @reactor_running = true
         initialize_event_machine
+        @reactor_pid = Process.pid
+        @reactor_thread = Thread.current
+        @reactor_running = true
+
         (b = blk || block) and add_timer(0, b)
         if @next_tick_queue && !@next_tick_queue.empty?
           add_timer(0) { signal_loopbreak }
         end
-        @reactor_thread = Thread.current
 
         # Rubinius needs to come back into "Ruby space" for GC to work,
         # so we'll crank the machine here.
