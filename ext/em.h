@@ -242,7 +242,6 @@ class EventMachine_t
 		std::map<int, Bindable_t*> Pids;
 		std::vector<EventableDescriptor*> Descriptors;
 		std::vector<EventableDescriptor*> NewDescriptors;
-		std::vector<EventableDescriptor*> DescriptorsToDelete;
 		std::set<EventableDescriptor*> ModifiedDescriptors;
 
 		SOCKET LoopBreakerReader;
