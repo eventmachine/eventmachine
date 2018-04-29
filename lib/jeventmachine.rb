@@ -80,6 +80,17 @@ module EventMachine
   # @private
   SslVerify = 109
 
+  # @private
+  EM_PROTO_SSLv2 = 2
+  # @private
+  EM_PROTO_SSLv3 = 4
+  # @private
+  EM_PROTO_TLSv1 = 8
+  # @private
+  EM_PROTO_TLSv1_1 = 16
+  # @private
+  EM_PROTO_TLSv1_2 = 32
+
   NULL_EM_REACTOR = com.rubyeventmachine.NullEmReactor.new
   @em ||= NULL_EM_REACTOR
 
