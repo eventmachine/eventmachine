@@ -80,6 +80,17 @@ module EventMachine
   # @private
   SslVerify = 109
 
+  # @private
+  EM_PROTO_SSLv2 = 2
+  # @private
+  EM_PROTO_SSLv3 = 4
+  # @private
+  EM_PROTO_TLSv1 = 8
+  # @private
+  EM_PROTO_TLSv1_1 = 16
+  # @private
+  EM_PROTO_TLSv1_2 = 32
+
   # Exceptions that are defined in rubymain.cpp
   class ConnectionError < RuntimeError; end
   class ConnectionNotBound < RuntimeError; end
