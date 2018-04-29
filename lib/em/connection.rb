@@ -766,5 +766,10 @@ module EventMachine
     def paused?
       EventMachine::connection_paused? @signature
     end
+
+    # @return [Boolean] true if the connect was watch only
+    def watch_only?
+      EventMachine::watch_only? @signature
+    end
   end
 end
