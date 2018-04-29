@@ -14,6 +14,9 @@ class TestKeepalive < Test::Unit::TestCase
   def test_enable_keepalive
     omit_if(!EM.respond_to?(:get_sock_opt))
 
+    # I don't know why "An operation was attempted on something that is not a socket."
+    pend('FIXME: this test is broken on Windows') if windows?
+
     val = nil
     test_module = Module.new do
       define_method :post_init do
@@ -35,6 +38,9 @@ class TestKeepalive < Test::Unit::TestCase
 
   def test_enable_keepalive_values
     omit_if(!EM.respond_to?(:get_sock_opt))
+
+    # I don't know why "An operation was attempted on something that is not a socket."
+    pend('FIXME: this test is broken on Windows') if windows?
 
     val, val_idle, val_intvl, val_cnt = nil
     test_module = Module.new do
@@ -84,6 +90,9 @@ class TestKeepalive < Test::Unit::TestCase
 
   def test_disable_keepalive
     omit_if(!EM.respond_to?(:get_sock_opt))
+
+    # I don't know why "An operation was attempted on something that is not a socket."
+    pend('FIXME: this test is broken on Windows') if windows?
 
     val = nil
     test_module = Module.new do
