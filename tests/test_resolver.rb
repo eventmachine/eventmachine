@@ -17,7 +17,7 @@ class TestResolver < Test::Unit::TestCase
   end
 
   def test_a
-    pend('FIXME: this test is broken on Windows') if windows?
+    pend('FIXME: this test is broken on Windows') if windows? && RUBY_VERSION < "2.4"
 
     EM.run {
       d = EM::DNS::Resolver.resolve "example.com"
@@ -47,7 +47,7 @@ class TestResolver < Test::Unit::TestCase
 
   # There isn't a public DNS entry like 'example.com' with an A rrset
   def test_a_pair
-    pend('FIXME: this test is broken on Windows') if windows?
+    pend('FIXME: this test is broken on Windows') if windows? && RUBY_VERSION < "2.4"
 
     EM.run {
       d = EM::DNS::Resolver.resolve "yahoo.com"
@@ -76,7 +76,7 @@ class TestResolver < Test::Unit::TestCase
   end
 
   def test_timer_cleanup
-    pend('FIXME: this test is broken on Windows') if windows?
+    pend('FIXME: this test is broken on Windows') if windows? && RUBY_VERSION < "2.4"
 
     EM.run {
       d = EM::DNS::Resolver.resolve "example.com"

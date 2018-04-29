@@ -6,8 +6,13 @@ require 'openssl'
 if EM.ssl?
   class TestSslProtocols < Test::Unit::TestCase
 
-    # equal to base METHODS, downcased, like ["tlsv1, "tlsv1_1", "tlsv1_2"]
-    SSL_AVAIL = ::OpenSSL::SSL::SSLContext::METHODS.select { |i| i =~ /[^\d]\d\z/ }.map { |i| i.to_s.downcase }
+    if ::OpenSSL::VERSION >= "2.1"
+      # Assume no SSLv3 in OpenSSL, OpenSSL::SSL::SSLContext::METHODS deprecated
+      SSL_AVAIL = ["tlsv1", "tlsv1_1", "tlsv1_2"]
+    else
+      # Equal to base METHODS, downcased, like ["tlsv1, "tlsv1_1", "tlsv1_2"]
+      SSL_AVAIL = ::OpenSSL::SSL::SSLContext::METHODS.select { |i| i =~ /[^\d]\d\z/ }.map { |i| i.to_s.downcase }
+    end
 
     libr_vers =  OpenSSL.const_defined?(:OPENSSL_LIBRARY_VERSION) ?
       OpenSSL::OPENSSL_VERSION : 'na'
