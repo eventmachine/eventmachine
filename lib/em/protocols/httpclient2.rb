@@ -26,23 +26,26 @@
 module EventMachine
   module Protocols
 
-    # <b>Note:</b> This class is deprecated and will be removed. Please use EM-HTTP-Request instead.
+    # ### Usage
     #
-    # === Usage
+    # ```ruby
+    # EM.run{
+    #   conn = EM::Protocols::HttpClient2.connect 'google.com', 80
     #
-    #  EM.run{
-    #    conn = EM::Protocols::HttpClient2.connect 'google.com', 80
+    #   req = conn.get('/')
+    #   req.callback{ |response|
+    #     p(response.status)
+    #     p(response.headers)
+    #     p(response.content)
+    #   }
+    # }
+    # ```
     #
-    #    req = conn.get('/')
-    #    req.callback{ |response|
-    #      p(response.status)
-    #      p(response.headers)
-    #      p(response.content)
-    #    }
-    #  }
+    # @deprecated Please use [EM-HTTP-Request](https://github.com/igrigorik/em-http-request) instead.
+    #
     class HttpClient2 < Connection
       include LineText2
-      
+
       def initialize
         warn "HttpClient2 is deprecated and will be removed. EM-Http-Request should be used instead."
 
@@ -83,7 +86,6 @@ module EventMachine
           ]
           @conn.send_data r.join
         end
-
 
         #--
         #
@@ -259,8 +261,8 @@ module EventMachine
 
       # Get a url
       #
-      #  req = conn.get(:uri => '/')
-      #  req.callback{|response| puts response.content }
+      #   req = conn.get(:uri => '/')
+      #   req.callback{|response| puts response.content }
       #
       def get args
         if args.is_a?(String)
@@ -272,8 +274,8 @@ module EventMachine
 
       # Post to a url
       #
-      #  req = conn.post('/data')
-      #  req.callback{|response| puts response.content }
+      #   req = conn.post('/data')
+      #   req.callback{|response| puts response.content }
       #--
       # XXX there's no way to supply a POST body.. wtf?
       def post args
