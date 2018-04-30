@@ -1,6 +1,7 @@
-require 'net/smtp'
-require "net/telnet"
 require 'em_test_helper'
+
+require 'net/smtp'
+require 'socket'
 
 class TestSmtpServer < Test::Unit::TestCase
 
@@ -91,14 +92,19 @@ class TestSmtpServer < Test::Unit::TestCase
 
   def test_login_authentication
     Mailserver.parms = {:auth => :required}
+    $greeting = []
+    $ehlo = []
     connection = run_server do
       Thread.new do
-        pop = Net::Telnet::new("Host" => Localhost,
-                               "Port" =>Localport,
-                               "Telnetmode" => false,
-                               "Prompt" => /^\d{3}\s+/n
-                              )
-        pop.cmd(<<-CMD)
+
+        s = TCPSocket.new Localhost, Localport
+        while $greeting << s.gets; end
+
+        s.write("EHLO world\r\n")
+        while $ehlo << s.gets; end
+          puts $ehlo
+
+        s.write(<<-CMD)
 auth login
 #{["aaa"].pack('m').chomp}
 #{["bbb"].pack('m').chomp}
@@ -109,9 +115,13 @@ hello
 .
 quit
 CMD
+        sleep 0.10
+        s.close
       end
     end
 
+    assert_equal( ["220 EventMachine SMTP Server\r\n"], $greeting.compact )
+    assert_equal( ["250-Ok EventMachine SMTP Server\r\n", "250-AUTH PLAIN LOGIN\r\n", "250-NO-SOLICITING\r\n", "250 SIZE 20000000\r\n"], $ehlo.compact )
     assert_equal( 1, connection.messages_count )
   ensure
     Mailserver.parms = {:auth => nil}

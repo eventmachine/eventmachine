@@ -306,7 +306,7 @@ module EventMachine
             send_data "250-STARTTLS\r\n"
           end
           if @@parms[:auth]
-            send_data "250-AUTH PLAIN\r\n"
+            send_data "250-AUTH PLAIN LOGIN\r\n"
           end
           send_data "250-NO-SOLICITING\r\n"
           # TODO, size needs to be configurable.
@@ -341,11 +341,6 @@ module EventMachine
         send_data "500 Unknown command\r\n"
       end
 
-      #--
-      # So far, only AUTH PLAIN is supported but we should do at least LOGIN as well.
-      # TODO, support clients that send AUTH PLAIN with no parameter, expecting a 3xx
-      # response and a continuation of the auth conversation.
-      #
       def process_auth str
         if @state.include?(:auth)
           send_data "503 auth already issued\r\n"
