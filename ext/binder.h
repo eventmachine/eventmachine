@@ -32,7 +32,7 @@ class Bindable_t
 	public:
 		static uintptr_t CreateBinding();
 		static Bindable_t *GetObject (const uintptr_t);
-		static map<uintptr_t, Bindable_t*> BindingBag;
+		static std::map<uintptr_t, Bindable_t*> BindingBag;
 
 	public:
 		Bindable_t();

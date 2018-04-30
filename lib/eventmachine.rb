@@ -177,14 +177,15 @@ module EventMachine
       @next_tick_queue ||= []
       @tails ||= []
       begin
-        @reactor_pid = Process.pid
-        @reactor_running = true
         initialize_event_machine
+        @reactor_pid = Process.pid
+        @reactor_thread = Thread.current
+        @reactor_running = true
+
         (b = blk || block) and add_timer(0, b)
         if @next_tick_queue && !@next_tick_queue.empty?
           add_timer(0) { signal_loopbreak }
         end
-        @reactor_thread = Thread.current
 
         # Rubinius needs to come back into "Ruby space" for GC to work,
         # so we'll crank the machine here.
@@ -984,7 +985,7 @@ module EventMachine
         # do some work during the next_tick. The only mechanism we have from the
         # ruby side is next_tick itself, although ideally, we'd just drop a byte
         # on the loopback descriptor.
-        EM.next_tick {} if exception_raised
+        next_tick {} if exception_raised
       end
     end
   end
@@ -1079,7 +1080,7 @@ module EventMachine
             raise error unless eback
             @resultqueue << [error, eback]
           end
-          EventMachine.signal_loopbreak
+          signal_loopbreak
         end
       end
       @threadpool << thread
@@ -1490,12 +1491,22 @@ module EventMachine
             rescue Errno::EBADF, IOError
             end
           end
-        rescue Exception => e
-          if stopping?
-            @wrapped_exception = $!
-            stop
+        # As noted above, unbind absolutely must not raise an exception or the reactor will crash.
+        # If there is no EM.error_handler, or if the error_handler retrows, then stop the reactor,
+        # stash the exception in $wrapped_exception, and the exception will be raised after the
+        # reactor is cleaned up (see the last line of self.run).
+        rescue Exception => error
+          if instance_variable_defined? :@error_handler
+            begin
+              @error_handler.call error
+              # No need to stop unless error_handler rethrows
+            rescue Exception => error
+              @wrapped_exception = error
+              stop
+            end
           else
-            raise e
+            @wrapped_exception = error
+            stop
           end
         end
       elsif c = @acceptors.delete( conn_binding )
@@ -1503,7 +1514,7 @@ module EventMachine
       else
         if $! # Bubble user generated errors.
           @wrapped_exception = $!
-          EM.stop
+          stop
         else
           raise ConnectionNotBound, "received ConnectionUnbound for an unknown signature: #{conn_binding}"
         end
