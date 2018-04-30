@@ -194,7 +194,8 @@ module EventMachine
         @@parms[:verbose] and $>.puts ">>> #{ln}"
 
         return process_data_line(ln) if @state.include?(:data)
-        return process_auth_line(ln) if @state.include?(:auth_incomplete)
+        return process_auth_plain_line(ln) if @state.include?(:auth_plain_incomplete)
+        return process_auth_login_line(ln) if @state.include?(:auth_login_incomplete)
 
         case ln
         when EhloRegex
@@ -227,12 +228,12 @@ module EventMachine
           process_unknown
         end
       end
-      
+
       # TODO - implement this properly, the implementation is a stub!
       def process_help
         send_data "250 Ok, but unimplemented\r\n"
       end
-      
+
       # RFC2821, 3.5.3 Meaning of VRFY or EXPN Success Response:
       #   A server MUST NOT return a 250 code in response to a VRFY or EXPN
       #   command unless it has actually verified the address.  In particular,
@@ -305,7 +306,7 @@ module EventMachine
             send_data "250-STARTTLS\r\n"
           end
           if @@parms[:auth]
-            send_data "250-AUTH PLAIN\r\n"
+            send_data "250-AUTH PLAIN LOGIN\r\n"
           end
           send_data "250-NO-SOLICITING\r\n"
           # TODO, size needs to be configurable.
@@ -340,33 +341,52 @@ module EventMachine
         send_data "500 Unknown command\r\n"
       end
 
-      #--
-      # So far, only AUTH PLAIN is supported but we should do at least LOGIN as well.
-      # TODO, support clients that send AUTH PLAIN with no parameter, expecting a 3xx
-      # response and a continuation of the auth conversation.
-      #
       def process_auth str
         if @state.include?(:auth)
           send_data "503 auth already issued\r\n"
         elsif str =~ /\APLAIN\s?/i
           if $'.length == 0
             # we got a partial response, so let the client know to send the rest
-            @state << :auth_incomplete
+            @state << :auth_plain_incomplete
             send_data("334 \r\n")
           else
             # we got the initial response, so go ahead & process it
-            process_auth_line($')
+            process_auth_plain_line($')
           end
-          #elsif str =~ /\ALOGIN\s+/i
+        elsif str =~ /\ALOGIN\s?/i
+          if $'.length == 0
+            @state << :auth_login_incomplete
+            send_data("334 \r\n")
+          else
+            process_auth_login_line($')
+          end
+
         else
           send_data "504 auth mechanism not available\r\n"
         end
       end
 
-      def process_auth_line(line)
+      def process_auth_login_line(line)
+        @login_auth ||= []
+        @login_auth << line.unpack("m").first
+        if @login_auth.size == 2
+          process_plain_auth(@login_auth.shift, @login_auth.shift)
+          @state.delete :auth_login_incomplete
+        else
+          send_data("334 \r\n")
+        end
+      end
+
+      def process_auth_plain_line(line)
         plain = line.unpack("m").first
-        _,user,psw = plain.split("\000")
-        
+        _, user, psw = plain.split("\000")
+        process_plain_auth(user, psw)
+        @state.delete :auth_plain_incomplete
+      end
+
+      def process_plain_auth(user, password)
+        auth = receive_plain_auth user, password
+
         succeeded = proc {
           send_data "235 authentication ok\r\n"
           @state << :auth
@@ -374,16 +394,12 @@ module EventMachine
         failed = proc {
           send_data "535 invalid authentication\r\n"
         }
-        auth = receive_plain_auth user,psw
-        
         if auth.respond_to?(:callback)
           auth.callback(&succeeded)
           auth.errback(&failed)
         else
           (auth ? succeeded : failed).call
         end
-        
-        @state.delete :auth_incomplete
       end
 
       #--
@@ -564,7 +580,7 @@ module EventMachine
             (d ? succeeded : failed).call
           end
 
-          @state.delete :data
+          @state -= [:data, :mail_from, :rcpt]
         else
           # slice off leading . if any
           ln.slice!(0...1) if ln[0] == ?.

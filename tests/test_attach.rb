@@ -148,4 +148,52 @@ class TestAttach < Test::Unit::TestCase
   ensure
     [r,w].each {|io| io.close rescue nil }
   end
+
+  # This test shows that watch_only? is true for EM.watch
+  def test_watch_only
+    r, w = IO.pipe
+    $watch_only = nil
+
+    EM.run do
+      EM.watch r do |c|
+        assert_true(c.watch_only?)
+        c.notify_readable = true
+        def c.receive_data data
+          fail('this method should not be called')
+        end
+        def c.notify_readable
+          $watch_only = watch_only?
+        end
+      end
+      w.write 'hello'
+      EM.next_tick { EM.stop }
+    end
+
+    assert_true($watch_only)
+  end
+
+  # This test shows that watch_only? is false for EM.attach
+  def test_attach_data
+    r, w = IO.pipe
+    $watch_only = nil
+    $read = []
+
+    EM.run do
+      EM.attach r do |c|
+        assert_false(c.watch_only?)
+        def c.receive_data data
+          $watch_only = watch_only?
+          $read << data
+        end
+        def c.notify_readable
+          fail('this method should not be called')
+        end
+      end
+      w.write 'world'
+      EM.next_tick { EM.stop }
+    end
+
+    assert_false($watch_only)
+    assert_equal('world', $read.first)
+  end
 end
