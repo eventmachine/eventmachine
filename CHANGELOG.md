@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.6 (April 30, 2018)
+* *Fix segfault when an Exception is raised from unbind callback (for real this time!)*
+* Fix race condition while initializing the machine [#756]
+* Fix for newer compilers where bind() and std::bind() conflict [#830, #831]
+* Be verbose about SSL connection errors [#807]
+* Avoid explicitly calling class methods when in class scope
+* Java: Add EM_PROTO_SSL/TLS definitions [#773, #791]
+* Java: return zero when sending data to a closed connection [#475, #804]
+* Pure Ruby: Connection::error? calls report_connection_error_status [#801]
+
 ## 1.2.5 (July 27, 2017)
 * Java: Use long for larger values in oneshot timer intervals [#784, #794]
 
