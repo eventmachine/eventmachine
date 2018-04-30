@@ -378,8 +378,7 @@ extern "C" int evma_is_watch_only (const uintptr_t binding)
 	EventableDescriptor *cd = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
 	if (cd)
 		return cd->IsWatchOnly() ? 1 : 0;
-
-	return 0;
+	return -1;
 }
 
 /****************************

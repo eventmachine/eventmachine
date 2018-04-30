@@ -34,7 +34,6 @@ if EM.kqueue?
         EM.watch_process(Process.pid, ParentProcessWatcher)
         $fork_pid = fork{ sleep }
         child = EM.watch_process($fork_pid, ChildProcessWatcher)
-        assert_equal(child.watch_only?, true)
         $pid = child.pid
 
         EM.add_timer(0.2){
