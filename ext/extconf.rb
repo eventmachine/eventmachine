@@ -104,17 +104,6 @@ end
 
 add_define 'BUILD_FOR_RUBY'
 
-# Ruby features:
-
-have_var('rb_trap_immediate', ['ruby.h', 'rubysig.h'])
-have_func('rb_thread_blocking_region')
-have_func('rb_thread_call_without_gvl', 'ruby/thread.h')
-have_func('rb_thread_fd_select')
-have_type('rb_fdset_t', 'ruby/intern.h')
-have_func('rb_wait_for_single_fd')
-have_func('rb_enable_interrupt')
-have_func('rb_time_new')
-
 # System features:
 
 add_define('HAVE_INOTIFY') if inotify = have_func('inotify_init', 'sys/inotify.h')
