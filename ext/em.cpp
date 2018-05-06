@@ -916,7 +916,7 @@ _SelectDataSelect
 static VALUE _SelectDataSelect (void *v)
 {
 	SelectData_t *sd = (SelectData_t*)v;
-	sd->nSockets = select (sd->maxsocket+1, rb_fd_ptr(&(sd->fdreads)), rb_fd_ptr(&(sd->fdwrites)), rb_fd_ptr(&(sd->fderrors)), &(sd->tv));
+	sd->nSockets = rb_fd_select (sd->maxsocket+1, &(sd->fdreads), &(sd->fdwrites), &(sd->fderrors), &(sd->tv));
 	return Qnil;
 }
 #endif
