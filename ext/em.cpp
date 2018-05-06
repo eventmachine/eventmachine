@@ -599,6 +599,21 @@ bool EventMachine_t::RunOnce()
 }
 
 
+#ifdef HAVE_EPOLL
+typedef struct {
+	int epfd;
+	struct epoll_event *events;
+	int maxevents;
+	int timeout;
+} epoll_args_t;
+
+static void *nogvl_epoll_wait(void *args)
+{
+	epoll_args_t *a = (epoll_args_t *)args;
+	return (void *) (uintptr_t) epoll_wait (a->epfd, a->events, a->maxevents, a->timeout);
+}
+#endif
+
 /*****************************
 EventMachine_t::_RunEpollOnce
 *****************************/
@@ -614,16 +629,7 @@ void EventMachine_t::_RunEpollOnce()
 	#ifdef BUILD_FOR_RUBY
 	int ret = 0;
 
-	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
 	if ((ret = rb_wait_for_single_fd(epfd, RB_WAITFD_IN|RB_WAITFD_PRI, &tv)) < 1) {
-	#else
-	fd_set fdreads;
-
-	FD_ZERO(&fdreads);
-	FD_SET(epfd, &fdreads);
-
-	if ((ret = rb_thread_select(epfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
-	#endif
 		if (ret == -1) {
 			assert(errno != EINVAL);
 			assert(errno != EBADF);
@@ -631,9 +637,8 @@ void EventMachine_t::_RunEpollOnce()
 		return;
 	}
 
-	TRAP_BEG;
-	s = epoll_wait (epfd, epoll_events, MaxEvents, 0);
-	TRAP_END;
+	epoll_args_t epoll_args = { epfd, epoll_events, MaxEvents, 0 };
+	s = (uintptr_t) rb_thread_call_without_gvl (nogvl_epoll_wait, &epoll_args, RUBY_UBF_IO, 0);
 	#else
 	int duration = 0;
 	duration = duration + (tv.tv_sec * 1000);
@@ -672,6 +677,23 @@ void EventMachine_t::_RunEpollOnce()
 }
 
 
+#ifdef HAVE_KQUEUE
+typedef struct {
+	int kqfd;
+	const struct kevent *changelist;
+	int nchanges;
+	struct kevent *eventlist;
+	int nevents;
+	const struct timespec *timeout;
+} kevent_args_t;
+
+static void *nogvl_kevent(void *args)
+{
+	kevent_args_t *a = (kevent_args_t *)args;
+	return (void *) (uintptr_t) kevent (a->kqfd, a->changelist, a->nchanges, a->eventlist, a->nevents, a->timeout);
+}
+#endif
+
 /******************************
 EventMachine_t::_RunKqueueOnce
 ******************************/
@@ -691,16 +713,7 @@ void EventMachine_t::_RunKqueueOnce()
 	#ifdef BUILD_FOR_RUBY
 	int ret = 0;
 
-	#ifdef HAVE_RB_WAIT_FOR_SINGLE_FD
 	if ((ret = rb_wait_for_single_fd(kqfd, RB_WAITFD_IN|RB_WAITFD_PRI, &tv)) < 1) {
-	#else
-	fd_set fdreads;
-
-	FD_ZERO(&fdreads);
-	FD_SET(kqfd, &fdreads);
-
-	if ((ret = rb_thread_select(kqfd + 1, &fdreads, NULL, NULL, &tv)) < 1) {
-	#endif
 		if (ret == -1) {
 			assert(errno != EINVAL);
 			assert(errno != EBADF);
@@ -708,10 +721,9 @@ void EventMachine_t::_RunKqueueOnce()
 		return;
 	}
 
-	TRAP_BEG;
 	ts.tv_sec = ts.tv_nsec = 0;
-	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, &ts);
-	TRAP_END;
+	kevent_args_t kevent_args = { kqfd, NULL, 0, Karray, MaxEvents, &ts };
+	k = (uintptr_t) rb_thread_call_without_gvl (nogvl_kevent, &kevent_args, RUBY_UBF_IO, 0);
 	#else
 	k = kevent (kqfd, NULL, 0, Karray, MaxEvents, &ts);
 	#endif
@@ -750,7 +762,6 @@ void EventMachine_t::_RunKqueueOnce()
 		++ke;
 	}
 
-	// TODO, replace this with rb_thread_blocking_region for 1.9 builds.
 	#ifdef BUILD_FOR_RUBY
 	if (!rb_thread_alone()) {
 		rb_thread_schedule();
@@ -903,39 +914,14 @@ SelectData_t::~SelectData_t()
 	rb_fd_term (&fderrors);
 }
 
-#ifdef BUILD_FOR_RUBY
-/*****************
-_SelectDataSelect
-*****************/
-
-#if defined(HAVE_RB_THREAD_BLOCKING_REGION) || defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL)
-static VALUE _SelectDataSelect (void *v)
-{
-	SelectData_t *sd = (SelectData_t*)v;
-	sd->nSockets = rb_fd_select (sd->maxsocket+1, &(sd->fdreads), &(sd->fdwrites), &(sd->fderrors), &(sd->tv));
-	return Qnil;
-}
-#endif
-
 /*********************
 SelectData_t::_Select
 *********************/
 
 int SelectData_t::_Select()
 {
-	#if defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL)
-	// added in ruby 1.9.3
-	rb_thread_call_without_gvl ((void *(*)(void *))_SelectDataSelect, (void*)this, RUBY_UBF_IO, 0);
-	return nSockets;
-	#elif defined(HAVE_TBR)
-	// added in ruby 1.9.1, deprecated in ruby 2.0.0
-	rb_thread_blocking_region (_SelectDataSelect, (void*)this, RUBY_UBF_IO, 0);
-	return nSockets;
-	#else
-	return EmSelect (maxsocket+1, &fdreads, &fdwrites, &fderrors, &tv);
-	#endif
+	return EmSelect (maxsocket + 1, &fdreads, &fdwrites, &fderrors, &tv);
 }
-#endif
 
 void SelectData_t::_Clear()
 {
@@ -1001,13 +987,8 @@ void EventMachine_t::_RunSelectOnce()
 
 
 	{ // read and write the sockets
-		//timeval tv = {1, 0}; // Solaris fails if the microseconds member is >= 1000000.
-		//timeval tv = Quantum;
 		SelectData->tv = _TimeTilNextEvent();
 		int s = SelectData->_Select();
-		//rb_thread_blocking_region(xxx,(void*)&SelectData,RUBY_UBF_IO,0);
-		//int s = EmSelect (SelectData.maxsocket+1, &(SelectData.fdreads), &(SelectData.fdwrites), NULL, &(SelectData.tv));
-		//int s = SelectData.nSockets;
 		if (s > 0) {
 			/* Changed 01Jun07. We used to handle the Loop-breaker right here.
 			 * Now we do it AFTER all the regular descriptors. There's an
