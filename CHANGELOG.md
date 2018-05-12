@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.7 (May 12, 2018)
+* Fix segfault on large numbers of connections [#843]
+
 ## 1.2.6 (April 30, 2018)
 * *Fix segfault when an Exception is raised from unbind callback (for real this time!)*
 * Fix race condition while initializing the machine [#756]
