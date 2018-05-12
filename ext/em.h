@@ -25,7 +25,29 @@ See the file COPYING for complete licensing information.
   #include <ruby/thread.h>
   #include <ruby/io.h>
 
-  #define EmSelect rb_thread_fd_select
+  #ifndef HAVE_RB_WAIT_FOR_SINGLE_FD
+  #include "wait_for_single_fd.h"
+  #endif
+
+#if !defined(HAVE_TYPE_RB_FDSET_T)
+#define fd_check(n) (((n) < FD_SETSIZE) ? 1 : 0*fprintf(stderr, "fd %d too large for select\n", (n)))
+// These definitions are cribbed from include/ruby/intern.h in Ruby 1.9.3,
+// with this change: any macros that read or write the nth element of an
+// fdset first call fd_check to make sure n is in bounds.
+typedef fd_set rb_fdset_t;
+#define rb_fd_zero(f) FD_ZERO(f)
+#define rb_fd_set(n, f) do { if (fd_check(n)) FD_SET((n), (f)); } while(0)
+#define rb_fd_clr(n, f) do { if (fd_check(n)) FD_CLR((n), (f)); } while(0)
+#define rb_fd_isset(n, f) (fd_check(n) ? FD_ISSET((n), (f)) : 0)
+#define rb_fd_init(f) FD_ZERO(f)
+#define rb_fd_term(f) ((void)(f))
+#endif
+
+  #ifdef HAVE_RB_THREAD_FD_SELECT
+    #define EmSelect rb_thread_fd_select
+  #else
+    #define EmSelect select
+  #endif
 #else
   #define EmSelect select
 #endif

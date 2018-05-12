@@ -104,6 +104,11 @@ end
 
 add_define 'BUILD_FOR_RUBY'
 
+# Rubinius workarounds:
+have_type('rb_fdset_t', 'ruby/intern.h')
+have_func('rb_wait_for_single_fd')
+have_func('rb_thread_fd_select')
+
 # System features:
 
 add_define('HAVE_INOTIFY') if inotify = have_func('inotify_init', 'sys/inotify.h')

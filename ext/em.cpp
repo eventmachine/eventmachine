@@ -1052,20 +1052,7 @@ void EventMachine_t::_CleanBadDescriptors()
 		if (ed->ShouldDelete())
 			continue;
 
-		SOCKET sd = ed->GetSocket();
-
-		struct timeval tv;
-		tv.tv_sec = 0;
-		tv.tv_usec = 0;
-
-		rb_fdset_t fds;
-		rb_fd_init(&fds);
-		rb_fd_set(sd, &fds);
-
-		int ret = rb_fd_select(sd + 1, &fds, NULL, NULL, &tv);
-		rb_fd_term(&fds);
-
-		if (ret == -1) {
+		if (rb_wait_for_single_fd(ed->GetSocket(), RB_WAITFD_PRI, NULL) < 0) {
 			if (errno == EBADF)
 				ed->ScheduleClose(false);
 		}
