@@ -20,3 +20,12 @@ Gemfile.lock
 .yardoc/*
 doc/*
 tmp/*
+
+# windows local build artifacts
+/win_gem_test/shared/
+/win_gem_test/packages/
+/win_gem_test/test_logs/
+/Rakefile_wintest
+*.gem
+/lib/fastfilereaderext.rb
+/lib/rubyeventmachine.rb
