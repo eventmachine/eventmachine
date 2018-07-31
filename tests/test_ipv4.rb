@@ -55,7 +55,8 @@ class TestIPv4 < Test::Unit::TestCase
   # EM::ConnectionError.
   def test_tcp_connect_to_invalid_ipv4
     omit_if(!Test::Unit::TestCase.public_ipv4?)
-
+    pend("\nFIXME: Windows as of 2018-06-23 on 32 bit >= 2.4 (#{RUBY_VERSION} #{RUBY_PLATFORM})") if RUBY_PLATFORM[/i386-mingw/] && RUBY_VERSION >= '2.4'
+    
     invalid_ipv4 = "9.9:9"
 
     EM.run do

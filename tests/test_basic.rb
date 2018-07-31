@@ -174,6 +174,7 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_invalid_address_bind_connect_dst
+    pend("\nFIXME: Windows as of 2018-06-23 on 32 bit >= 2.4 (#{RUBY_VERSION} #{RUBY_PLATFORM})") if RUBY_PLATFORM[/i386-mingw/] && RUBY_VERSION >= '2.4'
     e = nil
     EM.run do
       begin
@@ -190,6 +191,7 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_invalid_address_bind_connect_src
+    pend("\nFIXME: Windows as of 2018-06-23 on 32 bit >= 2.4 (#{RUBY_VERSION} #{RUBY_PLATFORM})") if RUBY_PLATFORM[/i386-mingw/] && RUBY_VERSION >= '2.4'
     e = nil
     EM.run do
       begin

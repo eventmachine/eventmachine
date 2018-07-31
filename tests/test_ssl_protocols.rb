@@ -19,7 +19,7 @@ if EM.ssl?
 
     puts "OPENSSL_LIBRARY_VERSION: #{libr_vers}\n" \
          "        OPENSSL_VERSION: #{OpenSSL::OPENSSL_VERSION}\n" \
-         "              SSL_AVAIL: #{SSL_AVAIL.join(' ')}"
+         "              SSL_AVAIL: #{SSL_AVAIL.sort.join(' ')}"
 
     module Client
       def ssl_handshake_completed

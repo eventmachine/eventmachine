@@ -4,7 +4,7 @@ require 'test/unit'
 require 'rbconfig'
 require 'socket'
 
-puts "EM Library Type: #{EM.library_type}"
+puts "\nEM.library_type #{EM.library_type.to_s.ljust(12)}  EM.ssl? #{EM.ssl?}"
 
 class Test::Unit::TestCase
   class EMTestTimeout < StandardError ; end

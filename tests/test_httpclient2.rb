@@ -118,7 +118,7 @@ class TestHttpClient2 < Test::Unit::TestCase
     omit("No SSL") unless EM.ssl?
     d = nil
     EM.run {
-      setup_timeout(windows? ? 3.5 : 1)
+      setup_timeout(windows? ? 6 : 1)
       http = silent { EM::P::HttpClient2.connect :host => 'www.google.com', :port => 443, :tls => true }
       d = http.get "/"
       d.callback {EM.stop}
