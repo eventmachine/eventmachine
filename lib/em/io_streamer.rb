@@ -35,7 +35,7 @@ module EventMachine
       @io = io
       @http_chunks = opts[:http_chunks]
 
-      @buff = String.new(capacity: CHUNK_SIZE)
+      @buff = String.new
       @io.binmode if @io.respond_to?(:binmode)
       stream_one_chunk
     end
