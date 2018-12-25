@@ -39,3 +39,6 @@ matrix:
   include:
     - rvm: 2.3
       os: osx
+    - rvm: 2.6
+      env:
+        - RUBYOPT=--jit
