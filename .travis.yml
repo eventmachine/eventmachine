@@ -19,8 +19,6 @@ rvm:
   - 2.2
   - 2.1
   - 2.0.0
-  - 1.9.3
-  - 1.9.2
   - ruby-head
 #  - rbx
 #  - rbx-2
@@ -34,7 +32,6 @@ matrix:
 #    - rvm: rbx-2
 #    - rvm: rbx-3
     - rvm: ruby-head
-    - rvm: 2.0.0
     - rvm: 2.3
       os: osx
 #    - rvm: jruby-1.7
