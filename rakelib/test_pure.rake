@@ -1,8 +1,6 @@
 require 'rake/testtask'
 
 Rake::TestTask.new(:test_pure) do |t|
-  t.libs << 'tests'
-  t.libs << 'lib'
   t.test_files = Dir.glob('tests/**/test_pure*.rb') + Dir.glob('tests/**/test_ssl*.rb')
   t.warning = true
 end
