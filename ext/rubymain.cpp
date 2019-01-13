@@ -1569,5 +1569,33 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_const (EmModule, "EM_PROTO_TLSv1",   INT2NUM(EM_PROTO_TLSv1  ));
 	rb_define_const (EmModule, "EM_PROTO_TLSv1_1", INT2NUM(EM_PROTO_TLSv1_1));
 	rb_define_const (EmModule, "EM_PROTO_TLSv1_2", INT2NUM(EM_PROTO_TLSv1_2));
+#ifdef TLS1_3_VERSION
+	rb_define_const (EmModule, "EM_PROTO_TLSv1_3", INT2NUM(EM_PROTO_TLSv1_3));
+#endif
+
+#ifdef OPENSSL_NO_SSL3
+	/* True if SSL3 is not available */
+	rb_define_const (EmModule, "OPENSSL_NO_SSL3", Qtrue);
+	rb_define_const (EmModule, "OPENSSL_NO_SSL2", Qtrue);
+#else
+	rb_define_const (EmModule, "OPENSSL_NO_SSL3", Qfalse);
+#ifdef OPENSSL_NO_SSL2
+	rb_define_const (EmModule, "OPENSSL_NO_SSL2", Qtrue);
+#else
+	rb_define_const (EmModule, "OPENSSL_NO_SSL2", Qfalse);
+#endif
+#endif
+
+  // OpenSSL Build / Runtime/Load versions
+
+	/* Version of OpenSSL that EventMachine was compiled with */
+	rb_define_const(EmModule, "OPENSSL_VERSION", rb_str_new2(OPENSSL_VERSION_TEXT));
+
+#if !defined(LIBRESSL_VERSION_NUMBER) && OPENSSL_VERSION_NUMBER >= 0x10100000
+	/* Version of OpenSSL that EventMachine loaded with */
+	rb_define_const(EmModule, "OPENSSL_LIBRARY_VERSION", rb_str_new2(OpenSSL_version(OPENSSL_VERSION)));
+#else
+	rb_define_const(EmModule, "OPENSSL_LIBRARY_VERSION", rb_str_new2(SSLeay_version(SSLEAY_VERSION)));
+#endif
 }
 

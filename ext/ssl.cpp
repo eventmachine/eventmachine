@@ -180,6 +180,11 @@ SslContext_t::SslContext_t (bool is_server, const std::string &privkeyfile, cons
 		SSL_CTX_set_options (pCtx, SSL_OP_NO_TLSv1_2);
 	#endif
 
+	#ifdef SSL_OP_NO_TLSv1_3
+	if (!(ssl_version & EM_PROTO_TLSv1_3))
+		SSL_CTX_set_options (pCtx, SSL_OP_NO_TLSv1_3);
+	#endif
+
 	#ifdef SSL_MODE_RELEASE_BUFFERS
 	SSL_CTX_set_mode (pCtx, SSL_MODE_RELEASE_BUFFERS);
 	#endif
