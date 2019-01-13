@@ -1,4 +1,4 @@
-require 'em_test_helper'
+require_relative 'em_test_helper'
 
 class TestHttpClient2 < Test::Unit::TestCase
   class TestServer < EM::Connection

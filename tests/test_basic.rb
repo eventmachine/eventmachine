@@ -1,5 +1,4 @@
-require 'em_test_helper'
-require 'socket'
+require_relative 'em_test_helper'
 
 class TestBasic < Test::Unit::TestCase
   def setup

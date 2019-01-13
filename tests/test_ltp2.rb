@@ -1,4 +1,4 @@
-require 'em_test_helper'
+require_relative 'em_test_helper'
 
 # TODO!!! Need tests for overlength headers and text bodies.
 

@@ -1,4 +1,4 @@
-require 'em_test_helper'
+require_relative 'em_test_helper'
 
 if EM.kqueue?
   class TestProcessWatch < Test::Unit::TestCase

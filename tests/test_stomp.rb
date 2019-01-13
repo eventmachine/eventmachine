@@ -1,4 +1,4 @@
-require 'em_test_helper'
+require_relative 'em_test_helper'
 
 class TestStomp < Test::Unit::TestCase
   CONTENT_LENGTH_REGEX = /^content-length: (\d+)$/

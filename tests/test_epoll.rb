@@ -1,5 +1,4 @@
-require 'em_test_helper'
-
+require_relative 'em_test_helper'
 
 class TestEpoll < Test::Unit::TestCase
 

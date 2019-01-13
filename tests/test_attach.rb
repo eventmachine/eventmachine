@@ -1,5 +1,4 @@
-require 'em_test_helper'
-require 'socket'
+require_relative 'em_test_helper'
 
 class TestAttach < Test::Unit::TestCase
   class EchoServer < EM::Connection

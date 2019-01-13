@@ -1,4 +1,4 @@
-require 'em_test_helper'
+require_relative 'em_test_helper'
 require 'em/io_streamer'
 
 EM::IOStreamer::CHUNK_SIZE = 2

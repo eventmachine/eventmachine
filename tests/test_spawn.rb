@@ -1,7 +1,4 @@
-
-require 'em_test_helper'
-
-
+require_relative 'em_test_helper'
 
 class TestSpawn < Test::Unit::TestCase
 
