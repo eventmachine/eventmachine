@@ -4,9 +4,32 @@ require 'test/unit'
 require 'rbconfig'
 require 'socket'
 
-puts "\nEM.library_type #{EM.library_type.to_s.ljust(12)}  EM.ssl? #{EM.ssl?}"
-
 class Test::Unit::TestCase
+
+  # below outputs in to console on load
+  # SSL_AVAIL is used by SSL tests
+  puts "", RUBY_DESCRIPTION
+  puts "\nEM.library_type #{EM.library_type.to_s.ljust(16)} EM.ssl? #{EM.ssl?}"
+  if EM.ssl?
+    require 'openssl'
+    ssl_lib_vers = OpenSSL.const_defined?(:OPENSSL_LIBRARY_VERSION) ?
+      OpenSSL::OPENSSL_LIBRARY_VERSION : 'na'
+    puts "OpenSSL OPENSSL_LIBRARY_VERSION: #{ssl_lib_vers}\n" \
+         "                OPENSSL_VERSION: #{OpenSSL::OPENSSL_VERSION}\n" \
+         "     EM OPENSSL_LIBRARY_VERSION: #{EM::OPENSSL_LIBRARY_VERSION}\n" \
+         "                OPENSSL_VERSION: #{EM::OPENSSL_VERSION}"
+
+    # assumes all 2.x versions include support for TLSv1_2
+    temp = []
+    temp << 'SSLv2' unless EM::OPENSSL_NO_SSL2
+    temp << 'SSLv3' unless EM::OPENSSL_NO_SSL3
+    temp += %w[TLSv1 TLSv1_1 TLSv1_2]
+    temp << 'TLSv1_3' if EM.const_defined? :EM_PROTO_TLSv1_3
+    temp.sort!
+    puts "                      SSL_AVAIL: #{temp.join(' ')}", ""
+    SSL_AVAIL = temp.freeze
+  end
+
   class EMTestTimeout < StandardError ; end
 
   def setup_timeout(timeout = TIMEOUT_INTERVAL)
