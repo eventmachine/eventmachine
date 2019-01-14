@@ -1,4 +1,4 @@
-require 'em_test_helper'
+require_relative 'em_test_helper'
 
 class TestLineAndTextProtocol < Test::Unit::TestCase
 
@@ -39,7 +39,7 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
       EM.start_server( "127.0.0.1", @port, TLP_LineBuffer ) do |c|
         conn = c
       end
-      setup_timeout
+      setup_timeout 0.4
 
       EM.connect "127.0.0.1", @port, StopClient do |c|
         c.send_data "aaa\nbbb\r\nccc\n"
@@ -74,7 +74,7 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
       EM.start_server( "127.0.0.1", @port, TLP_ErrorMessage ) do |c|
         conn = c
       end
-      setup_timeout
+      setup_timeout 0.4
       EM.connect "127.0.0.1", @port, StopClient do |c|
         c.send_data "a" * (16*1024 + 1)
         c.send_data "\n"
@@ -106,7 +106,7 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
     output = ''
     EM.run {
       EM.start_server( "127.0.0.1", @port, LineAndTextTest )
-      setup_timeout
+      setup_timeout 0.4
 
       EM.connect "127.0.0.1", @port, StopClient do |c|
         c.set_receive_data { |data| output << data }
@@ -140,7 +140,7 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
     output = ''
     EM.run {
       EM.start_server( "127.0.0.1", @port, BinaryTextTest )
-      setup_timeout
+      setup_timeout 0.4
 
       EM.connect "127.0.0.1", @port, StopClient do |c|
         c.set_receive_data { |data| output << data }

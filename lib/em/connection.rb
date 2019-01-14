@@ -436,6 +436,9 @@ module EventMachine
         protocols_bitmask |= EventMachine::EM_PROTO_TLSv1
         protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_1
         protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_2
+        if EventMachine.const_defined? :EM_PROTO_TLSv1_3
+          protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_3
+        end
       else
         [ssl_version].flatten.each do |p|
           case p.to_s.downcase
@@ -449,6 +452,8 @@ module EventMachine
             protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_1
           when 'tlsv1_2'
             protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_2
+          when 'tlsv1_3'
+            protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_3
           else
             raise("Unrecognized SSL/TLS Protocol: #{p}")
           end

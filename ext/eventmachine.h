@@ -44,7 +44,12 @@ extern "C" {
 		EM_PROTO_SSLv3 = 4,
 		EM_PROTO_TLSv1 = 8,
 		EM_PROTO_TLSv1_1 = 16,
+#ifdef TLS1_3_VERSION
+		EM_PROTO_TLSv1_2 = 32,
+		EM_PROTO_TLSv1_3 = 64
+#else
 		EM_PROTO_TLSv1_2 = 32
+#endif
 	};
 
 	void evma_initialize_library (EMCallback);

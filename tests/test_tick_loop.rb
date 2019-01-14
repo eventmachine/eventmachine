@@ -1,5 +1,4 @@
-require "test/unit"
-require 'em_test_helper'
+require_relative 'em_test_helper'
 
 class TestEmTickLoop < Test::Unit::TestCase
   def test_em_tick_loop

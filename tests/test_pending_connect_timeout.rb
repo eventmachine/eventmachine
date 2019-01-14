@@ -1,4 +1,4 @@
-require 'em_test_helper'
+require_relative 'em_test_helper'
 
 class TestPendingConnectTimeout < Test::Unit::TestCase
 
@@ -31,7 +31,7 @@ class TestPendingConnectTimeout < Test::Unit::TestCase
       end
 
       EM.run {
-        setup_timeout
+        setup_timeout 0.4
         EM.heartbeat_interval = 0.1
         start = EM.current_time
         c = EM.connect('192.0.2.0', 54321, timeout_handler)

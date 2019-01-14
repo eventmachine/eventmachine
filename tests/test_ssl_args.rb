@@ -1,7 +1,5 @@
-require "test/unit"
+require_relative 'em_test_helper'
 require 'tempfile'
-
-require 'em_test_helper'
 
 module EM
   def self._set_mocks

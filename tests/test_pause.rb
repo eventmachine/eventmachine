@@ -1,4 +1,4 @@
-require 'em_test_helper'
+require_relative 'em_test_helper'
 
 class TestPause < Test::Unit::TestCase
   if EM.respond_to? :pause_connection

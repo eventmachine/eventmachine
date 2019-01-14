@@ -1,4 +1,4 @@
-require 'em_test_helper'
+require_relative 'em_test_helper'
 
 class TestSslDhParam < Test::Unit::TestCase
   def setup
@@ -8,7 +8,7 @@ class TestSslDhParam < Test::Unit::TestCase
 
   module Client
     def post_init
-      start_tls
+      start_tls(:ssl_version => %w(TLSv1_2))
     end
 
     def ssl_handshake_completed
@@ -24,7 +24,7 @@ class TestSslDhParam < Test::Unit::TestCase
 
   module Server
     def post_init
-      start_tls(:dhparam => $dhparam_file, :cipher_list => "DHE,EDH")
+      start_tls(:dhparam => $dhparam_file, :cipher_list => "DHE,EDH", :ssl_version => %w(TLSv1_2))
     end
 
     def ssl_handshake_completed
@@ -35,7 +35,7 @@ class TestSslDhParam < Test::Unit::TestCase
 
   module NoDhServer
     def post_init
-      start_tls(:cipher_list => "DHE,EDH")
+      start_tls(:cipher_list => "DHE,EDH", :ssl_version => %w(TLSv1_2))
     end
 
     def ssl_handshake_completed

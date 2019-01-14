@@ -1,5 +1,4 @@
-require 'em_test_helper'
-require 'socket'
+require_relative 'em_test_helper'
 
 class TestBasic < Test::Unit::TestCase
   def setup
@@ -39,7 +38,7 @@ class TestBasic < Test::Unit::TestCase
   def test_timer
     assert_nothing_raised do
       EM.run {
-        setup_timeout
+        setup_timeout 0.4
         n = 0
         EM.add_periodic_timer(0.1) {
           n += 1

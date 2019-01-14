@@ -1,4 +1,4 @@
-require 'em_test_helper'
+require_relative 'em_test_helper'
 
 class TestEMQueue < Test::Unit::TestCase
   def test_queue_push

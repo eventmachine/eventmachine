@@ -19,7 +19,7 @@ Gem::Specification.new do |s|
     s.metadata["msys2_mingw_dependencies"] = "openssl"
   end
 
-  s.add_development_dependency 'test-unit', '~> 2.0'
+  s.add_development_dependency 'test-unit', '~> 3.2'
   s.add_development_dependency 'rake-compiler', '~> 1.0'
   s.add_development_dependency 'rake-compiler-dock', '~> 0.6.3'
 

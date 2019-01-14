@@ -1,5 +1,5 @@
+require_relative 'em_test_helper'
 require 'net/smtp'
-require 'em_test_helper'
 
 class TestSmtpServer < Test::Unit::TestCase
 

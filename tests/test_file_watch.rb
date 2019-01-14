@@ -1,4 +1,4 @@
-require 'em_test_helper'
+require_relative 'em_test_helper'
 require 'tempfile'
 
 class TestFileWatch < Test::Unit::TestCase

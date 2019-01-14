@@ -1,4 +1,4 @@
-require 'em_test_helper'
+require_relative 'em_test_helper'
 
 class TestShutdownHooks < Test::Unit::TestCase
   def test_shutdown_hooks

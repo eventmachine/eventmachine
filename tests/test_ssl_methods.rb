@@ -1,4 +1,4 @@
-require 'em_test_helper'
+require_relative 'em_test_helper'
 
 class TestSSLMethods < Test::Unit::TestCase
 
@@ -13,6 +13,7 @@ class TestSSLMethods < Test::Unit::TestCase
       $server_cipher_bits = get_cipher_bits
       $server_cipher_name = get_cipher_name
       $server_cipher_protocol = get_cipher_protocol
+      EM.stop_event_loop if /TLSv1\.3/ =~ get_cipher_protocol
     end
   end
 
@@ -27,7 +28,7 @@ class TestSSLMethods < Test::Unit::TestCase
       $client_cipher_bits = get_cipher_bits
       $client_cipher_name = get_cipher_name
       $client_cipher_protocol = get_cipher_protocol
-      EM.stop_event_loop
+      EM.stop_event_loop if /TLSv1\.3/ !~ get_cipher_protocol
     end
   end
 

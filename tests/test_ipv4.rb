@@ -1,4 +1,4 @@
-require 'em_test_helper'
+require_relative 'em_test_helper'
 
 class TestIPv4 < Test::Unit::TestCase
   # Runs a TCP server in the local IPv4 address, connects to it and sends a specific data.

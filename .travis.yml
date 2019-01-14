@@ -1,16 +1,25 @@
-sudo: false
-dist: trusty
+dist: xenial
 language: ruby
 bundler_args: --without documentation
-script: bundle exec rake compile test
-# Pin Rubygems to a working version. Sometimes it breaks upstream. Update now and then.
+
 before_install:
-  - 'if [[ "$TRAVIS_OS_NAME" = "osx" ]]; then brew install openssl; fi'
-  - gem update --system 2.7.4
-  - gem update bundler
+  # rubygems 2.7.8 and greater include bundler
+  # remove 2.7.0 code when Travis removes rubygems 2.7.8 from ruby-head build
+  - |
+    rv="$(ruby -e 'STDOUT.write RUBY_VERSION')";
+    if   [ "$rv" \< "2.3" ]; then gem update --system 2.7.8 --no-document
+    elif [ "$rv" \< "2.7" ]; then gem update --system --no-document --conservative
+    fi
+
+before_script:
+  - bundle exec rake compile
+
+script:
+  - bundle exec rake test
+
 env:
   global:
-    - TESTOPTS=-v
+    - TESTOPTS="-v  --no-show-detail-immediately"
 rvm:
   - 2.6
   - 2.5
@@ -28,14 +37,14 @@ rvm:
 matrix:
   fast_finish: true
   allow_failures:
+    - rvm: ruby-head
 #    - rvm: rbx
 #    - rvm: rbx-2
 #    - rvm: rbx-3
-    - rvm: ruby-head
-    - rvm: 2.3
-      os: osx
 #    - rvm: jruby-1.7
 #    - rvm: jruby-9
   include:
+    - rvm: 2.6
+      os: osx
     - rvm: 2.3
       os: osx
