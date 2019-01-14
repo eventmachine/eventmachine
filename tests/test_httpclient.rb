@@ -135,7 +135,7 @@ class TestHttpClient < Test::Unit::TestCase
       response = nil
       EM.run {
         EM.start_server '127.0.0.1', @port, PostContent
-        setup_timeout(2)
+        setup_timeout 2
         c = silent { EM::P::HttpClient.request(
           :host         => '127.0.0.1',
           :port         => @port,

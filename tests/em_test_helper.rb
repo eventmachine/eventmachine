@@ -142,6 +142,17 @@ class Test::Unit::TestCase
   # Tests may run slower on windows or Appveyor. YMMV
   TIMEOUT_INTERVAL = windows? ? 0.25 : 0.25
 
+  module EMTestCasePrepend
+    def setup
+      EM.stop while EM.reactor_running?
+    end
+
+    def teardown
+      EM.cleanup_machine
+    end
+  end
+  prepend EMTestCasePrepend
+
   def silent
     backup, $VERBOSE = $VERBOSE, nil
     begin

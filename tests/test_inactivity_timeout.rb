@@ -23,6 +23,12 @@ class TestInactivityTimeout < Test::Unit::TestCase
     def test_for_real
       start, finish = nil
 
+      timeout_start = Module.new do
+        define_method :post_init do
+          start = Time.now
+        end
+      end
+
       timeout_handler = Module.new do
         define_method :unbind do
           finish = Time.now
@@ -31,17 +37,17 @@ class TestInactivityTimeout < Test::Unit::TestCase
       end
 
       EM.run {
-        setup_timeout
+        setup_timeout 0.4
         EM.heartbeat_interval = 0.01
-        EM.start_server("127.0.0.1", 12345)
+        EM.start_server("127.0.0.1", 12345, timeout_start)
         EM.add_timer(0.01) {
-          start = Time.now
           c = EM.connect("127.0.0.1", 12345, timeout_handler)
           c.comm_inactivity_timeout = 0.02
         }
       }
-
-      assert_in_delta(0.02, (finish - start), 0.02)
+      # busy Travis intermittently saw a bit over 0.09, but often the whole
+      # test only took a bit over 0.02
+      assert_in_delta(0.06, (finish - start), 0.04)
     end
   else
     warn "EM.comm_inactivity_timeout not implemented, skipping tests in #{__FILE__}"
