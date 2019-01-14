@@ -37,14 +37,14 @@ rvm:
 matrix:
   fast_finish: true
   allow_failures:
+    - rvm: ruby-head
 #    - rvm: rbx
 #    - rvm: rbx-2
 #    - rvm: rbx-3
-    - rvm: ruby-head
-    - rvm: 2.3
-      os: osx
 #    - rvm: jruby-1.7
 #    - rvm: jruby-9
   include:
+    - rvm: 2.6
+      os: osx
     - rvm: 2.3
       os: osx

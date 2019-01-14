@@ -1,74 +1,100 @@
 require_relative 'em_test_helper'
 
 class TestSslVerify < Test::Unit::TestCase
-  def setup
-    $dir = File.dirname(File.expand_path(__FILE__)) + '/'
-    $cert_from_file = File.read($dir+'client.crt')
-  end
+
+  DIR = File.dirname(File.expand_path(__FILE__)) + '/'
+  CERT_FROM_FILE = File.read(DIR+'client.crt')
+
+  IP, PORT = "127.0.0.1", 16784
 
   module ClientNoCert
-    def connection_completed
+    @@handshake_completed = nil
+    def self.handshake_completed? ; !!@@handshake_completed end
+
+    def post_init
+      @@handshake_completed = false
       start_tls()
     end
 
     def ssl_handshake_completed
-      $client_handshake_completed = true
-      close_connection
+      @@handshake_completed = true
     end
 
     def unbind
-      EM.stop_event_loop
+      @@handshake_completed = false
     end
   end
 
   module Client
-    def connection_completed
-      start_tls(:private_key_file => $dir+'client.key', :cert_chain_file => $dir+'client.crt')
+    @@handshake_completed = nil
+    def self.handshake_completed? ; !!@@handshake_completed end
+    def self.timer=(val)          ;   @@timer = val         end
+
+    def post_init #G connection_completed
+      @client_closed = false
+      @@handshake_completed = nil
+      @@timer = false
+      start_tls(:private_key_file => DIR+'client.key', :cert_chain_file => DIR+'client.crt')
     end
 
     def ssl_handshake_completed
-      $client_handshake_completed = true
-      close_connection
+      @@handshake_completed = true
     end
 
     def unbind
-      EM.stop_event_loop
+      @@handshake_completed = false unless @@timer
     end
   end
 
   module AcceptServer
+    @@handshake_completed = nil
+    def self.handshake_completed? ; !!@@handshake_completed end
+    def self.cert ; @@cert end
+
     def post_init
+      @@cert = nil
+      @@handshake_completed = false
       start_tls(:verify_peer => true)
     end
 
     def ssl_verify_peer(cert)
-      $cert_from_server = cert
+      @@cert = cert
       true
     end
 
     def ssl_handshake_completed
-      $server_handshake_completed = true
+      @@handshake_completed = true
     end
   end
 
   module DenyServer
+    @@handshake_completed = nil
+    def self.handshake_completed? ; !!@@handshake_completed end
+    def self.cert ; @@cert end
+
     def post_init
+      @@cert = nil
+      @@handshake_completed = nil
       start_tls(:verify_peer => true)
     end
 
     def ssl_verify_peer(cert)
-      $cert_from_server = cert
+      @@cert = cert
       # Do not accept the peer. This should now cause the connection to shut down without the SSL handshake being completed.
       false
     end
 
     def ssl_handshake_completed
-      $server_handshake_completed = true
+      @@handshake_completed = true
     end
   end
 
   module FailServerNoPeerCert
+    @@handshake_completed = nil
+    def self.handshake_completed? ; !!@@handshake_completed end
+
     def post_init
+      @@handshake_completed = false
       start_tls(:verify_peer => true, :fail_if_no_peer_cert => true)
     end
 
@@ -77,52 +103,52 @@ class TestSslVerify < Test::Unit::TestCase
     end
 
     def ssl_handshake_completed
-      $server_handshake_completed = true
+      @@handshake_completed = true
     end
+  end
+
+  def em_run(server, client)
+    EM.run {
+      EM.start_server IP, PORT, server
+      EM.connect IP, PORT, client
+      EM.add_timer(0.3) {
+        Client.timer = true
+        EM.stop_event_loop
+      }
+    }
   end
 
   def test_fail_no_peer_cert
     omit("No SSL") unless EM.ssl?
     omit_if(rbx?)
 
-    $client_handshake_completed, $server_handshake_completed = false, false
+    em_run FailServerNoPeerCert, ClientNoCert
 
-    EM.run {
-      EM.start_server("127.0.0.1", 16784, FailServerNoPeerCert)
-      EM.connect("127.0.0.1", 16784, ClientNoCert)
-    }
-
-    assert(!$client_handshake_completed)
-    assert(!$server_handshake_completed)
+    assert !ClientNoCert.handshake_completed?
+    assert !FailServerNoPeerCert.handshake_completed?
   end
 
   def test_accept_server
     omit("No SSL") unless EM.ssl?
     omit_if(EM.library_type == :pure_ruby) # Server has a default cert chain
     omit_if(rbx?)
-    $client_handshake_completed, $server_handshake_completed = false, false
-    EM.run {
-      EM.start_server("127.0.0.1", 16784, AcceptServer)
-      EM.connect("127.0.0.1", 16784, Client).instance_variable_get("@signature")
-    }
 
-    assert_equal($cert_from_file, $cert_from_server)
-    assert($client_handshake_completed)
-    assert($server_handshake_completed)
+    em_run AcceptServer, Client
+
+    assert_equal CERT_FROM_FILE, AcceptServer.cert
+    assert Client.handshake_completed?
+    assert AcceptServer.handshake_completed?
   end
 
   def test_deny_server
     omit("No SSL") unless EM.ssl?
     omit_if(EM.library_type == :pure_ruby) # Server has a default cert chain
     omit_if(rbx?)
-    $client_handshake_completed, $server_handshake_completed = false, false
-    EM.run {
-      EM.start_server("127.0.0.1", 16784, DenyServer)
-      EM.connect("127.0.0.1", 16784, Client)
-    }
 
-    assert_equal($cert_from_file, $cert_from_server)
-    assert(!$client_handshake_completed)
-    assert(!$server_handshake_completed)
+    em_run DenyServer, Client
+
+    assert_equal CERT_FROM_FILE, DenyServer.cert
+    assert !Client.handshake_completed?
+    assert !DenyServer.handshake_completed?
   end
 end
