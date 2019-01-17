@@ -1,12 +1,16 @@
 require 'em/pure_ruby' if ENV['EM_PURE_RUBY']
 require 'eventmachine'
-require 'test/unit'
 require 'rbconfig'
 require 'socket'
 
+# verbose fun is to stop warnings when loading test-unit 3.2.9 in trunk
+verbose, $VERBOSE = $VERBOSE, nil
+require 'test/unit'
+$VERBOSE = verbose
+
 class Test::Unit::TestCase
 
-  # below outputs in to console on load
+  # below outputs to console on load
   # SSL_AVAIL is used by SSL tests
   puts "", RUBY_DESCRIPTION
   puts "\nEM.library_type #{EM.library_type.to_s.ljust(16)} EM.ssl? #{EM.ssl?}"
@@ -28,6 +32,9 @@ class Test::Unit::TestCase
     temp.sort!
     puts "                      SSL_AVAIL: #{temp.join(' ')}", ""
     SSL_AVAIL = temp.freeze
+  else
+    puts "\nEventMachine is not built with OpenSSL support, skipping tests in",
+         "files tests/test_ssl_*.rb"
   end
 
   class EMTestTimeout < StandardError ; end
@@ -184,5 +191,4 @@ class Test::Unit::TestCase
   ensure
     Socket.do_not_reverse_lookup = orig
   end
-
 end
