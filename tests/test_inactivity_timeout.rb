@@ -45,9 +45,8 @@ class TestInactivityTimeout < Test::Unit::TestCase
           c.comm_inactivity_timeout = 0.02
         }
       }
-      # busy Travis intermittently saw a bit over 0.09, but often the whole
-      # test only took a bit over 0.02
-      assert_in_delta(0.06, (finish - start), 0.04)
+      # Travis can vary from 0.02 to 0.17, Appveyor maybe as low as 0.01
+      assert_in_delta(0.09, (finish - start), 0.08)
     end
   else
     warn "EM.comm_inactivity_timeout not implemented, skipping tests in #{__FILE__}"

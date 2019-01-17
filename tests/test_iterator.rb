@@ -2,12 +2,16 @@ require_relative 'em_test_helper'
 
 class TestIterator < Test::Unit::TestCase
 
+  def setup
+    @time0 = nil
+  end
+
   # By default, format the time with tenths-of-seconds.
   # Some tests should ask for extra decimal places to ensure
   # that delays between iterations will receive a changed time.
-  def get_time(n=1)
-    time = EM.current_time
-    time.strftime('%H:%M:%S.') + time.tv_usec.to_s[0, n]
+  def get_time(n = 1)
+    @time0 = EM.current_time unless @time0
+    sprintf "%07.#{n}f", EM.current_time - @time0
   end
 
   def test_default_concurrency
