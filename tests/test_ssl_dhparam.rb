@@ -2,7 +2,7 @@
 
 require_relative 'em_test_helper'
 
-class TestSslDhParam < Test::Unit::TestCase
+class TestSSLDhParam < Test::Unit::TestCase
 
   require_relative 'em_ssl_handlers'
   include EMSSLHandlers

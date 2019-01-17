@@ -2,7 +2,7 @@
 
 require_relative 'em_test_helper'
 
-class TestSslEcdhCurve < Test::Unit::TestCase
+class TestSSLEcdhCurve < Test::Unit::TestCase
 
   require_relative 'em_ssl_handlers'
   include EMSSLHandlers

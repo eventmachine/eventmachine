@@ -3,7 +3,7 @@
 require_relative 'em_test_helper'
 require 'tempfile'
 
-class TestSslArgs < Test::Unit::TestCase
+class TestSSLArgs < Test::Unit::TestCase
 
   require_relative 'em_ssl_handlers'
   include EMSSLHandlers

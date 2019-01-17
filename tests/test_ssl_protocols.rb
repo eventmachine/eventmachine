@@ -7,7 +7,7 @@ require_relative 'em_test_helper'
 # TLSv1.1 handshake_completed Server/Client callback order is reversed from
 # older protocols
 
-class TestSslProtocols < Test::Unit::TestCase
+class TestSSLProtocols < Test::Unit::TestCase
 
   require_relative 'em_ssl_handlers'
   include EMSSLHandlers

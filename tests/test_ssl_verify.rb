@@ -2,7 +2,7 @@
 
 require_relative 'em_test_helper'
 
-class TestSslVerify < Test::Unit::TestCase
+class TestSSLVerify < Test::Unit::TestCase
 
   require_relative 'em_ssl_handlers'
   include EMSSLHandlers
