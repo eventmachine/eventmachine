@@ -37,8 +37,8 @@ class TestPendingConnectTimeout < Test::Unit::TestCase
         c = EM.connect('192.0.2.0', 54321, timeout_handler)
         c.pending_connect_timeout = 0.2
       }
-
-      assert_in_delta(0.2, (finish - start), 0.1)
+      # Travis can vary from 0.10 to 0.40
+      assert_in_delta(0.25, (finish - start), 0.15)
     end
   else
     warn "EM.pending_connect_timeout not implemented, skipping tests in #{__FILE__}"

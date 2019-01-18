@@ -4,7 +4,7 @@ class TestHttpClient2 < Test::Unit::TestCase
   class TestServer < EM::Connection
   end
 
-  TIMEOUT = (windows? ? 1.5 : 1)
+  TIMEOUT = (windows? ? 2.0 : 1)
 
   def setup
     @port = next_port
@@ -117,8 +117,10 @@ class TestHttpClient2 < Test::Unit::TestCase
   def test_https_get
     omit("No SSL") unless EM.ssl?
     d = nil
+    # below is actually due to an issue with OpenSSL 1.0.2 and earlier with Windows
+    ci_windows_old = windows? and RUBY_VERSION < '2.5'
     EM.run {
-      setup_timeout(windows? ? 6 : TIMEOUT)
+      setup_timeout(ci_windows_old ? 9 : TIMEOUT)
       http = silent { EM::P::HttpClient2.connect :host => 'www.google.com', :port => 443, :tls => true }
       d = http.get "/"
       d.callback {EM.stop}
