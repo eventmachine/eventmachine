@@ -1,84 +1,57 @@
+# frozen_string_literal: true
+
 require_relative 'em_test_helper'
 
-class TestSslDhParam < Test::Unit::TestCase
-  def setup
-    $dir = File.dirname(File.expand_path(__FILE__)) + '/'
-    $dhparam_file = File.join($dir, 'dhparam.pem')
-  end
+class TestSSLDhParam < Test::Unit::TestCase
 
-  module Client
-    def post_init
-      start_tls(:ssl_version => %w(TLSv1_2))
-    end
+  require_relative 'em_ssl_handlers'
+  include EMSSLHandlers
 
-    def ssl_handshake_completed
-      $client_handshake_completed = true
-      $client_cipher_name = get_cipher_name
-      close_connection
-    end
+  DH_PARAM_FILE = File.join(__dir__, 'dhparam.pem')
 
-    def unbind
-      EM.stop_event_loop
-    end
-  end
-
-  module Server
-    def post_init
-      start_tls(:dhparam => $dhparam_file, :cipher_list => "DHE,EDH", :ssl_version => %w(TLSv1_2))
-    end
-
-    def ssl_handshake_completed
-      $server_handshake_completed = true
-      $server_cipher_name = get_cipher_name
-    end
-  end
-
-  module NoDhServer
-    def post_init
-      start_tls(:cipher_list => "DHE,EDH", :ssl_version => %w(TLSv1_2))
-    end
-
-    def ssl_handshake_completed
-      $server_handshake_completed = true
-      $server_cipher_name = get_cipher_name
-    end
-  end
+  DH_1_2 =   { cipher_list: "DHE,EDH", ssl_version: %w(TLSv1_2) }
+  CLIENT_1_2 = { client_unbind: true,  ssl_version: %w(TLSv1_2) }
 
   def test_no_dhparam
-    omit("No SSL") unless EM.ssl?
     omit_if(EM.library_type == :pure_ruby) # DH will work with defaults
     omit_if(rbx?)
 
-    $client_handshake_completed, $server_handshake_completed = false, false
-    $server_cipher_name, $client_cipher_name = nil, nil
+    client_server client: CLIENT_1_2, server: DH_1_2
 
-    EM.run {
-      EM.start_server("127.0.0.1", 16784, NoDhServer)
-      EM.connect("127.0.0.1", 16784, Client)
-    }
-
-    assert(!$client_handshake_completed)
-    assert(!$server_handshake_completed)
+    refute Client.handshake_completed?
+    refute Server.handshake_completed?
   end
 
-  def test_dhparam
-    omit("No SSL") unless EM.ssl?
+  def test_dhparam_1_2
     omit_if(rbx?)
 
-    $client_handshake_completed, $server_handshake_completed = false, false
-    $server_cipher_name, $client_cipher_name = nil, nil
+    client_server client: CLIENT_1_2, server: DH_1_2.merge(dhparam: DH_PARAM_FILE)
 
-    EM.run {
-      EM.start_server("127.0.0.1", 16784, Server)
-      EM.connect("127.0.0.1", 16784, Client)
-    }
+    assert Client.handshake_completed?
+    assert Server.handshake_completed?
 
-    assert($client_handshake_completed)
-    assert($server_handshake_completed)
+    assert Client.cipher_name.length > 0
+    assert_equal Client.cipher_name, Server.cipher_name
 
-    assert($client_cipher_name.length > 0)
-    assert_equal($client_cipher_name, $server_cipher_name)
-
-    assert_match(/^(DHE|EDH)/, $client_cipher_name)
+    assert_match(/^(DHE|EDH)/, Client.cipher_name)
   end
-end
+
+  def test_dhparam_1_3
+    omit_if(rbx?)
+    omit("TLSv1_3 is unavailable") unless EM.const_defined? :EM_PROTO_TLSv1_3
+
+    client = { client_unbind: true, ssl_version: %w(TLSv1_3) }
+    server = { dhparam: DH_PARAM_FILE, cipher_list: "DHE,EDH", ssl_version: %w(TLSv1_3) }
+    client_server client: client, server: server
+
+    assert Client.handshake_completed?
+    assert Server.handshake_completed?
+
+    assert Client.cipher_name.length > 0
+    assert_equal Client.cipher_name, Server.cipher_name
+
+    # see https://wiki.openssl.org/index.php/TLS1.3#Ciphersuites
+    # may depend on OpenSSL build options
+    assert_equal "TLS_AES_256_GCM_SHA384", Client.cipher_name
+  end
+end if EM.ssl?
