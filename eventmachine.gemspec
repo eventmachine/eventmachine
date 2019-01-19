@@ -5,6 +5,7 @@ Gem::Specification.new do |s|
   s.version = EventMachine::VERSION
   s.homepage = 'http://rubyeventmachine.com'
   s.licenses = ['Ruby', 'GPL-2.0']
+  s.required_ruby_version = '>= 2.0.0'
 
   s.authors = ["Francis Cianfrocca", "Aman Gupta"]
   s.email   = ["garbagecat10@gmail.com", "aman@tmm1.net"]
