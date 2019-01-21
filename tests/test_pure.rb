@@ -137,4 +137,20 @@ class TestPure < Test::Unit::TestCase
     assert($client_received_data == "Hello World!")
     assert($server_received_data == "Hello World!")
   end
+
+  def test_periodic_timer
+    x = 0
+    start, finish = nil
+
+    EM.run {
+      start = Time.now.to_f
+      EM::PeriodicTimer.new(0.2) do
+        x += 1
+        finish = Time.now.to_f
+        EM.stop if x == 4
+      end
+    }
+    assert_in_delta 0.8, (finish - start), 0.2
+    assert_equal 4, x
+  end
 end
