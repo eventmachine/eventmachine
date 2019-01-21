@@ -136,7 +136,7 @@ module EventMachine
     # processor still wants them in seconds.
     # @private
     def add_oneshot_timer interval
-      Reactor.instance.install_oneshot_timer(interval / 1000)
+      Reactor.instance.install_oneshot_timer(interval.to_f / 1000)
     end
 
     # @private
