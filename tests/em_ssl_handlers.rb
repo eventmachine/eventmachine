@@ -18,7 +18,7 @@
 # `Client` has a `:client_unbind` parameter, which when set to true, calls
 # `EM.stop_event_loop` in the `unbind` callback.
 # 
-# `Server` has two additional paramters.
+# `Server` has two additional parameters.
 #
 # `:ssl_verify_result`, which is normally set to true/false for the
 # `ssl_verify_peer` return value.  If it is set to a String starting with "|RAISE|",
@@ -141,12 +141,13 @@ module EMSSLHandlers
     end
   end
 
-  def client_server(c_hndlr = Client, s_hndlr = Server, client: nil, server: nil)
+  def client_server(c_hndlr = Client, s_hndlr = Server,
+    client: nil, server: nil, timeout: 3.0)
     EM.run do
+      # fail safe stop
+      setup_timeout timeout
       EM.start_server IP, PORT, s_hndlr, server
       EM.connect IP, PORT, c_hndlr, client
-      # fail safe stop
-      EM.add_timer(3.0) { EM.stop_event_loop }
     end
   end
 end if EM.ssl?
