@@ -45,7 +45,7 @@ Install it with [RubyGems](https://rubygems.org/)
 
 or add this to your Gemfile if you use [Bundler](http://gembundler.com/):
 
-    gem "eventmachine"
+    gem 'eventmachine'
 
 
 
