@@ -143,6 +143,8 @@ end
 
 # Main platform invariances:
 
+ldshared = CONFIG['LDSHARED']
+
 case RUBY_PLATFORM
 when /mswin32/, /mingw32/, /bccwin32/
   check_heads(%w[windows.h winsock.h], true)
@@ -220,6 +222,11 @@ when /cygwin/
 else
   # on Unix we need a g++ link, not gcc.
   CONFIG['LDSHARED'] = "$(CXX) -shared"
+end
+
+if RUBY_ENGINE == "truffleruby"
+  # Keep the original LDSHARED on TruffleRuby, as linking is done on bitcode
+  CONFIG['LDSHARED'] = ldshared
 end
 
 # Platform-specific time functions
