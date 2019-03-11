@@ -1050,7 +1050,7 @@ static VALUE t_unwatch_filename (VALUE self UNUSED, VALUE sig)
 	} catch (std::runtime_error e) {
 		rb_raise (EM_eInvalidSignature, "%s", e.what());
 	}
-	
+
 	return Qnil;
 }
 
@@ -1235,8 +1235,8 @@ t_set_rlimit_nofile
 
 static VALUE t_set_rlimit_nofile (VALUE self UNUSED, VALUE arg)
 {
-	arg = (NIL_P(arg)) ? -1 : NUM2INT (arg);
-	return INT2NUM (evma_set_rlimit_nofile (arg));
+	int arg_int = (NIL_P(arg)) ? -1 : NUM2INT (arg);
+	return INT2NUM (evma_set_rlimit_nofile (arg_int));
 }
 
 /***************************
@@ -1598,4 +1598,3 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_const(EmModule, "OPENSSL_LIBRARY_VERSION", rb_str_new2(SSLeay_version(SSLEAY_VERSION)));
 #endif
 }
-
