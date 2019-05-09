@@ -12,6 +12,10 @@ class TestSSLVerify < Test::Unit::TestCase
   CLIENT_CERT = { private_key_file: "#{__dir__}/client.key",
                   cert_chain_file:  "#{__dir__}/client.crt" }
 
+  ENCODED_CLIENT_CERT = { private_key_file: "#{__dir__}/encoded_client.key",
+                          private_key_pass: 'nicercat',
+                          cert_chain_file:  "#{__dir__}/client.crt" }
+
   def test_fail_no_peer_cert
     omit_if(rbx?)
 
@@ -35,6 +39,19 @@ class TestSSLVerify < Test::Unit::TestCase
     assert_equal CERT_FROM_FILE, Server.cert
     assert Client.handshake_completed?
     assert Server.handshake_completed?
+  end
+
+  def test_encoded_accept_server
+    omit_if(EM.library_type == :pure_ruby) # Server has a default cert chain
+    omit_if(rbx?)
+
+    server = { verify_peer: true, ssl_verify_result: true }
+
+    client_server Client, Server, client: ENCODED_CLIENT_CERT, server: server
+
+    assert Client.handshake_completed?
+    assert Server.handshake_completed?
+    assert_equal CERT_FROM_FILE, Server.cert
   end
 
   def test_deny_server

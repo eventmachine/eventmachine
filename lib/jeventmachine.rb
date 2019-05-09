@@ -99,6 +99,7 @@ module EventMachine
   class ConnectionNotBound < RuntimeError; end
   class UnknownTimerFired < RuntimeError; end
   class Unsupported < RuntimeError; end
+  class InvalidPrivateKey < RuntimeError; end
 
   # This thunk class used to be called EM, but that caused conflicts with
   # the alias "EM" for module EventMachine. (FC, 20Jun08)
