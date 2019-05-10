@@ -125,10 +125,7 @@ SslContext_t::SslContext_t (bool is_server, const std::string &privkeyfile, cons
 	PrivateKey (NULL),
 	Certificate (NULL)
 {
-	/* TODO: the usage of the specified private-key and cert-chain filenames only applies to
-	 * client-side connections at this point. Server connections currently use the default materials.
-	 * That needs to be fixed asap.
-	 * Also, in this implementation, server-side connections use statically defined X-509 defaults.
+	/* TODO: Also, in this implementation, server-side connections use statically defined X-509 defaults.
 	 * One thing I'm really not clear on is whether or not you have to explicitly free X509 and EVP_PKEY
 	 * objects when we call our destructor, or whether just calling SSL_CTX_free is enough.
 	 */
