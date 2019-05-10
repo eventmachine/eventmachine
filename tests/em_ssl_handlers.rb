@@ -45,13 +45,16 @@ module EMSSLHandlers
     def initialize(tls = nil)
       @@tls = tls ? tls.dup : tls
       @@handshake_completed = false
+      @@cert            = nil
       @@cert_value      = nil
       @@cipher_bits     = nil
       @@cipher_name     = nil
       @@cipher_protocol = nil
+      @@ssl_verify_result = @@tls ? @@tls.delete(:ssl_verify_result) : nil
       @@client_unbind = @@tls ? @@tls.delete(:client_unbind) : nil
     end
 
+    def self.cert                 ;   @@cert                end
     def self.cert_value           ;   @@cert_value          end
     def self.cipher_bits          ;   @@cipher_bits         end
     def self.cipher_name          ;   @@cipher_name         end
@@ -63,6 +66,15 @@ module EMSSLHandlers
         start_tls @@tls
       else
         start_tls
+      end
+    end
+
+    def ssl_verify_peer(cert)
+      @@cert = cert
+      if @@ssl_verify_result.is_a?(String) && @@ssl_verify_result.start_with?("|RAISE|")
+        raise @@ssl_verify_result.sub('|RAISE|', '')
+      else
+        @@ssl_verify_result
       end
     end
 

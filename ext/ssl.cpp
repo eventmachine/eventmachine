@@ -188,24 +188,70 @@ SslContext_t::SslContext_t (bool is_server, const std::string &privkeyfile, cons
 	SSL_CTX_set_mode (pCtx, SSL_MODE_RELEASE_BUFFERS);
 	#endif
 
+	int e;
+	// As indicated in man(3) ssl_ctx_use_privatekey_file
+	// To change a certificate, private key pair the new certificate needs to be set with
+	// SSL_use_certificate() or SSL_CTX_use_certificate() before setting the private key with SSL_CTX_use_PrivateKey() or SSL_use_PrivateKey().
+	if (certchainfile.length() > 0) {
+		e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
+		if (e <= 0) ERR_print_errors_fp(stderr);
+		assert (e > 0);
+	}
+	if (cert.length() > 0) {
+		BIO *bio = BIO_new_mem_buf (cert.c_str(), -1);
+		assert(bio);
+		BIO_set_mem_eof_return(bio, 0);
+		X509 * clientCertificate = PEM_read_bio_X509 (bio, NULL, NULL, 0);
+		e = SSL_CTX_use_certificate (pCtx, clientCertificate);
+		X509_free(clientCertificate);
+		BIO_free (bio);
+		if (e <= 0) ERR_print_errors_fp(stderr);
+		assert (e > 0);
+	}
+	if (privkeyfile.length() > 0) {
+		if (privkeypass.length() > 0) {
+			SSL_CTX_set_default_passwd_cb_userdata(pCtx, const_cast<char*>(privkeypass.c_str()));
+		}
+		e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
+		if (e <= 0) ERR_print_errors_fp(stderr);
+		assert (e > 0);
+	}
+	if (privkey.length() > 0) {
+		BIO *bio = BIO_new_mem_buf (privkey.c_str(), -1);
+		assert(bio);
+		BIO_set_mem_eof_return(bio, 0);
+		EVP_PKEY * clientPrivateKey = PEM_read_bio_PrivateKey (bio, NULL, NULL, const_cast<char*>(privkeypass.c_str()));
+		e = SSL_CTX_use_PrivateKey (pCtx, clientPrivateKey);
+		EVP_PKEY_free(clientPrivateKey);
+		BIO_free (bio);
+		if (e <= 0) {
+			BIO *bio_err = BIO_new(BIO_s_mem());
+			std::string error_msg;
+			if (bio_err != NULL) {
+				ERR_print_errors(bio_err);
+				char* buf;
+				long size = BIO_get_mem_data(bio_err, &buf);
+				error_msg.assign(buf,size);
+				BIO_free(bio_err);
+			}
+			throw std::runtime_error (error_msg);
+		}
+		assert (e > 0);
+	}
+
 	if (bIsServer) {
-
-		// The SSL_CTX calls here do NOT allocate memory.
-		int e;
-		if (privkeyfile.length() > 0)
-			e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
-		else
-			e = SSL_CTX_use_PrivateKey (pCtx, DefaultPrivateKey);
-		if (e <= 0) ERR_print_errors_fp(stderr);
-		assert (e > 0);
-
-		if (certchainfile.length() > 0)
-			e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
-		else
+		if (certchainfile.length() == 0 && cert.length() == 0) {
+			// ensure default private material is configured for ssl
 			e = SSL_CTX_use_certificate (pCtx, DefaultCertificate);
-		if (e <= 0) ERR_print_errors_fp(stderr);
-		assert (e > 0);
-
+			if (e <= 0) ERR_print_errors_fp(stderr);
+			assert (e > 0);
+		}
+		if (privkeyfile.length() == 0 && privkey.length() == 0) {
+			// ensure default private material is configured for ssl
+			e = SSL_CTX_use_PrivateKey (pCtx, DefaultPrivateKey);
+			if (e <= 0) ERR_print_errors_fp(stderr);
+			assert (e > 0);
+		}
 		if (dhparam.length() > 0) {
 			DH   *dh;
 			BIO  *bio;
@@ -270,54 +316,6 @@ SslContext_t::SslContext_t (bool is_server, const std::string &privkeyfile, cons
 	if (bIsServer) {
 		SSL_CTX_sess_set_cache_size (pCtx, 128);
 		SSL_CTX_set_session_id_context (pCtx, (unsigned char*)"eventmachine", 12);
-	}
-	else {
-		int e;
-		// As indicated in man(3) ssl_ctx_use_privatekey_file
-		// To change a certificate, private key pair the new certificate needs to be set with
-		// SSL_use_certificate() or SSL_CTX_use_certificate() before setting the private key with SSL_CTX_use_PrivateKey() or SSL_use_PrivateKey().
-		if (certchainfile.length() > 0) {
-			e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
-			if (e <= 0) ERR_print_errors_fp(stderr);
-			assert (e > 0);
-		}
-		if (cert.length() > 0) {
-			BIO *bio = BIO_new_mem_buf (cert.c_str(), -1);
-			BIO_set_mem_eof_return(bio, 0);
-			X509 * clientCertificate = PEM_read_bio_X509 (bio, NULL, NULL, 0);
-			e = SSL_CTX_use_certificate (pCtx, clientCertificate);
-			X509_free(clientCertificate);
-			BIO_free (bio);
-			if (e <= 0) ERR_print_errors_fp(stderr);
-			assert (e > 0);
-		}
-		if (privkeyfile.length() > 0) {
-			if (privkeypass.length() > 0) {
-				SSL_CTX_set_default_passwd_cb_userdata(pCtx, const_cast<char*>(privkeypass.c_str()));
-			}
-			e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
-			if (e <= 0) ERR_print_errors_fp(stderr);
-			assert (e > 0);
-		}
-		if (privkey.length() > 0) {
-			BIO *bio = BIO_new_mem_buf (privkey.c_str(), -1);
-			BIO_set_mem_eof_return(bio, 0);
-			EVP_PKEY * clientPrivateKey = PEM_read_bio_PrivateKey (bio, NULL, NULL, const_cast<char*>(privkeypass.c_str()));
-			e = SSL_CTX_use_PrivateKey (pCtx, clientPrivateKey);
-			EVP_PKEY_free(clientPrivateKey);
-			BIO_free (bio);
-			if (e <= 0) {
-				BIO *bio_err = BIO_new(BIO_s_mem());
-				ERR_print_errors(bio_err);
-				char* buf;
-				long size = BIO_get_mem_data(bio_err, &buf);
-				std::string error_msg;
-				error_msg.assign(buf,size);
-				BIO_free(bio_err);
-				throw std::runtime_error (error_msg);
-			}
-			assert (e > 0);
-		}
 	}
 }
 
