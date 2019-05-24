@@ -221,6 +221,16 @@ bool EventMachine_t::Stopping()
 }
 
 /*******************************
+EventMachine_t::GetTimerQuantum
+*******************************/
+
+uint64_t EventMachine_t::GetTimerQuantum()
+{
+	/* Convert timer-quantum to microseconds */
+	return (Quantum.tv_sec * 1000 + (Quantum.tv_usec + 500) / 1000) * 1000;
+}
+
+/*******************************
 EventMachine_t::SetTimerQuantum
 *******************************/
 

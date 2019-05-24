@@ -123,6 +123,7 @@ class EventMachine_t
 		void ArmKqueueWriter (EventableDescriptor*);
 		void ArmKqueueReader (EventableDescriptor*);
 
+		uint64_t GetTimerQuantum();
 		void SetTimerQuantum (int);
 		static void SetuidString (const char*);
 		static int SetRlimitNofile (int);
