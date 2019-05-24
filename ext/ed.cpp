@@ -1584,6 +1584,15 @@ ConnectionDescriptor::Heartbeat
 
 void ConnectionDescriptor::Heartbeat()
 {
+	/* When TLS is enabled, it can skew the delivery of heartbeats and
+	 * the LastActivity time-keeping by hundreds of microseconds on fast
+	 * machines up to tens of thousands of microseconds on very slow
+	 * machines.  To prevent failing to timeout in a timely fashion we use
+	 * the timer-quantum to compensate for the discrepancy so the
+	 * comparisons are more likely to match when they are nearly equal.
+	 */
+	uint64_t skew = MyEventMachine->GetTimerQuantum();
+
 	/* Only allow a certain amount of time to go by while waiting
 	 * for a pending connect. If it expires, then kill the socket.
 	 * For a connected socket, close it if its inactivity timer
@@ -1598,7 +1607,7 @@ void ConnectionDescriptor::Heartbeat()
 		}
 	}
 	else {
-		if (InactivityTimeout && ((MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout)) {
+		if (InactivityTimeout && ((skew + MyEventMachine->GetCurrentLoopTime() - LastActivity) >= InactivityTimeout)) {
 			UnbindReasonCode = ETIMEDOUT;
 			ScheduleClose (false);
 			//bCloseNow = true;
