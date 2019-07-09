@@ -13,6 +13,7 @@ before_install:
     fi
 
 before_script:
+  - if [ "$jit" == "yes" ]; then export RUBYOPT=--jit ; fi ; echo RUBYOPT is $RUBYOPT
   - bundle exec rake compile
 
 script:
@@ -20,8 +21,8 @@ script:
 
 env:
   global:
-    - env: OS="xenial 16.04"
     - TESTOPTS="-v  --no-show-detail-immediately"
+
 rvm:
   - 2.6
   - 2.5
@@ -37,28 +38,29 @@ matrix:
   allow_failures:
     - rvm: ruby-head
     - rvm: ruby-head
-      env:
-        - RUBYOPT=--jit
+      env: jit=yes
 #    - rvm: jruby-9.2.7.0
 #    - rvm: jruby-head
   include:
     - rvm: 2.3
       dist: trusty
       env: OS="trusty 14.04"
-    - rvm: 2.6.3
+    - rvm: 2.6
       dist: bionic
       env: OS="bionic 18.04"
     - rvm: 2.6
       os: osx
       osx_image: xcode10.2
       env: OS="osx xcode 10.2"
+    - rvm: 2.6
+      os: osx
+      env: OS="osx"
     - rvm: 2.3
       os: osx
       env: OS="osx"
     - rvm: 2.6
-      env: RUBYOPT=--jit
+      env: jit=yes
     - rvm: ruby-head
-      env:
-        - RUBYOPT=--jit
+      env: jit=yes
 #    - rvm: jruby-9.2.7.0
 #    - rvm: jruby-head
