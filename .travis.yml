@@ -1,5 +1,6 @@
 dist: xenial
 language: ruby
+cache: bundler
 bundler_args: --without documentation
 
 before_install:
@@ -7,8 +8,8 @@ before_install:
   # remove 2.7.0 code when Travis removes rubygems 2.7.8 from ruby-head build
   - |
     rv="$(ruby -e 'STDOUT.write RUBY_VERSION')";
-    if   [ "$rv" \< "2.3" ]; then gem update --system 2.7.8 --no-document
-    elif [ "$rv" \< "2.7" ]; then gem update --system --no-document --conservative
+    if   [ "$rv" \< "2.3" ]; then gem update --system 2.7.9 --no-document
+    elif [ "$rv" \< "2.6" ]; then gem update --system --no-document --conservative
     fi
 
 before_script:
@@ -19,6 +20,7 @@ script:
 
 env:
   global:
+    - env: OS="xenial 16.04"
     - TESTOPTS="-v  --no-show-detail-immediately"
 rvm:
   - 2.6
@@ -29,25 +31,34 @@ rvm:
   - 2.1
   - 2.0.0
   - ruby-head
-#  - rbx
-#  - rbx-2
-#  - rbx-3
-#  - jruby-1.7
-#  - jruby-9
+
 matrix:
   fast_finish: true
   allow_failures:
     - rvm: ruby-head
-#    - rvm: rbx
-#    - rvm: rbx-2
-#    - rvm: rbx-3
-#    - rvm: jruby-1.7
-#    - rvm: jruby-9
-  include:
-    - rvm: 2.6
-      os: osx
-    - rvm: 2.3
-      os: osx
-    - rvm: 2.6
+    - rvm: ruby-head
       env:
         - RUBYOPT=--jit
+#    - rvm: jruby-9.2.7.0
+#    - rvm: jruby-head
+  include:
+    - rvm: 2.3
+      dist: trusty
+      env: OS="trusty 14.04"
+    - rvm: 2.6.3
+      dist: bionic
+      env: OS="bionic 18.04"
+    - rvm: 2.6
+      os: osx
+      osx_image: xcode10.2
+      env: OS="osx xcode 10.2"
+    - rvm: 2.3
+      os: osx
+      env: OS="osx"
+    - rvm: 2.6
+      env: RUBYOPT=--jit
+    - rvm: ruby-head
+      env:
+        - RUBYOPT=--jit
+#    - rvm: jruby-9.2.7.0
+#    - rvm: jruby-head
