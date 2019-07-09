@@ -86,7 +86,8 @@ class TestResolver < Test::Unit::TestCase
       d = EM::DNS::Resolver.resolve "localhost"
       d.errback { assert false }
       d.callback { |r|
-        assert_include(["127.0.0.1", "::1"], r.first)
+        # "127.0.1.1" added for testing on bionic 18.04
+        assert_include(["127.0.0.1", "127.0.1.1", "::1"], r.first)
         assert_kind_of(Array, r)
 
         EM.stop

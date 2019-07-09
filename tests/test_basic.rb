@@ -5,7 +5,7 @@ class TestBasic < Test::Unit::TestCase
     @port = next_port
   end
 
-  INVALID = "(not known|no data of the requested|No such host is known)"
+  INVALID = "(not known|no data of the requested|No such host is known|Temporary failure in name resolution)"
 
   def test_connection_class_cache
     mod = Module.new
