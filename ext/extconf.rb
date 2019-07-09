@@ -238,6 +238,12 @@ else
   have_func('gethrtime') # Older Solaris and HP-UX
 end
 
+# OpenSSL version checks
+#   below are yes for 1.1.0 & later, may need to check func rather than macro
+#   with versions after 1.1.1
+have_func  "TLS_server_method"            , "openssl/ssl.h"
+have_macro "SSL_CTX_set_min_proto_version", "openssl/ssl.h"
+
 # Hack so that try_link will test with a C++ compiler instead of a C compiler
 TRY_LINK.sub!('$(CC)', '$(CXX)')
 

@@ -144,8 +144,11 @@ SslContext_t::SslContext_t (bool is_server, const std::string &privkeyfile, cons
 
 		InitializeDefaultCredentials();
 	}
-
+	#ifdef HAVE_TLS_SERVER_METHOD
+	pCtx = SSL_CTX_new (bIsServer ? TLS_server_method() : TLS_client_method());
+	#else
 	pCtx = SSL_CTX_new (bIsServer ? SSLv23_server_method() : SSLv23_client_method());
+	#endif
 	if (!pCtx)
 		throw std::runtime_error ("no SSL context");
 
