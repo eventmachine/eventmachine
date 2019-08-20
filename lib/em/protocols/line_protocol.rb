@@ -15,8 +15,12 @@ module EventMachine
       def receive_data data
         (@buf ||= '') << data
 
-        while @buf.slice!(/(.*?)\r?\n/)
-          receive_line($1)
+        @buf.each_line do |line|
+          if line[-1] == "\n"
+            receive_line(line.chomp)
+          else
+            @buf = line
+          end
         end
       end
 
