@@ -21,10 +21,6 @@ See the file COPYING for complete licensing information.
 #include "eventmachine.h"
 #include <ruby.h>
 
-#ifndef RFLOAT_VALUE
-#define RFLOAT_VALUE(arg) RFLOAT(arg)->value
-#endif
-
 /* Adapted from NUM2BSIG / BSIG2NUM in ext/fiddle/conversions.h,
  * we'll call it a BSIG for Binding Signature here. */
 #if SIZEOF_VOIDP == SIZEOF_LONG
