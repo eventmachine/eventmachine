@@ -100,9 +100,6 @@ module EventMachine
     # in your redefined implementation of receive_data. For a better understanding
     # of this, read through the examples of specific protocol handlers in EventMachine::Protocols
     #
-    # The base-class implementation (which will be invoked only if you didn't override it in your protocol handler)
-    # simply prints incoming data packet size to stdout.
-    #
     # @param [String] data Opaque incoming data.
     # @note Depending on the protocol, buffer sizes and OS networking stack configuration, incoming data may or may not be "a complete message".
     #       It is up to this handler to detect content boundaries to determine whether all the content (for example, full HTTP request)
@@ -114,7 +111,6 @@ module EventMachine
     # @see #send_data
     # @see file:docs/GettingStarted.md EventMachine tutorial
     def receive_data data
-      puts "............>>>#{data.length}"
     end
 
     # Called by EventMachine when the SSL/TLS handshake has
