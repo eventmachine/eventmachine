@@ -45,6 +45,16 @@ See the file COPYING for complete licensing information.
 # endif
 #endif
 
+/* Adapted from SWIG's changes for Ruby 2.7 compatibility.
+ * Before Ruby 2.7, rb_rescue takes (VALUE (*))(ANYARGS)
+ * whereas in Ruby 2.7, rb_rescue takes (VALUE (*))(VALUE)
+ * */
+#if defined(__cplusplus) && !defined(RB_METHOD_DEFINITION_DECL)
+#  define VALUEFUNC(f) ((VALUE (*)(ANYARGS)) f)
+#else
+#  define VALUEFUNC(f) (f)
+#endif
+
 /*******
 Statics
 *******/
@@ -221,7 +231,7 @@ static void event_callback_wrapper (const uintptr_t signature, int event, const 
 	if (!rb_ivar_defined(EmModule, Intern_at_error_handler))
 		event_callback((VALUE)&e);
 	else
-		rb_rescue(event_callback, (VALUE)&e, event_error_handler, Qnil);
+		rb_rescue(VALUEFUNC(event_callback), (VALUE)&e, VALUEFUNC(event_error_handler), Qnil);
 }
 
 /**************************
