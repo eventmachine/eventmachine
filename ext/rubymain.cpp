@@ -21,10 +21,6 @@ See the file COPYING for complete licensing information.
 #include "eventmachine.h"
 #include <ruby.h>
 
-#ifndef RFLOAT_VALUE
-#define RFLOAT_VALUE(arg) RFLOAT(arg)->value
-#endif
-
 /* Adapted from NUM2BSIG / BSIG2NUM in ext/fiddle/conversions.h,
  * we'll call it a BSIG for Binding Signature here. */
 #if SIZEOF_VOIDP == SIZEOF_LONG
@@ -43,6 +39,16 @@ See the file COPYING for complete licensing information.
 # else
 #  define PRIFBSIG      "llu"
 # endif
+#endif
+
+/* Adapted from SWIG's changes for Ruby 2.7 compatibility.
+ * Before Ruby 2.7, rb_rescue takes (VALUE (*))(ANYARGS)
+ * whereas in Ruby 2.7, rb_rescue takes (VALUE (*))(VALUE)
+ * */
+#if defined(__cplusplus) && !defined(RB_METHOD_DEFINITION_DECL)
+#  define VALUEFUNC(f) ((VALUE (*)(ANYARGS)) f)
+#else
+#  define VALUEFUNC(f) (f)
 #endif
 
 /*******
@@ -100,8 +106,9 @@ static inline VALUE ensure_conn(const uintptr_t signature)
 t_event_callback
 ****************/
 
-static inline void event_callback (struct em_event* e)
+static inline VALUE event_callback (VALUE e_value)
 {
+	struct em_event *e = (struct em_event *)e_value;
 	const uintptr_t signature = e->signature;
 	int event = e->event;
 	const char *data_str = e->data_str;
@@ -114,40 +121,40 @@ static inline void event_callback (struct em_event* e)
 			if (conn == Qnil)
 				rb_raise (EM_eConnectionNotBound, "received %lu bytes of data for unknown signature: %" PRIFBSIG, data_num, signature);
 			rb_funcall (conn, Intern_receive_data, 1, rb_str_new (data_str, data_num));
-			return;
+			return Qnil;
 		}
 		case EM_CONNECTION_ACCEPTED:
 		{
 			rb_funcall (EmModule, Intern_event_callback, 3, BSIG2NUM(signature), INT2FIX(event), ULONG2NUM(data_num));
-			return;
+			return Qnil;
 		}
 		case EM_CONNECTION_UNBOUND:
 		{
 			rb_funcall (EmModule, Intern_event_callback, 3, BSIG2NUM(signature), INT2FIX(event), ULONG2NUM(data_num));
-			return;
+			return Qnil;
 		}
 		case EM_CONNECTION_COMPLETED:
 		{
 			VALUE conn = ensure_conn(signature);
 			rb_funcall (conn, Intern_connection_completed, 0);
-			return;
+			return Qnil;
 		}
 		case EM_CONNECTION_NOTIFY_READABLE:
 		{
 			VALUE conn = ensure_conn(signature);
 			rb_funcall (conn, Intern_notify_readable, 0);
-			return;
+			return Qnil;
 		}
 		case EM_CONNECTION_NOTIFY_WRITABLE:
 		{
 			VALUE conn = ensure_conn(signature);
 			rb_funcall (conn, Intern_notify_writable, 0);
-			return;
+			return Qnil;
 		}
 		case EM_LOOPBREAK_SIGNAL:
 		{
 			rb_funcall (EmModule, Intern_run_deferred_callbacks, 0);
-			return;
+			return Qnil;
 		}
 		case EM_TIMER_FIRED:
 		{
@@ -159,14 +166,14 @@ static inline void event_callback (struct em_event* e)
 			} else {
 				rb_funcall (timer, Intern_call, 0);
 			}
-			return;
+			return Qnil;
 		}
 		#ifdef WITH_SSL
 		case EM_SSL_HANDSHAKE_COMPLETED:
 		{
 			VALUE conn = ensure_conn(signature);
 			rb_funcall (conn, Intern_ssl_handshake_completed, 0);
-			return;
+			return Qnil;
 		}
 		case EM_SSL_VERIFY:
 		{
@@ -174,32 +181,35 @@ static inline void event_callback (struct em_event* e)
 			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
 			if (RTEST(should_accept))
 				evma_accept_ssl_peer (signature);
-			return;
+			return Qnil;
 		}
 		#endif
 		case EM_PROXY_TARGET_UNBOUND:
 		{
 			VALUE conn = ensure_conn(signature);
 			rb_funcall (conn, Intern_proxy_target_unbound, 0);
-			return;
+			return Qnil;
 		}
 		case EM_PROXY_COMPLETED:
 		{
 			VALUE conn = ensure_conn(signature);
 			rb_funcall (conn, Intern_proxy_completed, 0);
-			return;
+			return Qnil;
 		}
 	}
+
+	return Qnil;
 }
 
 /*******************
 event_error_handler
 *******************/
 
-static void event_error_handler(VALUE self UNUSED, VALUE err)
+static VALUE event_error_handler(VALUE self UNUSED, VALUE err)
 {
 	VALUE error_handler = rb_ivar_get(EmModule, Intern_at_error_handler);
 	rb_funcall (error_handler, Intern_call, 1, err);
+	return Qnil;
 }
 
 /**********************
@@ -215,9 +225,9 @@ static void event_callback_wrapper (const uintptr_t signature, int event, const 
 	e.data_num = data_num;
 
 	if (!rb_ivar_defined(EmModule, Intern_at_error_handler))
-		event_callback(&e);
+		event_callback((VALUE)&e);
 	else
-		rb_rescue((VALUE (*)(ANYARGS))event_callback, (VALUE)&e, (VALUE (*)(ANYARGS))event_error_handler, Qnil);
+		rb_rescue(VALUEFUNC(event_callback), (VALUE)&e, VALUEFUNC(event_error_handler), Qnil);
 }
 
 /**************************

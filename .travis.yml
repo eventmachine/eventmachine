@@ -24,6 +24,7 @@ env:
     - TESTOPTS="-v  --no-show-detail-immediately"
 
 rvm:
+  - 2.7
   - 2.6
   - 2.5
   - 2.4
@@ -50,14 +51,12 @@ matrix:
       env: OS="bionic 18.04"
     - rvm: 2.6
       os: osx
-      osx_image: xcode10.2
-      env: OS="osx xcode 10.2"
+      osx_image: xcode10.3
+      env: OS="osx xcode 10.3"
     - rvm: 2.6
       os: osx
-      env: OS="osx"
-    - rvm: 2.3
-      os: osx
-      env: OS="osx"
+      osx_image: xcode11.3
+      env: OS="osx xcode 11.3"
     - rvm: 2.6
       env: jit=yes
     - rvm: ruby-head

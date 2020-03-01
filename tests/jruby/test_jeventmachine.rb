@@ -1,5 +1,5 @@
 if !(RUBY_PLATFORM =~ /java/)
-  puts "Ignorming tests in #{__FILE__}.  They must be run in JRuby "
+  puts "Ignoring tests in #{__FILE__}.  They must be run in JRuby "
 else
   require 'test/unit'
   require 'jeventmachine'
