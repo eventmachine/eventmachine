@@ -129,6 +129,10 @@ class Test::Unit::TestCase
       RbConfig::CONFIG['host_os'] =~ /mswin|mingw/
     end
 
+    def darwin?
+      RUBY_PLATFORM =~ /darwin/
+    end
+
     def solaris?
       RUBY_PLATFORM =~ /solaris/
     end

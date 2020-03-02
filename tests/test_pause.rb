@@ -48,7 +48,9 @@ class TestPause < Test::Unit::TestCase
         EM.start_server "127.0.0.1", @port, test_server
         EM.connect "127.0.0.1", @port, test_client
 
-        EM.add_timer(0.05) do
+        tmr = darwin? ? 0.10 : 0.05
+
+        EM.add_timer(tmr) do
           assert_equal 1, s_rx
           assert_equal 0, c_rx
           assert server.paused?
@@ -58,7 +60,7 @@ class TestPause < Test::Unit::TestCase
 
           assert !server.paused?
 
-          EM.add_timer(0.05) do
+          EM.add_timer(tmr) do
             assert server.paused?
             assert s_rx > 1
             assert c_rx > 0

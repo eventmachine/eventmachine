@@ -33,7 +33,7 @@ class TestIPv4 < Test::Unit::TestCase
 
     @@received_data = nil
     @local_port = next_port
-    setup_timeout(2)
+    setup_timeout(darwin? ? 4 : 2)
 
     EM.run do
       EM::open_datagram_socket(@@public_ipv4, @local_port) do |s|

@@ -87,7 +87,7 @@ class TestInactivityTimeout < Test::Unit::TestCase
       }
 
       # .30 is double the timeout and not acceptable
-      assert_in_delta(0.15, (finish - start), 0.14)
+      assert_in_delta 0.15, (finish - start), (darwin? ? 0.20 : 0.14)
       # make sure it was a timeout and not a TLS error
       assert_equal Errno::ETIMEDOUT, reason
     end
