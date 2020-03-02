@@ -25,23 +25,9 @@ def append_library(libs, lib)
   libs + " " + format(LIBARG, lib)
 end
 
-SSL_HEADS = %w(openssl/ssl.h openssl/err.h)
-SSL_LIBS = %w(crypto ssl)
-# OpenSSL 1.1.0 and above for Windows use the Unix library names
-# OpenSSL 0.9.8 and 1.0.x for Windows use the *eay32 library names
-SSL_LIBS_WIN = RUBY_PLATFORM =~ /mswin|mingw|bccwin/ ? %w(ssleay32 libeay32) : []
-
 def dir_config_wrapper(pretty_name, name, idefault=nil, ldefault=nil)
   inc, lib = dir_config(name, idefault, ldefault)
   if inc && lib
-    # TODO: Remove when 2.0.0 is the minimum supported version
-    # Ruby versions not incorporating the mkmf fix at
-    # https://bugs.ruby-lang.org/projects/ruby-trunk/repository/revisions/39717
-    # do not properly search for lib directories, and must be corrected
-    unless lib && lib[-3, 3] == 'lib'
-      @libdir_basename = 'lib'
-      inc, lib = dir_config(name, idefault, ldefault)
-    end
     unless idefault && ldefault
       abort "-----\nCannot find #{pretty_name} include path #{inc}\n-----" unless inc && inc.split(File::PATH_SEPARATOR).any? { |dir| File.directory?(dir) }
       abort "-----\nCannot find #{pretty_name} library path #{lib}\n-----" unless lib && lib.split(File::PATH_SEPARATOR).any? { |dir| File.directory?(dir) }
@@ -53,7 +39,7 @@ end
 
 def dir_config_search(pretty_name, name, paths, &b)
   paths.each do |p|
-    if dir_config_wrapper('OpenSSL', 'ssl', p + '/include', p + '/lib') && yield
+    if dir_config_wrapper(pretty_name, name, p + '/include', p + '/lib') && yield
       warn "-----\nFound #{pretty_name} in path #{p}\n-----"
       return true
     end
@@ -67,6 +53,20 @@ def pkg_config_wrapper(pretty_name, name)
     warn "-----\nUsing #{pretty_name} from pkg-config #{cflags} && #{ldflags} && #{libs}\n-----"
     true
   end
+end
+
+def find_openssl_library
+  if $mswin || $mingw
+    # required for static OpenSSL libraries
+    have_library("gdi32") # OpenSSL <= 1.0.2 (for RAND_screen())
+    have_library("crypt32")
+  end
+
+  return false unless have_header("openssl/ssl.h") && have_header("openssl/err.h")
+
+  ret = have_library("crypto", "CRYPTO_malloc") &&
+    have_library("ssl", "SSL_new")
+  return ret if ret
 end
 
 if ENV['CROSS_COMPILING']
@@ -86,17 +86,20 @@ if ENV['CROSS_COMPILING']
     STDERR.puts "**************************************************************************************"
     STDERR.puts
   end
+elsif dir_config_wrapper('OpenSSL', 'openssl')
+  # If the user has provided a --with-openssl-dir argument, we must respect it or fail.
+  add_define 'WITH_SSL' if find_openssl_library
 elsif dir_config_wrapper('OpenSSL', 'ssl')
   # If the user has provided a --with-ssl-dir argument, we must respect it or fail.
-  add_define 'WITH_SSL' if (check_libs(SSL_LIBS) || check_libs(SSL_LIBS_WIN)) && check_heads(SSL_HEADS)
+  add_define 'WITH_SSL' if find_openssl_librar
 elsif pkg_config_wrapper('OpenSSL', 'openssl')
   # If we can detect OpenSSL by pkg-config, use it as the next-best option
-  add_define 'WITH_SSL' if (check_libs(SSL_LIBS) || check_libs(SSL_LIBS_WIN)) && check_heads(SSL_HEADS)
-elsif (check_libs(SSL_LIBS) || check_libs(SSL_LIBS_WIN)) && check_heads(SSL_HEADS)
+  add_define 'WITH_SSL' if find_openssl_library
+elsif find_openssl_library
   # If we don't even need any options to find a usable OpenSSL, go with it
   add_define 'WITH_SSL'
-elsif dir_config_search('OpenSSL', 'ssl', ['/usr/local', '/opt/local', '/usr/local/opt/openssl']) do
-    (check_libs(SSL_LIBS) || check_libs(SSL_LIBS_WIN)) && check_heads(SSL_HEADS)
+elsif dir_config_search('OpenSSL', 'openssl', ['/usr/local', '/opt/local', '/usr/local/opt/openssl']) do
+    find_openssl_library
   end
   # Finally, look for OpenSSL in alternate locations including MacPorts and HomeBrew
   add_define 'WITH_SSL'
@@ -139,6 +142,8 @@ if RbConfig::CONFIG["host_os"] =~ /mingw/
     any? { |v| v.include?("FD_SETSIZE") }
 
   add_define "FD_SETSIZE=32767" unless found
+  # needed for new versions of headers-git & crt-git
+  append_ldflags "-l:libssp.a -fstack-protector"
 end
 
 # Main platform invariances:

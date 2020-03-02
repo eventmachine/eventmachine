@@ -36,6 +36,8 @@ if RbConfig::CONFIG["host_os"] =~ /mingw/
     any? { |v| v.include?("FD_SETSIZE") }
 
   add_define "FD_SETSIZE=32767" unless found
+  # needed for new versions of headers-git & crt-git
+  append_ldflags "-l:libssp.a -fstack-protector"
 end
 
 # Main platform invariances:
