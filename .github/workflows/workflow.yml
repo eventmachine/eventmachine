@@ -1,0 +1,78 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: >-
+      ${{ matrix.os }} ${{ matrix.ruby }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-18.04, macos ]
+        ruby: [ 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, head ]
+    steps:
+      - name: repo checkout
+        uses: actions/checkout@v2
+
+      - name: load ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: macOS disable firewall 
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate off
+          sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
+
+      - name: bundle install
+        run:  bundle install --jobs 4 --retry 3 --without=documentation
+
+      - name: compile
+        run:  bundle exec rake compile
+
+      - name: test
+        run:  bundle exec rake test
+        env:
+          CI: true
+          TESTOPTS: -v --no-show-detail-immediately
+
+  win32:
+    name: >-
+      ${{ matrix.os }} ${{ matrix.ruby }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-latest ]
+        ruby: [ 2.4, 2.5, 2.6, 2.7, mingw ]
+    steps:
+      - name: repo checkout
+        uses: actions/checkout@v2
+
+      - name: load ruby, update MSYS2, openssl
+        uses: MSP-Greg/actions-ruby@v1
+        with:
+          base:  update
+          mingw: openssl
+          ruby-version: ${{ matrix.ruby }}
+
+      - name: bundle install
+        run:  bundle install --jobs 4 --retry 3 --without=documentation
+
+      - name: compile 
+        if:   matrix.ruby >= '2.4'
+        run:  rake compile
+
+      # Ruby 2.3 uses a OpenSSL package that is not MSYS2
+      - name: compile 2.3
+        if:   matrix.ruby == '2.3'
+        run:  rake compile -- --with-openssl-dir=C:/openssl-win
+
+      - name: test
+        run:  rake test
+        env:
+          CI: true
+          TESTOPTS: -v --no-show-detail-immediately
