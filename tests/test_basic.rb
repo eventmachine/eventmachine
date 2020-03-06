@@ -163,7 +163,7 @@ class TestBasic < Test::Unit::TestCase
     end
 
     EM.run do
-      setup_timeout(darwin? ? 0.3 : nil)
+      darwin? ? setup_timeout(0.3) : setup_timeout
       EM.start_server "127.0.0.1", @port, bound_server
       EM.bind_connect local_ip, bind_port, "127.0.0.1", @port
     end
