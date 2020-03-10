@@ -91,7 +91,7 @@ elsif dir_config_wrapper('OpenSSL', 'openssl')
   add_define 'WITH_SSL' if find_openssl_library
 elsif dir_config_wrapper('OpenSSL', 'ssl')
   # If the user has provided a --with-ssl-dir argument, we must respect it or fail.
-  add_define 'WITH_SSL' if find_openssl_librar
+  add_define 'WITH_SSL' if find_openssl_library
 elsif pkg_config_wrapper('OpenSSL', 'openssl')
   # If we can detect OpenSSL by pkg-config, use it as the next-best option
   add_define 'WITH_SSL' if find_openssl_library
