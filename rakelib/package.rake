@@ -106,7 +106,7 @@ task :devkit do
   end
 end
 
-if RUBY_PLATFORM =~ /mingw|mswin/
+if RUBY_PLATFORM =~ /mingw|mswin/ && ENV['GITHUB_ACTIONS'].nil?
   Rake::Task['compile'].prerequisites.unshift 'devkit'
 end
 

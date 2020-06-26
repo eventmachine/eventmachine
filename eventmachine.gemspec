@@ -17,11 +17,13 @@ Gem::Specification.new do |s|
 
   if s.respond_to?(:metadata=)
     s.metadata ||= {}
-    s.metadata["msys2_mingw_dependencies"] = "openssl"
+    if RbConfig::CONFIG['ruby_version'] >= '2.5'
+      s.metadata["msys2_mingw_dependencies"] = "openssl"
+    end
   end
 
   s.add_development_dependency 'test-unit', '~> 3.2'
-  s.add_development_dependency 'rake-compiler', '~> 1.0'
+  s.add_development_dependency 'rake-compiler', '~> 1.1'
   s.add_development_dependency 'rake-compiler-dock', '~> 0.6.3'
 
   s.summary = 'Ruby/EventMachine library'

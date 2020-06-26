@@ -150,7 +150,7 @@ class TestPure < Test::Unit::TestCase
         EM.stop if x == 4
       end
     }
-    assert_in_delta 0.8, (finish - start), 0.2
+    assert_in_delta 0.8, (finish - start), (darwin? ? 0.6 : 0.2)
     assert_equal 4, x
   end
 end

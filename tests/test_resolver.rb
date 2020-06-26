@@ -2,7 +2,8 @@ require_relative 'em_test_helper'
 
 class TestResolver < Test::Unit::TestCase
 
-  CI_WINDOWS = windows? and ENV['CI'].casecmp('true').zero?
+  # always true unless set
+  CI_WINDOWS = windows? && ENV.fetch('CI', 'true').casecmp('true').zero?
 
   def ci_windows_retries(err)
     if CI_WINDOWS and err.is_a? String and err[/retries exceeded/]
