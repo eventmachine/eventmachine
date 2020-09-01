@@ -1,3 +1,5 @@
+require 'em/pure_ruby'
+
 if defined?(EventMachine.library_type) and EventMachine.library_type == :pure_ruby
   # assume 'em/pure_ruby' was loaded already
 elsif RUBY_PLATFORM =~ /java/
