@@ -143,7 +143,7 @@ main thread and it finishes execution, and our little program exits as the resul
 
 To summarize this first example:
 
- * Subclass {EventMachine::Connection} and override {EventMachine::Connection#send_data} to handle incoming data.
+ * Subclass {EventMachine::Connection} and override {EventMachine::Connection#receive_data} to handle incoming data.
  * Use {EventMachine.run} to start EventMachine event loop and then bind echo server with {EventMachine.start_server}.
  * To stop the event loop, use {EventMachine.stop_event_loop} (aliased as {EventMachine.stop})
 
