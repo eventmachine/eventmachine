@@ -64,8 +64,8 @@ def find_openssl_library
 
   return false unless have_header("openssl/ssl.h") && have_header("openssl/err.h")
 
-  ret = have_library("crypto", "CRYPTO_malloc") &&
-    have_library("ssl", "SSL_new")
+  ret = %w'crypto libeay32'.find {|crypto| have_library(crypto, 'BIO_read')} and
+      %w'ssl ssleay32'.find {|ssl| have_library(ssl, 'SSL_CTX_new')}
   return ret if ret
 end
 
@@ -86,6 +86,9 @@ if ENV['CROSS_COMPILING']
     STDERR.puts "**************************************************************************************"
     STDERR.puts
   end
+elsif $mingw && RUBY_VERSION < '2.4' && find_openssl_library
+  # Workaround for old MSYS OpenSSL builds
+  add_define 'WITH_SSL'
 elsif dir_config_wrapper('OpenSSL', 'openssl')
   # If the user has provided a --with-openssl-dir argument, we must respect it or fail.
   add_define 'WITH_SSL' if find_openssl_library
@@ -124,7 +127,7 @@ have_const('SOCK_CLOEXEC', 'sys/socket.h')
 # Minor platform details between *nix and Windows:
 
 if RUBY_PLATFORM =~ /(mswin|mingw|bccwin)/
-  GNU_CHAIN = ENV['CROSS_COMPILING'] || $1 == 'mingw'
+  GNU_CHAIN = ENV['CROSS_COMPILING'] || $mingw
   OS_WIN32 = true
   add_define "OS_WIN32"
 else
