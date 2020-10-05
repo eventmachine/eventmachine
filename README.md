@@ -107,4 +107,4 @@ Copyright: (C) 2006-07 by Francis Cianfrocca. All Rights Reserved.
 
 ## Alternatives ##
 
-If you are unhappy with EventMachine and want to use Ruby, check out [Celluloid](https://celluloid.io/).
+If you are unhappy with EventMachine and want to use Ruby, check out [Celluloid](https://github.com/celluloid/celluloid).
