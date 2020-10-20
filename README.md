@@ -23,7 +23,7 @@ EventMachine has been around since the early 2000s and is a mature and battle-te
 
 ## What EventMachine is good for? ##
 
- * Scalable event-driven servers. Examples: [Thin](http://code.macournoyer.com/thin/) or [Goliath](https://github.com/postrank-labs/goliath/).
+ * Scalable event-driven servers. Examples: [Thin](https://github.com/macournoyer/thin/) or [Goliath](https://github.com/postrank-labs/goliath/).
  * Scalable asynchronous clients for various protocols, RESTful APIs and so on. Examples: [em-http-request](https://github.com/igrigorik/em-http-request) or [amqp gem](https://github.com/ruby-amqp/amqp).
  * Efficient network proxies with custom logic. Examples: [Proxymachine](https://github.com/mojombo/proxymachine/).
  * File and network monitoring tools. Examples: [eventmachine-tail](https://github.com/jordansissel/eventmachine-tail) and [logstash](https://github.com/logstash/logstash).
