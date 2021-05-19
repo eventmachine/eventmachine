@@ -1,6 +1,6 @@
 name: CI
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
   build:
@@ -11,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-20.04, macos-10.15, windows-2019 ]
-        ruby: [ 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, head ]
+        ruby: [ 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, '3.0', head ]
         include:
           - { os: windows-2019, ruby: mingw }
         exclude:
@@ -26,7 +26,7 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           mingw: _upgrade_ openssl
 
-      - name: macOS disable firewall 
+      - name: macOS disable firewall
         if: startsWith(matrix.os, 'macos')
         run: |
           sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate off
