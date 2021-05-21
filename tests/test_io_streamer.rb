@@ -2,6 +2,7 @@
 
 require_relative 'em_test_helper'
 require 'em/io_streamer'
+require 'stringio'
 
 # below to stop 'already initialized constant' warning
 EM::IOStreamer.__send__ :remove_const, :CHUNK_SIZE
