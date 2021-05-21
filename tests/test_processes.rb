@@ -32,23 +32,42 @@ class TestProcesses < Test::Unit::TestCase
     end
 
     def test_em_system
+      out, status = nil, nil
+
       EM.run{
-        EM.system('ls'){ |out,status| $out, $status = out, status; EM.stop }
+        EM.system('ls'){ |_out,_status| out, status = _out, _status; EM.stop }
       }
 
-      assert( $out.length > 0 )
-      assert_equal(0, $status.exitstatus)
-      assert_kind_of(Process::Status, $status)
+      assert(out.length > 0 )
+      assert_kind_of(Process::Status, status)
+      assert_equal(0, status.exitstatus)
+    end
+
+    def test_em_system_bad_exitstatus
+      status = nil
+      sys_pid = nil
+
+      EM.run{
+        sys_pid = EM.system('exit 1'){ |_out,_status| status = _status; EM.stop }
+      }
+
+      assert_kind_of(Process::Status, status)
+      refute_equal(0, status.exitstatus)
+      assert_equal sys_pid, status.pid
     end
 
     def test_em_system_pid
-      $pids = []
+      status = nil
+      sys_pid = nil
 
       EM.run{
-        $pids << EM.system('echo hi', proc{ |out,status|$pids << status.pid; EM.stop })
+        sys_pid = EM.system('echo hi', proc{ |_out,_status| status = _status; EM.stop })
       }
 
-      assert_equal $pids[0], $pids[1]
+      refute_equal(0, sys_pid)
+      assert_kind_of(Process::Status, status)
+      refute_equal(0, status.pid)
+      assert_equal sys_pid, status.pid
     end
 
     def test_em_system_with_proc
@@ -57,8 +76,8 @@ class TestProcesses < Test::Unit::TestCase
       }
 
       assert( $out.length > 0 )
-      assert_equal(0, $status.exitstatus)
       assert_kind_of(Process::Status, $status)
+      assert_equal(0, $status.exitstatus)
     end
 
     def test_em_system_with_two_procs
