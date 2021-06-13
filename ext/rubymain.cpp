@@ -85,7 +85,24 @@ static VALUE Intern_proxy_target_unbound;
 static VALUE Intern_proxy_completed;
 static VALUE Intern_connection_completed;
 
-static VALUE rb_cProcStatus;
+static VALUE rb_cProcessStatus;
+
+#ifdef IS_RUBY_3_OR_LATER
+struct rb_process_status {
+    rb_pid_t pid;
+    int status;
+    int error;
+};
+
+static const rb_data_type_t rb_process_status_type = {
+    .wrap_struct_name = "Process::Status",
+    .function = {
+        .dfree = RUBY_DEFAULT_FREE,
+    },
+    .data = NULL,
+    .flags = RUBY_TYPED_FREE_IMMEDIATELY,
+};
+#endif
 
 struct em_event {
 	uintptr_t signature;
@@ -553,11 +570,18 @@ static VALUE t_get_subprocess_status (VALUE self UNUSED, VALUE signature)
 
 	if (evma_get_subprocess_status (NUM2BSIG (signature), &status)) {
 		if (evma_get_subprocess_pid (NUM2BSIG (signature), &pid)) {
-			proc_status = rb_obj_alloc(rb_cProcStatus);
 
+#ifdef IS_RUBY_3_OR_LATER
+			struct rb_process_status *data = NULL;
+			proc_status = TypedData_Make_Struct(rb_cProcessStatus, struct rb_process_status, &rb_process_status_type, data);
+			data->pid = pid;
+			data->status = status;
+#else
+			proc_status = rb_obj_alloc(rb_cProcessStatus);
 			/* MRI Ruby uses hidden instance vars */
-			rb_iv_set(proc_status, "status", INT2FIX(status));
-			rb_iv_set(proc_status, "pid", INT2FIX(pid));
+			rb_ivar_set(proc_status, rb_intern_const("status"), INT2FIX(status));
+			rb_ivar_set(proc_status, rb_intern_const("pid"), INT2FIX(pid));
+#endif
 
 #ifdef RUBINIUS
 			/* Rubinius uses standard instance vars */
@@ -572,7 +596,7 @@ static VALUE t_get_subprocess_status (VALUE self UNUSED, VALUE signature)
 #endif
 		}
 	}
-
+	rb_obj_freeze(proc_status);
 	return proc_status;
 }
 
@@ -1431,7 +1455,7 @@ extern "C" void Init_rubyeventmachine()
 {
 	// Lookup Process::Status for get_subprocess_status
 	VALUE rb_mProcess = rb_const_get(rb_cObject, rb_intern("Process"));
-	rb_cProcStatus = rb_const_get(rb_mProcess, rb_intern("Status"));
+	rb_cProcessStatus = rb_const_get(rb_mProcess, rb_intern("Status"));
 
 	// Tuck away some symbol values so we don't have to look 'em up every time we need 'em.
 	Intern_at_signature = rb_intern ("@signature");
