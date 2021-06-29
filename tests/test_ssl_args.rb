@@ -27,6 +27,35 @@ class TestSSLArgs < Test::Unit::TestCase
     end
   end
 
+  def test_tls_cert_not_defined_twice
+    cert_file_path="#{__dir__}/client.crt"
+    cert=File.read "#{__dir__}/client.crt"
+
+    assert_raises EM::BadCertParams do
+      client_server client: {cert: cert, cert_chain_file: cert_file_path}
+    end
+  end
+
+  def test_tls_key_not_defined_twice
+    cert_file_path="#{__dir__}/client.crt"
+    key_file_path="#{__dir__}/client.key"
+    key=File.read "#{__dir__}/client.key"
+
+    assert_raises EM::BadPrivateKeyParams do
+      client_server client: {private_key_file: key_file_path, private_key: key, cert_chain_file: cert_file_path}
+    end
+  end
+
+  def test_tls_key_requires_cert
+    #specifying a key but no cert will generate an error at SSL level
+    #with a misleading text
+    #140579476657920:error:1417A0C1:SSL routines:tls_post_process_client_hello:no shared cipher
+
+    assert_raises EM::BadParams do
+      client_server client: {private_key_file: "#{__dir__}/client.key"}
+    end
+  end
+
   def _test_tls_params_file_improper
     priv_file_path = Tempfile.new('em_test').path
     cert_file_path = Tempfile.new('em_test').path

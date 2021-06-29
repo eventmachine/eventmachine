@@ -148,7 +148,6 @@ static void InitializeDefaultCredentials()
 		DefaultPrivateKey = NULL;
 	}
 	PEM_read_bio_PrivateKey (bio, &DefaultPrivateKey, builtin_passwd_cb, 0);
-
 	if (DefaultCertificate) {
 		// we may come here in a restart.
 		X509_free (DefaultCertificate);
@@ -165,16 +164,13 @@ static void InitializeDefaultCredentials()
 SslContext_t::SslContext_t
 **************************/
 
-SslContext_t::SslContext_t (bool is_server, const std::string &privkeyfile, const std::string &certchainfile, const std::string &cipherlist, const std::string &ecdh_curve, const std::string &dhparam, int ssl_version) :
+SslContext_t::SslContext_t (bool is_server, const std::string &privkeyfile, const std::string &privkey, const std::string &privkeypass, const std::string &certchainfile, const std::string &cert, const std::string &cipherlist, const std::string &ecdh_curve, const std::string &dhparam, int ssl_version) :
 	bIsServer (is_server),
 	pCtx (NULL),
 	PrivateKey (NULL),
 	Certificate (NULL)
 {
-	/* TODO: the usage of the specified private-key and cert-chain filenames only applies to
-	 * client-side connections at this point. Server connections currently use the default materials.
-	 * That needs to be fixed asap.
-	 * Also, in this implementation, server-side connections use statically defined X-509 defaults.
+	/* TODO: Also, in this implementation, server-side connections use statically defined X-509 defaults.
 	 * One thing I'm really not clear on is whether or not you have to explicitly free X509 and EVP_PKEY
 	 * objects when we call our destructor, or whether just calling SSL_CTX_free is enough.
 	 */
@@ -237,24 +233,70 @@ SslContext_t::SslContext_t (bool is_server, const std::string &privkeyfile, cons
 	SSL_CTX_set_mode (pCtx, SSL_MODE_RELEASE_BUFFERS);
 	#endif
 
+	int e;
+	// As indicated in man(3) ssl_ctx_use_privatekey_file
+	// To change a certificate, private key pair the new certificate needs to be set with
+	// SSL_use_certificate() or SSL_CTX_use_certificate() before setting the private key with SSL_CTX_use_PrivateKey() or SSL_use_PrivateKey().
+	if (certchainfile.length() > 0) {
+		e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
+		if (e <= 0) ERR_print_errors_fp(stderr);
+		assert (e > 0);
+	}
+	if (cert.length() > 0) {
+		BIO *bio = BIO_new_mem_buf (cert.c_str(), -1);
+		assert(bio);
+		BIO_set_mem_eof_return(bio, 0);
+		X509 * clientCertificate = PEM_read_bio_X509 (bio, NULL, NULL, 0);
+		e = SSL_CTX_use_certificate (pCtx, clientCertificate);
+		X509_free(clientCertificate);
+		BIO_free (bio);
+		if (e <= 0) ERR_print_errors_fp(stderr);
+		assert (e > 0);
+	}
+	if (privkeyfile.length() > 0) {
+		if (privkeypass.length() > 0) {
+			SSL_CTX_set_default_passwd_cb_userdata(pCtx, const_cast<char*>(privkeypass.c_str()));
+		}
+		e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
+		if (e <= 0) ERR_print_errors_fp(stderr);
+		assert (e > 0);
+	}
+	if (privkey.length() > 0) {
+		BIO *bio = BIO_new_mem_buf (privkey.c_str(), -1);
+		assert(bio);
+		BIO_set_mem_eof_return(bio, 0);
+		EVP_PKEY * clientPrivateKey = PEM_read_bio_PrivateKey (bio, NULL, NULL, const_cast<char*>(privkeypass.c_str()));
+		e = SSL_CTX_use_PrivateKey (pCtx, clientPrivateKey);
+		EVP_PKEY_free(clientPrivateKey);
+		BIO_free (bio);
+		if (e <= 0) {
+			BIO *bio_err = BIO_new(BIO_s_mem());
+			std::string error_msg;
+			if (bio_err != NULL) {
+				ERR_print_errors(bio_err);
+				char* buf;
+				long size = BIO_get_mem_data(bio_err, &buf);
+				error_msg.assign(buf,size);
+				BIO_free(bio_err);
+			}
+			throw std::runtime_error (error_msg);
+		}
+		assert (e > 0);
+	}
+
 	if (bIsServer) {
-
-		// The SSL_CTX calls here do NOT allocate memory.
-		int e;
-		if (privkeyfile.length() > 0)
-			e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
-		else
-			e = SSL_CTX_use_PrivateKey (pCtx, DefaultPrivateKey);
-		if (e <= 0) ERR_print_errors_fp(stderr);
-		assert (e > 0);
-
-		if (certchainfile.length() > 0)
-			e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
-		else
+		if (certchainfile.length() == 0 && cert.length() == 0) {
+			// ensure default private material is configured for ssl
 			e = SSL_CTX_use_certificate (pCtx, DefaultCertificate);
-		if (e <= 0) ERR_print_errors_fp(stderr);
-		assert (e > 0);
-
+			if (e <= 0) ERR_print_errors_fp(stderr);
+			assert (e > 0);
+		}
+		if (privkeyfile.length() == 0 && privkey.length() == 0) {
+			// ensure default private material is configured for ssl
+			e = SSL_CTX_use_PrivateKey (pCtx, DefaultPrivateKey);
+			if (e <= 0) ERR_print_errors_fp(stderr);
+			assert (e > 0);
+		}
 		if (dhparam.length() > 0) {
 			DH   *dh;
 			BIO  *bio;
@@ -320,19 +362,6 @@ SslContext_t::SslContext_t (bool is_server, const std::string &privkeyfile, cons
 		SSL_CTX_sess_set_cache_size (pCtx, 128);
 		SSL_CTX_set_session_id_context (pCtx, (unsigned char*)"eventmachine", 12);
 	}
-	else {
-		int e;
-		if (privkeyfile.length() > 0) {
-			e = SSL_CTX_use_PrivateKey_file (pCtx, privkeyfile.c_str(), SSL_FILETYPE_PEM);
-			if (e <= 0) ERR_print_errors_fp(stderr);
-			assert (e > 0);
-		}
-		if (certchainfile.length() > 0) {
-			e = SSL_CTX_use_certificate_chain_file (pCtx, certchainfile.c_str());
-			if (e <= 0) ERR_print_errors_fp(stderr);
-			assert (e > 0);
-		}
-	}
 }
 
 
@@ -357,7 +386,7 @@ SslContext_t::~SslContext_t()
 SslBox_t::SslBox_t
 ******************/
 
-SslBox_t::SslBox_t (bool is_server, const std::string &privkeyfile, const std::string &certchainfile, bool verify_peer, bool fail_if_no_peer_cert, const std::string &snihostname, const std::string &cipherlist, const std::string &ecdh_curve, const std::string &dhparam, int ssl_version, const uintptr_t binding):
+SslBox_t::SslBox_t (bool is_server, const std::string &privkeyfile, const std::string &privkey, const std::string &privkeypass, const std::string &certchainfile, const std::string &cert, bool verify_peer, bool fail_if_no_peer_cert, const std::string &snihostname, const std::string &cipherlist, const std::string &ecdh_curve, const std::string &dhparam, int ssl_version, const uintptr_t binding):
 	bIsServer (is_server),
 	bHandshakeCompleted (false),
 	bVerifyPeer (verify_peer),
@@ -370,7 +399,7 @@ SslBox_t::SslBox_t (bool is_server, const std::string &privkeyfile, const std::s
 	 * a new one every time we come here.
 	 */
 
-	Context = new SslContext_t (bIsServer, privkeyfile, certchainfile, cipherlist, ecdh_curve, dhparam, ssl_version);
+	Context = new SslContext_t (bIsServer, privkeyfile, privkey, privkeypass, certchainfile, cert, cipherlist, ecdh_curve, dhparam, ssl_version);
 	assert (Context);
 
 	pbioRead = BIO_new (BIO_s_mem());

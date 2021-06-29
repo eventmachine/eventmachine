@@ -1,6 +1,8 @@
 module EventMachine
-  class FileNotFoundException < Exception
-  end
+  class FileNotFoundException < Exception ; end
+  class BadParams < Exception ; end
+  class BadCertParams < BadParams ; end
+  class BadPrivateKeyParams < BadParams ;end
 
   # EventMachine::Connection is a class that is instantiated
   # by EventMachine's processing loop whenever a new connection
@@ -368,9 +370,16 @@ module EventMachine
     # @option args [String] :cert_chain_file (nil) local path of a readable file that contants  a chain of X509 certificates in
     #                                              the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail),
     #                                              with the most-resolved certificate at the top of the file, successive intermediate
-    #                                              certs in the middle, and the root (or CA) cert at the bottom.
+    #                                              certs in the middle, and the root (or CA) cert at the bottom. If both
+    #                                              :cert_chain_file and :cert are used, BadCertParams will be raised.
     #
-    # @option args [String] :private_key_file (nil) local path of a readable file that must contain a private key in the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail).
+    # @option args [String] :cert (nil) a string with the client certificate to use, complete with header and footer. If a cert chain is required, you will have to use the :cert_chain_file option. If both :cert_chain_file and :cert are used, BadCertParams will be raised.
+    #
+    # @option args [String] :private_key_file (nil) local path of a readable file that must contain a private key in the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail). If both :private_key_file and :private_key are used, BadPrivateKeyParams will be raised. If the Private Key does not match the certificate, InvalidPrivateKey will be raised.
+    #
+    # @option args [String] :private_key (nil) a string, complete with header and footer, that must contain a private key in the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail). If both :private_key_file and :private_key are used, BadPrivateKeyParams will be raised. If the Private Key does not match the certificate, InvalidPrivateKey will be raised.
+    #
+    # @option args [String] :private_key_pass (nil) a string to use as password to decode :private_key or :private_key_file
     #
     # @option args [Boolean] :verify_peer (false)   indicates whether a server should request a certificate from a peer, to be verified by user code.
     #                                               If true, the {#ssl_verify_peer} callback on the {EventMachine::Connection} object is called with each certificate
@@ -411,20 +420,37 @@ module EventMachine
     #
     # @see #ssl_verify_peer
     def start_tls args={}
-      priv_key     = args[:private_key_file]
-      cert_chain   = args[:cert_chain_file]
-      verify_peer  = args[:verify_peer]
-      sni_hostname = args[:sni_hostname]
-      cipher_list  = args[:cipher_list]
-      ssl_version  = args[:ssl_version]
-      ecdh_curve   = args[:ecdh_curve]
-      dhparam      = args[:dhparam]
+      priv_key_path   = args[:private_key_file]
+      priv_key        = args[:private_key]
+      priv_key_pass   = args[:private_key_pass]
+      cert_chain_path = args[:cert_chain_file]
+      cert            = args[:cert]
+      verify_peer     = args[:verify_peer]
+      sni_hostname    = args[:sni_hostname]
+      cipher_list     = args[:cipher_list]
+      ssl_version     = args[:ssl_version]
+      ecdh_curve      = args[:ecdh_curve]
+      dhparam         = args[:dhparam]
       fail_if_no_peer_cert = args[:fail_if_no_peer_cert]
 
-      [priv_key, cert_chain].each do |file|
+      [priv_key_path, cert_chain_path].each do |file|
         next if file.nil? or file.empty?
         raise FileNotFoundException,
         "Could not find #{file} for start_tls" unless File.exist? file
+      end
+
+      if !priv_key_path.nil? && !priv_key_path.empty? && !priv_key.nil? && !priv_key.empty?
+        raise BadPrivateKeyParams, "Specifying both private_key and private_key_file not allowed"
+      end
+
+      if !cert_chain_path.nil? && !cert_chain_path.empty? && !cert.nil? && !cert.empty?
+        raise BadCertParams, "Specifying both cert and cert_chain_file not allowed"
+      end
+
+      if (!priv_key_path.nil? && !priv_key_path.empty?) || (!priv_key.nil? && !priv_key.empty?)
+        if (cert_chain_path.nil? || cert_chain_path.empty?) && (cert.nil? || cert.empty?)
+          raise BadParams, "You have specified a private key to use, but not the related cert"
+        end
       end
 
       protocols_bitmask = 0
@@ -456,7 +482,7 @@ module EventMachine
         end
       end
 
-      EventMachine::set_tls_parms(@signature, priv_key || '', cert_chain || '', verify_peer, fail_if_no_peer_cert, sni_hostname || '', cipher_list || '', ecdh_curve || '', dhparam || '', protocols_bitmask)
+      EventMachine::set_tls_parms(@signature, priv_key_path || '', priv_key || '', priv_key_pass || '', cert_chain_path || '', cert || '', verify_peer, fail_if_no_peer_cert, sni_hostname || '', cipher_list || '', ecdh_curve || '', dhparam || '', protocols_bitmask)
       EventMachine::start_tls @signature
     end
 

@@ -46,6 +46,7 @@ module EventMachine
   class ConnectionError < RuntimeError; end
   # @private
   class ConnectionNotBound < RuntimeError; end
+  class InvalidPrivateKey < RuntimeError; end
 
   # Older versions of Ruby may not provide the SSLErrorWaitReadable
   # OpenSSL class. Create an error class to act as a "proxy".
@@ -261,7 +262,7 @@ module EventMachine
     # parameter list will grow as we add more supported features. ALL of these
     # parameters are optional, and can be specified as empty or nil strings.
     # @private
-    def set_tls_parms signature, priv_key, cert_chain, verify_peer, fail_if_no_peer_cert, sni_hostname, cipher_list, ecdh_curve, dhparam, protocols_bitmask
+    def set_tls_parms signature, priv_key_path, priv_key, priv_key_pass, cert_chain_path, cert, verify_peer, fail_if_no_peer_cert, sni_hostname, cipher_list, ecdh_curve, dhparam, protocols_bitmask
       bitmask = protocols_bitmask
       ssl_options = OpenSSL::SSL::OP_ALL
       ssl_options |= OpenSSL::SSL::OP_NO_SSLv2 if defined?(OpenSSL::SSL::OP_NO_SSLv2) && EM_PROTO_SSLv2 & bitmask == 0
@@ -275,8 +276,11 @@ module EventMachine
         :fail_if_no_peer_cert => fail_if_no_peer_cert,
         :ssl_options => ssl_options
       }
-      @tls_parms[signature][:priv_key] = File.read(priv_key) if tls_parm_set?(priv_key)
-      @tls_parms[signature][:cert_chain] = File.read(cert_chain) if tls_parm_set?(cert_chain)
+      @tls_parms[signature][:priv_key] = File.read(priv_key_path) if tls_parm_set?(priv_key_path)
+      @tls_parms[signature][:priv_key] = priv_key if tls_parm_set?(priv_key)
+      @tls_parms[signature][:priv_key_pass] = priv_key_pass if tls_parm_set?(priv_key_pass)
+      @tls_parms[signature][:cert_chain] = File.read(cert_chain_path) if tls_parm_set?(cert_chain_path)
+      @tls_parms[signature][:cert_chain] = cert if tls_parm_set?(cert_chain)
       @tls_parms[signature][:sni_hostname] = sni_hostname if tls_parm_set?(sni_hostname)
       @tls_parms[signature][:cipher_list] = cipher_list.gsub(/,\s*/, ':') if tls_parm_set?(cipher_list)
       @tls_parms[signature][:dhparam] = File.read(dhparam) if tls_parm_set?(dhparam)
@@ -293,7 +297,11 @@ module EventMachine
       ctx.cert_store = OpenSSL::X509::Store.new
       ctx.cert_store.set_default_paths
       ctx.cert = OpenSSL::X509::Certificate.new(tls_parms[:cert_chain]) if tls_parms[:cert_chain]
-      ctx.key = OpenSSL::PKey::RSA.new(tls_parms[:priv_key]) if tls_parms[:priv_key]
+      if tls_parms[:priv_key_pass]!=nil
+        ctx.key = OpenSSL::PKey::RSA.new(tls_parms[:priv_key],tls_parms[:priv_key_pass]) if tls_parms[:priv_key]
+      else
+        ctx.key = OpenSSL::PKey::RSA.new(tls_parms[:priv_key]) if tls_parms[:priv_key]
+      end
       verify_mode = OpenSSL::SSL::VERIFY_NONE
       if tls_parms[:verify_peer]
         verify_mode |= OpenSSL::SSL::VERIFY_PEER
