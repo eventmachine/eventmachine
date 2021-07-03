@@ -88,19 +88,11 @@ static VALUE Intern_connection_completed;
 static VALUE rb_cProcessStatus;
 
 #ifdef IS_RUBY_3_OR_LATER
+/* Structure definition from MRI Ruby 3.0 process.c */
 struct rb_process_status {
     rb_pid_t pid;
     int status;
     int error;
-};
-
-static const rb_data_type_t rb_process_status_type = {
-    .wrap_struct_name = "Process::Status",
-    .function = {
-        .dfree = RUBY_DEFAULT_FREE,
-    },
-    .data = NULL,
-    .flags = RUBY_TYPED_FREE_IMMEDIATELY,
 };
 #endif
 
@@ -573,6 +565,17 @@ static VALUE t_get_subprocess_status (VALUE self UNUSED, VALUE signature)
 
 #ifdef IS_RUBY_3_OR_LATER
 			struct rb_process_status *data = NULL;
+
+			/* Defined to match static definition from MRI Ruby 3.0 process.c
+			 *
+			 * Older C++ compilers before GCC 8 don't allow static initialization of a
+			 * struct without every field specified, so the definition here is at runtime
+			 */
+			static rb_data_type_t rb_process_status_type;
+			rb_process_status_type.wrap_struct_name = "Process::Status";
+			rb_process_status_type.function.dfree = RUBY_DEFAULT_FREE;
+			rb_process_status_type.flags = RUBY_TYPED_FREE_IMMEDIATELY;
+
 			proc_status = TypedData_Make_Struct(rb_cProcessStatus, struct rb_process_status, &rb_process_status_type, data);
 			data->pid = pid;
 			data->status = status;
