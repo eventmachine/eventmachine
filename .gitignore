@@ -17,6 +17,7 @@ java/src/.project
 *.rbc
 Gemfile.lock
 
+vendor/bundle/
 .yardoc/*
 doc/*
 tmp/*

@@ -1,4 +1,10 @@
 ---
+image:
+- Visual Studio 2019
+
+build: off
+deploy: off
+
 install:
   # download shared script files
   - ps: >-

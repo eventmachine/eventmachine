@@ -17,9 +17,7 @@ Gem::Specification.new do |s|
 
   if s.respond_to?(:metadata=)
     s.metadata ||= {}
-    if RbConfig::CONFIG['ruby_version'] >= '2.5'
-      s.metadata["msys2_mingw_dependencies"] = "openssl"
-    end
+    s.metadata["msys2_mingw_dependencies"] = "openssl"
   end
 
   s.add_development_dependency 'test-unit', '~> 3.2'

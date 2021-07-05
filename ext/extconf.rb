@@ -138,6 +138,9 @@ else
   add_define "HAVE_KQUEUE" if have_header("sys/event.h") && have_header("sys/queue.h")
 end
 
+# Add for changes to Process::Status in Ruby 3
+add_define("IS_RUBY_3_OR_LATER") if RUBY_VERSION > "3.0"
+
 # Adjust number of file descriptors (FD) on Windows
 
 if RbConfig::CONFIG["host_os"] =~ /mingw/
