@@ -115,7 +115,7 @@ Next:
       end
     end
 
-is the implementation of our echo server. We define a class that inherits from {EventMachine::Connection}
+are the implementation of our echo server. We define a class that inherits from {EventMachine::Connection}
 and a handler (aka callback) for one event: when we receive data from a client.
 
 EventMachine handles the connection setup, receiving data and passing it to our handler, {EventMachine::Connection#receive_data}.
