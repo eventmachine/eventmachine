@@ -56,7 +56,7 @@ To install the EventMachine gem do
 
 ### Verifying your installation ###
 
-Lets verify your installation with this quick IRB session:
+Let's verify your installation with this quick IRB session:
 
     irb -rubygems
 
@@ -68,7 +68,7 @@ Lets verify your installation with this quick IRB session:
 
 ## An Echo Server Example ##
 
-Lets begin with the classic "Hello, world"-like example, an echo server. The echo server responds clients with the
+Let's begin with the classic "Hello, world"-like example, an echo server. The echo server responds clients with the
 same data that was provided. First, here's the code:
 
 {include:file:examples/guides/getting\_started/01\_eventmachine\_echo_server.rb}
@@ -100,7 +100,7 @@ the same string:
 It works! Congratulations, you now can tell your Node.js-loving friends that you "have done some event-driven programming, too".
 Oh, and to stop Telnet, hit Control + Shift + ] and then Control + C.
 
-Lets walk this example line by line and see what's going on. These lines
+Let's walk this example line by line and see what's going on. These lines
 
     require 'rubygems' # or use Bundler.setup
     require 'eventmachine'
@@ -115,7 +115,7 @@ Next:
       end
     end
 
-Is the implementation of our echo server. We define a class that inherits from {EventMachine::Connection}
+is the implementation of our echo server. We define a class that inherits from {EventMachine::Connection}
 and a handler (aka callback) for one event: when we receive data from a client.
 
 EventMachine handles the connection setup, receiving data and passing it to our handler, {EventMachine::Connection#receive_data}.
@@ -123,7 +123,7 @@ EventMachine handles the connection setup, receiving data and passing it to our 
 Then we implement our protocol logic, which in the case of Echo is pretty trivial: we send back whatever we receive.
 To do so, we're using {EventMachine::Connection#send_data}.
 
-Lets modify the example to recognize `exit` command:
+Let's modify the example to recognize `exit` command:
 
 {include:file:examples/guides/getting\_started/02\_eventmachine\_echo_server\_that\_recognizes\_exit\_command.rb}
 
@@ -147,7 +147,7 @@ To summarize this first example:
  * Use {EventMachine.run} to start EventMachine event loop and then bind echo server with {EventMachine.start_server}.
  * To stop the event loop, use {EventMachine.stop_event_loop} (aliased as {EventMachine.stop})
 
-Lets move on to a slightly more sophisticated example that will introduce several more features and methods
+Let's move on to a slightly more sophisticated example that will introduce several more features and methods
 EventMachine has to offer.
 
 
@@ -198,7 +198,7 @@ In the example above we use a @@class_variable to keep track of connected client
 methods so we can add new connections to the list from `SimpleChatServer#post_init` and remove them in `SimpleChatServer#unbind`. We can also
 filter connections by some criteria, as `SimpleChatServer#other_peers demonstrates`.
 
-So, we keep track of connections but how do we identify them? For a chat app, it's pretty common to use usernames for that. Lets ask our clients
+So, we keep track of connections but how do we identify them? For a chat app, it's pretty common to use usernames for that. Let's ask our clients
 to enter usernames when they connect.
 
 
@@ -214,7 +214,7 @@ Here is one way to do it:
 
 {include:file:examples/guides/getting\_started/06\_simple\_chat\_server\_step\_three.rb}
 
-This is quite an update so lets take a look at each method individually. First, `SimpleChatServer#post_init`:
+This is quite an update so let's take a look at each method individually. First, `SimpleChatServer#post_init`:
 
     def post_init
       @username = nil
@@ -226,7 +226,7 @@ To keep track of username we ask chat participants for, we add @username instanc
 instances are just Ruby objects associated with a particular connected peer, so using @ivars is very natural. To make username
 value accessible to other objects, we added a reader method that was not shown on the snippet above.
 
-Lets dig into `SimpleChatServer#ask_username`:
+Let's dig into `SimpleChatServer#ask_username`:
 
     def ask_username
       self.send_line("[info] Enter your username:")
@@ -264,7 +264,7 @@ Finally, handler of chat messages is not yet implemented:
       raise NotImplementedError
     end
 
-Lets try this example out using Telnet:
+Let's try this example out using Telnet:
 
     ~ telnet localhost 10000
     Trying 127.0.0.1...
@@ -289,7 +289,7 @@ It is annoying, so why don't we add the same `exit` command to our chat server?
 
 TBD
 
-Lets test-drive this version. Client A:
+Let's test-drive this version. Client A:
 
     ~ telnet localhost 10000
     Trying 127.0.0.1...
