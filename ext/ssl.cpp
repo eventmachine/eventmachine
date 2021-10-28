@@ -685,30 +685,17 @@ const char *SslBox_t::GetSNIHostname()
 ssl_verify_wrapper
 *******************/
 
-extern "C" int ssl_verify_wrapper(int preverify_ok UNUSED, X509_STORE_CTX *ctx)
+extern "C" int ssl_verify_wrapper(int ok, X509_STORE_CTX *ctx)
 {
 	uintptr_t binding;
-	X509 *cert;
 	SSL *ssl;
-	BUF_MEM *buf;
-	BIO *out;
-	int result;
 
-	cert = X509_STORE_CTX_get_current_cert(ctx);
 	ssl = (SSL*) X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
 	binding = (uintptr_t) SSL_get_ex_data(ssl, 0);
-
-	out = BIO_new(BIO_s_mem());
-	PEM_write_bio_X509(out, cert);
-	BIO_write(out, "\0", 1);
-	BIO_get_mem_ptr(out, &buf);
-
 	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
-	result = (cd->VerifySslPeer(buf->data) == true ? 1 : 0);
-	BIO_free(out);
+	ok = cd->VerifySslPeer(ok, ctx) ? 1 : 0;
 
-	return result;
+	return ok;
 }
 
 #endif // WITH_SSL
-

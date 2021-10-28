@@ -116,8 +116,7 @@ typedef int SOCKET;
 #endif
 
 #ifdef WITH_SSL
-#include <openssl/ssl.h>
-#include <openssl/err.h>
+#include "em_ossl.h"
 #endif
 
 #ifdef HAVE_EPOLL

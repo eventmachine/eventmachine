@@ -57,6 +57,7 @@ Statics
 
 static VALUE EmModule;
 static VALUE EmConnection;
+
 static VALUE EmConnsHash;
 static VALUE EmTimersHash;
 
@@ -78,7 +79,6 @@ static VALUE Intern_call;
 static VALUE Intern_at;
 static VALUE Intern_receive_data;
 static VALUE Intern_ssl_handshake_completed;
-static VALUE Intern_ssl_verify_peer;
 static VALUE Intern_notify_readable;
 static VALUE Intern_notify_writable;
 static VALUE Intern_proxy_target_unbound;
@@ -110,7 +110,6 @@ static inline VALUE ensure_conn(const uintptr_t signature)
 		rb_raise (EM_eConnectionNotBound, "unknown connection: %" PRIFBSIG, signature);
 	return conn;
 }
-
 
 /****************
 t_event_callback
@@ -188,9 +187,10 @@ static inline VALUE event_callback (VALUE e_value)
 		case EM_SSL_VERIFY:
 		{
 			VALUE conn = ensure_conn(signature);
-			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
-			if (RTEST(should_accept))
+			X509_STORE_CTX *ctx = (X509_STORE_CTX *)data_str;
+			if (em_ssl_verify_cb_call(conn, data_num, ctx))
 				evma_accept_ssl_peer (signature);
+
 			return Qnil;
 		}
 		#endif
@@ -1479,7 +1479,6 @@ extern "C" void Init_rubyeventmachine()
 	Intern_at = rb_intern("at");
 	Intern_receive_data = rb_intern ("receive_data");
 	Intern_ssl_handshake_completed = rb_intern ("ssl_handshake_completed");
-	Intern_ssl_verify_peer = rb_intern ("ssl_verify_peer");
 	Intern_notify_readable = rb_intern ("notify_readable");
 	Intern_notify_writable = rb_intern ("notify_writable");
 	Intern_proxy_target_unbound = rb_intern ("proxy_target_unbound");
@@ -1611,6 +1610,8 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_const (EmModule, "SslVerify",                INT2NUM(EM_SSL_VERIFY                ));
 	// EM_PROXY_TARGET_UNBOUND = 110,
 	// EM_PROXY_COMPLETED = 111
+
+	Init_em_ssl();
 
 	// SSL Protocols
 	rb_define_const (EmModule, "EM_PROTO_SSLv2",   INT2NUM(EM_PROTO_SSLv2  ));
