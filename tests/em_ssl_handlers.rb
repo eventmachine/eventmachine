@@ -66,11 +66,13 @@ module EMSSLHandlers
       @@handshake_completed = false
       @@cert            = nil
       @@cert_value      = nil
+      @@verify_cb_args  = []
       @@cipher_bits     = nil
       @@cipher_name     = nil
       @@cipher_protocol = nil
       @@ssl_verify_result = @@tls ? @@tls.delete(:ssl_verify_result) : nil
       @@client_unbind = @@tls ? @@tls.delete(:client_unbind) : nil
+      extend BackCompatVerifyPeer if @@tls && @@tls.delete(:ssl_old_verify_peer)
     end
 
     def self.cert                 ;   @@cert                end
@@ -79,6 +81,7 @@ module EMSSLHandlers
     def self.cipher_name          ;   @@cipher_name         end
     def self.cipher_protocol      ;   @@cipher_protocol     end
     def self.handshake_completed? ; !!@@handshake_completed end
+    def self.verify_cb_args       ;   @@verify_cb_args      end
 
     def post_init
       if @@tls
@@ -88,8 +91,9 @@ module EMSSLHandlers
       end
     end
 
-    def ssl_verify_peer(cert)
-      @@cert = cert
+    def ssl_verify_peer(preverify_ok, ctx)
+      @@verify_cb_args << [preverify_ok, ctx.error_depth, ctx.error, ctx.error_string]
+      @@cert = ctx.current_cert.to_pem
       if @@ssl_verify_result.is_a?(String) && @@ssl_verify_result.start_with?("|RAISE|")
         raise @@ssl_verify_result.sub('|RAISE|', '')
       else
@@ -121,12 +125,14 @@ module EMSSLHandlers
       @@handshake_completed = false
       @@cert            = nil
       @@cert_value      = nil
+      @@verify_cb_args  = []
       @@cipher_bits     = nil
       @@cipher_name     = nil
       @@cipher_protocol = nil
       @@sni_hostname = "not set"
       @@ssl_verify_result    = @@tls ? @@tls.delete(:ssl_verify_result)    : nil
       @@stop_after_handshake = @@tls ? @@tls.delete(:stop_after_handshake) : nil
+      extend BackCompatVerifyPeer if @@tls && @@tls.delete(:ssl_old_verify_peer)
     end
 
     def self.cert                 ;   @@cert                end
@@ -136,6 +142,7 @@ module EMSSLHandlers
     def self.cipher_protocol      ;   @@cipher_protocol     end
     def self.handshake_completed? ; !!@@handshake_completed end
     def self.sni_hostname         ;   @@sni_hostname        end
+    def self.verify_cb_args       ;   @@verify_cb_args      end
 
     def post_init
       if @@tls
@@ -145,8 +152,9 @@ module EMSSLHandlers
       end
     end
 
-    def ssl_verify_peer(cert)
-      @@cert = cert
+    def ssl_verify_peer(preverify_ok, ctx)
+      @@verify_cb_args << [preverify_ok, ctx.error_depth, ctx.error, ctx.error_string]
+      @@cert = ctx.current_cert.to_pem
       if @@ssl_verify_result.is_a?(String) && @@ssl_verify_result.start_with?("|RAISE|")
         raise @@ssl_verify_result.sub('|RAISE|', '')
       else
@@ -170,6 +178,14 @@ module EMSSLHandlers
 
     def unbind
       EM.stop_event_loop unless @@handshake_completed
+    end
+  end
+
+  module BackCompatVerifyPeer
+    def ssl_verify_peer(cert)
+      require "ostruct"
+      fake_ctx = OpenStruct.new(current_cert: OpenStruct.new(to_pem: cert))
+      super(:a_complete_mystery, fake_ctx)
     end
   end
 

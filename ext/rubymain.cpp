@@ -55,8 +55,14 @@ See the file COPYING for complete licensing information.
 Statics
 *******/
 
-static VALUE EmModule;
-static VALUE EmConnection;
+extern "C" {
+	VALUE EmModule;
+	VALUE EmConnection;
+	VALUE mEmSsl;
+	VALUE mEmSslX509;
+	VALUE cEmSslX509StoreContext;
+}
+
 static VALUE EmConnsHash;
 static VALUE EmTimersHash;
 
@@ -115,6 +121,18 @@ static inline VALUE ensure_conn(const uintptr_t signature)
 /****************
 t_event_callback
 ****************/
+
+#ifdef WITH_SSL
+static inline VALUE em_ssl_verify(VALUE conn, VALUE preverify_ok, VALUE ctx) {
+	if (rb_obj_method_arity(conn, Intern_ssl_verify_peer) != 2) {
+		VALUE crt = rb_funcall(ctx, rb_intern("current_cert"), 0);
+		VALUE str = rb_funcall(crt, rb_intern("to_pem"), 0);
+		return rb_funcall(conn, Intern_ssl_verify_peer, 1, str);
+	} else {
+		return rb_funcall(conn, Intern_ssl_verify_peer, 2, preverify_ok, ctx);
+	}
+}
+#endif
 
 static inline VALUE event_callback (VALUE e_value)
 {
@@ -188,7 +206,7 @@ static inline VALUE event_callback (VALUE e_value)
 		case EM_SSL_VERIFY:
 		{
 			VALUE conn = ensure_conn(signature);
-			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
+			VALUE should_accept = em_ssl_verify(conn, data_num, (VALUE)data_str);
 			if (RTEST(should_accept))
 				evma_accept_ssl_peer (signature);
 			return Qnil;
@@ -1485,6 +1503,9 @@ extern "C" void Init_rubyeventmachine()
 	// Must deprecate the without_threads variant.
 	EmModule = rb_define_module ("EventMachine");
 	EmConnection = rb_define_class_under (EmModule, "Connection", rb_cObject);
+	mEmSsl = rb_define_module_under (EmModule, "SSL");
+	mEmSslX509 = rb_define_module_under (mEmSsl, "X509");
+	cEmSslX509StoreContext = rb_define_class_under (mEmSslX509, "StoreContext", rb_cObject);
 
 	rb_define_class_under (EmModule, "NoHandlerForAcceptedConnection", rb_eRuntimeError);
 	EM_eConnectionError = rb_define_class_under (EmModule, "ConnectionError", rb_eRuntimeError);

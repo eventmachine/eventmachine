@@ -64,6 +64,18 @@ extern "C" {
 }
 #endif
 
+/**********************
+ * modules and classes
+ **********************/
+
+extern "C" {
+	extern VALUE EmModule;
+	extern VALUE EmConnection;
+	extern VALUE mEmSsl;
+	extern VALUE mEmSslX509;
+	extern VALUE cEmSslX509StoreContext;
+}
+
 class EventableDescriptor;
 class InotifyDescriptor;
 struct SelectData_t;

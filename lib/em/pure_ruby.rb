@@ -304,7 +304,10 @@ module EventMachine
       end
       verify_mode = OpenSSL::SSL::VERIFY_NONE
       if tls_parms[:verify_peer]
-        verify_mode |= OpenSSL::SSL::VERIFY_PEER
+        verify_mode |= OpenSSL::SSL::VERIFY_PEER | OpenSSL::SSL::VERIFY_CLIENT_ONCE;
+        ctx.verify_callback = -> (preverify_ok, store_ctx) {
+          EventMachine::event_callback signature, SslVerify, [preverify_ok, store_ctx]
+        }
       end
       if tls_parms[:fail_if_no_peer_cert]
         verify_mode |= OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT
@@ -943,7 +946,6 @@ module EventMachine
         if io.state =~ /^SSLOK/
           @handshake_complete = true
           EventMachine::event_callback uuid, SslHandshakeCompleted, ""
-          EventMachine::event_callback uuid, SslVerify, io.peer_cert.to_pem if io.peer_cert
         end
       else
         @handshake_complete = true

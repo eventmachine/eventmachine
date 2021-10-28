@@ -672,30 +672,58 @@ const char *SslBox_t::GetSNIHostname()
 ssl_verify_wrapper
 *******************/
 
-extern "C" int ssl_verify_wrapper(int preverify_ok UNUSED, X509_STORE_CTX *ctx)
-{
-	uintptr_t binding;
-	X509 *cert;
-	SSL *ssl;
-	BUF_MEM *buf;
-	BIO *out;
-	int result;
+static inline VALUE
+EmGetX509StoreContext(VALUE preverify_ok, X509_STORE_CTX *ctx) {
+	int         depth   = X509_STORE_CTX_get_error_depth(ctx);
+	int         err_int = X509_STORE_CTX_get_error(ctx);
+	const char *err_str = X509_verify_cert_error_string(err_int);
+	X509       *cert    = X509_STORE_CTX_get_current_cert(ctx);
 
-	cert = X509_STORE_CTX_get_current_cert(ctx);
-	ssl = (SSL*) X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
-	binding = (uintptr_t) SSL_get_ex_data(ssl, 0);
-
-	out = BIO_new(BIO_s_mem());
+	BIO *out = BIO_new(BIO_s_mem());
 	PEM_write_bio_X509(out, cert);
 	BIO_write(out, "\0", 1);
+
+	BUF_MEM *buf;
 	BIO_get_mem_ptr(out, &buf);
+	VALUE args[5] = {
+		rb_usascii_str_new_cstr(buf->data),
+		INT2FIX(depth),
+		INT2FIX(err_int),
+		rb_usascii_str_new_cstr(err_str),
+		preverify_ok,
+	};
+	BIO_free(out); // safe: rb_usascii_str_new_cstr copied the data
 
-	ConnectionDescriptor *cd = dynamic_cast <ConnectionDescriptor*> (Bindable_t::GetObject(binding));
-	result = (cd->VerifySslPeer(buf->data) == true ? 1 : 0);
-	BIO_free(out);
+	return rb_class_new_instance(5, args, cEmSslX509StoreContext);
+}
 
-	return result;
+static inline bool
+call_ssl_verify_peer(int preverify_ok, X509_STORE_CTX *ctx) {
+	VALUE rb_preverify_ok = preverify_ok != 0 ? Qtrue : Qfalse;
+	VALUE rb_ctx = EmGetX509StoreContext(rb_preverify_ok, ctx);
+
+	SSL *ssl = (SSL *)X509_STORE_CTX_get_ex_data(
+	  ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+	uintptr_t binding = (uintptr_t)SSL_get_ex_data(ssl, 0);
+
+	ConnectionDescriptor *cd =
+	  dynamic_cast<ConnectionDescriptor *>(Bindable_t::GetObject(binding));
+	return cd->VerifySslPeer(rb_preverify_ok, (void *)rb_ctx);
+}
+
+extern "C" int
+ssl_verify_wrapper(int preverify_ok, X509_STORE_CTX *ctx)
+{
+	bool verified = call_ssl_verify_peer(preverify_ok, ctx);
+
+	if (verified) {
+		X509_STORE_CTX_set_error(ctx, X509_V_OK);
+		return 1;
+	} else {
+		if (X509_STORE_CTX_get_error(ctx) == X509_V_OK)
+			X509_STORE_CTX_set_error(ctx, X509_V_ERR_CERT_REJECTED);
+		return 0;
+	}
 }
 
 #endif // WITH_SSL
-
