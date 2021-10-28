@@ -125,13 +125,41 @@ module EventMachine
     def ssl_handshake_completed
     end
 
-    # Called by EventMachine when :verify_peer => true has been passed to {#start_tls}.
+    # Called by EventMachine when `verify_peer: true` has been passed to {#start_tls}.
     # It will be called with each certificate in the certificate chain provided by the remote peer.
+    # When the X509 store context's `error_depth` is zero, its `current_cert` is
+    # the remote peer's X509 certificate.
     #
-    # The cert will be passed as a String in PEM format, the same as in {#get_peer_cert}. It is up to user defined
-    # code to perform a check on the certificates. The return value from this callback is used to accept or deny the peer.
-    # A return value that is not nil or false triggers acceptance. If the peer is not accepted, the connection
-    # will be subsequently closed.
+    # The default implementation prints errors using `Kernel.warn` and returns
+    # `preverified_ok` unaltered.
+    #
+    # The default implementation does not verify that the certificate matches
+    # your peer's identity.  Check the X509 store context's `current_cert` when
+    # its `error_depth` is zero, or check {#get_peer_cert} from
+    # {#ssl_handshake_completed},
+    #
+    # @example Verify the hostname matches
+    #   module MyServer
+    #     def ssl_verify_peer(preverify_ok, x509_store_ctx)
+    #       if preverified_ok && verify_hostname? && x509_store_ctx.error_depth.zero?
+    #         verify_hostname(x509_store_ctx.current_cert)
+    #       else
+    #         preverify_ok
+    #       end
+    #     end
+    #
+    #     def verify_hostname(peer_cert)
+    #       if @hostname
+    #         OpenSSL::SSL.verify_certificate_identity(peer_cert, @hostname)
+    #       else
+    #         warn "verify_hostname requires @hostname to be set"
+    #         false
+    #       end
+    #     rescue
+    #       false
+    #     end
+    #   end
+    #
     #
     # @example This server always accepts all peers
     #
@@ -140,7 +168,7 @@ module EventMachine
     #       start_tls(:verify_peer => true)
     #     end
     #
-    #     def ssl_verify_peer(cert)
+    #     def ssl_verify_peer(preverify_ok, x509_store_ctx)
     #       true
     #     end
     #
@@ -157,7 +185,7 @@ module EventMachine
     #       start_tls(:verify_peer => true)
     #     end
     #
-    #     def ssl_verify_peer(cert)
+    #     def ssl_verify_peer(preverify_ok, x509_store_ctx)
     #       # Do not accept the peer. This should now cause the connection to shut down
     #       # without the SSL handshake being completed.
     #       false
@@ -168,8 +196,44 @@ module EventMachine
     #     end
     #   end
     #
+    # @overload ssl_verify_peer(preverify_ok, ctx)
+    #
+    #   If OpenSSL's verification errors are overridden by returning {true},
+    #   this may be called more than once per certificate: once per error and in
+    #   some configurations once more with no error.  There can be more than one
+    #   error per certificate.
+    #
+    #   @param [Boolean] preverify_ok whether OpenSSL verified this certificate.
+    #
+    #   @param [EventMachine::SSL::X509::StoreContext] ctx `X509_STORE_CTX` data
+    #     including the X509 certificate, the error, and the depth (where in the
+    #     certificate chain this certificate occurred).
+    #
+    #   @return [Boolean] whether this certificate should be verified.  Can be
+    #     used to override OpenSSL's verification.  Used to accept or deny the
+    #     peer.  A return value that is not nil or false triggers acceptance. If
+    #     the peer is not accepted, the connection will be subsequently closed.
+    #
+    # @overload ssl_verify_peer(cert)
+    #   @param [String] cert the certificate in PEM format, the same as in
+    #     {#get_peer_cert}.
+    #
+    #   @deprecated Use the updated API with two parameters instead.
+    #
+    #   It is up to user defined code to validate the certificate chain.
+    #
     # @see #start_tls
-    def ssl_verify_peer(cert)
+    def ssl_verify_peer(preverify_ok, ctx)
+      if !preverify_ok
+        warn "Certificate verification error: depth=%d err=%d %s" % [
+          ctx.error_depth, ctx.error, ctx.error_string
+        ]
+        if $VERBOSE
+          warn "    subject=%s" % [ctx.current_cert.subject.to_utf8]
+          warn "     issuer=%s" % [ctx.current_cert.issuer.to_utf8]
+        end
+      end
+      preverify_ok
     end
 
     # called by the framework whenever a connection (either a server or client connection) is closed.

@@ -362,8 +362,7 @@ module EventMachine
           ctx.verify_mode |= OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT
         end
         ctx.verify_callback = ->(preverify_ok, store_ctx) {
-          current_cert = store_ctx.current_cert.to_pem
-          EventMachine::event_callback selectable.uuid, SslVerify, current_cert
+          EventMachine::event_callback signature, SslVerify, [preverify_ok, store_ctx]
         }
       else
         ctx.verify_mode = OpenSSL::SSL::VERIFY_NONE
