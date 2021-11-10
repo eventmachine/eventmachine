@@ -53,7 +53,7 @@ class TestInactivityTimeout < Test::Unit::TestCase
       timeout_start_tls = Module.new do
         define_method :post_init do
           start = Time.now
-          start_tls
+          start_tls verify_peer: false
         end
         define_method :receive_data do |data|
           send_data ">>>you sent: #{data}"
@@ -62,7 +62,7 @@ class TestInactivityTimeout < Test::Unit::TestCase
 
       timeout_handler_tls = Module.new do
         define_method :connection_completed do
-          start_tls
+          start_tls verify_peer: false
         end
 
         define_method :ssl_handshake_completed do
