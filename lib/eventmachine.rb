@@ -23,6 +23,7 @@ require 'em/iterator'
 require 'em/buftok'
 require 'em/timers'
 require 'em/protocols'
+require 'em/ssl'
 require 'em/connection'
 require 'em/callback'
 require 'em/queue'
@@ -120,16 +121,16 @@ module EventMachine
   # @example Starting EventMachine event loop in the current thread to run the "Hello, world"-like Echo server example
   #
   #   #!/usr/bin/env ruby
-  #   
+  #
   #   require 'rubygems' # or use Bundler.setup
   #   require 'eventmachine'
-  #   
+  #
   #   class EchoServer < EM::Connection
   #     def receive_data(data)
   #       send_data(data)
   #     end
   #   end
-  #   
+  #
   #   EventMachine.run do
   #     EventMachine.start_server("0.0.0.0", 10000, EchoServer)
   #   end
@@ -381,24 +382,24 @@ module EventMachine
   #
   #   require 'rubygems'
   #   require 'eventmachine'
-  #   
+  #
   #   module Redmond
   #     def post_init
   #       puts "We're sending a dumb HTTP request to the remote peer."
   #       send_data "GET / HTTP/1.1\r\nHost: www.microsoft.com\r\n\r\n"
   #     end
-  #   
+  #
   #     def receive_data data
   #       puts "We received #{data.length} bytes from the remote peer."
   #       puts "We're going to stop the event loop now."
   #       EventMachine::stop_event_loop
   #     end
-  #   
+  #
   #     def unbind
   #       puts "A connection has terminated."
   #     end
   #   end
-  #   
+  #
   #   puts "We're starting the event loop now."
   #   EventMachine.run {
   #     EventMachine.connect "www.microsoft.com", 80, Redmond
@@ -1538,7 +1539,17 @@ module EventMachine
       c.ssl_handshake_completed
     elsif opcode == SslVerify
       c = @conns[conn_binding] or raise ConnectionNotBound, "received SslVerify for unknown signature: #{conn_binding}"
-      c.close_connection if c.ssl_verify_peer(data) == false
+      preverify_ok, cert = *data
+      verified =
+        if !c.respond_to?(:ssl_verify_peer)
+          preverify_ok # just return OpenSSL's result
+        elsif c.original_method(:ssl_verify_peer).arity == 1
+          c.ssl_verify_peer(cert) # backwards compatibility
+        else
+          c.ssl_verify_peer(cert, preverify_ok)
+        end
+      c.close_connection if verified == false
+      verified
     elsif opcode == TimerFired
       t = @timers.delete( data )
       return if t == false # timer cancelled
