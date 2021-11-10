@@ -21,7 +21,6 @@ See the file COPYING for complete licensing information.
 #ifndef __Project__H_
 #define __Project__H_
 
-
 #include <iostream>
 #include <map>
 #include <set>

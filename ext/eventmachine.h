@@ -81,7 +81,10 @@ extern "C" {
 	const uintptr_t evma_attach_sd (int sd);
 	const uintptr_t evma_open_datagram_socket (const char *server, int port);
 	const uintptr_t evma_open_keyboard();
-	void evma_set_tls_parms (const uintptr_t binding, const char *privatekey_filename, const char *privatekey, const char *privatekeypass, const char *certchain_filename, const char *cert, int verify_peer, int fail_if_no_peer_cert, const char *sni_hostname, const char *cipherlist, const char *ecdh_curve, const char *dhparam, int protocols);
+	void evma_set_tls_parms (
+			const uintptr_t binding,
+			em_ssl_ctx_t context,
+			const char *sni_hostname);
 	void evma_start_tls (const uintptr_t binding);
 
 	#ifdef WITH_SSL
