@@ -1,0 +1,15 @@
+---
+
+csr: true
+
+subject:
+  C: EM
+  ST: EventMachine
+  O: EventMachine
+  OU: Development
+  CN: localhost
+version: 3
+
+ca: eventmachine-ca
+
+certificate: {}
