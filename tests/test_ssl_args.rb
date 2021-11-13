@@ -28,21 +28,16 @@ class TestSSLArgs < Test::Unit::TestCase
   end
 
   def test_tls_cert_not_defined_twice
-    cert_file_path="#{__dir__}/client.crt"
-    cert=File.read "#{__dir__}/client.crt"
-
     assert_raises EM::BadCertParams do
-      client_server client: {cert: cert, cert_chain_file: cert_file_path}
+      client_server client: { cert: CERT_PEM, cert_chain_file: CERT_FILE }
     end
   end
 
   def test_tls_key_not_defined_twice
-    cert_file_path="#{__dir__}/client.crt"
-    key_file_path="#{__dir__}/client.key"
-    key=File.read "#{__dir__}/client.key"
-
     assert_raises EM::BadPrivateKeyParams do
-      client_server client: {private_key_file: key_file_path, private_key: key, cert_chain_file: cert_file_path}
+      client_server client: { private_key_file: PRIVATE_KEY_FILE,
+                              private_key: PRIVATE_KEY_PEM,
+                              cert_chain_file: CERT_FILE }
     end
   end
 
@@ -52,7 +47,7 @@ class TestSSLArgs < Test::Unit::TestCase
     #140579476657920:error:1417A0C1:SSL routines:tls_post_process_client_hello:no shared cipher
 
     assert_raises EM::BadParams do
-      client_server client: {private_key_file: "#{__dir__}/client.key"}
+      client_server client: { private_key_file: PRIVATE_KEY_FILE }
     end
   end
 
