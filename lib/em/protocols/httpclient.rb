@@ -119,7 +119,7 @@ module EventMachine
         end
 
         qs = args[:query_string] || ""
-        if qs.length > 0 and qs[0,1] != '?'
+        if qs.length > 0 && qs[0,1] != '?'
           qs = "?" + qs
         end
 
@@ -194,7 +194,7 @@ module EventMachine
             if ary.length == 2
               data = ary.last
               if ary.first == ""
-                if (@content_length and @content_length > 0) || @chunked || @connection_close
+                if (@content_length && @content_length > 0) || @chunked || @connection_close
                   @read_state = :content
                 else
                   dispatch_response
@@ -294,7 +294,7 @@ module EventMachine
       def unbind
         if !@connected
           set_deferred_status :failed, {:status => 0} # YECCCCH. Find a better way to signal no-connect/network error.
-        elsif (@read_state == :content and @content_length == nil)
+        elsif (@read_state == :content && @content_length == nil)
           dispatch_response
         end
       end

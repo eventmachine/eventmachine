@@ -75,7 +75,7 @@ module EventMachine
       end
 
       def unbind
-        if @lbp_mode == :binary and @lbp_binary_limit > 0
+        if @lbp_mode == :binary && @lbp_binary_limit > 0
           if respond_to?(:receive_binary_data)
             receive_binary_data( @lbp_binary_buffer[0...@lbp_binary_bytes_received] )
           end

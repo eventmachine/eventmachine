@@ -80,7 +80,7 @@ module EventMachine
               raise "extraneous content-length header" if @hc_content_length
               @hc_content_length = $1.to_i
             end
-            if @hc_headers.length == 1 and respond_to?(:receive_first_header_line)
+            if @hc_headers.length == 1 && respond_to?(:receive_first_header_line)
               receive_first_header_line line
             end
           end
