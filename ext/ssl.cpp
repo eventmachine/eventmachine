@@ -616,7 +616,11 @@ X509 *SslBox_t::GetPeerCert()
 	X509 *cert = NULL;
 
 	if (pSSL)
+#ifdef HAVE_SSL_GET1_PEER_CERTIFICATE
+		cert = SSL_get1_peer_certificate(pSSL);
+#else
 		cert = SSL_get_peer_certificate(pSSL);
+#endif
 
 	return cert;
 }
