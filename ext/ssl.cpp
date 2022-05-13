@@ -297,6 +297,7 @@ SslContext_t::SslContext_t (bool is_server, const std::string &privkeyfile, cons
 			if (e <= 0) ERR_print_errors_fp(stderr);
 			assert (e > 0);
 		}
+
 		if (dhparam.length() > 0) {
 			DH   *dh;
 			BIO  *bio;
@@ -321,6 +322,14 @@ SslContext_t::SslContext_t (bool is_server, const std::string &privkeyfile, cons
 
 			DH_free(dh);
 			BIO_free(bio);
+		} else {
+#ifdef HAVE_SSL_CTX_SET_DH_AUTO
+			// https://www.openssl.org/docs/man3.0/man3/SSL_CTX_set_dh_auto.html
+			// printf("\nUsing SSL_CTX_set_dh_auto\n");
+			SSL_CTX_set_dh_auto(pCtx, 1);
+#else
+			// noop
+#endif
 		}
 
 		if (ecdh_curve.length() > 0) {
