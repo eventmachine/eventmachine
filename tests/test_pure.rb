@@ -51,7 +51,7 @@ class TestPure < Test::Unit::TestCase
   def test_connrefused
     assert_nothing_raised do
       EM.run {
-        setup_timeout(2)
+        setup_timeout(3)
         EM.connect "127.0.0.1", @port, TestConnrefused
       }
     end

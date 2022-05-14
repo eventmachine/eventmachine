@@ -56,12 +56,15 @@ class Test::Unit::TestCase
   end
 
   def next_port
-    @@port ||= 9000
-    begin
-      @@port += 1
-    end while port_in_use?(@@port)
+    TCPServer.open('127.0.0.1', 0) do |server|
+      server.connect_address.ip_port
+    end
+  end
 
-    @@port
+  def next_public_port
+    TCPServer.open(@@public_ipv4, 0) do |server|
+      server.connect_address.ip_port
+    end
   end
 
   # Returns true if the host have a localhost 127.0.0.1 IPv4.

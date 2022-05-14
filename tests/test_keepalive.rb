@@ -1,6 +1,9 @@
 require_relative 'em_test_helper'
 
 class TestKeepalive < Test::Unit::TestCase
+
+  HAS_GET_SOCK_OPT = EM.respond_to? :get_sock_opt
+
   def setup
     assert(!EM.reactor_running?)
     @port = next_port
@@ -11,7 +14,7 @@ class TestKeepalive < Test::Unit::TestCase
   end
 
   def test_enable_keepalive
-    omit_if(!EM.respond_to?(:get_sock_opt))
+    omit_if(!HAS_GET_SOCK_OPT)
 
     # I don't know why "An operation was attempted on something that is not a socket."
     pend('FIXME: this test is broken on Windows') if windows?
@@ -36,7 +39,7 @@ class TestKeepalive < Test::Unit::TestCase
   end
 
   def test_enable_keepalive_values
-    omit_if(!EM.respond_to?(:get_sock_opt))
+    omit_if(!HAS_GET_SOCK_OPT)
 
     # I don't know why "An operation was attempted on something that is not a socket."
     pend('FIXME: this test is broken on Windows') if windows?
@@ -88,7 +91,7 @@ class TestKeepalive < Test::Unit::TestCase
   end
 
   def test_disable_keepalive
-    omit_if(!EM.respond_to?(:get_sock_opt))
+    omit_if(!HAS_GET_SOCK_OPT)
 
     # I don't know why "An operation was attempted on something that is not a socket."
     pend('FIXME: this test is broken on Windows') if windows?
