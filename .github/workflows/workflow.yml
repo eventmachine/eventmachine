@@ -15,6 +15,8 @@ jobs:
         ruby: [ '2.2', '2.3', '2.4', '2.5', '2.6', '2.7', '3.0', '3.1', head ]
         include:
           - { os: windows-2022, ruby: ucrt }
+          - { os: ubuntu-22.04, ruby: 3.1  }
+          - { os: ubuntu-22.04, ruby: head }
         exclude:
           - { os: windows-2022, ruby: head }
     steps:
