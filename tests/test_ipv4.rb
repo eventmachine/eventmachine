@@ -7,7 +7,7 @@ class TestIPv4 < Test::Unit::TestCase
     omit_if(!Test::Unit::TestCase.public_ipv4?)
 
     @@received_data = nil
-    local_port = next_port
+    local_port = next_port @@public_ipv4
     setup_timeout(2)
 
     EM.run do
@@ -32,7 +32,7 @@ class TestIPv4 < Test::Unit::TestCase
     omit_if(!Test::Unit::TestCase.public_ipv4?)
 
     @@received_data = nil
-    local_port = next_public_port
+    local_port = next_port @@public_ipv4
     setup_timeout(darwin? ? 4 : 2)
 
     EM.run do
@@ -82,7 +82,7 @@ class TestIPv4 < Test::Unit::TestCase
     EM.run do
       begin
         error = nil
-        EM.open_datagram_socket(@@public_ipv4, next_port) do |c|
+        EM.open_datagram_socket(@@public_ipv4, next_port(@@public_ipv4)) do |c|
           c.send_datagram "hello", invalid_ipv4, 1234
         end
       rescue => e

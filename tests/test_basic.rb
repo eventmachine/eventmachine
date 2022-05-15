@@ -149,7 +149,7 @@ class TestBasic < Test::Unit::TestCase
   def test_bind_connect
     local_ip = UDPSocket.open {|s| s.connect('localhost', 80); s.addr.last }
 
-    bind_port = next_port
+    bind_port = next_port local_ip
 
     port, ip = nil
     bound_server = Module.new do

@@ -10,6 +10,10 @@ $VERBOSE = verbose
 
 class Test::Unit::TestCase
 
+  HOST_V4 = '127.0.0.1'
+  HOST_v6 = '::1'
+  HOST = HOST_V4
+
   # below outputs to console on load
   # SSL_AVAIL is used by SSL tests
   puts "", RUBY_DESCRIPTION
@@ -55,14 +59,8 @@ class Test::Unit::TestCase
     false
   end
 
-  def next_port
-    TCPServer.open('127.0.0.1', 0) do |server|
-      server.connect_address.ip_port
-    end
-  end
-
-  def next_public_port
-    TCPServer.open(@@public_ipv4, 0) do |server|
+  def next_port(host = HOST)
+    TCPServer.open(host, 0) do |server|
       server.connect_address.ip_port
     end
   end
