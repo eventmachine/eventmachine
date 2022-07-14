@@ -38,6 +38,41 @@ as well as many operating systems from the Unix family (Linux, Mac OS X, BSD fla
 
 
 
+## Prerequisite for the gem ##
+
+To be installed, eventmachine requires a C/C++ compiler, Ruby development headers, and (optional but typically desired) OpenSSL library and headers.
+
+Each system/os will provide this it's own way. Some examples follow bellow.
+In any case, `libssl-dev` or its equivalent are optionnal.
+
+### Debian/Ubuntu ###
+
+You will need those:
+
+    apt -qq update && apt -qqy install build-essential ruby-dev libssl-dev
+
+Note that `libssl-dev` is optional as said previously. We tested those instructions on debian:bullseye, ubuntu:focal and ubuntu:jammy.
+
+### Alpine (3) ###
+
+You will need those instructions:
+
+    apk add --no-cache build-base ruby-dev openssl-dev
+
+### macos (Monterey 12.4) ###
+
+It depends on the package manager you have installed (brew or port), but typically, the package manager will need the build tools so installing them will make this first step done.
+
+Then install ruby with it, brew will keep the header and place them correctly. Finally, add if you need ssl. This should looks like this with `brew`:
+
+    brew install ruby@3 openssl@1.1
+
+Instead of ruby, you can install rbenv and ruby-build, then install a global version of ruby will do to in place of installing ruby@3 on your system (you will be able to choose the ruby version depending on your project, headers will be present).
+
+    brew install rbenv ruby-build openssl@1.1
+    rbenv install 3.1.2
+    rbenv global 3.1.2
+
 ## Install the gem ##
 
 Install it with [RubyGems](https://rubygems.org/)
