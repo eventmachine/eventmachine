@@ -70,7 +70,7 @@ module EventMachine
     attr_reader :cert, :key
 
     def initialize
-      @key = OpenSSL::PKey::RSA.new(1024)
+      @key = OpenSSL::PKey::RSA.new(2048)
       public_key = @key.public_key
       subject = "/C=EventMachine/O=EventMachine/OU=EventMachine/CN=EventMachine"
       @cert = OpenSSL::X509::Certificate.new
