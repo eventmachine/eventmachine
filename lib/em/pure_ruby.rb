@@ -501,6 +501,17 @@ module EventMachine
   EM_PROTO_TLSv1_1 = 16
   # @private
   EM_PROTO_TLSv1_2 = 32
+  # @private
+  EM_PROTO_TLSv1_3 = 64 if OpenSSL::SSL.const_defined?(:TLS1_3_VERSION)
+
+  # @private
+  OPENSSL_LIBRARY_VERSION = OpenSSL::OPENSSL_LIBRARY_VERSION
+  # @private
+  OPENSSL_VERSION = OpenSSL::OPENSSL_VERSION
+  # @private
+  OPENSSL_NO_SSL2 = false
+  # @private
+  OPENSSL_NO_SSL3 = false
 end
 
 module EventMachine
