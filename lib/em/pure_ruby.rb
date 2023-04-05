@@ -328,10 +328,8 @@ module EventMachine
             end
           end
         end
-        if tls_parms[:ecdh_curve] && ctx.respond_to?(:tmp_ecdh_callback)
-          ctx.tmp_ecdh_callback = Proc.new do
-            OpenSSL::PKey::EC.new(tls_parms[:ecdh_curve])
-          end
+        if tls_parms[:ecdh_curve]
+          ctx.ecdh_curves = tls_parms[:ecdh_curve]
         end
       end
       ssl_io = OpenSSL::SSL::SSLSocket.new(selectable, ctx)
