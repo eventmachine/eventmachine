@@ -316,16 +316,14 @@ module EventMachine
       end
       ctx.ciphers = tls_parms[:cipher_list] if tls_parms[:cipher_list]
       if selectable.is_server
-        ctx.tmp_dh_callback = Proc.new do |_, _, key_length|
-          if tls_parms[:dhparam]
-            OpenSSL::PKey::DH.new(tls_parms[:dhparam])
+        ctx.tmp_dh = if tls_parms[:dhparam]
+          OpenSSL::PKey::DH.new(tls_parms[:dhparam])
+        else
+          case key_length
+          when 1024 then DefaultDHKey1024
+          when 2048 then DefaultDHKey2048
           else
-            case key_length
-            when 1024 then DefaultDHKey1024
-            when 2048 then DefaultDHKey2048
-            else
-              nil
-            end
+            nil
           end
         end
         if tls_parms[:ecdh_curve]
