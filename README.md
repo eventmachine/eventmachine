@@ -89,7 +89,7 @@ EventMachine.run {
 
 ## EventMachine documentation ##
 
-Currently we only have [reference documentation](http://rdoc.info/github/eventmachine/eventmachine/frames) and a [wiki](https://github.com/eventmachine/eventmachine/wiki).
+Currently we only have [reference documentation](http://rubydoc.info/github/eventmachine/eventmachine/frames) and a [wiki](https://github.com/eventmachine/eventmachine/wiki).
 
 
 ## Community and where to get help ##
