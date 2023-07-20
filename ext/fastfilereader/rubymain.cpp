@@ -115,6 +115,9 @@ extern "C" void Init_fastfilereaderext()
 	EmModule = rb_define_module ("EventMachine");
 	FastFileReader = rb_define_class_under (EmModule, "FastFileReader", rb_cObject);
 	Mapper = rb_define_class_under (FastFileReader, "Mapper", rb_cObject);
+	// fixes lib/em/streamer.rb:70: warning: undefining the allocator of
+	// T_DATA class EventMachine::FastFileReader::Mapper
+	rb_undef_alloc_func(Mapper);
 
 	rb_define_module_function (Mapper, "new", (VALUE(*)(...))mapper_new, 1);
 	rb_define_method (Mapper, "size", (VALUE(*)(...))mapper_size, 0);
