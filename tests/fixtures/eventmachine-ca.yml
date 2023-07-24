@@ -1,0 +1,17 @@
+---
+
+ca: true
+
+subject:
+  C: RB
+  ST: EM
+  L: Devenv
+  O: EventMachine Developers
+  OU: Development
+  CN: EventMachine Testing CA
+  emailAddress: eventmachine@example.com
+version: 3
+
+ttl_hours: 24
+
+certificate: {}
