@@ -123,15 +123,29 @@ module EventMachine
     #
     # @see #get_peer_cert
     def ssl_handshake_completed
+      @ssl_connection&.ssl_handshake_completed
     end
 
-    # Called by EventMachine when :verify_peer => true has been passed to {#start_tls}.
-    # It will be called with each certificate in the certificate chain provided by the remote peer.
+    # Called by EventMachine when `verify_peer: true` has been passed to
+    # {#start_tls}.  It will be called with each certificate in the certificate
+    # chain provided by the remote peer.  The certificate chain is checked
+    # starting with the deepest nesting level (the root CA certificate) and
+    # worked upward to the peer's certificate.
     #
-    # The cert will be passed as a String in PEM format, the same as in {#get_peer_cert}. It is up to user defined
-    # code to perform a check on the certificates. The return value from this callback is used to accept or deny the peer.
-    # A return value that is not nil or false triggers acceptance. If the peer is not accepted, the connection
-    # will be subsequently closed.
+    # @param cert [String] The X509 certificate as a String in PEM format, the
+    #   same as in {#get_peer_cert}.
+    #
+    # @param preverify_ok [Boolean] whether the verification of the certificate
+    #   in question was passed by OpenSSL's built-in procedure
+    #
+    # @return [Boolean] whether to accept or deny the peer.  A return value that
+    #   is not nil or false triggers acceptance. If the peer is not accepted,
+    #   the connection will be subsequently closed.
+    #
+    # It is strongly recommended to always simply return `preverify_ok` and only
+    # use this callback for logging and diagnostics.  If OpenSSL isn't verifying
+    # a certificate, you should first try setting {SSL::Context#ca_path} or
+    # {SSL::Context#ca_file}, ensuring SNI {hostname} was set, etc.
     #
     # @example This server always accepts all peers
     #
@@ -140,7 +154,7 @@ module EventMachine
     #       start_tls(:verify_peer => true)
     #     end
     #
-    #     def ssl_verify_peer(cert)
+    #     def ssl_verify_peer(cert, preverify_ok)
     #       true
     #     end
     #
@@ -169,7 +183,9 @@ module EventMachine
     #   end
     #
     # @see #start_tls
-    def ssl_verify_peer(cert)
+    # @see #ssl_handshake_completed
+    def ssl_verify_peer(cert, preverify_ok)
+      preverify_ok
     end
 
     # called by the framework whenever a connection (either a server or client connection) is closed.
@@ -360,131 +376,110 @@ module EventMachine
     def connection_completed
     end
 
-    # Call {#start_tls} at any point to initiate TLS encryption on connected streams.
-    # The method is smart enough to know whether it should perform a server-side
-    # or a client-side handshake. An appropriate place to call {#start_tls} is in
-    # your redefined {#post_init} method, or in the {#connection_completed} handler for
-    # an outbound connection.
+    # Call {#start_tls} at any point to initiate TLS encryption on connected
+    # streams.  The method is smart enough to know whether it should perform a
+    # server-side or a client-side handshake. An appropriate place to call
+    # {#start_tls} is in your redefined {#post_init} method, or in the
+    # {#connection_completed} handler for an outbound connection.
     #
+    # @option args [String] :hostname (nil) Sets the server hostname used for
+    #   SNI.  This must be set if the context has enabled verify_peer and
+    #   verify_hostname.
     #
-    # @option args [String] :cert_chain_file (nil) local path of a readable file that contants  a chain of X509 certificates in
-    #                                              the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail),
-    #                                              with the most-resolved certificate at the top of the file, successive intermediate
-    #                                              certs in the middle, and the root (or CA) cert at the bottom. If both
-    #                                              :cert_chain_file and :cert are used, BadCertParams will be raised.
+    # @option args [String] :sni_hostname (nil)  An alias for :hostname.
+    #   Provided for backward compatibility.
     #
-    # @option args [String] :cert (nil) a string with the client certificate to use, complete with header and footer. If a cert chain is required, you will have to use the :cert_chain_file option. If both :cert_chain_file and :cert are used, BadCertParams will be raised.
+    # @option args [SSL::Context] :context (nil)  The SSL context configuration.
+    #   {EM::SSL::Context#setup} will be called, which freezes the context.
     #
-    # @option args [String] :private_key_file (nil) local path of a readable file that must contain a private key in the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail). If both :private_key_file and :private_key are used, BadPrivateKeyParams will be raised. If the Private Key does not match the certificate, InvalidPrivateKey will be raised.
+    #   If an explicit context is given, it must be configured beforehand.
+    #   Sending additional context parameters to {#start_tls} will raise an
+    #   {ArgumentError}.  The same context can be used with multiple
+    #   connections.
     #
-    # @option args [String] :private_key (nil) a string, complete with header and footer, that must contain a private key in the [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail). If both :private_key_file and :private_key are used, BadPrivateKeyParams will be raised. If the Private Key does not match the certificate, InvalidPrivateKey will be raised.
+    #   When no explicit context is given, a new context will be created which
+    #   uses OpenSSL::SSL::SSLContext::DEFAULT_PARAMS merged with any other
+    #   options that are sent to {#start_tls}.  This is not identical to earlier
+    #   EventMachine behavior
     #
-    # @option args [String] :private_key_pass (nil) a string to use as password to decode :private_key or :private_key_file
+    # @param [Hash] args  Extra options will be sent to a newly created
+    #   {EM::SSL::Context}.  If :context is provided, any extra options will
+    #   raise an {ArgumentError}.
     #
-    # @option args [Boolean] :verify_peer (false)   indicates whether a server should request a certificate from a peer, to be verified by user code.
-    #                                               If true, the {#ssl_verify_peer} callback on the {EventMachine::Connection} object is called with each certificate
-    #                                               in the certificate chain provided by the peer. See documentation on {#ssl_verify_peer} for how to use this.
+    #   @note The default TLS params have been changed to behave more like
+    #   stdlib's "OpenSSL::SSL::SSLContext#set_params".  Client settings should
+    #   generally be compatible or more secure, but servers may need to add
+    #   "verify_peer: false".
     #
-    # @option args [Boolean] :fail_if_no_peer_cert (false)   Used in conjunction with verify_peer. If set the SSL handshake will be terminated if the peer does not provide a certificate.
+    #   @see EM::SSL::Context
     #
-    #
-    # @option args [String] :cipher_list ("ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH") indicates the available SSL cipher values. Default value is "ALL:!ADH:!LOW:!EXP:!DES-CBC3-SHA:@STRENGTH". Check the format of the OpenSSL cipher string at http://www.openssl.org/docs/apps/ciphers.html#CIPHER_LIST_FORMAT.
-    #
-    # @option args [String] :ecdh_curve (nil)  The curve for ECDHE ciphers. See available ciphers with 'openssl ecparam -list_curves'
-    #
-    # @option args [String] :dhparam (nil)  The local path of a file containing DH parameters for EDH ciphers in [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail) See: 'openssl dhparam'
-    #
-    # @option args [Array] :ssl_version (TLSv1 TLSv1_1 TLSv1_2) indicates the allowed SSL/TLS versions. Possible values are: {SSLv2}, {SSLv3}, {TLSv1}, {TLSv1_1}, {TLSv1_2}.
-    #
-    # @example Using TLS with EventMachine
+    # @example Using TLS with an EventMachine client
     #
     #  require 'rubygems'
     #  require 'eventmachine'
     #
-    #  module Handler
+    #  module ClientHandler
     #    def post_init
-    #      start_tls(:private_key_file => '/tmp/server.key', :cert_chain_file => '/tmp/server.crt', :verify_peer => false)
+    #      ctx = EM::SSL::Context.new
+    #      # uses secure defaults from OpenSSL::SSL::SSLContext::DEFAULT_PARAMS
+    #      ctx.set_params(@ssl_ctx_params || {})
+    #      start_tls(context: ctx, hostname: "server.example.org")
     #    end
     #  end
     #
-    #   EventMachine.run do
-    #    EventMachine.start_server("127.0.0.1", 9999, Handler)
+    #  EventMachine.run do
+    #    EventMachine.connect("server.example.org", 9999, ClientHandler)
     #  end
     #
-    # @param [Hash] args
+    # @example Using TLS with an EventMachine server
     #
-    # @todo support passing an encryption parameter, which can be string or Proc, to get a passphrase
-    # for encrypted private keys.
-    # @todo support passing key material via raw strings or Procs that return strings instead of
-    # just filenames.
+    #  require 'rubygems'
+    #  require 'eventmachine'
     #
-    # @see #ssl_verify_peer
+    #  module ServerHandler
+    #    # The same context can be reused by multiple connections.
+    #    CTX = EM::SSL::Context.new
+    #    CTX.set_params(private_key_file: '/tmp/server.key',
+    #                   cert_chain_file:  '/tmp/server.crt',
+    #                   verify_peer: false)
+    #    CTX.setup
+    #
+    #    def post_init
+    #      start_tls(context: CTX)
+    #    end
+    #  end
+    #
+    #  EventMachine.run do
+    #    EventMachine.start_server("127.0.0.1", 9999, ServerHandler)
+    #  end
+    #
     def start_tls args={}
-      priv_key_path   = args[:private_key_file]
-      priv_key        = args[:private_key]
-      priv_key_pass   = args[:private_key_pass]
-      cert_chain_path = args[:cert_chain_file]
-      cert            = args[:cert]
-      verify_peer     = args[:verify_peer]
-      sni_hostname    = args[:sni_hostname]
-      cipher_list     = args[:cipher_list]
-      ssl_version     = args[:ssl_version]
-      ecdh_curve      = args[:ecdh_curve]
-      dhparam         = args[:dhparam]
-      fail_if_no_peer_cert = args[:fail_if_no_peer_cert]
+      args = args.dup
+      context      = args.delete(:context)
 
-      [priv_key_path, cert_chain_path].each do |file|
-        next if file.nil? or file.empty?
-        raise FileNotFoundException,
-        "Could not find #{file} for start_tls" unless File.exist? file
+      sync_close   = args.delete(:sync_close)
+      hostname     = args.delete(:hostname)
+      sni_hostname = args.delete(:sni_hostname)
+
+      if hostname && sni_hostname
+        raise ArgumentError, "Do not send both hostname and sni_hostname"
+      elsif context && args.length != 0
+        raise ArgumentError, "Do not send both context and context params."
       end
 
-      if !priv_key_path.nil? && !priv_key_path.empty? && !priv_key.nil? && !priv_key.empty?
-        raise BadPrivateKeyParams, "Specifying both private_key and private_key_file not allowed"
+      if context.nil?
+        context = EM::SSL::Context.new
+        context.set_params(args)
       end
 
-      if !cert_chain_path.nil? && !cert_chain_path.empty? && !cert.nil? && !cert.empty?
-        raise BadCertParams, "Specifying both cert and cert_chain_file not allowed"
-      end
-
-      if (!priv_key_path.nil? && !priv_key_path.empty?) || (!priv_key.nil? && !priv_key.empty?)
-        if (cert_chain_path.nil? || cert_chain_path.empty?) && (cert.nil? || cert.empty?)
-          raise BadParams, "You have specified a private key to use, but not the related cert"
-        end
-      end
-
-      protocols_bitmask = 0
-      if ssl_version.nil?
-        protocols_bitmask |= EventMachine::EM_PROTO_TLSv1
-        protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_1
-        protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_2
-        if EventMachine.const_defined? :EM_PROTO_TLSv1_3
-          protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_3
-        end
-      else
-        [ssl_version].flatten.each do |p|
-          case p.to_s.downcase
-          when 'sslv2'
-            protocols_bitmask |= EventMachine::EM_PROTO_SSLv2
-          when 'sslv3'
-            protocols_bitmask |= EventMachine::EM_PROTO_SSLv3
-          when 'tlsv1'
-            protocols_bitmask |= EventMachine::EM_PROTO_TLSv1
-          when 'tlsv1_1'
-            protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_1
-          when 'tlsv1_2'
-            protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_2
-          when 'tlsv1_3'
-            protocols_bitmask |= EventMachine::EM_PROTO_TLSv1_3
-          else
-            raise("Unrecognized SSL/TLS Protocol: #{p}")
-          end
-        end
-      end
-
-      EventMachine::set_tls_parms(@signature, priv_key_path || '', priv_key || '', priv_key_pass || '', cert_chain_path || '', cert || '', verify_peer, fail_if_no_peer_cert, sni_hostname || '', cipher_list || '', ecdh_curve || '', dhparam || '', protocols_bitmask)
-      EventMachine::start_tls @signature
+      @ssl_connection = SSL::Connection.new(self, context)
+      ssl_connection.hostname   = hostname || sni_hostname
+      ssl_connection.sync_close = sync_close unless sync_close.nil?
+      ssl_connection.start_tls
     end
+
+    # @return [SSL::Connection] the SSL connection, after calling start_tls
+    attr_reader :ssl_connection
 
     # If [TLS](http://en.wikipedia.org/wiki/Transport_Layer_Security) is active on the connection, returns the remote [X509 certificate](http://en.wikipedia.org/wiki/X.509)
     # as a string, in the popular [PEM format](http://en.wikipedia.org/wiki/Privacy_Enhanced_Mail). This can then be used for arbitrary validation

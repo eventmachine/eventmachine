@@ -56,6 +56,7 @@ Statics
 *******/
 
 static VALUE EmModule;
+static VALUE EmSslContext;
 static VALUE EmConnection;
 static VALUE EmConnsHash;
 static VALUE EmTimersHash;
@@ -84,6 +85,24 @@ static VALUE Intern_notify_writable;
 static VALUE Intern_proxy_target_unbound;
 static VALUE Intern_proxy_completed;
 static VALUE Intern_connection_completed;
+
+static ID id_i_cert_store;
+static ID id_i_ca_file;
+static ID id_i_ca_path;
+static ID id_i_verify_mode;
+static ID id_i_cert;
+static ID id_i_key;
+static ID id_i_verify_hostname;
+static ID id_i_private_key_file;
+static ID id_i_private_key_pass;
+static ID id_i_cert_chain_file;
+
+static ID id_i_max_proto_version;
+static ID id_i_min_proto_version;
+static ID id_i_options;
+static ID id_i_ciphers;
+static ID id_i_ecdh_curve;;
+static ID id_i_dhparam;;
 
 static VALUE rb_cProcessStatus;
 
@@ -187,8 +206,13 @@ static inline VALUE event_callback (VALUE e_value)
 		}
 		case EM_SSL_VERIFY:
 		{
-			VALUE conn = ensure_conn(signature);
-			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
+			VALUE ary = rb_ary_new_from_args(
+					2, data_num != 0 ? Qtrue : Qfalse,
+					rb_str_new(data_str, strlen(data_str)));
+			VALUE should_accept =
+				rb_funcall(EmModule, Intern_event_callback, 3,
+						BSIG2NUM(signature), INT2FIX(event),
+						ary);
 			if (RTEST(should_accept))
 				evma_accept_ssl_peer (signature);
 			return Qnil;
@@ -370,18 +394,118 @@ static VALUE t_start_tls (VALUE self UNUSED, VALUE signature)
 	return Qnil;
 }
 
+/***************************
+ extract_ssl_context_struct
+ **************************/
+
+// converted into a C string here, so ssl.cpp doesn't need to deal with ruby API
+static VALUE
+em_sslctx_convert_ciphers_list(VALUE v)
+{
+    VALUE str, elem;
+    int i;
+
+    if (NIL_P(v))
+		return v;
+    else if (RB_TYPE_P(v, T_ARRAY)) {
+        str = rb_str_new(0, 0);
+        for (i = 0; i < RARRAY_LEN(v); i++) {
+            elem = rb_ary_entry(v, i);
+            if (RB_TYPE_P(elem, T_ARRAY)) elem = rb_ary_entry(elem, 0);
+            elem = rb_String(elem);
+            rb_str_append(str, elem);
+            if (i < RARRAY_LEN(v)-1) rb_str_cat2(str, ":");
+        }
+    } else {
+        str = v;
+        StringValue(str);
+    }
+	return str;
+}
+
+#define EM_SSL_CTX_GC_GUARD(val) \
+	if (!NIL_P(ivar)) rb_ary_push(gc_guard, val)
+
+#define EM_SSL_CTX_COPY_IVAR(RB_CAST, NAME, NILVAL) do {\
+	ivar = rb_ivar_defined(obj, id_i_##NAME) ? \
+		rb_ivar_get(obj, id_i_##NAME) : Qnil; \
+	ctx->NAME = NIL_P(ivar) ? NILVAL : RB_CAST(ivar); \
+} while (0)
+
+#define EM_SSL_CTX_COPY_IVAR_STR(NAME) do {\
+	EM_SSL_CTX_COPY_IVAR(StringValueCStr, NAME, NULL); \
+	EM_SSL_CTX_GC_GUARD(ivar); \
+} while (0)
+
+// n.b. the caller must hold onto the returned VALUE array, to guard the
+// underlying C strings from GC.
+static VALUE
+extract_ssl_context_struct (VALUE obj, em_ssl_ctx_t *ctx) {
+	if (!rb_obj_is_kind_of(obj, EmSslContext)) {
+		rb_raise(rb_eTypeError, "Not an EventMachine::SSL::Context");
+	}
+
+	VALUE ivar = Qnil;
+	VALUE gc_guard = rb_ary_tmp_new(rb_ivar_count(obj));
+
+	EM_SSL_CTX_COPY_IVAR(RB_NUM2INT,   min_proto_version, 0);
+	EM_SSL_CTX_COPY_IVAR(RB_NUM2INT,   max_proto_version, 0);
+	EM_SSL_CTX_COPY_IVAR(RB_NUM2ULONG, options,           0);
+	EM_SSL_CTX_COPY_IVAR(RB_NUM2INT,   verify_mode,       SSL_VERIFY_NONE);
+	EM_SSL_CTX_COPY_IVAR(RB_TEST,      verify_hostname,   false);
+
+	EM_SSL_CTX_COPY_IVAR(RB_TEST,      cert_store,        true);
+	EM_SSL_CTX_COPY_IVAR_STR(ca_file);
+	EM_SSL_CTX_COPY_IVAR_STR(ca_path);
+
+	EM_SSL_CTX_COPY_IVAR_STR(cert);
+	EM_SSL_CTX_COPY_IVAR_STR(cert_chain_file);
+	EM_SSL_CTX_COPY_IVAR_STR(key);
+	EM_SSL_CTX_COPY_IVAR_STR(private_key_file);
+
+	EM_SSL_CTX_COPY_IVAR(StringValuePtr, private_key_pass, "");
+	ctx->private_key_pass_len = NIL_P(ivar) ? 0 : RSTRING_LENINT(ivar);
+
+	EM_SSL_CTX_COPY_IVAR_STR(ecdh_curve);
+	EM_SSL_CTX_COPY_IVAR_STR(dhparam);
+
+	ivar = rb_ivar_defined(obj, id_i_ciphers) ?
+		rb_ivar_get(obj, id_i_ciphers) : Qnil;
+	ivar = em_sslctx_convert_ciphers_list(ivar);
+	if (!NIL_P(ivar)) {
+		ctx->ciphers = StringValueCStr(ivar);
+		EM_SSL_CTX_GC_GUARD(ivar);
+	} else {
+		ctx->ciphers = NULL;
+	}
+
+	return gc_guard;
+}
+
+#undef EM_SSL_CTX_COPY_IVAR_STR
+#undef EM_SSL_CTX_COPY_IVAR
+#undef EM_SSL_CTX_GC_GUARD
+
 /***************
 t_set_tls_parms
 ***************/
 
-static VALUE t_set_tls_parms (VALUE self UNUSED, VALUE signature, VALUE privkeyfile, VALUE privkey, VALUE privkeypass, VALUE certchainfile, VALUE cert, VALUE verify_peer, VALUE fail_if_no_peer_cert, VALUE snihostname, VALUE cipherlist, VALUE ecdh_curve, VALUE dhparam, VALUE ssl_version)
-{
-	/* set_tls_parms takes a series of positional arguments for specifying such things
-	 * as private keys and certificate chains.
-	 * It's expected that the parameter list will grow as we add more supported features.
-	 * ALL of these parameters are optional, and can be specified as empty or NULL strings.
-	 */
-	evma_set_tls_parms (NUM2BSIG (signature), StringValueCStr (privkeyfile), StringValueCStr (privkey), StringValueCStr (privkeypass), StringValueCStr (certchainfile), StringValueCStr (cert), (verify_peer == Qtrue ? 1 : 0), (fail_if_no_peer_cert == Qtrue ? 1 : 0), StringValueCStr (snihostname), StringValueCStr (cipherlist), StringValueCStr (ecdh_curve), StringValueCStr (dhparam), NUM2INT (ssl_version));
+static VALUE t_set_tls_parms(
+		VALUE self UNUSED,
+		VALUE signature,
+		VALUE context,
+		VALUE snihostname) {
+	VALUE gc_guard = Qundef;
+	try {
+		char *c_hostname = NIL_P(snihostname) ? NULL : StringValueCStr(snihostname);
+		em_ssl_ctx_t ctx;
+		gc_guard = extract_ssl_context_struct(context, &ctx);
+		evma_set_tls_parms(NUM2BSIG(signature), ctx, c_hostname);
+	} catch (const std::runtime_error& e) {
+		rb_raise (rb_eRuntimeError,
+				"EventMachine.set_tls_parms: %s", e.what());
+		RB_GC_GUARD(gc_guard);
+	}
 	return Qnil;
 }
 
@@ -1480,11 +1604,36 @@ extern "C" void Init_rubyeventmachine()
 	Intern_proxy_completed = rb_intern ("proxy_completed");
 	Intern_connection_completed = rb_intern ("connection_completed");
 
+#define DefIVarID(name) do \
+	id_i_##name = rb_intern_const("@"#name); while (0)
+
+	DefIVarID(options);
+	DefIVarID(max_proto_version);
+	DefIVarID(min_proto_version);
+
+	DefIVarID(cert_store);
+	DefIVarID(ca_file);
+	DefIVarID(ca_path);
+	DefIVarID(verify_mode);
+	DefIVarID(verify_hostname);
+	DefIVarID(cert);
+	DefIVarID(key);
+	DefIVarID(verify_hostname);
+	DefIVarID(private_key_file);
+	DefIVarID(private_key_pass);
+	DefIVarID(cert_chain_file);
+	DefIVarID(ciphers);
+	DefIVarID(ecdh_curve);
+	DefIVarID(dhparam);
+
 	// INCOMPLETE, we need to define class Connections inside module EventMachine
 	// run_machine and run_machine_without_threads are now identical.
 	// Must deprecate the without_threads variant.
 	EmModule = rb_define_module ("EventMachine");
 	EmConnection = rb_define_class_under (EmModule, "Connection", rb_cObject);
+
+	VALUE EmSsl = rb_define_module_under (EmModule, "SSL");
+	EmSslContext = rb_define_class_under (EmSsl, "Context", rb_cObject);
 
 	rb_define_class_under (EmModule, "NoHandlerForAcceptedConnection", rb_eRuntimeError);
 	EM_eConnectionError = rb_define_class_under (EmModule, "ConnectionError", rb_eRuntimeError);
@@ -1504,7 +1653,7 @@ extern "C" void Init_rubyeventmachine()
 	rb_define_module_function (EmModule, "stop_tcp_server", (VALUE(*)(...))t_stop_server, 1);
 	rb_define_module_function (EmModule, "start_unix_server", (VALUE(*)(...))t_start_unix_server, 1);
 	rb_define_module_function (EmModule, "attach_sd", (VALUE(*)(...))t_attach_sd, 1);
-	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 13);
+	rb_define_module_function (EmModule, "set_tls_parms", (VALUE(*)(...))t_set_tls_parms, 3);
 	rb_define_module_function (EmModule, "start_tls", (VALUE(*)(...))t_start_tls, 1);
 	rb_define_module_function (EmModule, "get_peer_cert", (VALUE(*)(...))t_get_peer_cert, 1);
 	rb_define_module_function (EmModule, "get_cipher_bits", (VALUE(*)(...))t_get_cipher_bits, 1);

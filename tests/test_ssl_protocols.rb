@@ -17,7 +17,7 @@ class TestSSLProtocols < Test::Unit::TestCase
   RUBY_SSL_GE_2_1 = OpenSSL::SSL::SSLContext.private_instance_methods(false).include?(:set_minmax_proto_version)
 
   def test_invalid_ssl_version
-    assert_raises(RuntimeError, "Unrecognized SSL/TLS Version: badinput") do
+    assert_raises(ArgumentError, 'unrecognized "badinput"') do
       client = { ssl_version: %w(tlsv1 badinput) }
       server = { ssl_version: %w(tlsv1 badinput) }
       client_server client: client, server: server
