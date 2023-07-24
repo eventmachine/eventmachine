@@ -7,7 +7,7 @@
 #    EM.run do
 #      EM.start_server IP, PORT, s_hndlr, server
 #      EM.connect IP, PORT, c_hndlr, client
-#    end  
+#    end
 #
 # It also passes parameters to the `start_tls` call within the `post_init`
 # callbacks of Client and Server.
@@ -17,17 +17,36 @@
 #
 # `Client` has a `:client_unbind` parameter, which when set to true, calls
 # `EM.stop_event_loop` in the `unbind` callback.
-# 
+#
 # `Server` has two additional parameters.
 #
 # `:ssl_verify_result`, which is normally set to true/false for the
 # `ssl_verify_peer` return value.  If it is set to a String starting with "|RAISE|",
 # the remaing string will be raised.
-# 
+#
 # `:stop_after_handshake`, when set to true, will close the connection and then
 # call `EM.stop_event_loop`.
 #
+# `:ssl_old_verify_peer` when set to true will setup `ssl_verify_peer` to only
+# accept one argument, to test for compatibility with the original API.
+#
 module EMSSLHandlers
+
+  CERTS_DIR        = "#{__dir__}/fixtures"
+
+  CA_NAME          = "eventmachine-ca"
+  CERT_NAME        = "em-localhost"
+
+  CA_FILE          = "#{CERTS_DIR}/#{CA_NAME}.crt"
+  CERT_FILE        = "#{CERTS_DIR}/#{CERT_NAME}.crt"
+  ENCODED_KEY_FILE = "#{CERTS_DIR}/#{CERT_NAME}.aes-key"
+  PRIVATE_KEY_FILE = "#{CERTS_DIR}/#{CERT_NAME}.key"
+  ENCODED_PASSFILE = "#{CERTS_DIR}/#{CERT_NAME}.pass"
+  CA_PEM           = File.read(CA_FILE).freeze
+  CERT_PEM         = File.read(CERT_FILE).freeze
+  PRIVATE_KEY_PEM  = File.read(PRIVATE_KEY_FILE).freeze
+  ENCODED_KEY_PEM  = File.read(ENCODED_KEY_FILE).freeze
+  ENCODED_KEY_PASS = File.read(ENCODED_PASSFILE).freeze
 
   IP, PORT = "127.0.0.1", 16784
 
@@ -47,11 +66,13 @@ module EMSSLHandlers
       @@handshake_completed = false
       @@cert            = nil
       @@cert_value      = nil
+      @@verify_cb_args  = []
       @@cipher_bits     = nil
       @@cipher_name     = nil
       @@cipher_protocol = nil
       @@ssl_verify_result = @@tls ? @@tls.delete(:ssl_verify_result) : nil
       @@client_unbind = @@tls ? @@tls.delete(:client_unbind) : nil
+      extend BackCompatVerifyPeer if @@tls && @@tls.delete(:ssl_old_verify_peer)
     end
 
     def self.cert                 ;   @@cert                end
@@ -60,6 +81,7 @@ module EMSSLHandlers
     def self.cipher_name          ;   @@cipher_name         end
     def self.cipher_protocol      ;   @@cipher_protocol     end
     def self.handshake_completed? ; !!@@handshake_completed end
+    def self.verify_cb_args       ;   @@verify_cb_args      end
 
     def post_init
       if @@tls
@@ -69,8 +91,9 @@ module EMSSLHandlers
       end
     end
 
-    def ssl_verify_peer(cert)
-      @@cert = cert
+    def ssl_verify_peer(preverify_ok, ctx)
+      @@verify_cb_args << [preverify_ok, ctx.error_depth, ctx.error, ctx.error_string]
+      @@cert = ctx.current_cert.to_pem
       if @@ssl_verify_result.is_a?(String) && @@ssl_verify_result.start_with?("|RAISE|")
         raise @@ssl_verify_result.sub('|RAISE|', '')
       else
@@ -100,13 +123,16 @@ module EMSSLHandlers
     def initialize(tls = nil)
       @@tls = tls ? tls.dup : tls
       @@handshake_completed = false
+      @@cert            = nil
       @@cert_value      = nil
+      @@verify_cb_args  = []
       @@cipher_bits     = nil
       @@cipher_name     = nil
       @@cipher_protocol = nil
       @@sni_hostname = "not set"
       @@ssl_verify_result    = @@tls ? @@tls.delete(:ssl_verify_result)    : nil
       @@stop_after_handshake = @@tls ? @@tls.delete(:stop_after_handshake) : nil
+      extend BackCompatVerifyPeer if @@tls && @@tls.delete(:ssl_old_verify_peer)
     end
 
     def self.cert                 ;   @@cert                end
@@ -116,6 +142,7 @@ module EMSSLHandlers
     def self.cipher_protocol      ;   @@cipher_protocol     end
     def self.handshake_completed? ; !!@@handshake_completed end
     def self.sni_hostname         ;   @@sni_hostname        end
+    def self.verify_cb_args       ;   @@verify_cb_args      end
 
     def post_init
       if @@tls
@@ -125,15 +152,16 @@ module EMSSLHandlers
       end
     end
 
-    def ssl_verify_peer(cert)
-      @@cert = cert
+    def ssl_verify_peer(preverify_ok, ctx)
+      @@verify_cb_args << [preverify_ok, ctx.error_depth, ctx.error, ctx.error_string]
+      @@cert = ctx.current_cert.to_pem
       if @@ssl_verify_result.is_a?(String) && @@ssl_verify_result.start_with?("|RAISE|")
         raise @@ssl_verify_result.sub('|RAISE|', '')
       else
         @@ssl_verify_result
       end
     end
-    
+
     def ssl_handshake_completed
       @@handshake_completed = true
       @@cert_value      = get_peer_cert
@@ -150,6 +178,14 @@ module EMSSLHandlers
 
     def unbind
       EM.stop_event_loop unless @@handshake_completed
+    end
+  end
+
+  module BackCompatVerifyPeer
+    def ssl_verify_peer(cert)
+      require "ostruct"
+      fake_ctx = OpenStruct.new(current_cert: OpenStruct.new(to_pem: cert))
+      super(:a_complete_mystery, fake_ctx)
     end
   end
 

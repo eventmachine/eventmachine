@@ -1,0 +1,7 @@
+*.pass
+*.aes-key
+*.key
+*.pub
+*.ca-crt
+*.csr
+*.crt

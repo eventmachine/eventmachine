@@ -125,51 +125,91 @@ module EventMachine
     def ssl_handshake_completed
     end
 
-    # Called by EventMachine when :verify_peer => true has been passed to {#start_tls}.
-    # It will be called with each certificate in the certificate chain provided by the remote peer.
+    # Called by EventMachine when `verify_peer: true` has been passed to
+    # {#start_tls}.  It will be called with each certificate in the certificate
+    # chain provided by the remote peer.
     #
-    # The cert will be passed as a String in PEM format, the same as in {#get_peer_cert}. It is up to user defined
-    # code to perform a check on the certificates. The return value from this callback is used to accept or deny the peer.
-    # A return value that is not nil or false triggers acceptance. If the peer is not accepted, the connection
-    # will be subsequently closed.
+    # The default implementation prints errors to `$stderr` and returns
+    # `preverified_ok` unaltered.  It is strongly recommended to only override
+    # this method for logging and diagnostics, always return `preverified_ok`
+    # unaltered, and configure OpenSSL so it can handle verification.
     #
-    # @example This server always accepts all peers
+    # This callback only verifies the certificate chain's validity.  The
+    # certificate must still be verified that it matches your peer's identity in
+    # {#ssl_handshake_completed}.
     #
-    #   module AcceptServer
-    #     def post_init
-    #       start_tls(:verify_peer => true)
+    # @overload ssl_verify_peer(preverify_ok, ctx)
+    #
+    #   If OpenSSL's verification errors are overridden by returning {true},
+    #   this can be called more than once per certificate: once per error
+    #   per error and in some configurations once more with no error.  There
+    #   can be more than one error per certificate.
+    #
+    #   @param [Boolean] preverify_ok whether OpenSSL verified this certificate.
+    #
+    #   @param [EventMachine::SSL::X509::StoreContext] ctx `X509_STORE_CTX` data
+    #     including the X509 certificate, the error, and the depth (where in the
+    #     certificate chain this certificate occurred).
+    #
+    #   @return [Boolean] whether this certificate should be verified.  Can be
+    #     used to override OpenSSL's verification.  Used to accept or deny the
+    #     peer.  A return value that is not nil or false triggers acceptance. If
+    #     the peer is not accepted, the connection will be subsequently closed.
+    #
+    #   @example This server always accepts all peers
+    #
+    #     module AcceptServer
+    #       def post_init
+    #         start_tls(:verify_peer => true)
+    #       end
+    #
+    #       def ssl_verify_peer(preverify_ok, x509_store_ctx)
+    #         true
+    #       end
+    #
+    #       def ssl_handshake_completed
+    #         $server_handshake_completed = true
+    #       end
     #     end
     #
-    #     def ssl_verify_peer(cert)
-    #       true
+    #   @example This server never accepts any peers
+    #
+    #     module DenyServer
+    #       def post_init
+    #         start_tls(:verify_peer => true)
+    #       end
+    #
+    #       def ssl_verify_peer(preverify_ok, x509_store_ctx)
+    #         # Do not accept the peer. This should now cause the connection to
+    #         # shut down without the SSL handshake being completed.
+    #         false
+    #       end
+    #
+    #       def ssl_handshake_completed
+    #         $server_handshake_completed = true
+    #       end
     #     end
     #
-    #     def ssl_handshake_completed
-    #       $server_handshake_completed = true
-    #     end
-    #   end
+    # @overload ssl_verify_peer(cert)
+    #   @param [String] cert the certificate in PEM format, the same as in
+    #     {#get_peer_cert}.
     #
+    #   @deprecated Use the updated API with two parameters instead.
     #
-    # @example This server never accepts any peers
-    #
-    #   module DenyServer
-    #     def post_init
-    #       start_tls(:verify_peer => true)
-    #     end
-    #
-    #     def ssl_verify_peer(cert)
-    #       # Do not accept the peer. This should now cause the connection to shut down
-    #       # without the SSL handshake being completed.
-    #       false
-    #     end
-    #
-    #     def ssl_handshake_completed
-    #       $server_handshake_completed = true
-    #     end
-    #   end
+    #   It is up to user defined code to validate the certificate chain.
     #
     # @see #start_tls
-    def ssl_verify_peer(cert)
+    def ssl_verify_peer(preverify_ok, ctx)
+      if !preverify_ok
+        $stderr.puts(
+          "Certificate verification error: depth=%d err=%d %s" % [
+            ctx.error_depth, ctx.error, ctx.error_string
+          ]
+        )
+        $stderr.puts "    subject=%s" % [ctx.current_cert.subject.to_utf8]
+        $stderr.puts "     issuer=%s" % [ctx.current_cert.issuer.to_utf8]
+      end
+      preverify_ok
     end
 
     # called by the framework whenever a connection (either a server or client connection) is closed.

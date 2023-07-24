@@ -199,13 +199,13 @@ void EventableDescriptor::Close()
 	// Close the socket right now. Intended for emergencies.
 	if (MySocket != INVALID_SOCKET) {
 		MyEventMachine->Deregister (this);
-		
+
 		// Do not close STDIN, STDOUT, STDERR
 		if (MySocket > 2 && !bAttached) {
 			shutdown (MySocket, 1);
 			close (MySocket);
 		}
-		
+
 		MySocket = INVALID_SOCKET;
 	}
 }
@@ -978,7 +978,7 @@ void ConnectionDescriptor::Read()
 		// NOTICE, we're reading one less than the buffer size.
 		// That's so we can put a guard byte at the end of what we send
 		// to user code.
-		
+
 
 		int r = read (sd, readbuffer, sizeof(readbuffer) - 1);
 #ifdef OS_WIN32
@@ -1494,12 +1494,12 @@ ConnectionDescriptor::VerifySslPeer
 ***********************************/
 
 #ifdef WITH_SSL
-bool ConnectionDescriptor::VerifySslPeer(const char *cert)
+bool ConnectionDescriptor::VerifySslPeer(unsigned long preverify_ok, void *ctx)
 {
 	bSslPeerAccepted = false;
 
 	if (EventCallback)
-		(*EventCallback)(GetBinding(), EM_SSL_VERIFY, cert, strlen(cert));
+		(*EventCallback)(GetBinding(), EM_SSL_VERIFY, (const char *)ctx, preverify_ok);
 
 	return bSslPeerAccepted;
 }
