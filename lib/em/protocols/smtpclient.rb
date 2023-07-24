@@ -320,7 +320,7 @@ module EventMachine
           @responder = :receive_rcpt_to_response
         else
           e = @rcpt_responses.select {|rr| rr.last == 2}
-          if e and e.length > 0
+          if e && e.length > 0
             invoke_data
           else
             invoke_error

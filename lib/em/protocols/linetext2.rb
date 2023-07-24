@@ -152,7 +152,7 @@ module EventMachine
       # be aware that they may get a short buffer.
       def unbind
         @lt2_mode ||= nil
-        if @lt2_mode == :text and @lt2_textpos > 0
+        if @lt2_mode == :text && @lt2_textpos > 0
           receive_binary_data @lt2_textbuffer.join
         end
       end
