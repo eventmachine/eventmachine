@@ -7,7 +7,7 @@ class TestHttpClient2 < Test::Unit::TestCase
   TIMEOUT = (windows? ? 2.0 : 1)
   # below may be due to an issue with OpenSSL 1.0.2 and earlier with Windows
   CI_WINDOWS_OLD = windows? and RUBY_VERSION < '2.5'
-  
+
   def setup
     @port = next_port
   end
@@ -88,7 +88,7 @@ class TestHttpClient2 < Test::Unit::TestCase
   def test_get_pipeline
     headers, headers2 = nil, nil
     EM.run {
-      setup_timeout TIMEOUT
+      setup_timeout TIMEOUT + 1
       http = silent { EM::P::HttpClient2.connect "www.google.com", 80 }
       d = http.get("/")
       d.callback {
@@ -99,7 +99,7 @@ class TestHttpClient2 < Test::Unit::TestCase
         headers2 = e.headers
       }
       EM.tick_loop { EM.stop if headers && headers2 }
-      EM.add_timer(1) { EM.stop }
+      EM.add_timer(TIMEOUT + 2) { EM.stop }
     }
     assert(headers)
     assert(headers2)
