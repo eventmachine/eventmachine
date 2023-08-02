@@ -717,8 +717,8 @@ ConnectionDescriptor::ScheduleClose
 
 void ConnectionDescriptor::ScheduleClose (bool after_writing)
 {
-	if (bWatchOnly)
-		throw std::runtime_error ("cannot close 'watch only' connections");
+	//if (bWatchOnly)
+	//	throw std::runtime_error ("cannot close 'watch only' connections");
 
 	EventableDescriptor::ScheduleClose(after_writing);
 }
