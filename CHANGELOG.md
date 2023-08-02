@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0 (July xx 2021)
+* Breaking: Requires Ruby 2.0 or higher and Ruby 2.2 or higher on Windows
+* Updates for Ruby 2.7 and 3.0
+* Lots more stuff, update this list
+
 ## 1.2.7 (May 12, 2018)
 * Fix segfault on large numbers of connections [#843]
 
