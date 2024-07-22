@@ -140,6 +140,7 @@ end
 
 # Add for changes to Process::Status in Ruby 3
 add_define("IS_RUBY_3_OR_LATER") if RUBY_VERSION > "3.0"
+add_define("IS_RUBY_3_3_OR_LATER") if RUBY_VERSION > "3.3"
 
 # Adjust number of file descriptors (FD) on Windows
 

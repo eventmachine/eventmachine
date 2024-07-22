@@ -563,7 +563,13 @@ static VALUE t_get_subprocess_status (VALUE self UNUSED, VALUE signature)
 	if (evma_get_subprocess_status (NUM2BSIG (signature), &status)) {
 		if (evma_get_subprocess_pid (NUM2BSIG (signature), &pid)) {
 
-#ifdef IS_RUBY_3_OR_LATER
+#if defined(IS_RUBY_3_3_OR_LATER)
+			proc_status = rb_obj_alloc(rb_cProcessStatus);
+			struct rb_process_status *data = NULL;
+			data = (rb_process_status*)RTYPEDDATA_GET_DATA(proc_status);
+			data->pid = pid;
+			data->status = status;
+#elif defined(IS_RUBY_3_OR_LATER)
 			struct rb_process_status *data = NULL;
 
 			/* Defined to match static definition from MRI Ruby 3.0 process.c
