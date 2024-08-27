@@ -16,6 +16,7 @@ Makefile
 java/src/.project
 *.rbc
 Gemfile.lock
+compile_commands.json
 
 vendor/bundle/
 .yardoc/*

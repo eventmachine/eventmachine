@@ -480,12 +480,15 @@ extern "C" void evma_start_tls (const uintptr_t binding)
 evma_set_tls_parms
 ******************/
 
-extern "C" void evma_set_tls_parms (const uintptr_t binding, const char *privatekey_filename, const char *privatekey, const char *privatekeypass, const char *certchain_filename, const char *cert, int verify_peer, int fail_if_no_peer_cert, const char *sni_hostname, const char *cipherlist, const char *ecdh_curve, const char *dhparam, int ssl_version)
-{
+extern "C" void evma_set_tls_parms(
+		const uintptr_t binding,
+		em_ssl_ctx_t context,
+		const char *sni_hostname) {
 	ensure_eventmachine("evma_set_tls_parms");
-	EventableDescriptor *ed = dynamic_cast <EventableDescriptor*> (Bindable_t::GetObject (binding));
+	EventableDescriptor *ed =
+		dynamic_cast<EventableDescriptor *>(Bindable_t::GetObject(binding));
 	if (ed)
-		ed->SetTlsParms (privatekey_filename, privatekey, privatekeypass, certchain_filename, cert, (verify_peer == 1 ? true : false), (fail_if_no_peer_cert == 1 ? true : false), sni_hostname, cipherlist, ecdh_curve, dhparam, ssl_version);
+		ed->SetTlsParms(&context, sni_hostname);
 }
 
 /******************

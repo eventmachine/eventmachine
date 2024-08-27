@@ -105,6 +105,9 @@ T4h7KZ/2zmjvV+eF8kBUHBJAojUlzxKj4QeO2x20FP9X5xmNUXeDAgEC
   _end_of_pem_
 
   # @private
+  #
+  # @note copied from stdlib {OpenSSL::SSL::SSLContext::DEFAULT_2048}, which is
+  #   a private constant.
   DefaultDHKey2048 = OpenSSL::PKey::DH.new <<-_end_of_pem_
 -----BEGIN DH PARAMETERS-----
 MIIBCAKCAQEA7E6kBrYiyvmKAMzQ7i8WvwVk9Y/+f8S7sCTN712KkK3cqd1jhJDY
@@ -257,91 +260,45 @@ module EventMachine
       !(parm.nil? || parm.empty?)
     end
 
-    # This method takes a series of positional arguments for specifying such
-    # things as private keys and certificate chains. It's expected that the
-    # parameter list will grow as we add more supported features. ALL of these
-    # parameters are optional, and can be specified as empty or nil strings.
+    # This method takes an {EventMachine::SSL::Context} and any other options
+    # which apply not to the SSL_CTX but to the SSL connection, e.g. SNI
+    # hostname.  It's been simplified from earlier versions by encapsulating
+    # SSL_CTX params into their own object.
+    #
     # @private
-    def set_tls_parms signature, priv_key_path, priv_key, priv_key_pass, cert_chain_path, cert, verify_peer, fail_if_no_peer_cert, sni_hostname, cipher_list, ecdh_curve, dhparam, protocols_bitmask
-      bitmask = protocols_bitmask
-      ssl_options = OpenSSL::SSL::OP_ALL
-      ssl_options |= OpenSSL::SSL::OP_NO_SSLv2 if defined?(OpenSSL::SSL::OP_NO_SSLv2) && EM_PROTO_SSLv2 & bitmask == 0
-      ssl_options |= OpenSSL::SSL::OP_NO_SSLv3 if defined?(OpenSSL::SSL::OP_NO_SSLv3) && EM_PROTO_SSLv3 & bitmask == 0
-      ssl_options |= OpenSSL::SSL::OP_NO_TLSv1 if defined?(OpenSSL::SSL::OP_NO_TLSv1) && EM_PROTO_TLSv1 & bitmask == 0
-      ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_1 if defined?(OpenSSL::SSL::OP_NO_TLSv1_1) && EM_PROTO_TLSv1_1 & bitmask == 0
-      ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_2 if defined?(OpenSSL::SSL::OP_NO_TLSv1_2) && EM_PROTO_TLSv1_2 & bitmask == 0
+    def set_tls_parms(signature, context, sni_hostname = nil)
       @tls_parms ||= {}
-      @tls_parms[signature] = {
-        :verify_peer => verify_peer,
-        :fail_if_no_peer_cert => fail_if_no_peer_cert,
-        :ssl_options => ssl_options
-      }
-      @tls_parms[signature][:priv_key] = File.read(priv_key_path) if tls_parm_set?(priv_key_path)
-      @tls_parms[signature][:priv_key] = priv_key if tls_parm_set?(priv_key)
-      @tls_parms[signature][:priv_key_pass] = priv_key_pass if tls_parm_set?(priv_key_pass)
-      @tls_parms[signature][:cert_chain] = File.read(cert_chain_path) if tls_parm_set?(cert_chain_path)
-      @tls_parms[signature][:cert_chain] = cert if tls_parm_set?(cert_chain)
+      @tls_parms[signature] ||= {}
       @tls_parms[signature][:sni_hostname] = sni_hostname if tls_parm_set?(sni_hostname)
-      @tls_parms[signature][:cipher_list] = cipher_list.gsub(/,\s*/, ':') if tls_parm_set?(cipher_list)
-      @tls_parms[signature][:dhparam] = File.read(dhparam) if tls_parm_set?(dhparam)
-      @tls_parms[signature][:ecdh_curve] = ecdh_curve if tls_parm_set?(ecdh_curve)
+      @tls_parms[signature][:context] = context or raise ArgumentError, "missing context"
     end
 
     def start_tls signature
-      selectable = Reactor.instance.get_selectable(signature) or raise "unknown io selectable for start_tls"
-      tls_parms = @tls_parms[signature]
-      ctx = OpenSSL::SSL::SSLContext.new
-      ctx.options = tls_parms[:ssl_options]
-      ctx.cert = DefaultCertificate.cert
-      ctx.key = DefaultCertificate.key
-      ctx.cert_store = OpenSSL::X509::Store.new
-      ctx.cert_store.set_default_paths
-      ctx.cert = OpenSSL::X509::Certificate.new(tls_parms[:cert_chain]) if tls_parms[:cert_chain]
-      if tls_parms[:priv_key_pass]!=nil
-        ctx.key = OpenSSL::PKey::RSA.new(tls_parms[:priv_key],tls_parms[:priv_key_pass]) if tls_parms[:priv_key]
-      else
-        ctx.key = OpenSSL::PKey::RSA.new(tls_parms[:priv_key]) if tls_parms[:priv_key]
-      end
-      verify_mode = OpenSSL::SSL::VERIFY_NONE
-      if tls_parms[:verify_peer]
-        verify_mode |= OpenSSL::SSL::VERIFY_PEER
-      end
-      if tls_parms[:fail_if_no_peer_cert]
-        verify_mode |= OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT
-      end
-      ctx.verify_mode = verify_mode
-      ctx.servername_cb = Proc.new do |_, server_name|
-        tls_parms[:server_name] = server_name
-        nil
-      end
-      ctx.ciphers = tls_parms[:cipher_list] if tls_parms[:cipher_list]
-      if selectable.is_server
-        ctx.tmp_dh_callback = Proc.new do |_, _, key_length|
-          if tls_parms[:dhparam]
-            OpenSSL::PKey::DH.new(tls_parms[:dhparam])
-          else
-            case key_length
-            when 1024 then DefaultDHKey1024
-            when 2048 then DefaultDHKey2048
-            else
-              nil
-            end
-          end
-        end
-        if tls_parms[:ecdh_curve] && ctx.respond_to?(:tmp_ecdh_callback)
-          ctx.tmp_ecdh_callback = Proc.new do
-            OpenSSL::PKey::EC.new(tls_parms[:ecdh_curve])
-          end
-        end
-      end
+      selectable = Reactor.instance.get_selectable(signature) or
+        raise "unknown io selectable for start_tls"
+      tls_parms = @tls_parms.fetch(signature) {
+        raise "call EM.set_tls_parms(sig) before calling EM.start_tls(sig)"
+      }
+
+      ctx = tls_parms.fetch(:context)
+      ctx.use_server_defaults = selectable.is_server
+      ctx = ctx.to_stdlib_ssl_ctx
+
+      # TODO: was this functional before?
+      # ctx.servername_cb = Proc.new do |_, server_name|
+      #   tls_parms[:server_name] = server_name
+      #   nil
+      # end
+
       ssl_io = OpenSSL::SSL::SSLSocket.new(selectable, ctx)
       ssl_io.sync_close = true
-      if tls_parms[:sni_hostname]
-        ssl_io.hostname = tls_parms[:sni_hostname] if ssl_io.respond_to?(:hostname=)
+      if hostname = tls_parms[:sni_hostname]
+        ssl_io.hostname = hostname if ssl_io.respond_to?(:hostname=)
       end
       begin
         selectable.is_server ? ssl_io.accept_nonblock : ssl_io.connect_nonblock
-      rescue; end
+      rescue
+      end
       selectable.io = ssl_io
     end
 
@@ -1292,6 +1249,24 @@ module EventMachine
     def send_data data
       send_datagram data, @return_address
     end
+  end
+end
+
+module EventMachine
+  module SSL
+
+    # adapted to work with OpenSSL::SSL::SSLContext
+
+    class Context < OpenSSL::SSL::SSLContext
+
+      def setup
+        return if frozen?
+        # ...
+        super
+      end
+
+    end
+
   end
 end
 

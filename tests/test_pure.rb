@@ -87,7 +87,7 @@ class TestPure < Test::Unit::TestCase
 
   module TLSServer
     def post_init
-      start_tls
+      start_tls verify_peer: false
     end
 
     def ssl_handshake_completed
@@ -102,7 +102,7 @@ class TestPure < Test::Unit::TestCase
 
   module TLSClient
     def post_init
-      start_tls
+      start_tls verify_peer: false
     end
 
     def ssl_handshake_completed
