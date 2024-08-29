@@ -396,10 +396,7 @@ module EventMachine
       if tls_parms[:sni_hostname]
         ssl_io.hostname = tls_parms[:sni_hostname] if ssl_io.respond_to?(:hostname=)
       end
-      begin
-        selectable.is_server ? ssl_io.accept_nonblock : ssl_io.connect_nonblock
-      rescue; end
-      selectable.io = ssl_io
+      selectable._evma_start_tls(ssl_io)
     end
 
     def get_peer_cert signature
@@ -759,6 +756,7 @@ class IO
   def_delegator :@eventmachine_selectable, :heartbeat
   def_delegator :@eventmachine_selectable, :io
   def_delegator :@eventmachine_selectable, :io=
+  def_delegator :@eventmachine_selectable, :start_tls, :_evma_start_tls
 end
 
 module EventMachine
@@ -978,6 +976,7 @@ end
 module EventMachine
   # @private
   class EvmaTCPClient < StreamObject
+    attr_reader :ssl_handshake_state
 
     def self.connect bind_addr, bind_port, host, port
       sd = Socket.new( Socket::AF_INET, Socket::SOCK_STREAM, 0 )
@@ -995,7 +994,7 @@ module EventMachine
     def initialize io
       super
       @pending = true
-      @handshake_complete = false
+      @ssl_handshake_state = nil
     end
 
     def ready?
@@ -1006,21 +1005,38 @@ module EventMachine
       end
     end
 
-    def handshake_complete?
-      if !@handshake_complete && io.respond_to?(:state)
-        if io.state =~ /^SSLOK/
-          @handshake_complete = true
-          EventMachine::event_callback uuid, SslHandshakeCompleted, ""
-          EventMachine::event_callback uuid, SslVerify, io.peer_cert.to_pem if io.peer_cert
-        end
-      else
-        @handshake_complete = true
-      end
-      @handshake_complete
+    def eventable_read
+      check_handshake_complete and super
+    end
+
+    def eventable_write
+      check_handshake_complete and super
+    end
+
+    def start_tls(ssl_io)
+      self.io = ssl_io
+      @ssl_handshake_state = :init
+      check_handshake_complete
+    end
+
+    def check_handshake_complete
+      return true if ssl_handshake_state.nil? || ssl_handshake_state == :done
+      is_server ? io.accept_nonblock : io.connect_nonblock
+      @ssl_handshake_state = :done
+      EventMachine::event_callback uuid, SslHandshakeCompleted, ""
+      EventMachine::event_callback uuid, SslVerify, io.peer_cert.to_pem if io.peer_cert
+      true
+    rescue SSLConnectionWaitReadable
+      @ssl_handshake_state = :wait_readable
+      false
+    rescue SSLConnectionWaitWritable
+      @ssl_handshake_state = :wait_writable
+      false
+    rescue => error
+      @ssl_handshake_state = error
     end
 
     def pending?
-      handshake_complete?
       if @pending
         if ready?
           @pending = false
