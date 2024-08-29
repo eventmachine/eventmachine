@@ -315,17 +315,21 @@ module EventMachine
       tls_parms = @tls_parms[signature]
       ctx = OpenSSL::SSL::SSLContext.new
       ctx.options = tls_parms[:ssl_options]
-      ctx.cert = DefaultCertificate.cert
-      ctx.key = DefaultCertificate.key
       ctx.cert_store = OpenSSL::X509::Store.new
       ctx.cert_store.set_default_paths
-      ctx.cert = OpenSSL::X509::Certificate.new(tls_parms[:cert_chain]) if tls_parms[:cert_chain]
-      if tls_parms[:priv_key_pass]!=nil
-        ctx.key = OpenSSL::PKey::RSA.new(tls_parms[:priv_key],tls_parms[:priv_key_pass]) if tls_parms[:priv_key]
-      else
-        ctx.key = OpenSSL::PKey::RSA.new(tls_parms[:priv_key]) if tls_parms[:priv_key]
-      end
-      verify_mode = OpenSSL::SSL::VERIFY_NONE
+      cert, *extra_chain_cert =
+        if (cert_chain = tls_parms[:cert_chain])
+          OpenSSL::X509::Certificate.load(cert_chain)
+        elsif selectable.is_server
+          [DefaultCertificate.cert]
+        end
+      key =
+        if tls_parms[:priv_key]
+          OpenSSL::PKey::RSA.new(tls_parms[:priv_key], tls_parms[:priv_key_pass])
+        elsif selectable.is_server
+          DefaultCertificate.key
+        end
+      ctx.cert, ctx.key, ctx.extra_chain_cert = cert, key, extra_chain_cert
       if tls_parms[:verify_peer]
         verify_mode |= OpenSSL::SSL::VERIFY_PEER
       end
