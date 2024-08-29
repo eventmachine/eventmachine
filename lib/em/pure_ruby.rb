@@ -741,24 +741,24 @@ end
 # @private
 class IO
   extend Forwardable
-  def_delegator :@my_selectable, :close_scheduled?
-  def_delegator :@my_selectable, :select_for_reading?
-  def_delegator :@my_selectable, :select_for_writing?
-  def_delegator :@my_selectable, :eventable_read
-  def_delegator :@my_selectable, :eventable_write
-  def_delegator :@my_selectable, :uuid
-  def_delegator :@my_selectable, :is_server
-  def_delegator :@my_selectable, :is_server=
-  def_delegator :@my_selectable, :send_data
-  def_delegator :@my_selectable, :schedule_close
-  def_delegator :@my_selectable, :get_peername
-  def_delegator :@my_selectable, :get_sockname
-  def_delegator :@my_selectable, :send_datagram
-  def_delegator :@my_selectable, :get_outbound_data_size
-  def_delegator :@my_selectable, :set_inactivity_timeout
-  def_delegator :@my_selectable, :heartbeat
-  def_delegator :@my_selectable, :io
-  def_delegator :@my_selectable, :io=
+  def_delegator :@eventmachine_selectable, :close_scheduled?
+  def_delegator :@eventmachine_selectable, :select_for_reading?
+  def_delegator :@eventmachine_selectable, :select_for_writing?
+  def_delegator :@eventmachine_selectable, :eventable_read
+  def_delegator :@eventmachine_selectable, :eventable_write
+  def_delegator :@eventmachine_selectable, :uuid
+  def_delegator :@eventmachine_selectable, :is_server
+  def_delegator :@eventmachine_selectable, :is_server=
+  def_delegator :@eventmachine_selectable, :send_data
+  def_delegator :@eventmachine_selectable, :schedule_close
+  def_delegator :@eventmachine_selectable, :get_peername
+  def_delegator :@eventmachine_selectable, :get_sockname
+  def_delegator :@eventmachine_selectable, :send_datagram
+  def_delegator :@eventmachine_selectable, :get_outbound_data_size
+  def_delegator :@eventmachine_selectable, :set_inactivity_timeout
+  def_delegator :@eventmachine_selectable, :heartbeat
+  def_delegator :@eventmachine_selectable, :io
+  def_delegator :@eventmachine_selectable, :io=
 end
 
 module EventMachine
@@ -792,7 +792,7 @@ module EventMachine
       @close_scheduled = false
       @close_requested = false
 
-      se = self; @io.instance_eval { @my_selectable = se }
+      se = self; @io.instance_eval { @eventmachine_selectable = se }
       Reactor.instance.add_selectable @io
     end
 
