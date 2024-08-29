@@ -522,9 +522,7 @@ module EventMachine
 
     def install_oneshot_timer interval
       uuid = UuidGenerator::generate
-      #@timers << [Time.now + interval, uuid]
-      #@timers.sort! {|a,b| a.first <=> b.first}
-      @timers.add([Time.now + interval, uuid])
+      (@timers_to_add || @timers) << [Time.now + interval, uuid]
       uuid
     end
 
@@ -535,7 +533,9 @@ module EventMachine
       @running = false
       @stop_scheduled = false
       @selectables ||= {}; @selectables.clear
-      @timers = SortedSet.new # []
+      @timers = SortedSet.new
+      @timers_to_add = SortedSet.new
+      @timers_iterating = false # only set while iterating @timers
       set_timer_quantum(0.1)
       @current_loop_time = Time.now
       @next_heartbeat = @current_loop_time + HeartbeatInterval
@@ -578,21 +578,21 @@ module EventMachine
 
     def run_timers
       timers_to_delete = []
+      @timers_iterating = true
       @timers.each {|t|
         if t.first <= @current_loop_time
-          #@timers.delete t
           timers_to_delete << t
           EventMachine::event_callback "", TimerFired, t.last
         else
           break
         end
       }
+    ensure
       timers_to_delete.map{|c| @timers.delete c}
       timers_to_delete = nil
-      #while @timers.length > 0 and @timers.first.first <= now
-      #  t = @timers.shift
-      #  EventMachine::event_callback "", TimerFired, t.last
-      #end
+      @timers_to_add.each do |t| @timers << t end
+      @timers_to_add.clear
+      @timers_iterating = false
     end
 
     def run_heartbeats
