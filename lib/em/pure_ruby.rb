@@ -63,6 +63,29 @@ module EventMachine
   else
     SSLConnectionWaitWritable = IO::WaitWritable
   end
+
+  if defined?(OpenSSL::OPENSSL_VERSION)
+    OPENSSL_VERSION = OpenSSL::OPENSSL_VERSION
+  else
+    OPENSSL_VERSION = "not loaded"
+  end
+  if defined?(OpenSSL::OPENSSL_LIBRARY_VERSION)
+    OPENSSL_LIBRARY_VERSION = OpenSSL::OPENSSL_LIBRARY_VERSION
+  else
+    OPENSSL_LIBRARY_VERSION = "not loaded"
+  end
+
+  openssl_version_gt = ->(maj, min, pat) {
+    if defined?(OpenSSL::OPENSSL_VERSION_NUMBER)
+      OpenSSL::OPENSSL_VERSION_NUMBER >= (maj << 28) | (min << 20) | (pat << 12)
+    else
+      false
+    end
+  }
+  # OpenSSL 1.1.0 removed support for SSLv2
+  OPENSSL_NO_SSL2 = openssl_version_gt.(1, 1, 0)
+  # OpenSSL 1.1.0 disabled support for SSLv3 (by default)
+  OPENSSL_NO_SSL3 = openssl_version_gt.(1, 1, 0)
 end
 
 module EventMachine
