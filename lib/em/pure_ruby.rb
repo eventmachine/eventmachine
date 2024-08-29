@@ -293,6 +293,7 @@ module EventMachine
       ssl_options |= OpenSSL::SSL::OP_NO_TLSv1 if defined?(OpenSSL::SSL::OP_NO_TLSv1) && EM_PROTO_TLSv1 & bitmask == 0
       ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_1 if defined?(OpenSSL::SSL::OP_NO_TLSv1_1) && EM_PROTO_TLSv1_1 & bitmask == 0
       ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_2 if defined?(OpenSSL::SSL::OP_NO_TLSv1_2) && EM_PROTO_TLSv1_2 & bitmask == 0
+      ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_3 if defined?(OpenSSL::SSL::OP_NO_TLSv1_3) && EM_PROTO_TLSv1_3 & bitmask == 0
       @tls_parms ||= {}
       @tls_parms[signature] = {
         :verify_peer => verify_peer,
