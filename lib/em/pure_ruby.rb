@@ -1032,7 +1032,11 @@ module EventMachine
     rescue SSLConnectionWaitWritable
       @ssl_handshake_state = :wait_writable
       false
+    rescue OpenSSL::SSL::SSLError => error
+      warn "SSL Error in EventMachine check_handshake_complete: #{error}"
+      @ssl_handshake_state = error
     rescue => error
+      warn "#{error.class} in EventMachine check_handshake_complete: #{error}"
       @ssl_handshake_state = error
     end
 
