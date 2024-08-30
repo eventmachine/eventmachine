@@ -288,12 +288,30 @@ module EventMachine
     def set_tls_parms signature, priv_key_path, priv_key, priv_key_pass, cert_chain_path, cert, verify_peer, fail_if_no_peer_cert, sni_hostname, cipher_list, ecdh_curve, dhparam, protocols_bitmask
       bitmask = protocols_bitmask
       ssl_options = OpenSSL::SSL::OP_ALL
-      ssl_options |= OpenSSL::SSL::OP_NO_SSLv2 if defined?(OpenSSL::SSL::OP_NO_SSLv2) && EM_PROTO_SSLv2 & bitmask == 0
-      ssl_options |= OpenSSL::SSL::OP_NO_SSLv3 if defined?(OpenSSL::SSL::OP_NO_SSLv3) && EM_PROTO_SSLv3 & bitmask == 0
-      ssl_options |= OpenSSL::SSL::OP_NO_TLSv1 if defined?(OpenSSL::SSL::OP_NO_TLSv1) && EM_PROTO_TLSv1 & bitmask == 0
-      ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_1 if defined?(OpenSSL::SSL::OP_NO_TLSv1_1) && EM_PROTO_TLSv1_1 & bitmask == 0
-      ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_2 if defined?(OpenSSL::SSL::OP_NO_TLSv1_2) && EM_PROTO_TLSv1_2 & bitmask == 0
-      ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_3 if defined?(OpenSSL::SSL::OP_NO_TLSv1_3) && EM_PROTO_TLSv1_3 & bitmask == 0
+      if defined?(OpenSSL::SSL::OP_NO_SSLv2)
+        ssl_options &= ~OpenSSL::SSL::OP_NO_SSLv2
+        ssl_options |= OpenSSL::SSL::OP_NO_SSLv2 if EM_PROTO_SSLv2 & bitmask == 0
+      end
+      if defined?(OpenSSL::SSL::OP_NO_SSLv3)
+        ssl_options &= ~OpenSSL::SSL::OP_NO_SSLv3
+        ssl_options |= OpenSSL::SSL::OP_NO_SSLv3 if EM_PROTO_SSLv3 & bitmask == 0
+      end
+      if defined?(OpenSSL::SSL::OP_NO_TLSv1)
+        ssl_options &= ~OpenSSL::SSL::OP_NO_TLSv1
+        ssl_options |= OpenSSL::SSL::OP_NO_TLSv1 if EM_PROTO_TLSv1 & bitmask == 0
+      end
+      if defined?(OpenSSL::SSL::OP_NO_TLSv1_1)
+        ssl_options &= ~OpenSSL::SSL::OP_NO_TLSv1_1
+        ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_1 if EM_PROTO_TLSv1_1 & bitmask == 0
+      end
+      if defined?(OpenSSL::SSL::OP_NO_TLSv1_2)
+        ssl_options &= ~OpenSSL::SSL::OP_NO_TLSv1_2
+        ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_2 if EM_PROTO_TLSv1_2 & bitmask == 0
+      end
+      if defined?(OpenSSL::SSL::OP_NO_TLSv1_3)
+        ssl_options &= ~OpenSSL::SSL::OP_NO_TLSv1_3
+        ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_3 if EM_PROTO_TLSv1_3 & bitmask == 0
+      end
       @tls_parms ||= {}
       @tls_parms[signature] = {
         :verify_peer => verify_peer,
