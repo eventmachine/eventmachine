@@ -397,6 +397,16 @@ module EventMachine
           ctx.ecdh_curves = tls_parms[:ecdh_curve]
         end
       end
+      begin
+        ctx.freeze
+      rescue OpenSSL::SSL::SSLError => err
+        if err.message.include?("SSL_CTX_use_PrivateKey") ||
+            err.message.include?("key values mismatch")
+          raise InvalidPrivateKey, err.message
+        end
+        raise
+      end
+
       ssl_io = OpenSSL::SSL::SSLSocket.new(selectable, ctx)
       ssl_io.sync_close = true
       if tls_parms[:sni_hostname]
