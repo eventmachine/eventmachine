@@ -310,6 +310,13 @@ module EventMachine
       @tls_parms[signature][:ecdh_curve] = ecdh_curve if tls_parm_set?(ecdh_curve)
     end
 
+    PEM_CERTIFICATE = /
+      ^-----BEGIN CERTIFICATE-----\n
+      .*?\n
+      -----END CERTIFICATE-----\n
+    /mx
+    private_constant :PEM_CERTIFICATE
+
     def start_tls signature
       selectable = Reactor.instance.get_selectable(signature) or raise "unknown io selectable for start_tls"
       tls_parms = @tls_parms[signature]
@@ -319,7 +326,15 @@ module EventMachine
       ctx.cert_store.set_default_paths
       cert, *extra_chain_cert =
         if (cert_chain = tls_parms[:cert_chain])
-          OpenSSL::X509::Certificate.load(cert_chain)
+          if OpenSSL::X509::Certificate.respond_to?(:load)
+            OpenSSL::X509::Certificate.load(cert_chain)
+          elsif cert_chain[PEM_CERTIFICATE]
+            # compatibility with openssl gem < 3.0 (ruby < 2.6)
+            cert_chain.scan(PEM_CERTIFICATE)
+              .map {|pem| OpenSSL::X509::Certificate.new(pem) }
+          else
+            [OpenSSL::X509::Certificate.new(cert_chain)]
+          end
         elsif selectable.is_server
           [DefaultCertificate.cert]
         end
