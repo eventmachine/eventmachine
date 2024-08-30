@@ -365,12 +365,14 @@ module EventMachine
         end
       ctx.cert, ctx.key, ctx.extra_chain_cert = cert, key, extra_chain_cert
       if tls_parms[:verify_peer]
-        verify_mode |= OpenSSL::SSL::VERIFY_PEER
+        ctx.verify_mode =
+          OpenSSL::SSL::VERIFY_PEER | OpenSSL::SSL::VERIFY_CLIENT_ONCE
+        if tls_parms[:fail_if_no_peer_cert]
+          ctx.verify_mode |= OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT
+        end
+      else
+        ctx.verify_mode = OpenSSL::SSL::VERIFY_NONE
       end
-      if tls_parms[:fail_if_no_peer_cert]
-        verify_mode |= OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT
-      end
-      ctx.verify_mode = verify_mode
       ctx.servername_cb = Proc.new do |_, server_name|
         tls_parms[:server_name] = server_name
         nil
