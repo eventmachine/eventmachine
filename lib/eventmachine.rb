@@ -1538,7 +1538,8 @@ module EventMachine
       c.ssl_handshake_completed
     elsif opcode == SslVerify
       c = @conns[conn_binding] or raise ConnectionNotBound, "received SslVerify for unknown signature: #{conn_binding}"
-      c.close_connection if c.ssl_verify_peer(data) == false
+      result = c.ssl_verify_peer(data) or c.close_connection
+      result
     elsif opcode == TimerFired
       t = @timers.delete( data )
       return if t == false # timer cancelled

@@ -370,6 +370,10 @@ module EventMachine
         if tls_parms[:fail_if_no_peer_cert]
           ctx.verify_mode |= OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT
         end
+        ctx.verify_callback = ->(preverify_ok, store_ctx) {
+          current_cert = store_ctx.current_cert.to_pem
+          EventMachine::event_callback selectable.uuid, SslVerify, current_cert
+        }
       else
         ctx.verify_mode = OpenSSL::SSL::VERIFY_NONE
       end
@@ -1026,7 +1030,6 @@ module EventMachine
       is_server ? io.accept_nonblock : io.connect_nonblock
       @ssl_handshake_state = :done
       EventMachine::event_callback uuid, SslHandshakeCompleted, ""
-      EventMachine::event_callback uuid, SslVerify, io.peer_cert.to_pem if io.peer_cert
       true
     rescue SSLConnectionWaitReadable
       @ssl_handshake_state = :wait_readable
