@@ -299,10 +299,10 @@ module EventMachine
         :fail_if_no_peer_cert => fail_if_no_peer_cert,
         :ssl_options => ssl_options
       }
-      @tls_parms[signature][:priv_key] = File.read(priv_key_path) if tls_parm_set?(priv_key_path)
+      @tls_parms[signature][:priv_key] = File.binread(priv_key_path) if tls_parm_set?(priv_key_path)
       @tls_parms[signature][:priv_key] = priv_key if tls_parm_set?(priv_key)
       @tls_parms[signature][:priv_key_pass] = priv_key_pass if tls_parm_set?(priv_key_pass)
-      @tls_parms[signature][:cert_chain] = File.read(cert_chain_path) if tls_parm_set?(cert_chain_path)
+      @tls_parms[signature][:cert_chain] = File.binread(cert_chain_path) if tls_parm_set?(cert_chain_path)
       @tls_parms[signature][:cert_chain] = cert if tls_parm_set?(cert)
       @tls_parms[signature][:sni_hostname] = sni_hostname if tls_parm_set?(sni_hostname)
       @tls_parms[signature][:cipher_list] = cipher_list.gsub(/,\s*/, ':') if tls_parm_set?(cipher_list)
