@@ -7,7 +7,7 @@ jobs:
     name: >-
       ${{ matrix.os }} ${{ matrix.ruby }}
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: ${{ (startsWith(matrix.os, 'macos') || startsWith(matrix.os, 'windows')) && 15 || 10 }}
     strategy:
       fail-fast: false
       matrix:
