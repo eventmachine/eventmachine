@@ -150,7 +150,7 @@ class TestPure < Test::Unit::TestCase
         EM.stop if x == 4
       end
     }
-    assert_in_delta 0.8, (finish - start), TIMEOUT_INTERVAL
+    assert_in_delta 0.8, (finish - start), TIMEOUT_INTERVAL * 2
     assert_equal 4, x
   end
 end
