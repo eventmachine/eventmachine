@@ -17,6 +17,18 @@ jobs:
           - { os: windows-2019, ruby: mingw }
         exclude:
           - { os: windows-2019, ruby: head }
+
+          # Avoids the following error:
+          #      Bundler 2 requires Ruby 2.3+, using Bundler 1 on Ruby <= 2.2
+          #      /opt/hostedtoolcache/Ruby/2.2.10/x64/bin/gem install bundler -v ~> 1.0
+          #      ERROR:  While executing gem ... (RuntimeError)
+          #          Marshal.load reentered at marshal_load
+          #
+          # See https://github.com/ruby/setup-ruby/issues/496
+          #
+          # This works fine on ubuntu 20.04 and 24.04.
+          - { os: ubuntu-22.04, ruby: '2.2' }
+
     steps:
       - name: repo checkout
         uses: actions/checkout@v2
