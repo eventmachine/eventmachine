@@ -54,7 +54,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: load ruby, openssl
-        uses: MSP-Greg/setup-ruby-pkgs@v1
+        uses: ruby/setup-ruby-pkgs@v1
         with:
           ruby-version: ${{ matrix.ruby }}
           mingw: _upgrade_ openssl
