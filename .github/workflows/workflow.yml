@@ -11,12 +11,26 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, macos-10.15, windows-2019 ]
+        os: [ ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, windows-2019, macos-latest ]
         ruby: [ '2.2', '2.3', '2.4', '2.5', '2.6', '2.7', '3.0', '3.1', head ]
         include:
           - { os: windows-2019, ruby: mingw }
+
+          # CRuby < 2.6 does not support macos-arm64, so these use amd64
+          - { os: macos-13, ruby: "2.2" }
+          - { os: macos-13, ruby: "2.3" }
+          - { os: macos-13, ruby: "2.4" }
+          - { os: macos-13, ruby: "2.5" }
+
         exclude:
+          - { os: macos-latest, ruby: head }
           - { os: windows-2019, ruby: head }
+
+          # CRuby < 2.6 does not support macos-arm64, so these use amd64
+          - { os: macos-latest, ruby: "2.2" }
+          - { os: macos-latest, ruby: "2.3" }
+          - { os: macos-latest, ruby: "2.4" }
+          - { os: macos-latest, ruby: "2.5" }
 
           # Avoids the following error:
           #      Bundler 2 requires Ruby 2.3+, using Bundler 1 on Ruby <= 2.2
