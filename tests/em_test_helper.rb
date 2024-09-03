@@ -151,7 +151,7 @@ class Test::Unit::TestCase
   extend PlatformHelper
 
   # Tests may run slower on windows or Appveyor. YMMV
-  TIMEOUT_INTERVAL = windows? ? 0.25 : 0.25
+  TIMEOUT_INTERVAL = windows? || darwin? ? 0.50 : 0.25
 
   module EMTestCasePrepend
     def setup

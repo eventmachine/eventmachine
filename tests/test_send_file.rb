@@ -179,7 +179,7 @@ class TestSendFile < Test::Unit::TestCase
 
       EM.run {
         EM.start_server "127.0.0.1", @port, StreamTestModule, @filename
-        setup_timeout(darwin? ? 0.5 : 0.25)
+        setup_timeout
         EM.connect "127.0.0.1", @port, TestClient do |c|
           c.data_to { |d| data << d }
         end

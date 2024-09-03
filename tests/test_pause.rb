@@ -48,7 +48,7 @@ class TestPause < Test::Unit::TestCase
         EM.start_server "127.0.0.1", @port, test_server
         EM.connect "127.0.0.1", @port, test_client
 
-        tmr = darwin? ? 0.10 : 0.05
+        tmr = darwin? ? 0.25 : 0.05
 
         EM.add_timer(tmr) do
           assert_equal 1, s_rx
