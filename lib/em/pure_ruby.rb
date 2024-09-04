@@ -1013,11 +1013,30 @@ module EventMachine
       @ssl_handshake_state = nil
     end
 
+    TCP_ESTABLISHED = 1 # why isn't this already a const in Socket?
+
     def ready?
-      if RUBY_PLATFORM =~ /linux/
-        io.getsockopt(Socket::SOL_TCP, Socket::TCP_INFO).unpack("i").first == 1 # TCP_ESTABLISHED
+      if defined?(Socket::SOL_TCP) && defined?(Socket::TCP_INFO)
+        # Linux: tcpi_state is an unsigned char
+        #   struct tcp_info {
+        #       __u8    tcpi_state;
+        #       ...
+        #   }
+        sockinfo = io.getsockopt(Socket::SOL_TCP, Socket::TCP_INFO)
+        sockinfo.unpack("C").first == TCP_ESTABLISHED
+      elsif defined?(Socket::IPPROTO_TCP) && defined?(Socket::TCP_CONNECTION_INFO)
+        # NOTE: the following doesn't seem to work (according to GH actions)
+        #
+        # MacOS: tcpi_state is an unsigned char
+        #   struct tcp_connection_info {
+        #       u_int8_t   tcpi_state;     /* connection state */
+        #       ...
+        #   }
+        sockinfo = io.getsockopt(Socket::IPPROTO_TCP, Socket::TCP_CONNECTION_INFO)
+        sockinfo.unpack("C").first == TCP_ESTABLISHED
       else
-        io.getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR).unpack("i").first == 0 # NO ERROR
+        sockerr = io.getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR)
+        sockerr.unpack("i").first == 0 # NO ERROR
       end
     end
 
