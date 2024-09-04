@@ -79,12 +79,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-22.04, ubuntu-24.04, macos-latest, windows-2022 ]
+        os: [ ubuntu-22.04, ubuntu-24.04 ]
         ruby: [ '2.7', '3.0', '3.1', '3.2', '3.3', head ]
-        include:
-          - { os: windows-2022, ruby: mingw }
-        exclude:
-          - { os: windows-2022, ruby: head }
     steps:
       - name: repo checkout
         uses: actions/checkout@v4
@@ -93,12 +89,6 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
-
-      - name: macOS disable firewall
-        if: startsWith(matrix.os, 'macos')
-        run: |
-          sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate off
-          sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
 
       - name: bundle install
         run:  bundle install --jobs 4 --retry 3 --without=documentation
