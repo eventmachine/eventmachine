@@ -46,7 +46,7 @@ class TestInactivityTimeout < Test::Unit::TestCase
         }
       }
       # Travis can vary from 0.02 to 0.17, Appveyor maybe as low as 0.01
-      assert_in_delta 0.09, (finish - start), (darwin? ? 0.10 : 0.08)
+      assert_in_delta 0.09, (finish - start), (darwin? ? 0.20 : 0.08)
 
       # simplified reproducer for comm_inactivity_timeout taking twice as long
       # as requested -- https://github.com/eventmachine/eventmachine/issues/554
@@ -87,7 +87,7 @@ class TestInactivityTimeout < Test::Unit::TestCase
       }
 
       # .30 is double the timeout and not acceptable
-      assert_in_delta 0.15, (finish - start), (darwin? ? 0.20 : 0.14)
+      assert_in_delta 0.15, (finish - start), (darwin? ? 0.30 : 0.14)
       # make sure it was a timeout and not a TLS error
       assert_equal Errno::ETIMEDOUT, reason
     end

@@ -38,7 +38,7 @@ class TestBasic < Test::Unit::TestCase
   def test_timer
     assert_nothing_raised do
       EM.run {
-        setup_timeout(darwin? ? 0.6 : 0.4)
+        setup_timeout(TIMEOUT_INTERVAL * 2)
         n = 0
         EM.add_periodic_timer(0.1) {
           n += 1
@@ -163,7 +163,7 @@ class TestBasic < Test::Unit::TestCase
     end
 
     EM.run do
-      darwin? ? setup_timeout(0.3) : setup_timeout
+      setup_timeout
       EM.start_server "127.0.0.1", @port, bound_server
       EM.bind_connect local_ip, bind_port, "127.0.0.1", @port
     end

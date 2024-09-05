@@ -4,7 +4,7 @@ class TestHttpClient2 < Test::Unit::TestCase
   class TestServer < EM::Connection
   end
 
-  TIMEOUT = (windows? ? 2.0 : 1)
+  TIMEOUT = TIMEOUT_INTERVAL * 4.0
   # below may be due to an issue with OpenSSL 1.0.2 and earlier with Windows
   CI_WINDOWS_OLD = windows? and RUBY_VERSION < '2.5'
   

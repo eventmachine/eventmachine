@@ -17,7 +17,7 @@ class TestThreadedResource < Test::Unit::TestCase
 
   def test_dispatch_completion
     EM.run do
-      EM.add_timer(3) do
+      EM.add_timer(TIMEOUT_INTERVAL * 20) do
         EM.stop
         if ENV['CI'].casecmp('true').zero? and RUBY_PLATFORM[/darwin/]
           notify "Intermittent Travis MacOS: Resource dispatch timed out"
