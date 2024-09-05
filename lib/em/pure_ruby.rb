@@ -1049,7 +1049,9 @@ module EventMachine
       @ssl_handshake_state = :wait_writable
       false
     rescue OpenSSL::SSL::SSLError => error
-      warn "SSL Error in EventMachine check_handshake_complete: #{error}"
+      if $VERBOSE || $DEBUG
+        warn "SSL Error in EventMachine check_handshake_complete: #{error}"
+      end
       @ssl_handshake_state = error
     rescue => error
       warn "#{error.class} in EventMachine check_handshake_complete: #{error}"
