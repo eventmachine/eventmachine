@@ -77,7 +77,7 @@ class TestSSLInlineCert < Test::Unit::TestCase
     assert_equal CERT_PEM, Client.cert
   end
 
-  def test_accept_client_encoded_key_inline_cert_inlince
+  def test_accept_client_encoded_key_inline_cert_inline
     omit_if(rbx?)
 
     server = { verify_peer: true, ssl_verify_result: true }
@@ -94,7 +94,7 @@ class TestSSLInlineCert < Test::Unit::TestCase
     assert_equal CERT_PEM, Server.cert
   end
 
-  def test_accept_server_encoded_key_inline_cert_inlince
+  def test_accept_server_encoded_key_inline_cert_inline
     omit_if(rbx?)
 
     client = { verify_peer: true, ssl_verify_result: true }
