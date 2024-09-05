@@ -7,14 +7,20 @@ class TestSSLVerify < Test::Unit::TestCase
   require_relative 'em_ssl_handlers'
   include EMSSLHandlers
 
-  CERT_FROM_FILE = File.read "#{__dir__}/client.crt"
+  CERT_CONFIG = {
+    # ca_file:          "#{CERTS_DIR}/eventmachine-ca.crt",
+    private_key_file: PRIVATE_KEY_FILE,
+    cert_chain_file:  "#{CERTS_DIR}/em-localhost.crt",
+  }
 
-  CERT_CONFIG = { private_key_file: "#{__dir__}/client.key",
-                  cert_chain_file:  "#{__dir__}/client.crt" }
+  ENCODED_CERT_CONFIG = {
+    # ca_file:          "#{CERTS_DIR}/eventmachine-ca.crt",
+    private_key_pass: ENCODED_KEY_PASS,
+    private_key_file: ENCODED_KEY_FILE,
+    cert_chain_file:  "#{CERTS_DIR}/em-localhost.crt",
+  }
 
-  ENCODED_CERT_CONFIG = { private_key_file: "#{__dir__}/encoded_client.key",
-                          private_key_pass: 'nicercat',
-                          cert_chain_file:  "#{__dir__}/client.crt" }
+
 
   def test_fail_no_peer_cert
     omit_if(rbx?)
@@ -36,7 +42,7 @@ class TestSSLVerify < Test::Unit::TestCase
 
     client_server Client, Server, client: CERT_CONFIG, server: server
 
-    assert_equal CERT_FROM_FILE, Server.cert
+    assert_equal CERT_PEM, Server.cert
     assert Client.handshake_completed?
     assert Server.handshake_completed?
   end
@@ -49,7 +55,7 @@ class TestSSLVerify < Test::Unit::TestCase
 
     client_server Client, Server, server: CERT_CONFIG, client: client
 
-    assert_equal CERT_FROM_FILE, Client.cert
+    assert_equal CERT_PEM, Client.cert
     assert Client.handshake_completed?
     assert Server.handshake_completed?
   end
@@ -64,7 +70,7 @@ class TestSSLVerify < Test::Unit::TestCase
 
     assert Client.handshake_completed?
     assert Server.handshake_completed?
-    assert_equal CERT_FROM_FILE, Server.cert
+    assert_equal CERT_PEM, Server.cert
   end
 
   def test_encoded_accept_client
@@ -77,7 +83,7 @@ class TestSSLVerify < Test::Unit::TestCase
 
     assert Client.handshake_completed?
     assert Server.handshake_completed?
-    assert_equal CERT_FROM_FILE, Client.cert
+    assert_equal CERT_PEM, Client.cert
   end
 
   def test_deny_server
@@ -88,7 +94,7 @@ class TestSSLVerify < Test::Unit::TestCase
 
     client_server Client, Server, client: CERT_CONFIG, server: server
 
-    assert_equal CERT_FROM_FILE, Server.cert
+    assert_equal CERT_PEM, Server.cert
     refute Client.handshake_completed? unless "TLSv1.3" == Client.cipher_protocol
     refute Server.handshake_completed?
   end
@@ -103,6 +109,6 @@ class TestSSLVerify < Test::Unit::TestCase
 
     refute Client.handshake_completed? unless "TLSv1.3" == Client.cipher_protocol
     refute Server.handshake_completed?
-    assert_equal CERT_FROM_FILE, Client.cert
+    assert_equal CERT_PEM, Client.cert
   end
 end if EM.ssl?

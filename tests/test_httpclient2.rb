@@ -7,7 +7,7 @@ class TestHttpClient2 < Test::Unit::TestCase
   TIMEOUT = TIMEOUT_INTERVAL * 4.0
   # below may be due to an issue with OpenSSL 1.0.2 and earlier with Windows
   CI_WINDOWS_OLD = windows? and RUBY_VERSION < '2.5'
-  
+
   def setup
     @port = next_port
   end

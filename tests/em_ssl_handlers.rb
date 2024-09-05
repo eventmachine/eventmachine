@@ -7,7 +7,7 @@
 #    EM.run do
 #      EM.start_server IP, PORT, s_hndlr, server
 #      EM.connect IP, PORT, c_hndlr, client
-#    end  
+#    end
 #
 # It also passes parameters to the `start_tls` call within the `post_init`
 # callbacks of Client and Server.
@@ -17,17 +17,36 @@
 #
 # `Client` has a `:client_unbind` parameter, which when set to true, calls
 # `EM.stop_event_loop` in the `unbind` callback.
-# 
+#
 # `Server` has two additional parameters.
 #
 # `:ssl_verify_result`, which is normally set to true/false for the
 # `ssl_verify_peer` return value.  If it is set to a String starting with "|RAISE|",
 # the remaing string will be raised.
-# 
+#
 # `:stop_after_handshake`, when set to true, will close the connection and then
 # call `EM.stop_event_loop`.
 #
+# `:ssl_old_verify_peer` when set to true will setup `ssl_verify_peer` to only
+# accept one argument, to test for compatibility with the original API.
+#
 module EMSSLHandlers
+
+  CERTS_DIR        = "#{__dir__}/fixtures"
+
+  CA_NAME          = "eventmachine-ca"
+  CERT_NAME        = "em-localhost"
+
+  CA_FILE          = "#{CERTS_DIR}/#{CA_NAME}.crt"
+  CERT_FILE        = "#{CERTS_DIR}/#{CERT_NAME}.crt"
+  ENCODED_KEY_FILE = "#{CERTS_DIR}/#{CERT_NAME}.aes-key"
+  PRIVATE_KEY_FILE = "#{CERTS_DIR}/#{CERT_NAME}.key"
+  ENCODED_PASSFILE = "#{CERTS_DIR}/#{CERT_NAME}.pass"
+  CA_PEM           = File.read(CA_FILE).freeze
+  CERT_PEM         = File.read(CERT_FILE).freeze
+  PRIVATE_KEY_PEM  = File.read(PRIVATE_KEY_FILE).freeze
+  ENCODED_KEY_PEM  = File.read(ENCODED_KEY_FILE).freeze
+  ENCODED_KEY_PASS = File.read(ENCODED_PASSFILE).freeze
 
   IP, PORT = "127.0.0.1", 16784
 
@@ -100,6 +119,7 @@ module EMSSLHandlers
     def initialize(tls = nil)
       @@tls = tls ? tls.dup : tls
       @@handshake_completed = false
+      @@cert            = nil
       @@cert_value      = nil
       @@cipher_bits     = nil
       @@cipher_name     = nil
@@ -133,7 +153,7 @@ module EMSSLHandlers
         @@ssl_verify_result
       end
     end
-    
+
     def ssl_handshake_completed
       @@handshake_completed = true
       @@cert_value      = get_peer_cert
