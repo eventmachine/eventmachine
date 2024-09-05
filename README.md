@@ -1,4 +1,4 @@
-# About EventMachine  [![Build Status](https://github.com/github/docs/actions/workflows/workflow.yml/badge.svg)](https://github.com/eventmachine/eventmachine/actions) [![Code Climate Maintainability](https://api.codeclimate.com/v1/badges/e9b0603462905d5b9118/maintainability)](https://codeclimate.com/github/eventmachine/eventmachine/maintainability)
+# About EventMachine  [![Build Status](https://github.com/eventmachine/eventmachine/actions/workflows/workflow.yml/badge.svg)](https://github.com/eventmachine/eventmachine/actions) [![Code Climate Maintainability](https://api.codeclimate.com/v1/badges/e9b0603462905d5b9118/maintainability)](https://codeclimate.com/github/eventmachine/eventmachine/maintainability)
 
 
 ## What is EventMachine ##

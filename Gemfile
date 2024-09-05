@@ -5,7 +5,7 @@ gemspec
 gem 'rake'
 
 install_if -> { RUBY_VERSION > '3.1' } do
-  gem "net-smtp"
+  gem 'net-smtp'
 end
 
 group :documentation do
