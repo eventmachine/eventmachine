@@ -71,8 +71,31 @@ jobs:
           CI: true
           TESTOPTS: -v --no-show-detail-immediately
 
+  pure_ruby:
+    name: >-
+      pure ruby (${{ matrix.os }} ${{ matrix.ruby }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-20.04, ubuntu-22.04, ubuntu-24.04 ]
+        ruby: [ '2.7', '3.0', '3.1', '3.2', '3.3', head ]
+    steps:
+      - name: repo checkout
+        uses: actions/checkout@v4
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+
+      - name: bundle install
+        run:  bundle install --jobs 4 --retry 3 --without=documentation
+
       - name: test_em_pure_ruby
         run:  bundle exec rake test_em_pure_ruby
         env:
           CI: true
+          EM_PURE_RUBY: true
           TESTOPTS: -v --no-show-detail-immediately

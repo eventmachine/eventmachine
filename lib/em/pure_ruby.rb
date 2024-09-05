@@ -63,29 +63,6 @@ module EventMachine
   else
     SSLConnectionWaitWritable = IO::WaitWritable
   end
-
-  if defined?(OpenSSL::OPENSSL_VERSION)
-    OPENSSL_VERSION = OpenSSL::OPENSSL_VERSION
-  else
-    OPENSSL_VERSION = "not loaded"
-  end
-  if defined?(OpenSSL::OPENSSL_LIBRARY_VERSION)
-    OPENSSL_LIBRARY_VERSION = OpenSSL::OPENSSL_LIBRARY_VERSION
-  else
-    OPENSSL_LIBRARY_VERSION = "not loaded"
-  end
-
-  openssl_version_gt = ->(maj, min, pat) {
-    if defined?(OpenSSL::OPENSSL_VERSION_NUMBER)
-      OpenSSL::OPENSSL_VERSION_NUMBER >= (maj << 28) | (min << 20) | (pat << 12)
-    else
-      false
-    end
-  }
-  # OpenSSL 1.1.0 removed support for SSLv2
-  OPENSSL_NO_SSL2 = openssl_version_gt.(1, 1, 0)
-  # OpenSSL 1.1.0 disabled support for SSLv3 (by default)
-  OPENSSL_NO_SSL3 = openssl_version_gt.(1, 1, 0)
 end
 
 module EventMachine
@@ -119,25 +96,19 @@ module EventMachine
   DefaultCertificate = CertificateCreator.new
 
   # @private
-  DefaultDHKey1024 = OpenSSL::PKey::DH.new <<-_end_of_pem_
+  # Defined by RFC7919, Appendix A.1, and copied from
+  # OpenSSL::SSL::SSLContext::DH_ffdhe2048.
+  DH_ffdhe2048 = OpenSSL::PKey::DH.new <<-_end_of_pem_
 -----BEGIN DH PARAMETERS-----
-MIGHAoGBAJ0lOVy0VIr/JebWn0zDwY2h+rqITFOpdNr6ugsgvkDXuucdcChhYExJ
-AV/ZD2AWPbrTqV76mGRgJg4EddgT1zG0jq3rnFdMj2XzkBYx3BVvfR0Arnby0RHR
-T4h7KZ/2zmjvV+eF8kBUHBJAojUlzxKj4QeO2x20FP9X5xmNUXeDAgEC
+MIIBCAKCAQEA//////////+t+FRYortKmq/cViAnPTzx2LnFg84tNpWp4TZBFGQz
++8yTnc4kmz75fS/jY2MMddj2gbICrsRhetPfHtXV/WVhJDP1H18GbtCFY2VVPe0a
+87VXE15/V8k1mE8McODmi3fipona8+/och3xWKE2rec1MKzKT0g6eXq8CrGCsyT7
+YdEIqUuyyOP7uWrat2DX9GgdT0Kj3jlN9K5W7edjcrsZCwenyO4KbXCeAvzhzffi
+7MA0BM0oNC9hkXL+nOmFg/+OTxIy7vKBg8P+OxtMb61zO7X8vC7CIAXFjvGDfRaD
+ssbzSibBsu/6iGtCOGEoXJf//////////wIBAg==
 -----END DH PARAMETERS-----
   _end_of_pem_
-
-  # @private
-  DefaultDHKey2048 = OpenSSL::PKey::DH.new <<-_end_of_pem_
------BEGIN DH PARAMETERS-----
-MIIBCAKCAQEA7E6kBrYiyvmKAMzQ7i8WvwVk9Y/+f8S7sCTN712KkK3cqd1jhJDY
-JbrYeNV3kUIKhPxWHhObHKpD1R84UpL+s2b55+iMd6GmL7OYmNIT/FccKhTcveab
-VBmZT86BZKYyf45hUF9FOuUM9xPzuK3Vd8oJQvfYMCd7LPC0taAEljQLR4Edf8E6
-YoaOffgTf5qxiwkjnlVZQc3whgnEt9FpVMvQ9eknyeGB5KHfayAc3+hUAvI3/Cr3
-1bNveX5wInh5GDx1FGhKBZ+s1H+aedudCm7sCgRwv8lKWYGiHzObSma8A86KG+MD
-7Lo5JquQ3DlBodj3IDyPrxIv96lvRPFtAwIBAg==
------END DH PARAMETERS-----
-  _end_of_pem_
+  private_constant :DH_ffdhe2048
 end
 
 # @private
@@ -288,21 +259,40 @@ module EventMachine
     def set_tls_parms signature, priv_key_path, priv_key, priv_key_pass, cert_chain_path, cert, verify_peer, fail_if_no_peer_cert, sni_hostname, cipher_list, ecdh_curve, dhparam, protocols_bitmask
       bitmask = protocols_bitmask
       ssl_options = OpenSSL::SSL::OP_ALL
-      ssl_options |= OpenSSL::SSL::OP_NO_SSLv2 if defined?(OpenSSL::SSL::OP_NO_SSLv2) && EM_PROTO_SSLv2 & bitmask == 0
-      ssl_options |= OpenSSL::SSL::OP_NO_SSLv3 if defined?(OpenSSL::SSL::OP_NO_SSLv3) && EM_PROTO_SSLv3 & bitmask == 0
-      ssl_options |= OpenSSL::SSL::OP_NO_TLSv1 if defined?(OpenSSL::SSL::OP_NO_TLSv1) && EM_PROTO_TLSv1 & bitmask == 0
-      ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_1 if defined?(OpenSSL::SSL::OP_NO_TLSv1_1) && EM_PROTO_TLSv1_1 & bitmask == 0
-      ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_2 if defined?(OpenSSL::SSL::OP_NO_TLSv1_2) && EM_PROTO_TLSv1_2 & bitmask == 0
+      if defined?(OpenSSL::SSL::OP_NO_SSLv2)
+        ssl_options &= ~OpenSSL::SSL::OP_NO_SSLv2
+        ssl_options |= OpenSSL::SSL::OP_NO_SSLv2 if EM_PROTO_SSLv2 & bitmask == 0
+      end
+      if defined?(OpenSSL::SSL::OP_NO_SSLv3)
+        ssl_options &= ~OpenSSL::SSL::OP_NO_SSLv3
+        ssl_options |= OpenSSL::SSL::OP_NO_SSLv3 if EM_PROTO_SSLv3 & bitmask == 0
+      end
+      if defined?(OpenSSL::SSL::OP_NO_TLSv1)
+        ssl_options &= ~OpenSSL::SSL::OP_NO_TLSv1
+        ssl_options |= OpenSSL::SSL::OP_NO_TLSv1 if EM_PROTO_TLSv1 & bitmask == 0
+      end
+      if defined?(OpenSSL::SSL::OP_NO_TLSv1_1)
+        ssl_options &= ~OpenSSL::SSL::OP_NO_TLSv1_1
+        ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_1 if EM_PROTO_TLSv1_1 & bitmask == 0
+      end
+      if defined?(OpenSSL::SSL::OP_NO_TLSv1_2)
+        ssl_options &= ~OpenSSL::SSL::OP_NO_TLSv1_2
+        ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_2 if EM_PROTO_TLSv1_2 & bitmask == 0
+      end
+      if defined?(OpenSSL::SSL::OP_NO_TLSv1_3)
+        ssl_options &= ~OpenSSL::SSL::OP_NO_TLSv1_3
+        ssl_options |= OpenSSL::SSL::OP_NO_TLSv1_3 if EM_PROTO_TLSv1_3 & bitmask == 0
+      end
       @tls_parms ||= {}
       @tls_parms[signature] = {
         :verify_peer => verify_peer,
         :fail_if_no_peer_cert => fail_if_no_peer_cert,
         :ssl_options => ssl_options
       }
-      @tls_parms[signature][:priv_key] = File.read(priv_key_path) if tls_parm_set?(priv_key_path)
+      @tls_parms[signature][:priv_key] = File.binread(priv_key_path) if tls_parm_set?(priv_key_path)
       @tls_parms[signature][:priv_key] = priv_key if tls_parm_set?(priv_key)
       @tls_parms[signature][:priv_key_pass] = priv_key_pass if tls_parm_set?(priv_key_pass)
-      @tls_parms[signature][:cert_chain] = File.read(cert_chain_path) if tls_parm_set?(cert_chain_path)
+      @tls_parms[signature][:cert_chain] = File.binread(cert_chain_path) if tls_parm_set?(cert_chain_path)
       @tls_parms[signature][:cert_chain] = cert if tls_parm_set?(cert)
       @tls_parms[signature][:sni_hostname] = sni_hostname if tls_parm_set?(sni_hostname)
       @tls_parms[signature][:cipher_list] = cipher_list.gsub(/,\s*/, ':') if tls_parm_set?(cipher_list)
@@ -310,58 +300,91 @@ module EventMachine
       @tls_parms[signature][:ecdh_curve] = ecdh_curve if tls_parm_set?(ecdh_curve)
     end
 
+    PEM_CERTIFICATE = /
+      ^-----BEGIN CERTIFICATE-----\n
+      .*?\n
+      -----END CERTIFICATE-----\n
+    /mx
+    private_constant :PEM_CERTIFICATE
+
     def start_tls signature
       selectable = Reactor.instance.get_selectable(signature) or raise "unknown io selectable for start_tls"
       tls_parms = @tls_parms[signature]
       ctx = OpenSSL::SSL::SSLContext.new
       ctx.options = tls_parms[:ssl_options]
-      ctx.cert = DefaultCertificate.cert
-      ctx.key = DefaultCertificate.key
       ctx.cert_store = OpenSSL::X509::Store.new
       ctx.cert_store.set_default_paths
-      ctx.cert = OpenSSL::X509::Certificate.new(tls_parms[:cert_chain]) if tls_parms[:cert_chain]
-      if tls_parms[:priv_key_pass]!=nil
-        ctx.key = OpenSSL::PKey::RSA.new(tls_parms[:priv_key],tls_parms[:priv_key_pass]) if tls_parms[:priv_key]
-      else
-        ctx.key = OpenSSL::PKey::RSA.new(tls_parms[:priv_key]) if tls_parms[:priv_key]
-      end
-      verify_mode = OpenSSL::SSL::VERIFY_NONE
+      cert, *extra_chain_cert =
+        if (cert_chain = tls_parms[:cert_chain])
+          if OpenSSL::X509::Certificate.respond_to?(:load)
+            OpenSSL::X509::Certificate.load(cert_chain)
+          elsif cert_chain[PEM_CERTIFICATE]
+            # compatibility with openssl gem < 3.0 (ruby < 2.6)
+            cert_chain.scan(PEM_CERTIFICATE)
+              .map {|pem| OpenSSL::X509::Certificate.new(pem) }
+          else
+            [OpenSSL::X509::Certificate.new(cert_chain)]
+          end
+        elsif selectable.is_server
+          [DefaultCertificate.cert]
+        end
+      key =
+        if tls_parms[:priv_key]
+          OpenSSL::PKey::RSA.new(tls_parms[:priv_key], tls_parms[:priv_key_pass])
+        elsif selectable.is_server
+          DefaultCertificate.key
+        end
+      ctx.cert, ctx.key, ctx.extra_chain_cert = cert, key, extra_chain_cert
       if tls_parms[:verify_peer]
-        verify_mode |= OpenSSL::SSL::VERIFY_PEER
+        ctx.verify_mode =
+          OpenSSL::SSL::VERIFY_PEER | OpenSSL::SSL::VERIFY_CLIENT_ONCE
+        if tls_parms[:fail_if_no_peer_cert]
+          ctx.verify_mode |= OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT
+        end
+        ctx.verify_callback = ->(preverify_ok, store_ctx) {
+          current_cert = store_ctx.current_cert.to_pem
+          EventMachine::event_callback selectable.uuid, SslVerify, current_cert
+        }
+      else
+        ctx.verify_mode = OpenSSL::SSL::VERIFY_NONE
       end
-      if tls_parms[:fail_if_no_peer_cert]
-        verify_mode |= OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT
-      end
-      ctx.verify_mode = verify_mode
       ctx.servername_cb = Proc.new do |_, server_name|
         tls_parms[:server_name] = server_name
         nil
       end
       ctx.ciphers = tls_parms[:cipher_list] if tls_parms[:cipher_list]
       if selectable.is_server
-        ctx.tmp_dh = if tls_parms[:dhparam]
+        dhparam = if tls_parms[:dhparam]
           OpenSSL::PKey::DH.new(tls_parms[:dhparam])
         else
-          case key_length
-          when 1024 then DefaultDHKey1024
-          when 2048 then DefaultDHKey2048
-          else
-            nil
-          end
+          DH_ffdhe2048
+        end
+        if ctx.respond_to?(:tmp_dh=)
+          # openssl gem 3.1+ (shipped with ruby 3.2, compatible with ruby 2.6+)
+          ctx.tmp_dh = dhparam
+        else
+          ctx.tmp_dh_callback = proc { dhparam }
         end
         if tls_parms[:ecdh_curve]
           ctx.ecdh_curves = tls_parms[:ecdh_curve]
         end
       end
+      begin
+        ctx.freeze
+      rescue OpenSSL::SSL::SSLError => err
+        if err.message.include?("SSL_CTX_use_PrivateKey") ||
+            err.message.include?("key values mismatch")
+          raise InvalidPrivateKey, err.message
+        end
+        raise
+      end
+
       ssl_io = OpenSSL::SSL::SSLSocket.new(selectable, ctx)
       ssl_io.sync_close = true
       if tls_parms[:sni_hostname]
         ssl_io.hostname = tls_parms[:sni_hostname] if ssl_io.respond_to?(:hostname=)
       end
-      begin
-        selectable.is_server ? ssl_io.accept_nonblock : ssl_io.connect_nonblock
-      rescue; end
-      selectable.io = ssl_io
+      selectable._evma_start_tls(ssl_io)
     end
 
     def get_peer_cert signature
@@ -527,10 +550,20 @@ module EventMachine
   OPENSSL_LIBRARY_VERSION = OpenSSL::OPENSSL_LIBRARY_VERSION
   # @private
   OPENSSL_VERSION = OpenSSL::OPENSSL_VERSION
+
+  openssl_version_gt = ->(maj, min, pat) {
+    if defined?(OpenSSL::OPENSSL_VERSION_NUMBER)
+      OpenSSL::OPENSSL_VERSION_NUMBER >= (maj << 28) | (min << 20) | (pat << 12)
+    else
+      false
+    end
+  }
   # @private
-  OPENSSL_NO_SSL2 = false
+  # OpenSSL 1.1.0 removed support for SSLv2
+  OPENSSL_NO_SSL2 = openssl_version_gt.(1, 1, 0)
   # @private
-  OPENSSL_NO_SSL3 = false
+  # OpenSSL 1.1.0 disabled support for SSLv3 (by default)
+  OPENSSL_NO_SSL3 = openssl_version_gt.(1, 1, 0)
 end
 
 module EventMachine
@@ -703,24 +736,25 @@ end
 # @private
 class IO
   extend Forwardable
-  def_delegator :@my_selectable, :close_scheduled?
-  def_delegator :@my_selectable, :select_for_reading?
-  def_delegator :@my_selectable, :select_for_writing?
-  def_delegator :@my_selectable, :eventable_read
-  def_delegator :@my_selectable, :eventable_write
-  def_delegator :@my_selectable, :uuid
-  def_delegator :@my_selectable, :is_server
-  def_delegator :@my_selectable, :is_server=
-  def_delegator :@my_selectable, :send_data
-  def_delegator :@my_selectable, :schedule_close
-  def_delegator :@my_selectable, :get_peername
-  def_delegator :@my_selectable, :get_sockname
-  def_delegator :@my_selectable, :send_datagram
-  def_delegator :@my_selectable, :get_outbound_data_size
-  def_delegator :@my_selectable, :set_inactivity_timeout
-  def_delegator :@my_selectable, :heartbeat
-  def_delegator :@my_selectable, :io
-  def_delegator :@my_selectable, :io=
+  def_delegator :@eventmachine_selectable, :close_scheduled?
+  def_delegator :@eventmachine_selectable, :select_for_reading?
+  def_delegator :@eventmachine_selectable, :select_for_writing?
+  def_delegator :@eventmachine_selectable, :eventable_read
+  def_delegator :@eventmachine_selectable, :eventable_write
+  def_delegator :@eventmachine_selectable, :uuid
+  def_delegator :@eventmachine_selectable, :is_server
+  def_delegator :@eventmachine_selectable, :is_server=
+  def_delegator :@eventmachine_selectable, :send_data
+  def_delegator :@eventmachine_selectable, :schedule_close
+  def_delegator :@eventmachine_selectable, :get_peername
+  def_delegator :@eventmachine_selectable, :get_sockname
+  def_delegator :@eventmachine_selectable, :send_datagram
+  def_delegator :@eventmachine_selectable, :get_outbound_data_size
+  def_delegator :@eventmachine_selectable, :set_inactivity_timeout
+  def_delegator :@eventmachine_selectable, :heartbeat
+  def_delegator :@eventmachine_selectable, :io
+  def_delegator :@eventmachine_selectable, :io=
+  def_delegator :@eventmachine_selectable, :start_tls, :_evma_start_tls
 end
 
 module EventMachine
@@ -754,7 +788,7 @@ module EventMachine
       @close_scheduled = false
       @close_requested = false
 
-      se = self; @io.instance_eval { @my_selectable = se }
+      se = self; @io.instance_eval { @eventmachine_selectable = se }
       Reactor.instance.add_selectable @io
     end
 
@@ -940,6 +974,7 @@ end
 module EventMachine
   # @private
   class EvmaTCPClient < StreamObject
+    attr_reader :ssl_handshake_state
 
     def self.connect bind_addr, bind_port, host, port
       sd = Socket.new( Socket::AF_INET, Socket::SOCK_STREAM, 0 )
@@ -957,32 +992,73 @@ module EventMachine
     def initialize io
       super
       @pending = true
-      @handshake_complete = false
+      @ssl_handshake_state = nil
     end
+
+    TCP_ESTABLISHED = 1 # why isn't this already a const in Socket?
 
     def ready?
-      if RUBY_PLATFORM =~ /linux/
-        io.getsockopt(Socket::SOL_TCP, Socket::TCP_INFO).unpack("i").first == 1 # TCP_ESTABLISHED
+      if defined?(Socket::SOL_TCP) && defined?(Socket::TCP_INFO)
+        # Linux: tcpi_state is an unsigned char
+        #   struct tcp_info {
+        #       __u8    tcpi_state;
+        #       ...
+        #   }
+        sockinfo = io.getsockopt(Socket::SOL_TCP, Socket::TCP_INFO)
+        sockinfo.unpack("C").first == TCP_ESTABLISHED
+      elsif defined?(Socket::IPPROTO_TCP) && defined?(Socket::TCP_CONNECTION_INFO)
+        # NOTE: the following doesn't seem to work (according to GH actions)
+        #
+        # MacOS: tcpi_state is an unsigned char
+        #   struct tcp_connection_info {
+        #       u_int8_t   tcpi_state;     /* connection state */
+        #       ...
+        #   }
+        sockinfo = io.getsockopt(Socket::IPPROTO_TCP, Socket::TCP_CONNECTION_INFO)
+        sockinfo.unpack("C").first == TCP_ESTABLISHED
       else
-        io.getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR).unpack("i").first == 0 # NO ERROR
+        sockerr = io.getsockopt(Socket::SOL_SOCKET, Socket::SO_ERROR)
+        sockerr.unpack("i").first == 0 # NO ERROR
       end
     end
 
-    def handshake_complete?
-      if !@handshake_complete && io.respond_to?(:state)
-        if io.state =~ /^SSLOK/
-          @handshake_complete = true
-          EventMachine::event_callback uuid, SslHandshakeCompleted, ""
-          EventMachine::event_callback uuid, SslVerify, io.peer_cert.to_pem if io.peer_cert
-        end
-      else
-        @handshake_complete = true
+    def eventable_read
+      check_handshake_complete and super
+    end
+
+    def eventable_write
+      check_handshake_complete and super
+    end
+
+    def start_tls(ssl_io)
+      self.io = ssl_io
+      @ssl_handshake_state = :init
+      check_handshake_complete
+    end
+
+    def check_handshake_complete
+      return true if ssl_handshake_state.nil? || ssl_handshake_state == :done
+      is_server ? io.accept_nonblock : io.connect_nonblock
+      @ssl_handshake_state = :done
+      EventMachine::event_callback uuid, SslHandshakeCompleted, ""
+      true
+    rescue SSLConnectionWaitReadable
+      @ssl_handshake_state = :wait_readable
+      false
+    rescue SSLConnectionWaitWritable
+      @ssl_handshake_state = :wait_writable
+      false
+    rescue OpenSSL::SSL::SSLError => error
+      if $VERBOSE || $DEBUG
+        warn "SSL Error in EventMachine check_handshake_complete: #{error}"
       end
-      @handshake_complete
+      @ssl_handshake_state = error
+    rescue => error
+      warn "#{error.class} in EventMachine check_handshake_complete: #{error}"
+      @ssl_handshake_state = error
     end
 
     def pending?
-      handshake_complete?
       if @pending
         if ready?
           @pending = false
@@ -1119,7 +1195,7 @@ module EventMachine
     def eventable_read
       begin
         10.times {
-          descriptor,peername = io.accept_nonblock
+          descriptor, _peername = io.accept_nonblock
           sd = EvmaTCPClient.new descriptor
           sd.is_server = true
           EventMachine::event_callback uuid, ConnectionAccepted, sd.uuid
@@ -1176,7 +1252,7 @@ module EventMachine
     def eventable_read
       begin
         10.times {
-          descriptor,peername = io.accept_nonblock
+          descriptor, _peername = io.accept_nonblock
           sd = StreamObject.new descriptor
           EventMachine::event_callback uuid, ConnectionAccepted, sd.uuid
         }
