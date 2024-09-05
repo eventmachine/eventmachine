@@ -119,25 +119,19 @@ module EventMachine
   DefaultCertificate = CertificateCreator.new
 
   # @private
-  DefaultDHKey1024 = OpenSSL::PKey::DH.new <<-_end_of_pem_
+  # Defined by RFC7919, Appendix A.1, and copied from
+  # OpenSSL::SSL::SSLContext::DH_ffdhe2048.
+  DH_ffdhe2048 = OpenSSL::PKey::DH.new <<-_end_of_pem_
 -----BEGIN DH PARAMETERS-----
-MIGHAoGBAJ0lOVy0VIr/JebWn0zDwY2h+rqITFOpdNr6ugsgvkDXuucdcChhYExJ
-AV/ZD2AWPbrTqV76mGRgJg4EddgT1zG0jq3rnFdMj2XzkBYx3BVvfR0Arnby0RHR
-T4h7KZ/2zmjvV+eF8kBUHBJAojUlzxKj4QeO2x20FP9X5xmNUXeDAgEC
+MIIBCAKCAQEA//////////+t+FRYortKmq/cViAnPTzx2LnFg84tNpWp4TZBFGQz
++8yTnc4kmz75fS/jY2MMddj2gbICrsRhetPfHtXV/WVhJDP1H18GbtCFY2VVPe0a
+87VXE15/V8k1mE8McODmi3fipona8+/och3xWKE2rec1MKzKT0g6eXq8CrGCsyT7
+YdEIqUuyyOP7uWrat2DX9GgdT0Kj3jlN9K5W7edjcrsZCwenyO4KbXCeAvzhzffi
+7MA0BM0oNC9hkXL+nOmFg/+OTxIy7vKBg8P+OxtMb61zO7X8vC7CIAXFjvGDfRaD
+ssbzSibBsu/6iGtCOGEoXJf//////////wIBAg==
 -----END DH PARAMETERS-----
   _end_of_pem_
-
-  # @private
-  DefaultDHKey2048 = OpenSSL::PKey::DH.new <<-_end_of_pem_
------BEGIN DH PARAMETERS-----
-MIIBCAKCAQEA7E6kBrYiyvmKAMzQ7i8WvwVk9Y/+f8S7sCTN712KkK3cqd1jhJDY
-JbrYeNV3kUIKhPxWHhObHKpD1R84UpL+s2b55+iMd6GmL7OYmNIT/FccKhTcveab
-VBmZT86BZKYyf45hUF9FOuUM9xPzuK3Vd8oJQvfYMCd7LPC0taAEljQLR4Edf8E6
-YoaOffgTf5qxiwkjnlVZQc3whgnEt9FpVMvQ9eknyeGB5KHfayAc3+hUAvI3/Cr3
-1bNveX5wInh5GDx1FGhKBZ+s1H+aedudCm7sCgRwv8lKWYGiHzObSma8A86KG+MD
-7Lo5JquQ3DlBodj3IDyPrxIv96lvRPFtAwIBAg==
------END DH PARAMETERS-----
-  _end_of_pem_
+  private_constant :DH_ffdhe2048
 end
 
 # @private
@@ -383,15 +377,16 @@ module EventMachine
       end
       ctx.ciphers = tls_parms[:cipher_list] if tls_parms[:cipher_list]
       if selectable.is_server
-        ctx.tmp_dh = if tls_parms[:dhparam]
+        dhparam = if tls_parms[:dhparam]
           OpenSSL::PKey::DH.new(tls_parms[:dhparam])
         else
-          case key_length
-          when 1024 then DefaultDHKey1024
-          when 2048 then DefaultDHKey2048
-          else
-            nil
-          end
+          DH_ffdhe2048
+        end
+        if ctx.respond_to?(:tmp_dh=)
+          # openssl gem 3.1+ (shipped with ruby 3.2, compatible with ruby 2.6+)
+          ctx.tmp_dh = dhparam
+        else
+          ctx.tmp_dh_callback = proc { dhparam }
         end
         if tls_parms[:ecdh_curve]
           ctx.ecdh_curves = tls_parms[:ecdh_curve]
