@@ -10,7 +10,7 @@ end
 
 # switch to install_if when ruby 2.2 support is dropped
 if RUBY_VERSION >= '3.0'
-  gem "sorted_set"
+  gem 'sorted_set'
 end
 
 group :documentation do
