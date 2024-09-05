@@ -93,7 +93,7 @@ module EventMachine
     attr_reader :cert, :key
 
     def initialize
-      @key = OpenSSL::PKey::RSA.new(1024)
+      @key = OpenSSL::PKey::RSA.new(2048)
       public_key = @key.public_key
       subject = "/C=EventMachine/O=EventMachine/OU=EventMachine/CN=EventMachine"
       @cert = OpenSSL::X509::Certificate.new
@@ -303,7 +303,7 @@ module EventMachine
       @tls_parms[signature][:priv_key] = priv_key if tls_parm_set?(priv_key)
       @tls_parms[signature][:priv_key_pass] = priv_key_pass if tls_parm_set?(priv_key_pass)
       @tls_parms[signature][:cert_chain] = File.read(cert_chain_path) if tls_parm_set?(cert_chain_path)
-      @tls_parms[signature][:cert_chain] = cert if tls_parm_set?(cert_chain)
+      @tls_parms[signature][:cert_chain] = cert if tls_parm_set?(cert)
       @tls_parms[signature][:sni_hostname] = sni_hostname if tls_parm_set?(sni_hostname)
       @tls_parms[signature][:cipher_list] = cipher_list.gsub(/,\s*/, ':') if tls_parm_set?(cipher_list)
       @tls_parms[signature][:dhparam] = File.read(dhparam) if tls_parm_set?(dhparam)
@@ -520,6 +520,17 @@ module EventMachine
   EM_PROTO_TLSv1_1 = 16
   # @private
   EM_PROTO_TLSv1_2 = 32
+  # @private
+  EM_PROTO_TLSv1_3 = 64 if OpenSSL::SSL.const_defined?(:TLS1_3_VERSION)
+
+  # @private
+  OPENSSL_LIBRARY_VERSION = OpenSSL::OPENSSL_LIBRARY_VERSION
+  # @private
+  OPENSSL_VERSION = OpenSSL::OPENSSL_VERSION
+  # @private
+  OPENSSL_NO_SSL2 = false
+  # @private
+  OPENSSL_NO_SSL3 = false
 end
 
 module EventMachine
