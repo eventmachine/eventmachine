@@ -1195,7 +1195,7 @@ module EventMachine
     def eventable_read
       begin
         10.times {
-          descriptor,peername = io.accept_nonblock
+          descriptor, _peername = io.accept_nonblock
           sd = EvmaTCPClient.new descriptor
           sd.is_server = true
           EventMachine::event_callback uuid, ConnectionAccepted, sd.uuid
@@ -1252,7 +1252,7 @@ module EventMachine
     def eventable_read
       begin
         10.times {
-          descriptor,peername = io.accept_nonblock
+          descriptor, _peername = io.accept_nonblock
           sd = StreamObject.new descriptor
           EventMachine::event_callback uuid, ConnectionAccepted, sd.uuid
         }
