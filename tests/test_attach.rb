@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'em_test_helper'
 
 class TestAttach < Test::Unit::TestCase
@@ -31,7 +33,7 @@ class TestAttach < Test::Unit::TestCase
   def setup
     @port = next_port
     $read, $r, $w, $fd = nil
-    $received_data = ""
+    $received_data = "".dup
   end
 
   def teardown

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'em/pure_ruby' if ENV['EM_PURE_RUBY']
 require 'eventmachine'
 require 'rbconfig'

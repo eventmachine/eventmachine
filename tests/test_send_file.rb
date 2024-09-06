@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'em_test_helper'
 require 'tempfile'
 
@@ -40,7 +42,7 @@ class TestSendFile < Test::Unit::TestCase
         f << ("A" * 5000)
       }
 
-      data = ''
+      data = ''.dup
 
       EM.run {
         EM.start_server "127.0.0.1", @port, TestModule, @filename
@@ -60,7 +62,7 @@ class TestSendFile < Test::Unit::TestCase
         f << ("A" * 1000000)
       }
 
-      data = ''
+      data = ''.dup
 
       assert_raises(RuntimeError) {
         EM.run {
@@ -102,7 +104,7 @@ class TestSendFile < Test::Unit::TestCase
         f << ("A" * 1000)
       }
 
-      data = ''
+      data = ''.dup
 
       EM.run {
         EM.start_server "127.0.0.1", @port, StreamTestModule, @filename
@@ -120,7 +122,7 @@ class TestSendFile < Test::Unit::TestCase
         f << ("A" * 1000)
       }
 
-      data = ''
+      data = ''.dup
 
       EM.run {
         EM.start_server "127.0.0.1", @port, ChunkStreamTestModule, @filename
@@ -147,7 +149,7 @@ class TestSendFile < Test::Unit::TestCase
       end
     end
     def test_stream_bad_file
-      data = ''
+      data = ''.dup
       EM.run {
         EM.start_server "127.0.0.1", @port, BadFileTestModule, @filename
         setup_timeout(5)
@@ -175,7 +177,7 @@ class TestSendFile < Test::Unit::TestCase
         f << ("A" * 10000)
       }
 
-      data = ''
+      data = ''.dup
 
       EM.run {
         EM.start_server "127.0.0.1", @port, StreamTestModule, @filename
@@ -193,7 +195,7 @@ class TestSendFile < Test::Unit::TestCase
         f << ("A" * 100000)
       }
 
-      data = ''
+      data = ''.dup
 
       EM.run {
         EM.start_server "127.0.0.1", @port, ChunkStreamTestModule, @filename
