@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #--
 #
 # Author:: Francis Cianfrocca (gmail: blackhedd)
@@ -84,7 +86,7 @@ module EventMachine
       MaxFieldSize = 128*1024
       def post_init
         super
-        @sasl_data = ""
+        @sasl_data = "".dup
         @sasl_values = []
       end
 
@@ -149,7 +151,7 @@ module EventMachine
       end
 
       def post_init
-        @sasl_data = ""
+        @sasl_data = "".dup
         @queries = []
       end
 

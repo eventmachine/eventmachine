@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 #--
 #
 # Author:: Francis Cianfrocca (gmail: blackhedd)
@@ -180,7 +182,7 @@ module EventMachine
           case @read_state
           when :base
             # Perform any per-request initialization here and don't consume any data.
-            @data = ""
+            @data = "".dup
             @headers = []
             @content_length = nil # not zero
             @content = ""
