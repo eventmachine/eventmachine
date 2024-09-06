@@ -151,6 +151,10 @@ class Test::Unit::TestCase
     def ci?
       %w[1 t true y yes].any? {|t| t.casecmp(ENV.fetch("CI", "")).zero? }
     end
+
+    def pure_ruby_mode?
+      EM.library_type == :pure_ruby
+    end
   end
 
   include PlatformHelper
@@ -159,7 +163,8 @@ class Test::Unit::TestCase
   # Tests may run slower on windows or CI.  YMMV
   ci_multiplier = ci?                   ? 4 : 1
   os_multiplier = (windows? || darwin?) ? 2 : 1
-  TIMEOUT_INTERVAL = 0.25 * ci_multiplier * os_multiplier
+  rb_multiplier = pure_ruby_mode?       ? 2 : 1
+  TIMEOUT_INTERVAL = 0.25 * ci_multiplier * os_multiplier * rb_multiplier
   puts "               TIMEOUT_INTERVAL: #{TIMEOUT_INTERVAL}"
 
   module EMTestCasePrepend
