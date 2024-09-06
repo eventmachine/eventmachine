@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'em_test_helper'
 
 class TestBasic < Test::Unit::TestCase
@@ -135,7 +137,7 @@ class TestBasic < Test::Unit::TestCase
 
   # From ticket #50
   def test_byte_range_send
-    $received = ''
+    $received = ''.dup
     $sent = (0..255).to_a.pack('C*')
     EM::run {
       EM::start_server "127.0.0.1", @port, BrsTestSrv

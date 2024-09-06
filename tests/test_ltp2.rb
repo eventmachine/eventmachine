@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'em_test_helper'
 
 # TODO!!! Need tests for overlength headers and text bodies.
@@ -51,7 +53,7 @@ class TestLineText2 < Test::Unit::TestCase
     attr_reader :lines
     def initialize *args
       super
-      @delim = "A"
+      @delim = "A".dup
       set_delimiter @delim
     end
     def receive_line line
@@ -153,7 +155,7 @@ Line 4
     def receive_binary_data data
       @n_calls ||= 0
       @n_calls += 1
-      (@body ||= "") << data
+      (@body ||= "".dup) << data
     end
   end
 

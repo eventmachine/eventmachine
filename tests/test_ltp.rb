@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'em_test_helper'
 
 class TestLineAndTextProtocol < Test::Unit::TestCase
@@ -103,7 +105,7 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
   end
 
   def test_lines_and_text
-    output = ''
+    output = ''.dup
     EM.run {
       EM.start_server( "127.0.0.1", @port, LineAndTextTest )
       setup_timeout 0.4
@@ -137,7 +139,7 @@ class TestLineAndTextProtocol < Test::Unit::TestCase
   end
 
   def test_binary_text
-    output = ''
+    output = ''.dup
     EM.run {
       EM.start_server( "127.0.0.1", @port, BinaryTextTest )
       setup_timeout 0.4
