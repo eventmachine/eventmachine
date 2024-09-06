@@ -6,9 +6,7 @@ class TestHttpClient2 < Test::Unit::TestCase
   class TestServer < EM::Connection
   end
 
-  TIMEOUT = TIMEOUT_INTERVAL * 4.0
-  # below may be due to an issue with OpenSSL 1.0.2 and earlier with Windows
-  CI_WINDOWS_OLD = windows? and RUBY_VERSION < '2.5'
+  TIMEOUT = TIMEOUT_INTERVAL * 5.0
 
   def setup
     @host = '127.0.0.1'
@@ -58,7 +56,7 @@ class TestHttpClient2 < Test::Unit::TestCase
   def test_get
     content = nil
     EM.run {
-      setup_timeout(CI_WINDOWS_OLD ? 4 : TIMEOUT)
+      setup_timeout(TIMEOUT)
       http = silent { EM::P::HttpClient2.connect :host => "www.google.com", :port => 80 }
       d = http.get "/"
       d.callback {
@@ -93,7 +91,7 @@ class TestHttpClient2 < Test::Unit::TestCase
     headers, headers2 = nil, nil
     EM.run {
       # intermittent CI failures, external server w/two requests?
-      setup_timeout (TIMEOUT * 2)
+      setup_timeout TIMEOUT * 2.5
       http = silent { EM::P::HttpClient2.connect "www.google.com", 80 }
       http.get("/").callback { |resp| headers = resp.headers }
       http.get("/").callback { |resp| headers2 = resp.headers }
@@ -119,7 +117,7 @@ class TestHttpClient2 < Test::Unit::TestCase
     omit("No SSL") unless EM.ssl?
     d = nil
     EM.run {
-      setup_timeout(CI_WINDOWS_OLD ? 4 : TIMEOUT)
+      setup_timeout(TIMEOUT)
       http = silent { EM::P::HttpClient2.connect :host => 'www.google.com', :port => 443, :tls => true }
       d = http.get "/"
       d.callback {EM.stop}
