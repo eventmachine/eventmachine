@@ -147,6 +147,10 @@ class Test::Unit::TestCase
     def rbx?
       defined?(RUBY_ENGINE) && RUBY_ENGINE == 'rbx'
     end
+
+    def ci?
+      %w[1 t true y yes].any? {|t| t.casecmp?(ENV["CI"]) }
+    end
   end
 
   include PlatformHelper
