@@ -8,29 +8,22 @@ jobs:
       ${{ matrix.os }} ${{ matrix.ruby }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: ${{ (startsWith(matrix.os, 'macos') || startsWith(matrix.os, 'windows')) && 15 || 10 }}
+    env:
+      BUNDLE_WITHOUT: documentation
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, windows-2019, macos-latest ]
+        os: [ ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, windows-2022, macos-14, macos-13 ]
         ruby: [ '2.3', '2.4', '2.5', '2.6', '2.7', '3.0', '3.1', '3.2', '3.3', head ]
         include:
-
-          # GH-988 added support for ruby >= 3.3
-          - { os: windows-2019, ruby: mingw }
-
-          # CRuby < 2.6 does not support macos-arm64, so these use amd64
-          - { os: macos-13, ruby: '2.3' }
-          - { os: macos-13, ruby: '2.4' }
-          - { os: macos-13, ruby: '2.5' }
-
+          - { os: windows-2022, ruby: ucrt }
         exclude:
-          - { os: macos-latest, ruby: head }
-          - { os: windows-2019, ruby: head }
+          - { os: windows-2022, ruby: head }
 
           # CRuby < 2.6 does not support macos-arm64, so these use amd64
-          - { os: macos-latest, ruby: '2.3' }
-          - { os: macos-latest, ruby: '2.4' }
-          - { os: macos-latest, ruby: '2.5' }
+          - { os: macos-14, ruby: '2.3' }
+          - { os: macos-14, ruby: '2.4' }
+          - { os: macos-14, ruby: '2.5' }
 
           # Avoids the following error:
           #      Bundler 2 requires Ruby 2.3+, using Bundler 1 on Ruby <= 2.2
@@ -47,20 +40,19 @@ jobs:
       - name: repo checkout
         uses: actions/checkout@v4
 
-      - name: load ruby, openssl
+      - name: load ruby, run bundle install
         uses: ruby/setup-ruby-pkgs@v1
         with:
           ruby-version: ${{ matrix.ruby }}
-          mingw: _upgrade_ openssl
+          bundler-cache: true
+          rubygems: ${{ (matrix.ruby < '2.7') && 'latest' || 'default' }}
+          mingw: ${{ (matrix.ruby < '2.4') && '_upgrade_ openssl' || '' }}
 
       - name: macOS disable firewall
         if: startsWith(matrix.os, 'macos')
         run: |
           sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate off
           sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
-
-      - name: bundle install
-        run:  bundle install --jobs 4 --retry 3 --without=documentation
 
       - name: compile
         run:  bundle exec rake compile
@@ -76,6 +68,8 @@ jobs:
       pure ruby (${{ matrix.os }} ${{ matrix.ruby }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+    env:
+      BUNDLE_WITHOUT: documentation
     strategy:
       fail-fast: false
       matrix:
@@ -84,14 +78,13 @@ jobs:
     steps:
       - name: repo checkout
         uses: actions/checkout@v4
+
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
-
-      - name: bundle install
-        run:  bundle install --jobs 4 --retry 3 --without=documentation
+          rubygems: ${{ (matrix.ruby < '2.7') && 'latest' || 'default' }}
 
       - name: test_em_pure_ruby
         run:  bundle exec rake test_em_pure_ruby
