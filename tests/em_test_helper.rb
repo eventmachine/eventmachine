@@ -149,7 +149,7 @@ class Test::Unit::TestCase
     end
 
     def ci?
-      %w[1 t true y yes].any? {|t| t.casecmp?(ENV["CI"]) }
+      %w[1 t true y yes].any? {|t| t.casecmp(ENV.fetch("CI", "")).zero? }
     end
   end
 
