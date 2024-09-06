@@ -32,7 +32,7 @@ class Test::Unit::TestCase
     temp += %w[TLSv1 TLSv1_1 TLSv1_2]
     temp << 'TLSv1_3' if EM.const_defined? :EM_PROTO_TLSv1_3
     temp.sort!
-    puts "                      SSL_AVAIL: #{temp.join(' ')}", ""
+    puts "                      SSL_AVAIL: #{temp.join(' ')}"
     SSL_AVAIL = temp.freeze
   else
     puts "\nEventMachine is not built with OpenSSL support, skipping tests in",
@@ -156,8 +156,11 @@ class Test::Unit::TestCase
   include PlatformHelper
   extend PlatformHelper
 
-  # Tests may run slower on windows or Appveyor. YMMV
-  TIMEOUT_INTERVAL = windows? || darwin? ? 0.50 : 0.25
+  # Tests may run slower on windows or CI.  YMMV
+  ci_multiplier = ci?                   ? 4 : 1
+  os_multiplier = (windows? || darwin?) ? 2 : 1
+  TIMEOUT_INTERVAL = 0.25 * ci_multiplier * os_multiplier
+  puts "               TIMEOUT_INTERVAL: #{TIMEOUT_INTERVAL}"
 
   module EMTestCasePrepend
     def setup
@@ -178,7 +181,6 @@ class Test::Unit::TestCase
       $VERBOSE = backup
     end
   end
-
 
   private
 
@@ -202,3 +204,5 @@ class Test::Unit::TestCase
     Socket.do_not_reverse_lookup = orig
   end
 end
+
+puts # empty line between debug output and test output
