@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module EventMachine
   module Protocols
     # ObjectProtocol allows for easy communication using marshaled ruby objects
@@ -19,7 +21,7 @@ module EventMachine
 
       # @private
       def receive_data data
-        (@buf ||= '') << data
+        (@buf ||= ''.dup) << data
 
         while @buf.size >= 4
           if @buf.size >= 4+(size=@buf.unpack('N').first)
