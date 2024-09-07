@@ -1,8 +1,11 @@
+# frozen_string_literal: true
+
 require_relative 'em_test_helper'
 
 class TestPure < Test::Unit::TestCase
 
   def setup
+    @host = '127.0.0.1'
     @port = next_port
   end
 
@@ -25,7 +28,7 @@ class TestPure < Test::Unit::TestCase
     2.times do
       assert_raises(exception) do
         EM.run do
-          EM.start_server "127.0.0.1", @port
+          EM.start_server @host, @port
           raise exception
         end
       end
@@ -51,8 +54,8 @@ class TestPure < Test::Unit::TestCase
   def test_connrefused
     assert_nothing_raised do
       EM.run {
-        setup_timeout(2)
-        EM.connect "127.0.0.1", @port, TestConnrefused
+        setup_timeout(windows? ? 4 : 2)
+        EM.connect @host, @port, TestConnrefused
       }
     end
   end
@@ -69,8 +72,8 @@ class TestPure < Test::Unit::TestCase
   def test_connaccepted
     assert_nothing_raised do
       EM.run {
-        EM.start_server "127.0.0.1", @port
-        EM.connect "127.0.0.1", @port, TestConnaccepted
+        EM.start_server @host, @port
+        EM.connect @host, @port, TestConnaccepted
         setup_timeout(1)
       }
     end
@@ -128,8 +131,8 @@ class TestPure < Test::Unit::TestCase
     $client_handshake_completed, $server_handshake_completed = false, false
     $client_received_data, $server_received_data = nil, nil
     EM.run do
-      EM.start_server("127.0.0.1", 16789, TLSServer)
-      EM.connect("127.0.0.1", 16789, TLSClient)
+      EM.start_server(@host, 16789, TLSServer)
+      EM.connect(@host, 16789, TLSClient)
     end
 
     assert($client_handshake_completed)
