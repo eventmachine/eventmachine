@@ -258,6 +258,12 @@ end
 have_func  "TLS_server_method"            , "openssl/ssl.h"
 have_macro "SSL_CTX_set_min_proto_version", "openssl/ssl.h"
 
+# below exists in 1.1.0 and later, but isn't documented until 3.0.0
+have_func "SSL_CTX_set_dh_auto(NULL, 0)"  , "openssl/ssl.h"
+
+# below is yes for 3.0.0 & later
+have_func "SSL_get1_peer_certificate"     , "openssl/ssl.h"
+
 # Hack so that try_link will test with a C++ compiler instead of a C compiler
 TRY_LINK.sub!('$(CC)', '$(CXX)')
 
