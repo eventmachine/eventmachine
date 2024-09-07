@@ -13,40 +13,62 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-24.04, ubuntu-22.04, ubuntu-20.04, windows-2022, macos-14, macos-13 ]
-        ruby: [ '2.3', '2.4', '2.5', '2.6', '2.7', '3.0', '3.1', '3.2', '3.3', head ]
+        os:
+          - ubuntu-20.04
+          - ubuntu-22.04
+          - ubuntu-24.04
+          - macos-13 # amd64
+          - macos-14 # arm64
+          - windows-2022
+
+        # We currently support four EOL versions of ruby, but only on linux
+        # versions that were released before that version of ruby went EOL.
+        ruby: [ '2.5', '2.6', '2.7', '3.0', '3.1', '3.2', '3.3', head ]
+
         include:
-          - { os: windows-2022, ruby: ucrt }
+          - { os: windows-2022, ruby: ucrt } # used instead of "head"
         exclude:
-          - { os: windows-2022, ruby: head }
+          - { os: windows-2022, ruby: head } # uses "ucrt" instead
 
-          # CRuby < 2.6 does not support macos-arm64, so these use amd64
-          - { os: macos-14, ruby: '2.3' }
-          - { os: macos-14, ruby: '2.4' }
+          # Ubuntu 20.04 was released just prior to ruby 2.4's EOL
+          # (no exclusions)
+
+          # Ubuntu 22.04 was released just prior to ruby 2.6's EOL
+          - { os: ubuntu-22.04, ruby: '2.5' }
+
+          # Ubuntu 24.04 was released just prior to ruby 3.0's EOL
+          - { os: ubuntu-24.04, ruby: '2.5' }
+          - { os: ubuntu-24.04, ruby: '2.6' }
+          - { os: ubuntu-24.04, ruby: '2.7' }
+
+          # No EOL versions for macos-13
+          - { os: macos-13, ruby: '2.5' }
+          - { os: macos-13, ruby: '2.6' }
+          - { os: macos-13, ruby: '2.7' }
+          - { os: macos-13, ruby: '3.0' }
+
+          # No EOL versions for macos-14
           - { os: macos-14, ruby: '2.5' }
+          - { os: macos-14, ruby: '2.6' }
+          - { os: macos-14, ruby: '2.7' }
+          - { os: macos-14, ruby: '3.0' }
 
-          # Avoids the following error:
-          #      Bundler 2 requires Ruby 2.3+, using Bundler 1 on Ruby <= 2.2
-          #      /opt/hostedtoolcache/Ruby/2.2.10/x64/bin/gem install bundler -v ~> 1.0
-          #      ERROR:  While executing gem ... (RuntimeError)
-          #          Marshal.load reentered at marshal_load
-          #
-          # See https://github.com/ruby/setup-ruby/issues/496
-          #
-          # This works fine on ubuntu 20.04 and 24.04.
-          # - { os: ubuntu-22.04, ruby: '2.2' }
+          # No EOL versions for windows-2022
+          - { os: windows-2022, ruby: '2.5' }
+          - { os: windows-2022, ruby: '2.6' }
+          - { os: windows-2022, ruby: '2.7' }
+          - { os: windows-2022, ruby: '3.0' }
 
     steps:
       - name: repo checkout
         uses: actions/checkout@v4
 
       - name: load ruby, run bundle install
-        uses: ruby/setup-ruby-pkgs@v1
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
           rubygems: ${{ (matrix.ruby < '2.7') && 'latest' || 'default' }}
-          mingw: ${{ (matrix.ruby < '2.4') && '_upgrade_ openssl' || '' }}
 
       - name: macOS disable firewall
         if: startsWith(matrix.os, 'macos')
@@ -73,8 +95,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # TODO: Fix macos-13, macos-14, windows-2022
         os: [ ubuntu-20.04, ubuntu-22.04, ubuntu-24.04 ]
-        ruby: [ '2.7', '3.0', '3.1', '3.2', '3.3', head ]
+        ruby: [ '3.1', '3.2', '3.3', head ]
     steps:
       - name: repo checkout
         uses: actions/checkout@v4
@@ -84,7 +107,6 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
-          rubygems: ${{ (matrix.ruby < '2.7') && 'latest' || 'default' }}
 
       - name: test_em_pure_ruby
         run:  bundle exec rake test_em_pure_ruby
