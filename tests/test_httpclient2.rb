@@ -92,16 +92,11 @@ class TestHttpClient2 < Test::Unit::TestCase
   def test_get_pipeline
     headers, headers2 = nil, nil
     EM.run {
-      setup_timeout TIMEOUT
+      # intermittent CI failures, external server w/two requests?
+      setup_timeout (TIMEOUT * 2)
       http = silent { EM::P::HttpClient2.connect "www.google.com", 80 }
-      d = http.get("/")
-      d.callback {
-        headers = d.headers
-      }
-      e = http.get("/")
-      e.callback {
-        headers2 = e.headers
-      }
+      http.get("/").callback { |resp| headers = resp.headers }
+      http.get("/").callback { |resp| headers2 = resp.headers }
       EM.tick_loop { EM.stop if headers && headers2 }
       EM.add_timer(1) { EM.stop }
     }
