@@ -178,7 +178,7 @@ module EMSSLHandlers
   end
 
   def client_server(c_hndlr = Client, s_hndlr = Server,
-    client: nil, server: nil, timeout: 3.0)
+    client: nil, server: nil, timeout: 3.0 * TIMEOUT_INTERVAL)
     EM.run do
       # fail safe stop
       setup_timeout timeout
