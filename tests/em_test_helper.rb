@@ -32,7 +32,7 @@ class Test::Unit::TestCase
     temp += %w[TLSv1 TLSv1_1 TLSv1_2]
     temp << 'TLSv1_3' if EM.const_defined? :EM_PROTO_TLSv1_3
     temp.sort!
-    puts "                      SSL_AVAIL: #{temp.join(' ')}", ""
+    puts "                      SSL_AVAIL: #{temp.join(' ')}"
     SSL_AVAIL = temp.freeze
   else
     puts "\nEventMachine is not built with OpenSSL support, skipping tests in",
@@ -147,13 +147,25 @@ class Test::Unit::TestCase
     def rbx?
       defined?(RUBY_ENGINE) && RUBY_ENGINE == 'rbx'
     end
+
+    def ci?
+      %w[1 t true y yes].any? {|t| t.casecmp(ENV.fetch("CI", "")).zero? }
+    end
+
+    def pure_ruby_mode?
+      EM.library_type == :pure_ruby
+    end
   end
 
   include PlatformHelper
   extend PlatformHelper
 
-  # Tests may run slower on windows or Appveyor. YMMV
-  TIMEOUT_INTERVAL = windows? || darwin? ? 0.50 : 0.25
+  # Tests may run slower on windows or CI.  YMMV
+  ci_multiplier = ci?                   ? 4 : 1
+  os_multiplier = (windows? || darwin?) ? 2 : 1
+  rb_multiplier = pure_ruby_mode?       ? 2 : 1
+  TIMEOUT_INTERVAL = 0.25 * ci_multiplier * os_multiplier * rb_multiplier
+  puts "               TIMEOUT_INTERVAL: #{TIMEOUT_INTERVAL}"
 
   module EMTestCasePrepend
     def setup
@@ -174,7 +186,6 @@ class Test::Unit::TestCase
       $VERBOSE = backup
     end
   end
-
 
   private
 
@@ -198,3 +209,5 @@ class Test::Unit::TestCase
     Socket.do_not_reverse_lookup = orig
   end
 end
+
+puts # empty line between debug output and test output
