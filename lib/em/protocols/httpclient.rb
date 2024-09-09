@@ -91,7 +91,7 @@ module EventMachine
 
       def post_init
         @start_time = Time.now
-        @data = ""
+        @data = "".dup
         @read_state = :base
       end
 
@@ -185,7 +185,7 @@ module EventMachine
             @data = "".dup
             @headers = []
             @content_length = nil # not zero
-            @content = ""
+            @content = "".dup
             @status = nil
             @chunked = false
             @chunk_length = nil
