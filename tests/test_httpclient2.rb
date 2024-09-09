@@ -93,8 +93,8 @@ class TestHttpClient2 < Test::Unit::TestCase
       # intermittent CI failures, external server w/two requests?
       setup_timeout TIMEOUT * 2.5
       http = silent { EM::P::HttpClient2.connect "www.google.com", 80 }
-      http.get("/").callback { |resp| headers  = resp.headers }.errback {EM.stop}
-      http.get("/").callback { |resp| headers2 = resp.headers }.errback {EM.stop}
+      http.get("/").callback { |resp| headers  = resp.headers }.errback { EM.stop }
+      http.get("/").callback { |resp| headers2 = resp.headers }.errback { EM.stop }
       EM.tick_loop { EM.stop if headers && headers2 }
     }
     assert(headers)
