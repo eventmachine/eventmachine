@@ -740,6 +740,8 @@ module EventMachine
     #
     # @option args [Boolean] :http_chunks (false) If true, this method will stream the file data in a format
     #                                             compatible with the HTTP chunked-transfer encoding
+    # @option args [Fixnum]  :position    (0)     Position (in bytes) to start reading the file from. Only
+    #                                             applies to files larger than 16k.
     #
     # @param [String] filename Local path of the file to stream
     # @param [Hash] args Options
