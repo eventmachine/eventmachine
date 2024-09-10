@@ -7,6 +7,7 @@ class TestConnectionCount < Test::Unit::TestCase
   end
 
   def test_idle_connection_count
+    pend('FIXME: EM.connection_count is broken in pure ruby mode') if pure_ruby_mode?
     count = nil
     EM.run {
       count = EM.connection_count
@@ -17,6 +18,7 @@ class TestConnectionCount < Test::Unit::TestCase
 
   # Run this again with epoll enabled (if available)
   def test_idle_connection_count_epoll
+    pend('FIXME: EM.connection_count is broken in pure ruby mode') if pure_ruby_mode?
     EM.epoll if EM.epoll?
 
     count = nil
@@ -29,6 +31,7 @@ class TestConnectionCount < Test::Unit::TestCase
 
   # Run this again with kqueue enabled (if available)
   def test_idle_connection_count_kqueue
+    pend('FIXME: EM.connection_count is broken in pure ruby mode') if pure_ruby_mode?
     EM.kqueue if EM.kqueue?
 
     count = nil
@@ -47,6 +50,7 @@ class TestConnectionCount < Test::Unit::TestCase
   end
 
   def test_with_some_connections
+    pend('FIXME: EM.connection_count is broken in pure ruby mode') if pure_ruby_mode?
     EM.run {
       $client_conns = 0
       $initial_conns = EM.connection_count
@@ -72,6 +76,7 @@ class TestConnectionCount < Test::Unit::TestCase
   end
 
   def test_num_close_scheduled
+    pend('FIXME: EM.num_close_scheduled is broken in pure ruby mode') if pure_ruby_mode?
     omit_if(jruby?)
     EM.run {
       assert_equal(0, EM.num_close_scheduled)

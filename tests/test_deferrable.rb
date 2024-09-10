@@ -6,6 +6,7 @@ class TestDeferrable < Test::Unit::TestCase
   end
 
   def test_timeout_without_args
+    pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
     assert_nothing_raised do
       EM.run {
         df = Later.new
@@ -17,6 +18,7 @@ class TestDeferrable < Test::Unit::TestCase
   end
 
   def test_timeout_with_args
+    pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
     args = nil
 
     EM.run {

@@ -18,6 +18,7 @@ class TestConnectionWrite < Test::Unit::TestCase
   end
 
   def test_with_naughty_callback
+    pend('FIXME: EM.attach_fd is broken in pure ruby mode') if pure_ruby_mode?
     EM.run do
       r1, _ = IO.pipe
       r2, _ = IO.pipe

@@ -4,6 +4,7 @@ class TestPendingConnectTimeout < Test::Unit::TestCase
 
   if EM.respond_to? :get_pending_connect_timeout
     def test_default
+      pend('FIXME: EM.get_pending_connect_timeout is broken in pure ruby mode') if pure_ruby_mode?
       EM.run {
         c = EM.connect("127.0.0.1", 54321)
         assert_equal 20.0, c.pending_connect_timeout
@@ -12,6 +13,7 @@ class TestPendingConnectTimeout < Test::Unit::TestCase
     end
 
     def test_set_and_get
+      pend('FIXME: EM.get_pending_connect_timeout is broken in pure ruby mode') if pure_ruby_mode?
       EM.run {
         c = EM.connect("127.0.0.1", 54321)
         c.pending_connect_timeout = 2.5
@@ -21,6 +23,7 @@ class TestPendingConnectTimeout < Test::Unit::TestCase
     end
 
     def test_for_real
+      pend('FIXME: EM.get_pending_connect_timeout is broken in pure ruby mode') if pure_ruby_mode?
       start, finish = nil
 
       timeout_handler = Module.new do

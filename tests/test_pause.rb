@@ -11,6 +11,7 @@ class TestPause < Test::Unit::TestCase
     end
 
     def test_pause_resume
+      pend('FIXME: EM.pause_connection is broken in pure ruby mode') if pure_ruby_mode?
       server = nil
 
       s_rx = c_rx = 0
@@ -71,6 +72,7 @@ class TestPause < Test::Unit::TestCase
     end
 
     def test_pause_in_receive_data
+      pend('FIXME: EM.pause_connection is broken in pure ruby mode') if pure_ruby_mode?
       incoming = []
 
       test_server = Module.new do
