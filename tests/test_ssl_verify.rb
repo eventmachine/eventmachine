@@ -35,7 +35,6 @@ class TestSSLVerify < Test::Unit::TestCase
   end
 
   def test_accept_server
-    omit_if(EM.library_type == :pure_ruby) # Server has a default cert chain
     omit_if(rbx?)
 
     server = { verify_peer: true, ssl_verify_result: true }
@@ -48,7 +47,6 @@ class TestSSLVerify < Test::Unit::TestCase
   end
 
   def test_accept_client
-    omit_if(EM.library_type == :pure_ruby) # Server has a default cert chain
     omit_if(rbx?)
 
     client = { verify_peer: true, ssl_verify_result: true }
@@ -61,7 +59,6 @@ class TestSSLVerify < Test::Unit::TestCase
   end
 
   def test_encoded_accept_server
-    omit_if(EM.library_type == :pure_ruby) # Server has a default cert chain
     omit_if(rbx?)
 
     server = { verify_peer: true, ssl_verify_result: true }
@@ -74,7 +71,6 @@ class TestSSLVerify < Test::Unit::TestCase
   end
 
   def test_encoded_accept_client
-    omit_if(EM.library_type == :pure_ruby) # Server has a default cert chain
     omit_if(rbx?)
 
     client = { verify_peer: true, ssl_verify_result: true }
@@ -87,7 +83,6 @@ class TestSSLVerify < Test::Unit::TestCase
   end
 
   def test_deny_server
-    omit_if(EM.library_type == :pure_ruby) # Server has a default cert chain
     omit_if(rbx?)
 
     server = { verify_peer: true, ssl_verify_result: false }
@@ -100,7 +95,6 @@ class TestSSLVerify < Test::Unit::TestCase
   end
 
   def test_deny_client
-    omit_if(EM.library_type == :pure_ruby) # Server has a default cert chain
     omit_if(rbx?)
 
     client = { verify_peer: true, ssl_verify_result: false }
