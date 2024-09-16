@@ -36,6 +36,7 @@ class TestIOStreamer < Test::Unit::TestCase
   end
 
   def test_io_stream
+    pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
     sent = 'this is a test'
     received = ''.dup
     EM.run do

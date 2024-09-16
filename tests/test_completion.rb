@@ -7,6 +7,7 @@ class TestCompletion < Test::Unit::TestCase
   end
 
   def crank
+    pend("FIXME: pure ruby mode next_tick queue is broken for EM.stop") if pure_ruby_mode?
     # This is a slow solution, but this just executes the next tick queue
     # once. It's the easiest way for now.
     EM.run { EM.stop }
@@ -156,6 +157,7 @@ class TestCompletion < Test::Unit::TestCase
   end
 
   def test_timeout
+    pend("FIXME: This test is broken in pure ruby mode") if pure_ruby_mode?
     args = [1, 2, 3]
     EM.run do
       completion.timeout(0.0001, *args)

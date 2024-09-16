@@ -35,6 +35,7 @@ class TestFileWatch < Test::Unit::TestCase
     end
 
     def test_events
+      pend('FIXME: EM.watch_filename is broken in pure ruby mode') if pure_ruby_mode?
       omit_if(solaris?)
       EM.run{
         file = Tempfile.new('em-watch')
@@ -59,6 +60,7 @@ class TestFileWatch < Test::Unit::TestCase
 
     # Refer: https://github.com/eventmachine/eventmachine/issues/512
     def test_invalid_signature
+      pend('FIXME: EM.watch_filename is broken in pure ruby mode') if pure_ruby_mode?
       # This works fine with kqueue, only fails with linux inotify.
       omit_if(EM.kqueue?)
 

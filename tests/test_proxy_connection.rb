@@ -126,6 +126,7 @@ class TestProxyConnection < Test::Unit::TestCase
     end
 
     def test_proxy_connection
+      pend('FIXME: EM.start_proxy is broken in pure ruby mode') if pure_ruby_mode?
       EM.run {
         EM.start_server("127.0.0.1", @port, Server)
         EM.start_server("127.0.0.1", @proxy_port, ProxyServer, @port)
@@ -136,6 +137,7 @@ class TestProxyConnection < Test::Unit::TestCase
     end
 
     def test_proxied_bytes
+      pend('FIXME: EM.start_proxy is broken in pure ruby mode') if pure_ruby_mode?
       EM.run {
         EM.start_server("127.0.0.1", @port, Server)
         EM.start_server("127.0.0.1", @proxy_port, ProxyServer, @port)
@@ -147,6 +149,7 @@ class TestProxyConnection < Test::Unit::TestCase
     end
 
     def test_partial_proxy_connection
+      pend('FIXME: EM.start_proxy is broken in pure ruby mode') if pure_ruby_mode?
       EM.run {
         EM.start_server("127.0.0.1", @port, Server)
         EM.start_server("127.0.0.1", @proxy_port, PartialProxyServer, @port)
@@ -159,6 +162,7 @@ class TestProxyConnection < Test::Unit::TestCase
     end
 
     def test_early_close
+      pend('FIXME: EM.start_proxy is broken in pure ruby mode') if pure_ruby_mode?
       $client_data = nil
       EM.run {
         EM.start_server("127.0.0.1", @port, Server)

@@ -242,6 +242,26 @@ module EventMachine
     def epoll
     end
 
+    # Pure ruby mode does not allow setting epoll
+    # @private
+    def epoll=(bool)
+      bool and raise Unsupported, "EM.epoll is not supported in pure_ruby mode"
+    end
+
+    # Pure ruby mode does not support epoll
+    # @private
+    def epoll?;  false end
+
+    # Pure ruby mode does not support kqueue
+    # @private
+    def kqueue?; false end
+
+    # Pure ruby mode does not allow setting kqueue
+    # @private
+    def kqueue=(bool)
+      bool and raise Unsupported, "EM.kqueue is not supported in pure_ruby mode"
+    end
+
     # @private
     def ssl?
       true

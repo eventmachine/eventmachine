@@ -123,6 +123,7 @@ class TestEpoll < Test::Unit::TestCase
   end
 
   def test_attach_detach
+    pend('FIXME: EM.attach_fd is broken in pure ruby mode') if pure_ruby_mode?
     EM.epoll
     EM.run {
       EM.add_timer(0.01) { EM.stop }

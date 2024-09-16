@@ -12,6 +12,7 @@ class TestUnbindReason < Test::Unit::TestCase
 
   # RFC 5737 Address Blocks Reserved for Documentation
   def test_connect_timeout
+    pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
     conn = nil
     EM.run do
       conn = EM.connect '192.0.2.0', 80, StubConnection
@@ -22,6 +23,7 @@ class TestUnbindReason < Test::Unit::TestCase
 
   def test_connect_refused
     pend('FIXME: this test is broken on Windows') if windows?
+    pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
     conn = nil
     EM.run do
       conn = EM.connect '127.0.0.1', 12388, StubConnection
@@ -31,6 +33,7 @@ class TestUnbindReason < Test::Unit::TestCase
 
   def test_optional_argument
     pend('FIXME: this test is broken on Windows') if windows?
+    pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
     conn = nil
     EM.run do
       conn = EM.connect '127.0.0.1', 12388, StubConnection

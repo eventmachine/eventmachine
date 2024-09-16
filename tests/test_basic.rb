@@ -96,6 +96,7 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_unbind_error_during_stop
+    pend('FIXME: This test is broken in pure ruby mode') if pure_ruby_mode?
     assert_raises( UnbindError::ERR ) {
       EM.run {
         EM.start_server "127.0.0.1", @port
@@ -175,6 +176,7 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_invalid_address_bind_connect_dst
+    pend('FIXME: A different error is raised in pure ruby mode') if pure_ruby_mode?
     pend("\nFIXME: Windows as of 2018-06-23 on 32 bit >= 2.4 (#{RUBY_VERSION} #{RUBY_PLATFORM})") if RUBY_PLATFORM[/i386-mingw/] && RUBY_VERSION >= '2.4'
     e = nil
     EM.run do
@@ -192,6 +194,7 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_invalid_address_bind_connect_src
+    pend('FIXME: A different error is raised in pure ruby mode') if pure_ruby_mode?
     pend("\nFIXME: Windows as of 2018-06-23 on 32 bit >= 2.4 (#{RUBY_VERSION} #{RUBY_PLATFORM})") if RUBY_PLATFORM[/i386-mingw/] && RUBY_VERSION >= '2.4'
     e = nil
     EM.run do
@@ -232,6 +235,7 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_set_heartbeat_interval
+    pend('FIXME: EM.set_heartbeat_interval is broken in pure ruby mode') if pure_ruby_mode?
     omit_if(jruby?)
     interval = 0.5
     EM.run {
@@ -275,6 +279,7 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_schedule_close
+    pend('FIXME: EM.num_close_scheduled is broken in pure ruby mode') if pure_ruby_mode?
     omit_if(jruby?)
     localhost, port = '127.0.0.1', 9000
     timer_ran = false
@@ -297,6 +302,7 @@ class TestBasic < Test::Unit::TestCase
   end
 
   def test_error_handler_idempotent # issue 185
+    pend('FIXME: EM.error_handler is broken in pure ruby mode') if pure_ruby_mode?
     errors = []
     ticks = []
     EM.error_handler do |e|

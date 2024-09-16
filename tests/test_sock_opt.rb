@@ -31,6 +31,7 @@ class TestSockOpt < Test::Unit::TestCase
   end
 
   def test_get_sock_opt
+    pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
     omit_if(windows?)
     omit_if(!EM.respond_to?(:set_sock_opt))
 

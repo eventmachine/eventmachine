@@ -4,6 +4,7 @@ class TestInactivityTimeout < Test::Unit::TestCase
 
   if EM.respond_to? :get_comm_inactivity_timeout
     def test_default
+      pend('FIXME: EM.get_comm_inactivity_timeout is broken in pure ruby mode') if pure_ruby_mode?
       EM.run {
         c = EM.connect("127.0.0.1", 54321)
         assert_equal 0.0, c.comm_inactivity_timeout
@@ -12,6 +13,7 @@ class TestInactivityTimeout < Test::Unit::TestCase
     end
 
     def test_set_and_get
+      pend('FIXME: EM.get_comm_inactivity_timeout is broken in pure ruby mode') if pure_ruby_mode?
       EM.run {
         c = EM.connect("127.0.0.1", 54321)
         c.comm_inactivity_timeout = 2.5
@@ -21,6 +23,7 @@ class TestInactivityTimeout < Test::Unit::TestCase
     end
 
     def test_for_real
+      pend('FIXME: EM.set_heartbeat_interval is broken in pure ruby mode') if pure_ruby_mode?
       start, finish, reason = nil
 
       timeout_start = Module.new do

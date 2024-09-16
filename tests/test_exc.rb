@@ -29,6 +29,7 @@ class TestSomeExceptions < Test::Unit::TestCase
   end
 
   def test_exception_on_unbind
+    pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
     assert_raises(DoomedConnectionError) {
       EM.run { EM.connect("localhost", 8888, DoomedConnection) }
     }

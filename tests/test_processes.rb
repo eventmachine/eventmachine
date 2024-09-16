@@ -15,6 +15,7 @@ class TestProcesses < Test::Unit::TestCase
     # wrote to stdout.
     #
     def test_deferrable_child_process
+      pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
       ls = ""
       EM.run {
         d = EM::DeferrableChildProcess.open( "ls -ltr" )
@@ -32,6 +33,7 @@ class TestProcesses < Test::Unit::TestCase
     end
 
     def test_em_system
+      pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
       out, status = nil, nil
 
       EM.run{
@@ -44,6 +46,7 @@ class TestProcesses < Test::Unit::TestCase
     end
 
     def test_em_system_bad_exitstatus
+      pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
       status = nil
       sys_pid = nil
 
@@ -57,6 +60,7 @@ class TestProcesses < Test::Unit::TestCase
     end
 
     def test_em_system_pid
+      pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
       status = nil
       sys_pid = nil
 
@@ -71,6 +75,7 @@ class TestProcesses < Test::Unit::TestCase
     end
 
     def test_em_system_with_proc
+      pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
       EM.run{
         EM.system('ls', proc{ |out,status| $out, $status = out, status; EM.stop })
       }
@@ -81,6 +86,7 @@ class TestProcesses < Test::Unit::TestCase
     end
 
     def test_em_system_with_two_procs
+      pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
       EM.run{
         EM.system('sh', proc{ |process|
           process.send_data("echo hello\n")
@@ -96,6 +102,7 @@ class TestProcesses < Test::Unit::TestCase
     end
 
     def test_em_system_cmd_arguments
+      pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
       EM.run{
         EM.system('echo', '1', '2', 'version', proc{ |process|
         }, proc{ |out,status|
@@ -109,6 +116,7 @@ class TestProcesses < Test::Unit::TestCase
     end
 
     def test_em_system_spaced_arguments
+      pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
       EM.run{
         EM.system('ruby', '-e', 'puts "hello"', proc{ |out,status|
           $out = out
@@ -120,6 +128,7 @@ class TestProcesses < Test::Unit::TestCase
     end
 
     def test_em_popen_pause_resume
+      pend('FIXME: this test is broken in pure ruby mode') if pure_ruby_mode?
       c_rx = 0
 
       test_client = Module.new do

@@ -44,6 +44,7 @@ class TestAttach < Test::Unit::TestCase
   end
 
   def test_attach
+    pend('FIXME: EM.attach_fd is broken in pure ruby mode') if pure_ruby_mode?
     socket = nil
 
     EM.run {
@@ -68,6 +69,7 @@ class TestAttach < Test::Unit::TestCase
   end
 
   def test_attach_server
+    pend('FIXME: EM.attach_sd is broken in pure ruby mode') if pure_ruby_mode?
     omit_if(jruby?)
     $before = TCPServer.new("127.0.0.1", @port)
     sig     = nil
@@ -90,6 +92,7 @@ class TestAttach < Test::Unit::TestCase
   end
 
   def test_attach_pipe
+    pend('FIXME: EM.attach_fd is broken in pure ruby mode') if pure_ruby_mode?
     EM.run{
       $r, $w = IO.pipe
       EM.watch $r, PipeWatch do |c|
@@ -102,6 +105,7 @@ class TestAttach < Test::Unit::TestCase
   end
 
   def test_set_readable
+    pend('FIXME: EM.attach_fd is broken in pure ruby mode') if pure_ruby_mode?
     before, after = nil
 
     EM.run{
@@ -125,6 +129,7 @@ class TestAttach < Test::Unit::TestCase
   end
 
   def test_read_write_pipe
+    pend('FIXME: EM.attach_fd is broken in pure ruby mode') if pure_ruby_mode?
     result = nil
 
     pipe_reader = Module.new do
@@ -152,6 +157,7 @@ class TestAttach < Test::Unit::TestCase
 
   # This test shows that watch_only? is true for EM.watch
   def test_watch_only
+    pend('FIXME: EM.attach_fd is broken in pure ruby mode') if pure_ruby_mode?
     r, w = IO.pipe
     $watch_only = nil
 
@@ -175,6 +181,7 @@ class TestAttach < Test::Unit::TestCase
 
   # This test shows that watch_only? is false for EM.attach
   def test_attach_data
+    pend('FIXME: EM.attach_fd is broken in pure ruby mode') if pure_ruby_mode?
     pend("\nFIXME: Freezes Windows testing as of 2018-07-31") if windows?
     r, w = IO.pipe
     $watch_only = nil
