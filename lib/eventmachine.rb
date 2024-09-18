@@ -24,6 +24,7 @@ require 'em/buftok'
 require 'em/timers'
 require 'em/protocols'
 require 'em/connection'
+require 'em/ssl'
 require 'em/callback'
 require 'em/queue'
 require 'em/channel'
@@ -1538,7 +1539,9 @@ module EventMachine
       c.ssl_handshake_completed
     elsif opcode == SslVerify
       c = @conns[conn_binding] or raise ConnectionNotBound, "received SslVerify for unknown signature: #{conn_binding}"
-      result = c.ssl_verify_peer(data) or c.close_connection
+      result = (c.original_method(:ssl_verify_peer).arity == 1) ?
+        c.ssl_verify_peer(data[1].current_cert.to_pem) : c.ssl_verify_peer(*data)
+      c.close_connection unless result
       result
     elsif opcode == TimerFired
       t = @timers.delete( data )

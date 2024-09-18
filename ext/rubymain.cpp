@@ -57,6 +57,10 @@ Statics
 
 static VALUE EmModule;
 static VALUE EmConnection;
+static VALUE mEmSsl;
+static VALUE mEmSslX509;
+static VALUE cEmSslX509StoreContext;
+
 static VALUE EmConnsHash;
 static VALUE EmTimersHash;
 
@@ -111,6 +115,155 @@ static inline VALUE ensure_conn(const uintptr_t signature)
 	return conn;
 }
 
+/****************
+em_ssl_verify_cb_call
+****************/
+
+#ifdef WITH_SSL
+
+// adapted from stdlib openssl's ossl_str_new_i
+static VALUE em_ssl_str_new_i(VALUE size)
+{
+	return rb_str_new(NULL, (long)size);
+}
+
+// adapted from stdlib openssl's ossl_str_new
+VALUE em_ssl_str_new(const char *ptr, long len, int *pstate)
+{
+	VALUE str;
+	int state;
+
+	str = rb_protect(em_ssl_str_new_i, len, &state);
+	if (pstate)
+		*pstate = state;
+	if (state) {
+		if (!pstate)
+			rb_set_errinfo(Qnil);
+		return Qnil;
+	}
+	if (ptr)
+		memcpy(RSTRING_PTR(str), ptr, len);
+	return str;
+}
+
+// adapted from stdlib openssl's ossl_membio2str
+VALUE em_ssl_membio2str(BIO *bio)
+{
+	VALUE ret;
+	int state;
+	BUF_MEM *buf;
+
+	BIO_get_mem_ptr(bio, &buf);
+	ret = em_ssl_str_new(buf->data, buf->length, &state);
+	BIO_free(bio);
+	if (state)
+		rb_jump_tag(state);
+
+	return ret;
+}
+
+// adapted from stdlib openssl's ossl_x509_to_pem
+static VALUE em_ssl_x509_to_pem(X509 *x509)
+{
+	BIO *out;
+	VALUE str;
+
+	out = BIO_new(BIO_s_mem());
+	if (!out) rb_raise(rb_eRuntimeError, "%s", "EventMachine X509 cert error");
+
+	if (!PEM_write_bio_X509(out, x509)) {
+		BIO_free(out);
+		rb_raise(rb_eRuntimeError, "%s", "EventMachine X509 cert error");
+	}
+	str = em_ssl_membio2str(out);
+
+	return str;
+}
+
+// similar to stdlib openssl's ossl_x509stctx_new
+static VALUE em_ssl_x509stctx_new(X509_STORE_CTX *ctx)
+{
+	int   error_code   = X509_STORE_CTX_get_error(ctx);
+	VALUE error        = INT2NUM(error_code);
+	VALUE error_string = rb_str_new2(X509_verify_cert_error_string(error_code));
+	VALUE error_depth  = INT2NUM(X509_STORE_CTX_get_error_depth(ctx));
+	X509 *x509         = X509_STORE_CTX_get_current_cert(ctx);
+	VALUE current_cert = em_ssl_x509_to_pem(x509);
+
+	VALUE args[4] = { current_cert, error_depth, error, error_string, };
+	return rb_class_new_instance(4, args, cEmSslX509StoreContext);
+}
+
+// adapted from stdlib openssl's ossl_x509stctx_new_i
+static VALUE em_ssl_x509stctx_new_i(VALUE arg)
+{
+	return em_ssl_x509stctx_new((X509_STORE_CTX *)arg);
+}
+
+// adapted from stdlib openssl's ossl_verify_cb_args
+struct em_ssl_verify_cb_args {
+	VALUE conn;
+	VALUE preverify_ok;
+	VALUE store_ctx;
+};
+
+// similar to stdlib openssl's call_verify_cb_proc
+static VALUE em_ssl_call_verify_peer(VALUE arg)
+{
+	struct em_ssl_verify_cb_args *args = (struct em_ssl_verify_cb_args *)arg;
+	if (rb_obj_method_arity(args->conn, Intern_ssl_verify_peer) == 1) {
+		// Backwards compatibility:
+		VALUE cert = rb_funcall(args->store_ctx, rb_intern("current_cert"), 0);
+		VALUE pem = rb_funcall(cert, rb_intern("to_pem"), 0);
+		return rb_funcall(args->conn, Intern_ssl_verify_peer,
+		                  1, pem);
+	} else {
+		return rb_funcall(args->conn, Intern_ssl_verify_peer,
+		                  2, args->preverify_ok, args->store_ctx);
+	}
+}
+
+// adapted from stdlib openssl's ossl_verify_cb_call
+extern "C" int em_ssl_verify_cb_call(VALUE conn, int ok, X509_STORE_CTX *ctx)
+{
+	VALUE rctx, ret;
+	struct em_ssl_verify_cb_args args;
+	int state;
+
+	if (NIL_P(conn))
+		return ok;
+
+	ret = Qfalse;
+	rctx = rb_protect(em_ssl_x509stctx_new_i, (VALUE)ctx, &state);
+	if (state) {
+		rb_set_errinfo(Qnil);
+		rb_warn("StoreContext initialization failure");
+	}
+	else {
+		args.conn = conn;
+		args.preverify_ok = ok ? Qtrue : Qfalse;
+		args.store_ctx = rctx;
+		ret = rb_protect(em_ssl_call_verify_peer, (VALUE)&args, &state);
+		if (state) {
+			rb_set_errinfo(Qnil);
+			rb_warn("exception in verify_peer is ignored");
+		}
+		// RTYPEDDATA_DATA(rctx) = NULL; // rctx isn't RTYPEDDATA here
+	}
+	if (ret == Qtrue) {
+		X509_STORE_CTX_set_error(ctx, X509_V_OK);
+		ok = 1;
+	}
+	else {
+		if (X509_STORE_CTX_get_error(ctx) == X509_V_OK)
+			X509_STORE_CTX_set_error(ctx, X509_V_ERR_CERT_REJECTED);
+		ok = 0;
+	}
+
+	return ok;
+}
+
+#endif
 
 /****************
 t_event_callback
@@ -188,9 +341,10 @@ static inline VALUE event_callback (VALUE e_value)
 		case EM_SSL_VERIFY:
 		{
 			VALUE conn = ensure_conn(signature);
-			VALUE should_accept = rb_funcall (conn, Intern_ssl_verify_peer, 1, rb_str_new(data_str, data_num));
-			if (RTEST(should_accept))
+			X509_STORE_CTX *ctx = (X509_STORE_CTX *)data_str;
+			if (em_ssl_verify_cb_call(conn, data_num, ctx))
 				evma_accept_ssl_peer (signature);
+
 			return Qnil;
 		}
 		#endif
@@ -1491,6 +1645,9 @@ extern "C" void Init_rubyeventmachine()
 	// Must deprecate the without_threads variant.
 	EmModule = rb_define_module ("EventMachine");
 	EmConnection = rb_define_class_under (EmModule, "Connection", rb_cObject);
+	mEmSsl = rb_define_module_under (EmModule, "SSL");
+	mEmSslX509 = rb_define_module_under (mEmSsl, "X509");
+	cEmSslX509StoreContext = rb_define_class_under (mEmSslX509, "StoreContext", rb_cObject);
 
 	rb_define_class_under (EmModule, "NoHandlerForAcceptedConnection", rb_eRuntimeError);
 	EM_eConnectionError = rb_define_class_under (EmModule, "ConnectionError", rb_eRuntimeError);
