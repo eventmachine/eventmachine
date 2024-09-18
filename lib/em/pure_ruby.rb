@@ -262,6 +262,68 @@ module EventMachine
       bool and raise Unsupported, "EM.kqueue is not supported in pure_ruby mode"
     end
 
+    NOT_IMPLEMENTED_ATTR_READERS = %i[
+      current_time
+      get_connection_count
+      get_heartbeat_interval
+      get_max_timer_count
+      get_simultaneous_accept_count
+      get_timer_count
+      num_close_scheduled
+    ].freeze
+
+    NOT_IMPLEMENTED_ATTR_WRITERS = %i[
+      set_heartbeat_interval
+      set_simultaneous_accept_count
+    ].freeze
+
+    NOT_IMPLEMENTED_METHODS = %i[
+      attach_fd
+      attach_sd
+      connection_paused?
+      detach_fd
+      get_file_descriptor
+      get_comm_inactivity_timeout
+      get_pending_connect_timeout
+      get_subprocess_pid
+      get_subprocess_status
+      get_proxied_bytes
+      invoke_popen
+      is_notify_readable
+      is_notify_writable
+      pause_connection
+      resume_connection
+      run_machine_once
+      set_notify_readable
+      set_notify_writable
+      setuid_string
+      start_proxy
+      stop_proxy
+      unwatch_filename
+      unwatch_pid
+      watch_filename
+      watch_only?
+      watch_pid
+    ].freeze
+
+    NOT_IMPLEMENTED_ATTR_READERS.each do |attr|
+      define_method(attr) do
+        raise Unsupported, "EM.#{attr} is not implemented in pure_ruby mode"
+      end
+    end
+
+    NOT_IMPLEMENTED_ATTR_WRITERS.each do |attr|
+      define_method(attr) do |_|
+        raise Unsupported, "EM.#{attr}(val) is not implemented in pure_ruby mode"
+      end
+    end
+
+    NOT_IMPLEMENTED_METHODS.each do |method|
+      define_method(method) do |*args, **kwargs, &block|
+        raise Unsupported, "EM.#{method}(...) is not implemented in pure_ruby mode"
+      end
+    end
+
     # @private
     def ssl?
       true
@@ -514,6 +576,14 @@ module EventMachine
     # @private
     def get_outbound_data_size
       EventMachine::get_outbound_data_size @signature
+    end
+
+    def enable_keepalive(*)
+      raise Unsupported, "EM::Connection#enable_keepalive is not implemented pure ruby mode"
+    end
+
+    def disable_keepalive
+      warn "EM::Connection#disable_keepalive is not implemented pure ruby mode"
     end
   end
 end
