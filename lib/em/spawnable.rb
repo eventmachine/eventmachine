@@ -36,7 +36,7 @@ module EventMachine
         # work as one would expect.
         #
         y = me.call(*x)
-        if y and y.respond_to?(:pull_out_yield_block)
+        if y && y.respond_to?(:pull_out_yield_block)
           a,b = y.pull_out_yield_block
           set_receiver a
           self.notify if b

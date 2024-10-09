@@ -188,7 +188,7 @@ module EventMachine
               (@headers[hdr.downcase] ||= []) << val
             end
 
-            if clen == nil and e =~ ClenRE
+            if clen == nil && e =~ ClenRE
               clen = $1.dup.to_i
             end
             if e =~ ChunkedRE
@@ -293,7 +293,7 @@ module EventMachine
       #
       # @private
       def set_default_host_header host, port, ssl
-        if (ssl and port != 443) or (!ssl and port != 80)
+        if (ssl && port != 443) || (!ssl && port != 80)
           @host_header = "#{host}:#{port}"
         else
           @host_header = host
@@ -548,7 +548,7 @@ module EventMachine
 
       clen = nil
       @current_response.headers.each do |e|
-        if clen == nil and e =~ ClenRE
+        if clen == nil && e =~ ClenRE
           clen = $1.dup.to_i
         end
       end

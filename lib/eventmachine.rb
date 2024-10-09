@@ -1,4 +1,4 @@
-if defined?(EventMachine.library_type) and EventMachine.library_type == :pure_ruby
+if defined?(EventMachine.library_type) && EventMachine.library_type == :pure_ruby
   # assume 'em/pure_ruby' was loaded already
 elsif RUBY_PLATFORM =~ /java/
   require 'java'
@@ -157,7 +157,7 @@ module EventMachine
     # will start without release_machine being called and will immediately throw
 
     #
-    if @reactor_running and @reactor_pid != Process.pid
+    if @reactor_running && @reactor_pid != Process.pid
       # Reactor was started in a different parent, meaning we have forked.
       # Clean up reactor state so a new reactor boots up in this child.
       stop_event_loop
@@ -590,7 +590,7 @@ module EventMachine
   #
   #     def receive_data data
   #       @data << data
-  #       if !@parsed and @data =~ /[\n][\r]*[\n]/m
+  #       if !@parsed && @data =~ /[\n][\r]*[\n]/m
   #         @parsed = true
   #         puts "RECEIVED HTTP HEADER:"
   #         $`.each {|line| puts ">>> #{line}" }
@@ -747,7 +747,7 @@ module EventMachine
   def EventMachine::attach_io io, watch_mode, handler=nil, *args
     klass = klass_from_handler(Connection, handler, *args)
 
-    if !watch_mode and klass.public_instance_methods.any?{|m| [:notify_readable, :notify_writable].include? m.to_sym }
+    if !watch_mode && klass.public_instance_methods.any?{|m| [:notify_readable, :notify_writable].include? m.to_sym }
       raise ArgumentError, "notify_readable/writable with EM.attach is not supported. Use EM.watch(io){ |c| c.notify_readable = true }"
     end
 
@@ -1094,10 +1094,10 @@ module EventMachine
   # callbacks have been fired.
   #
   def self.defers_finished?
-    return false if @threadpool and !@all_threads_spawned
-    return false if @threadqueue and not @threadqueue.empty?
-    return false if @resultqueue and not @resultqueue.empty?
-    return false if @threadpool and @threadqueue.num_waiting != @threadpool.size
+    return false if @threadpool && !@all_threads_spawned
+    return false if @threadqueue && !(@threadqueue.empty?)
+    return false if @resultqueue && !(@resultqueue.empty?)
+    return false if @threadpool && @threadqueue.num_waiting != @threadpool.size
     return true
   end
 
@@ -1362,7 +1362,7 @@ module EventMachine
   #
   # @param [#call] cb Global catch-all errback
   def self.error_handler cb = nil, &blk
-    if cb or blk
+    if cb || blk
       @error_handler = cb || blk
     elsif instance_variable_defined? :@error_handler
       remove_instance_variable :@error_handler
@@ -1485,7 +1485,7 @@ module EventMachine
             c.unbind
           end
           # If this is an attached (but not watched) connection, close the underlying io object.
-          if c.instance_variable_defined?(:@io) and !c.instance_variable_get(:@watch_mode)
+          if c.instance_variable_defined?(:@io) && !c.instance_variable_get(:@watch_mode)
             io = c.instance_variable_get(:@io)
             begin
               io.close
@@ -1574,7 +1574,7 @@ module EventMachine
 
   # @private
   def self.klass_from_handler(klass = Connection, handler = nil, *args)
-    klass = if handler and handler.is_a?(Class)
+    klass = if handler && handler.is_a?(Class)
       raise ArgumentError, "must provide module or subclass of #{klass.name}" unless klass >= handler
       handler
     elsif handler
@@ -1589,7 +1589,7 @@ module EventMachine
 
     arity = klass.instance_method(:initialize).arity
     expected = arity >= 0 ? arity : -(arity + 1)
-    if (arity >= 0 and args.size != expected) or (arity < 0 and args.size < expected)
+    if (arity >= 0 && args.size != expected) || (arity < 0 && args.size < expected)
       raise ArgumentError, "wrong number of arguments for #{klass}#initialize (#{args.size} for #{expected})"
     end
 

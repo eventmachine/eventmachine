@@ -77,7 +77,7 @@ module EventMachine
       old = @concurrency
       @concurrency = val
 
-      spawn_workers if val > old and @started and !@ended
+      spawn_workers if val > old && @started && !@ended
     end
     attr_reader :concurrency
 
@@ -97,14 +97,14 @@ module EventMachine
     #
     def each(foreach=nil, after=nil, &blk)
       raise ArgumentError, 'proc or block required for iteration' unless foreach ||= blk
-      raise RuntimeError, 'cannot iterate over an iterator more than once' if @started or @ended
+      raise RuntimeError, 'cannot iterate over an iterator more than once' if @started || @ended
 
       @started = true
       @pending = 0
       @workers = 0
 
       all_done = proc{
-        after.call if after and @ended and @pending == 0
+        after.call if after && @ended && @pending == 0
       }
 
       @process_next = proc{
@@ -225,7 +225,7 @@ module EventMachine
     #
     def spawn_workers
       EM.next_tick(start_worker = proc{
-        if @workers < @concurrency and !@ended
+        if @workers < @concurrency && !@ended
           # p [:spawning_worker, :workers=, @workers, :concurrency=, @concurrency, :ended=, @ended]
           @workers += 1
           @process_next.call
