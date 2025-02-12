@@ -15,7 +15,6 @@ class TestIterator < Test::Unit::TestCase
   end
 
   def test_default_concurrency
-    pend('FIXME: EM.current_time is broken in pure ruby mode') if pure_ruby_mode?
     items = {}
     list = 1..10
     EM.run {
@@ -31,7 +30,6 @@ class TestIterator < Test::Unit::TestCase
   end
 
   def test_default_concurrency_with_a_proc
-    pend('FIXME: EM.current_time is broken in pure ruby mode') if pure_ruby_mode?
     items = {}
     list = (1..10).to_a
     original_list = list.dup
@@ -48,7 +46,6 @@ class TestIterator < Test::Unit::TestCase
   end
 
   def test_concurrency_bigger_than_list_size
-    pend('FIXME: EM.current_time is broken in pure ruby mode') if pure_ruby_mode?
     items = {}
     list = [1,2,3]
     EM.run {
@@ -64,7 +61,6 @@ class TestIterator < Test::Unit::TestCase
   end
 
   def test_changing_concurrency_affects_active_iteration
-    pend('FIXME: EM.current_time is broken in pure ruby mode') if pure_ruby_mode?
     items = {}
     list = 1..25
     seen = 0

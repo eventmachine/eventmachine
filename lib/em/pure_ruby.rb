@@ -229,6 +229,10 @@ module EventMachine
       selectable.send_datagram data, Socket::pack_sockaddr_in(port, host)
     end
 
+    # @private
+    def current_time
+      Reactor.instance.current_time
+    end
 
     # Sets reactor quantum in milliseconds. The underlying Reactor function wants a (possibly
     # fractional) number of seconds.
@@ -595,6 +599,7 @@ module EventMachine
     HeartbeatInterval = 2
 
     attr_reader :current_loop_time, :stop_scheduled
+    alias current_time current_loop_time
 
     def initialize
       initialize_for_run
