@@ -3,6 +3,7 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'rake'
+gem 'ostruct'
 
 install_if -> { RUBY_VERSION > '3.1' } do
   gem 'net-smtp'
