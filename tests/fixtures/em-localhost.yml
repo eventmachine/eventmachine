@@ -8,7 +8,6 @@ subject:
   O: EventMachine
   OU: Development
   CN: localhost
-version: 3
 
 ca: eventmachine-ca
 
