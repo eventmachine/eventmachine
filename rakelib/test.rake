@@ -70,7 +70,6 @@ namespace "test" do
     def x509_make_csr(cfg, key)
       csr = OpenSSL::X509::Request.new
       csr.subject = x509_subject(cfg)
-      csr.version = cfg.fetch("version", 2) # 2 == v3
       csr.public_key = key.public_key
       csr.sign key, OpenSSL::Digest::SHA256.new
       csr
