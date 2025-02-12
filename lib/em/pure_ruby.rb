@@ -128,11 +128,11 @@ module EventMachine
       Reactor.instance.initialize_for_run
     end
 
-    # Changed 04Oct06: intervals from the caller are now in milliseconds, but our native-ruby
-    # processor still wants them in seconds.
+    # Changed 2025-02-12: intervals from the caller are now in milliseconds, but
+    # our native-ruby processor still stores them in microseconds.
     # @private
     def add_oneshot_timer interval
-      Reactor.instance.install_oneshot_timer(interval.to_f / 1000)
+      Reactor.instance.install_oneshot_timer(interval * 1000)
     end
 
     # @private
@@ -597,6 +597,7 @@ module EventMachine
     include Singleton
 
     HeartbeatInterval = 2
+    HeartbeatIntervalMicrosec = HeartbeatInterval * 1_000_000
 
     attr_reader :current_loop_time, :stop_scheduled
 
@@ -626,11 +627,12 @@ module EventMachine
       @timers_iterating = false # only set while iterating @timers
       set_timer_quantum(0.1)
       @current_loop_time = get_current_loop_time
-      @next_heartbeat = @current_loop_time + HeartbeatInterval
+      @next_heartbeat = @current_loop_time + HeartbeatIntervalMicrosec
     end
 
     def current_time
-      Time.at(@current_loop_time)
+      sec, subsec = @current_loop_time.divmod(1_000_000)
+      Time.at(sec, subsec, :microsecond)
     end
 
     def add_selectable io
@@ -689,7 +691,7 @@ module EventMachine
 
     def run_heartbeats
       if @next_heartbeat <= @current_loop_time
-        @next_heartbeat = @current_loop_time + HeartbeatInterval
+        @next_heartbeat = @current_loop_time + HeartbeatIntervalMicrosec
         @selectables.each {|k,io| io.heartbeat}
       end
     end
@@ -761,12 +763,12 @@ module EventMachine
     if defined?(Process::CLOCK_MONOTONIC_RAW)
       # Uses CLOCK_MONOTONIC_RAW on the platforms that support it
       def get_current_loop_time
-        Process.clock_gettime(Process::CLOCK_MONOTONIC_RAW)
+        Process.clock_gettime(Process::CLOCK_MONOTONIC_RAW, :microsecond)
       end
     else
       # Process.clock_gettime emulates CLOCK_MONOTONIC on some platforms
       def get_current_loop_time
-        Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        Process.clock_gettime(Process::CLOCK_MONOTONIC, :microsecond)
       end
     end
 
@@ -854,7 +856,7 @@ module EventMachine
     end
 
     def set_inactivity_timeout tm
-      @inactivity_timeout = tm
+      @inactivity_timeout = tm * 1_000_000 # convert seconds to microseconds
     end
 
     def heartbeat
