@@ -599,7 +599,6 @@ module EventMachine
     HeartbeatInterval = 2
 
     attr_reader :current_loop_time, :stop_scheduled
-    alias current_time current_loop_time
 
     def initialize
       initialize_for_run
@@ -611,7 +610,7 @@ module EventMachine
 
     def install_oneshot_timer interval
       uuid = UuidGenerator::generate
-      (@timers_to_add || @timers) << [Time.now + interval, uuid]
+      (@timers_to_add || @timers) << [get_current_loop_time + interval, uuid]
       uuid
     end
 
@@ -626,8 +625,12 @@ module EventMachine
       @timers_to_add = SortedSet.new
       @timers_iterating = false # only set while iterating @timers
       set_timer_quantum(0.1)
-      @current_loop_time = Time.now
+      @current_loop_time = get_current_loop_time
       @next_heartbeat = @current_loop_time + HeartbeatInterval
+    end
+
+    def current_time
+      Time.at(@current_loop_time)
     end
 
     def add_selectable io
@@ -646,7 +649,7 @@ module EventMachine
         open_loopbreaker
 
         loop {
-          @current_loop_time = Time.now
+          @current_loop_time = get_current_loop_time
 
           break if @stop_scheduled
           run_timers
@@ -753,6 +756,18 @@ module EventMachine
 
     def set_timer_quantum interval_in_seconds
       @timer_quantum = interval_in_seconds
+    end
+
+    if defined?(Process::CLOCK_MONOTONIC_RAW)
+      # Uses CLOCK_MONOTONIC_RAW on the platforms that support it
+      def get_current_loop_time
+        Process.clock_gettime(Process::CLOCK_MONOTONIC_RAW)
+      end
+    else
+      # Process.clock_gettime emulates CLOCK_MONOTONIC on some platforms
+      def get_current_loop_time
+        Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      end
     end
 
   end
