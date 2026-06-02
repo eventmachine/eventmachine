@@ -41,6 +41,12 @@ static void mapper_dt (void *ptr)
 		delete (Mapper_t*) ptr;
 }
 
+static const rb_data_type_t mapper_type = {
+	"EventMachine::FastFileReader::Mapper",
+	{0, mapper_dt, 0,},
+	0, 0, RUBY_TYPED_FREE_IMMEDIATELY
+};
+
 /**********
 mapper_new
 **********/
@@ -50,7 +56,7 @@ static VALUE mapper_new (VALUE self, VALUE filename)
 	Mapper_t *m = new Mapper_t (StringValueCStr (filename));
 	if (!m)
 		rb_raise (rb_eStandardError, "No Mapper Object");
-	VALUE v = Data_Wrap_Struct (Mapper, 0, mapper_dt, (void*)m);
+	VALUE v = TypedData_Wrap_Struct (Mapper, &mapper_type, (void*)m);
 	return v;
 }
 
@@ -62,7 +68,7 @@ mapper_get_chunk
 static VALUE mapper_get_chunk (VALUE self, VALUE start, VALUE length)
 {
 	Mapper_t *m = NULL;
-	Data_Get_Struct (self, Mapper_t, m);
+	TypedData_Get_Struct (self, Mapper_t, &mapper_type, m);
 	if (!m)
 		rb_raise (rb_eStandardError, "No Mapper Object");
 
@@ -85,7 +91,7 @@ mapper_close
 static VALUE mapper_close (VALUE self)
 {
 	Mapper_t *m = NULL;
-	Data_Get_Struct (self, Mapper_t, m);
+	TypedData_Get_Struct (self, Mapper_t, &mapper_type, m);
 	if (!m)
 		rb_raise (rb_eStandardError, "No Mapper Object");
 	m->Close();
@@ -99,7 +105,7 @@ mapper_size
 static VALUE mapper_size (VALUE self)
 {
 	Mapper_t *m = NULL;
-	Data_Get_Struct (self, Mapper_t, m);
+	TypedData_Get_Struct (self, Mapper_t, &mapper_type, m);
 	if (!m)
 		rb_raise (rb_eStandardError, "No Mapper Object");
 	return INT2NUM (m->GetFileSize());
@@ -124,6 +130,5 @@ extern "C" void Init_fastfilereaderext()
 	rb_define_method (Mapper, "close", (VALUE(*)(...))mapper_close, 0);
 	rb_define_method (Mapper, "get_chunk", (VALUE(*)(...))mapper_get_chunk, 2);
 }
-
 
 
