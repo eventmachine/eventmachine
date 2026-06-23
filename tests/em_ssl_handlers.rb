@@ -54,6 +54,10 @@ module EMSSLHandlers
   IS_SSL_GE_1_1 = (EM::OPENSSL_LIBRARY_VERSION[/OpenSSL (\d+\.\d+\.\d+)/, 1]
     .split('.').map(&:to_i) <=> [1,1]) == 1
 
+  # is OpenSSL version >= 4.0.0
+  IS_SSL_GE_4_0 = (EM::OPENSSL_LIBRARY_VERSION[/OpenSSL (\d+\.\d+\.\d+)/, 1]
+    .split('.').map(&:to_i) <=> [4,0]) >= 0
+
   # common start_tls parameters
   SSL_3   = { ssl_version: %w(SSLv3)   }
   TLS_1_2 = { ssl_version: %w(TLSv1_2) }

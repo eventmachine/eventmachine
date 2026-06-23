@@ -25,7 +25,7 @@ class TestSSLProtocols < Test::Unit::TestCase
   end
 
   def test_any_to_v3
-    omit("SSLv3 is (correctly) unavailable") if EM::OPENSSL_NO_SSL3
+    omit("SSLv3 is (correctly) unavailable") if EM::OPENSSL_NO_SSL3 || IS_SSL_GE_4_0
     client_server client: TLS_ALL, server: SSL_3
     assert Client.handshake_completed?
     assert Server.handshake_completed?
@@ -50,7 +50,7 @@ class TestSSLProtocols < Test::Unit::TestCase
   end
 
   def test_v3_to_any
-    omit("SSLv3 is (correctly) unavailable") if EM::OPENSSL_NO_SSL3
+    omit("SSLv3 is (correctly) unavailable") if EM::OPENSSL_NO_SSL3 || IS_SSL_GE_4_0
     client_server client: SSL_3, server: TLS_ALL
     assert Client.handshake_completed?
     assert Server.handshake_completed?
@@ -66,7 +66,7 @@ class TestSSLProtocols < Test::Unit::TestCase
   end
 
   def test_v3_to_v3
-    omit("SSLv3 is (correctly) unavailable") if EM::OPENSSL_NO_SSL3
+    omit("SSLv3 is (correctly) unavailable") if EM::OPENSSL_NO_SSL3 || IS_SSL_GE_4_0
     client_server client: SSL_3, server: SSL_3
     assert Client.handshake_completed?
     assert Server.handshake_completed?
@@ -136,7 +136,7 @@ class TestSSLProtocols < Test::Unit::TestCase
   end
 
   def test_v3_with_external_client
-    omit("SSLv3 is (correctly) unavailable") if EM::OPENSSL_NO_SSL3
+    omit("SSLv3 is (correctly) unavailable") if EM::OPENSSL_NO_SSL3 || IS_SSL_GE_4_0
     external_client nil, nil, :SSLv3_client, SSL_3
   end
 
