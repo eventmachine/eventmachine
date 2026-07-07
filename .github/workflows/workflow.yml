@@ -7,9 +7,9 @@ jobs:
     uses: ruby/actions/.github/workflows/ruby_versions.yml@master
     with:
       engine: cruby
-      # We currently support four EOL versions of ruby, but only on linux
+      # We currently support several EOL versions of ruby, but only on linux
       # versions that were released before that version of ruby went EOL.
-      min_version: 2.5
+      min_version: 2.6
 
   build:
     needs: ruby-versions
@@ -36,15 +36,13 @@ jobs:
           - { os: windows-2022, ruby: head } # uses "ucrt" instead
 
           # Ubuntu 22.04 was released just prior to ruby 2.6's EOL
-          - { os: ubuntu-22.04, ruby: '2.5' }
+          # (no exclusions)
 
           # Ubuntu 24.04 was released just prior to ruby 3.0's EOL
-          - { os: ubuntu-24.04, ruby: '2.5' }
           - { os: ubuntu-24.04, ruby: '2.6' }
           - { os: ubuntu-24.04, ruby: '2.7' }
 
           # No EOL versions for macos-15
-          - { os: macos-15, ruby: '2.5' }
           - { os: macos-15, ruby: '2.6' }
           - { os: macos-15, ruby: '2.7' }
           - { os: macos-15, ruby: '3.0' }
@@ -52,7 +50,6 @@ jobs:
           - { os: macos-15, ruby: '3.2' }
 
           # No EOL versions for windows-2022
-          - { os: windows-2022, ruby: '2.5' }
           - { os: windows-2022, ruby: '2.6' }
           - { os: windows-2022, ruby: '2.7' }
           - { os: windows-2022, ruby: '3.0' }
