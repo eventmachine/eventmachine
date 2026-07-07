@@ -23,10 +23,8 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-20.04
           - ubuntu-22.04
           - ubuntu-24.04
-          - macos-13 # amd64
           - macos-14 # arm64
           - windows-2022
 
@@ -37,9 +35,6 @@ jobs:
         exclude:
           - { os: windows-2022, ruby: head } # uses "ucrt" instead
 
-          # Ubuntu 20.04 was released just prior to ruby 2.4's EOL
-          # (no exclusions)
-
           # Ubuntu 22.04 was released just prior to ruby 2.6's EOL
           - { os: ubuntu-22.04, ruby: '2.5' }
 
@@ -47,14 +42,6 @@ jobs:
           - { os: ubuntu-24.04, ruby: '2.5' }
           - { os: ubuntu-24.04, ruby: '2.6' }
           - { os: ubuntu-24.04, ruby: '2.7' }
-
-          # No EOL versions for macos-13
-          - { os: macos-13, ruby: '2.5' }
-          - { os: macos-13, ruby: '2.6' }
-          - { os: macos-13, ruby: '2.7' }
-          - { os: macos-13, ruby: '3.0' }
-          - { os: macos-13, ruby: '3.1' }
-          - { os: macos-13, ruby: '3.2' }
 
           # No EOL versions for macos-14
           - { os: macos-14, ruby: '2.5' }
