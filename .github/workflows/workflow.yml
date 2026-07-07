@@ -25,7 +25,7 @@ jobs:
         os:
           - ubuntu-22.04
           - ubuntu-24.04
-          - macos-14 # arm64
+          - macos-15 # arm64
           - windows-2022
 
         ruby: ${{ fromJson(needs.ruby-versions.outputs.versions) }}
@@ -43,13 +43,13 @@ jobs:
           - { os: ubuntu-24.04, ruby: '2.6' }
           - { os: ubuntu-24.04, ruby: '2.7' }
 
-          # No EOL versions for macos-14
-          - { os: macos-14, ruby: '2.5' }
-          - { os: macos-14, ruby: '2.6' }
-          - { os: macos-14, ruby: '2.7' }
-          - { os: macos-14, ruby: '3.0' }
-          - { os: macos-14, ruby: '3.1' }
-          - { os: macos-14, ruby: '3.2' }
+          # No EOL versions for macos-15
+          - { os: macos-15, ruby: '2.5' }
+          - { os: macos-15, ruby: '2.6' }
+          - { os: macos-15, ruby: '2.7' }
+          - { os: macos-15, ruby: '3.0' }
+          - { os: macos-15, ruby: '3.1' }
+          - { os: macos-15, ruby: '3.2' }
 
           # No EOL versions for windows-2022
           - { os: windows-2022, ruby: '2.5' }
