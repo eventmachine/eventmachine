@@ -26,14 +26,14 @@ jobs:
           - ubuntu-22.04
           - ubuntu-24.04
           - macos-15 # arm64
-          - windows-2022
+          - windows-2025
 
         ruby: ${{ fromJson(needs.ruby-versions.outputs.versions) }}
 
         include:
-          - { os: windows-2022, ruby: ucrt } # used instead of "head"
+          - { os: windows-2025, ruby: ucrt } # used instead of "head"
         exclude:
-          - { os: windows-2022, ruby: head } # uses "ucrt" instead
+          - { os: windows-2025, ruby: head } # uses "ucrt" instead
 
           # Ubuntu 22.04 was released just prior to ruby 2.6's EOL
           # (no exclusions)
@@ -49,12 +49,12 @@ jobs:
           - { os: macos-15, ruby: '3.1' }
           - { os: macos-15, ruby: '3.2' }
 
-          # No EOL versions for windows-2022
-          - { os: windows-2022, ruby: '2.6' }
-          - { os: windows-2022, ruby: '2.7' }
-          - { os: windows-2022, ruby: '3.0' }
-          - { os: windows-2022, ruby: '3.1' }
-          - { os: windows-2022, ruby: '3.2' }
+          # No EOL versions for windows-2025
+          - { os: windows-2025, ruby: '2.6' }
+          - { os: windows-2025, ruby: '2.7' }
+          - { os: windows-2025, ruby: '3.0' }
+          - { os: windows-2025, ruby: '3.1' }
+          - { os: windows-2025, ruby: '3.2' }
 
     steps:
       - name: repo checkout
