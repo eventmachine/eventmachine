@@ -33,6 +33,7 @@ require 'forwardable'
 require 'socket'
 require 'fcntl'
 require 'set'
+require 'sorted_set'
 require 'openssl'
 
 module EventMachine
