@@ -7,9 +7,9 @@ jobs:
     uses: ruby/actions/.github/workflows/ruby_versions.yml@master
     with:
       engine: cruby
-      # We currently support four EOL versions of ruby, but only on linux
+      # We currently support several EOL versions of ruby, but only on linux
       # versions that were released before that version of ruby went EOL.
-      min_version: 2.5
+      min_version: 2.6
 
   build:
     needs: ruby-versions
@@ -23,48 +23,38 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-20.04
           - ubuntu-22.04
           - ubuntu-24.04
-          - macos-13 # amd64
-          - macos-14 # arm64
-          - windows-2022
+          - macos-15 # arm64
+          - windows-2025
 
         ruby: ${{ fromJson(needs.ruby-versions.outputs.versions) }}
 
         include:
-          - { os: windows-2022, ruby: ucrt } # used instead of "head"
+          - { os: windows-2025, ruby: ucrt } # used instead of "head"
         exclude:
-          - { os: windows-2022, ruby: head } # uses "ucrt" instead
-
-          # Ubuntu 20.04 was released just prior to ruby 2.4's EOL
-          # (no exclusions)
+          - { os: windows-2025, ruby: head } # uses "ucrt" instead
 
           # Ubuntu 22.04 was released just prior to ruby 2.6's EOL
-          - { os: ubuntu-22.04, ruby: '2.5' }
+          # (no exclusions)
 
           # Ubuntu 24.04 was released just prior to ruby 3.0's EOL
-          - { os: ubuntu-24.04, ruby: '2.5' }
           - { os: ubuntu-24.04, ruby: '2.6' }
           - { os: ubuntu-24.04, ruby: '2.7' }
 
-          # No EOL versions for macos-13
-          - { os: macos-13, ruby: '2.5' }
-          - { os: macos-13, ruby: '2.6' }
-          - { os: macos-13, ruby: '2.7' }
-          - { os: macos-13, ruby: '3.0' }
+          # No EOL versions for macos-15
+          - { os: macos-15, ruby: '2.6' }
+          - { os: macos-15, ruby: '2.7' }
+          - { os: macos-15, ruby: '3.0' }
+          - { os: macos-15, ruby: '3.1' }
+          - { os: macos-15, ruby: '3.2' }
 
-          # No EOL versions for macos-14
-          - { os: macos-14, ruby: '2.5' }
-          - { os: macos-14, ruby: '2.6' }
-          - { os: macos-14, ruby: '2.7' }
-          - { os: macos-14, ruby: '3.0' }
-
-          # No EOL versions for windows-2022
-          - { os: windows-2022, ruby: '2.5' }
-          - { os: windows-2022, ruby: '2.6' }
-          - { os: windows-2022, ruby: '2.7' }
-          - { os: windows-2022, ruby: '3.0' }
+          # No EOL versions for windows-2025
+          - { os: windows-2025, ruby: '2.6' }
+          - { os: windows-2025, ruby: '2.7' }
+          - { os: windows-2025, ruby: '3.0' }
+          - { os: windows-2025, ruby: '3.1' }
+          - { os: windows-2025, ruby: '3.2' }
 
     steps:
       - name: repo checkout
