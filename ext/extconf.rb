@@ -253,6 +253,8 @@ else
 end
 
 # OpenSSL version checks
+Logging::message "=== Checking for OpenSSL features... ===\n"
+
 #   below are yes for 1.1.0 & later, may need to check func rather than macro
 #   with versions after 1.1.1
 have_func  "TLS_server_method"            , "openssl/ssl.h"
@@ -263,6 +265,8 @@ have_func "SSL_CTX_set_dh_auto(NULL, 0)"  , "openssl/ssl.h"
 
 # below is yes for 3.0.0 & later
 have_func "SSL_get1_peer_certificate"     , "openssl/ssl.h"
+
+Logging::message "=== Checking done. ===\n"
 
 # Hack so that try_link will test with a C++ compiler instead of a C compiler
 TRY_LINK.sub!('$(CC)', '$(CXX)')

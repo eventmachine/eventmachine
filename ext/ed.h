@@ -221,7 +221,7 @@ class ConnectionDescriptor: public EventableDescriptor
 		virtual const char *GetCipherName();
 		virtual const char *GetCipherProtocol();
 		virtual const char *GetSNIHostname();
-		virtual bool VerifySslPeer(const char*);
+		virtual bool VerifySslPeer(int, X509_STORE_CTX *);
 		virtual void AcceptSslPeer();
 		#endif
 
