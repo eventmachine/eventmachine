@@ -17,6 +17,26 @@ module EventMachine
     Cmoved = 'moved'.freeze
 
 
+    # Override .new so subclasses don't have to call super and can ignore
+    # connection-specific arguments
+    #
+    # @private
+    def self.new(sig, path, *args)
+      allocate.instance_eval do
+        # Store signature and path
+        @signature = sig
+        @path = path
+
+        # Call a superclass's #initialize if it has one
+        initialize(*args)
+
+        # post initialize callback
+        post_init
+
+        self
+      end
+    end
+
     # @private
     def receive_data(data)
       case data
