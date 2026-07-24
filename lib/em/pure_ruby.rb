@@ -495,9 +495,15 @@ module EventMachine
     end
 
     # @private
+    def get_comm_inactivity_timeout sig
+      s = Reactor.instance.get_selectable( sig ) or raise "unknown get_comm_inactivity_timeout target"
+      s.get_comm_inactivity_timeout
+    end
+
+    # @private
     def set_comm_inactivity_timeout sig, tm
       r = Reactor.instance.get_selectable( sig ) or raise "unknown set_comm_inactivity_timeout target"
-      r.set_inactivity_timeout tm
+      r.set_comm_inactivity_timeout tm
     end
 
     # @private
@@ -793,7 +799,8 @@ class IO
   def_delegator :@eventmachine_selectable, :get_sockname
   def_delegator :@eventmachine_selectable, :send_datagram
   def_delegator :@eventmachine_selectable, :get_outbound_data_size
-  def_delegator :@eventmachine_selectable, :set_inactivity_timeout
+  def_delegator :@eventmachine_selectable, :get_comm_inactivity_timeout
+  def_delegator :@eventmachine_selectable, :set_comm_inactivity_timeout
   def_delegator :@eventmachine_selectable, :heartbeat
   def_delegator :@eventmachine_selectable, :io
   def_delegator :@eventmachine_selectable, :io=
@@ -855,7 +862,11 @@ module EventMachine
       nil
     end
 
-    def set_inactivity_timeout tm
+    def get_comm_inactivity_timeout
+      (@inactivity_timeout || 0.0) / 1_000_000 # convert microseconds to seconds
+    end
+
+    def set_comm_inactivity_timeout tm
       @inactivity_timeout = tm * 1_000_000 # convert seconds to microseconds
     end
 
