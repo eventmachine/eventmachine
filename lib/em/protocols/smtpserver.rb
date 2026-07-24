@@ -462,9 +462,9 @@ module EventMachine
       # path in case of delivery problems. All of that is left to the calling application.
       #
       def process_mail_from sender
-        if (@@parms[:starttls]==:required and !@state.include?(:starttls))
+        if (@@parms[:starttls]==:required && !@state.include?(:starttls))
           send_data "550 This server requires STARTTLS before MAIL FROM\r\n"
-        elsif (@@parms[:auth]==:required and !@state.include?(:auth))
+        elsif (@@parms[:auth]==:required && !@state.include?(:auth))
           send_data "550 This server requires authentication before MAIL FROM\r\n"
         elsif @state.include?(:mail_from)
           send_data "503 MAIL already given\r\n"

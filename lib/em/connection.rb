@@ -434,7 +434,7 @@ module EventMachine
       fail_if_no_peer_cert = args[:fail_if_no_peer_cert]
 
       [priv_key_path, cert_chain_path].each do |file|
-        next if file.nil? or file.empty?
+        next if file.nil? || file.empty?
         raise FileNotFoundException,
         "Could not find #{file} for start_tls" unless File.exist? file
       end

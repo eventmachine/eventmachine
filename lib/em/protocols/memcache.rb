@@ -219,7 +219,7 @@ module EventMachine
 
       # @private
       def unbind
-        if @connected or @reconnecting
+        if @connected || @reconnecting
           EM.add_timer(1){ reconnect @host, @port }
           @connected = false
           @reconnecting = true
