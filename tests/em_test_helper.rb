@@ -164,7 +164,7 @@ class Test::Unit::TestCase
   ci_multiplier = ci?                   ? 4 : 1
   os_multiplier = (windows? || darwin?) ? 2 : 1
   rb_multiplier = pure_ruby_mode?       ? 2 : 1
-  TIMEOUT_INTERVAL = 0.25 * ci_multiplier * os_multiplier * rb_multiplier
+  ::TIMEOUT_INTERVAL = 0.25 * ci_multiplier * os_multiplier * rb_multiplier
   puts "               TIMEOUT_INTERVAL: #{TIMEOUT_INTERVAL}"
 
   module EMTestCasePrepend
